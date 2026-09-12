@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "从 cordis.yml 到 Fiber 的落地链",
+    "output": "07-config-to-fiber.html",
+    "viewBox": [
+      1540,
+      660
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "yml",
+      "type": "external",
+      "label": "cordis.yml",
+      "sublabel": "磁盘上的配置文件",
+      "pos": [
+        60,
+        270
+      ],
+      "size": [
+        210,
+        110
+      ]
+    },
+    {
+      "id": "inc",
+      "type": "database",
+      "label": "Include 插件",
+      "sublabel": "读文件、yaml.load 得到 EntryOptions[]",
+      "tag": "I/index.ts:48，随后 applyPatches（§ 7.5）",
+      "pos": [
+        320,
+        270
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "root",
+      "type": "frontend",
+      "label": "EntryTree.root.update(data)",
+      "sublabel": "根 Group 承接整份配置",
+      "tag": "L/config/group.ts",
+      "pos": [
+        670,
+        270
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "e1",
+      "type": "backend",
+      "label": "Entry timer",
+      "sublabel": "L/config/entry.ts:34",
+      "pos": [
+        1040,
+        90
+      ],
+      "size": [
+        240,
+        90
+      ]
+    },
+    {
+      "id": "e2",
+      "type": "backend",
+      "label": "Entry db",
+      "sublabel": "普通配置行",
+      "pos": [
+        1040,
+        205
+      ],
+      "size": [
+        240,
+        90
+      ]
+    },
+    {
+      "id": "e3",
+      "type": "cloud",
+      "label": "Entry group1",
+      "sublabel": "group: true，config 是子 Entry 数组",
+      "pos": [
+        1040,
+        320
+      ],
+      "size": [
+        240,
+        90
+      ]
+    },
+    {
+      "id": "e4",
+      "type": "backend",
+      "label": "Entry group1:a",
+      "sublabel": "子树条目，id 拼上父级",
+      "pos": [
+        1330,
+        320
+      ],
+      "size": [
+        190,
+        90
+      ]
+    },
+    {
+      "id": "e5",
+      "type": "security",
+      "label": "Entry group1:b",
+      "sublabel": "disabled，不创建 Fiber",
+      "pos": [
+        1040,
+        450
+      ],
+      "size": [
+        240,
+        90
+      ]
+    },
+    {
+      "id": "fib",
+      "type": "messagebus",
+      "label": "Fiber",
+      "sublabel": "ctx.registry.plugin(...) 的产物",
+      "tag": "每个启用的 Entry 恰好一个",
+      "pos": [
+        1330,
+        150
+      ],
+      "size": [
+        190,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "yml",
+      "to": "inc",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "inc",
+      "to": "root",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "root",
+      "to": "e2"
+    },
+    {
+      "id": "d",
+      "from": "root",
+      "to": "e3"
+    },
+    {
+      "id": "e",
+      "from": "e3",
+      "to": "e4"
+    },
+    {
+      "id": "f",
+      "from": "e1",
+      "to": "fib"
+    },
+    {
+      "id": "g",
+      "from": "e3",
+      "to": "e5",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 48
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三段翻译",
+      "items": [
+        "Include 把文件变成 EntryOptions 数组",
+        "EntryTree 把数组变成 Entry 对象树",
+        "每个启用的 Entry 再变成一个 Fiber"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "group 是配置里的一行",
+      "items": [
+        "group: true 的 Entry 其 config 是子 Entry 数组",
+        "子条目的 id 会拼上父级 id，用冒号分隔",
+        "嵌套深度没有硬限制"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "disabled 沿父链生效",
+      "items": [
+        "Entry.disabled 会向上检查（entry.ts:64）",
+        "被禁用的 Entry 根本不创建 Fiber",
+        "父级禁用则整棵子树都不激活"
+      ]
+    }
+  ]
+}

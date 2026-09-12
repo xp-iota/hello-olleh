@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "GlobalRealm 的引用计数回收",
+    "output": "07-realm-recycle.html",
+    "viewBox": [
+      1520,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "start",
+      "type": "frontend",
+      "label": "entry 的 isolate 配置变了",
+      "sublabel": "触发 loader/partial-dispose",
+      "pos": [
+        60,
+        180
+      ],
+      "size": [
+        280,
+        120
+      ]
+    },
+    {
+      "id": "islocal",
+      "type": "security",
+      "label": "旧 label 是 true 吗",
+      "sublabel": "即 LocalRealm",
+      "pos": [
+        390,
+        180
+      ],
+      "size": [
+        260,
+        120
+      ]
+    },
+    {
+      "id": "skip",
+      "type": "external",
+      "label": "跳过",
+      "sublabel": "LocalRealm 随 entry 消亡，无需回收",
+      "pos": [
+        700,
+        40
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "others",
+      "type": "security",
+      "label": "还有别的 entry 引用吗",
+      "sublabel": "检查同一 GlobalRealm 的引用者",
+      "pos": [
+        700,
+        300
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "keep",
+      "type": "cloud",
+      "label": "直接返回",
+      "sublabel": "仍有引用者，不回收",
+      "pos": [
+        1080,
+        180
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "drop",
+      "type": "messagebus",
+      "label": "回收",
+      "sublabel": "realm.delete(name)，size 归零则删掉整个 realm",
+      "pos": [
+        1080,
+        330
+      ],
+      "size": [
+        380,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "start",
+      "to": "islocal",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "islocal",
+      "to": "skip",
+      "label": "是"
+    },
+    {
+      "id": "c",
+      "from": "islocal",
+      "to": "others",
+      "label": "否"
+    },
+    {
+      "id": "d",
+      "from": "others",
+      "to": "keep",
+      "label": "是"
+    },
+    {
+      "id": "e",
+      "from": "others",
+      "to": "drop",
+      "label": "否",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两种 Realm 的回收责任不同",
+      "items": [
+        "LocalRealm 的生命周期绑定在 entry 上",
+        "GlobalRealm 被多个 entry 共享，需要计数",
+        "因此只有后者要显式判断能否回收"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "两级删除",
+      "items": [
+        "先 realm.delete(name) 移除单个服务名",
+        "若 realm.size 归零再删掉整个 realm 记录",
+        "避免留下空壳 realm 占用 label"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "这是部分回收而非整体卸载",
+      "items": [
+        "监听器名为 loader/partial-dispose",
+        "只处理 isolate 配置变化引起的键切换",
+        "Fiber 本身的卸载走另一条路径"
+      ]
+    }
+  ]
+}

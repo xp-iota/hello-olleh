@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ACP 实现里三个值得注意的设计",
+    "output": "04-acp-designs.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "d1",
+      "type": "frontend",
+      "label": "① automation-only",
+      "sublabel": "ACP server 只服务自动化，不是人机界面",
+      "tag": "acp.ts:101 注释；人机交互由 host/webserver 的 325 行负责",
+      "pos": [
+        70,
+        180
+      ],
+      "size": [
+        420,
+        150
+      ]
+    },
+    {
+      "id": "d2",
+      "type": "security",
+      "label": "② handler 在注入作用域之外执行",
+      "sublabel": "必须在插件激活时捕获服务引用",
+      "tag": "acp.ts:106 注释；这是 cordis traceable 带来的约束，见 cordis 04 篇 § 4.6",
+      "pos": [
+        540,
+        180
+      ],
+      "size": [
+        420,
+        150
+      ]
+    },
+    {
+      "id": "d3",
+      "type": "cloud",
+      "label": "③ 权限请求是机器策略通道",
+      "sublabel": "面向 dsh-subagent-acp 这类客户端",
+      "tag": "acp.ts:212-213 注释",
+      "pos": [
+        1010,
+        180
+      ],
+      "size": [
+        400,
+        150
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "d1",
+      "to": "d2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "d2",
+      "to": "d3",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "第二条是最容易踩的坑",
+      "items": [
+        "handler 执行时 ctx 的注入链已经不同",
+        "在 handler 里现取服务会拿到错误的视图",
+        "必须在插件激活期就把引用捕获进闭包"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "为什么会这样",
+      "items": [
+        "cordis 的 traceable 让 ctx 属性访问依赖调用方",
+        "ACP handler 由外部请求触发，不在插件调用栈上",
+        "于是访问链断了"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "权限通道的定位",
+      "items": [
+        "它不是给人看的确认弹窗",
+        "而是给上游 agent 的机器可读策略接口",
+        "因此响应格式是结构化的，不含展示文案"
+      ]
+    }
+  ]
+}

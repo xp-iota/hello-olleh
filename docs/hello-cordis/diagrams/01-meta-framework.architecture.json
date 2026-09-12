@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "元框架与普通框架的分工差异",
+    "output": "01-meta-framework.html",
+    "viewBox": [
+      1080,
+      460
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "normal",
+      "type": "external",
+      "label": "普通框架",
+      "sublabel": "路由 / ORM / 模板引擎",
+      "tag": "你在它的槽位里填代码",
+      "pos": [
+        80,
+        180
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "meta",
+      "type": "backend",
+      "label": "元框架 cordis",
+      "sublabel": "Context · Fiber · Service · Event",
+      "tag": "业务能力全部是插件",
+      "pos": [
+        660,
+        180
+      ],
+      "size": [
+        320,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "abstraction",
+      "from": "normal",
+      "to": "meta",
+      "label": "抽象层级上移",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "普通框架给的是槽位",
+      "items": [
+        "预置路由、ORM、模板引擎等具体能力",
+        "你的代码填进它规定的位置",
+        "能力集合由框架决定，扩展受限于预留的钩子"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "cordis 只给四件东西",
+      "items": [
+        "Context 是能力的视图，Fiber 是生命周期的单元",
+        "Service 是跨插件共享的能力，Event 是解耦通道",
+        "四者合计 1848 行，不含任何业务逻辑"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "差异的落点是可拆卸",
+      "items": [
+        "普通框架关心「如何把能力用起来」",
+        "cordis 关心「如何把能力组装起来并安全拆掉」",
+        "因此每个副作用都必须可逆"
+      ]
+    }
+  ]
+}

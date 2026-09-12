@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "录制回放式的确定性测试",
+    "output": "10-snapshot-testing.html",
+    "viewBox": [
+      1480,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "rec",
+      "type": "security",
+      "label": "录制",
+      "sublabel": "需要 API key，真实调模型并存下完整交互",
+      "tag": "命令是 test:snapshot:record",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "rep",
+      "type": "database",
+      "label": "回放",
+      "sublabel": "无需 key，由 llm-replay 喂录制的流",
+      "tag": "llm-replay 共 856 行，命令是 test:snapshot",
+      "pos": [
+        470,
+        190
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "cmp",
+      "type": "backend",
+      "label": "对比期望输出",
+      "sublabel": "针对 ACP 与 headless 两种形态",
+      "tag": "acp-snapshot 共 3162 行",
+      "pos": [
+        870,
+        190
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "why",
+      "type": "cloud",
+      "label": "解决的问题",
+      "sublabel": "LLM 应用如何做确定性测试",
+      "pos": [
+        1270,
+        190
+      ],
+      "size": [
+        160,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "rec",
+      "to": "rep",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "rep",
+      "to": "cmp",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "cmp",
+      "to": "why",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三步闭环",
+      "items": [
+        "录制一次真实交互并入库",
+        "CI 里无密钥回放",
+        "输出变了就是回归"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "依赖 replayState",
+      "items": [
+        "assembler 的 replayState 就是为此设计",
+        "它让流式装配可以从录制数据重建",
+        "见 07 篇 § 7.6"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "两种形态都要覆盖",
+      "items": [
+        "ACP 面向自动化客户端",
+        "headless 面向一次性 runner",
+        "两者的输出格式不同，因此分别快照"
+      ]
+    }
+  ]
+}

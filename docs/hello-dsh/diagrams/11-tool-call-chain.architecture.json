@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "链 3：一次工具调用",
+    "output": "11-tool-call-chain.html",
+    "viewBox": [
+      1520,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "b1",
+      "type": "frontend",
+      "label": "executeToolCalls",
+      "sublabel": "AL/tool-calls.ts:59",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        300,
+        130
+      ]
+    },
+    {
+      "id": "b2",
+      "type": "database",
+      "label": "requireInitiator",
+      "sublabel": "从 enter() 建立的上下文取当前 Agent",
+      "tag": "tool-calls.ts:67，enter 在 AG/index.ts:474",
+      "pos": [
+        410,
+        190
+      ],
+      "size": [
+        360,
+        130
+      ]
+    },
+    {
+      "id": "b3",
+      "type": "backend",
+      "label": "映射 PlannedCall",
+      "sublabel": "parseArguments 容错，JSON 失败保留原文",
+      "tag": "tool-calls.ts:71-80 与 :104",
+      "pos": [
+        810,
+        190
+      ],
+      "size": [
+        360,
+        130
+      ]
+    },
+    {
+      "id": "b4",
+      "type": "security",
+      "label": "executionMode 与三段 waterfall",
+      "sublabel": "pre-execute、execute、post-execute 依次通过",
+      "tag": "见 07 篇 § 7.11",
+      "pos": [
+        430,
+        400
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "b5",
+      "type": "cloud",
+      "label": "结果落日志",
+      "sublabel": "append tool/result 后回到 turn 循环",
+      "pos": [
+        900,
+        400
+      ],
+      "size": [
+        340,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "b1",
+      "to": "b2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "b2",
+      "to": "b3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "b3",
+      "to": "b4",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 46
+    },
+    {
+      "id": "d",
+      "from": "b4",
+      "to": "b5",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "参数解析是容错的",
+      "items": [
+        "parseArguments 在 JSON 解析失败时保留原文",
+        "于是模型的轻微格式错误不会直接崩",
+        "工具自己决定如何处理原始字符串"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "身份从上下文取",
+      "items": [
+        "工具签名里没有 agent 参数",
+        "requireInitiator 从执行上下文取",
+        "缺失即报错，见 08 篇 § 8.28"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "三段 waterfall 是扩展点",
+      "items": [
+        "审批挂在 pre-execute",
+        "超时与重试挂在 execute",
+        "结果改写挂在 post-execute"
+      ]
+    }
+  ]
+}

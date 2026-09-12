@@ -1,0 +1,5 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M12-framework-mechanisms/run.py
+
+{"alignment": "A+C", "architecture_not_imported": ["event-bus", "hmr", "intercept"], "capability_refusal": "BadCapability declares unknown capabilities ['typo-capability']; known capabilities: ['filesystem_skills', 'goal_commands', 'native_goal_manager', 'native_kanban_toolset']", "entry_points": "iota_core.providers", "inactive_refusal": "cannot push effect 'late' onto disposed stack 'm12'", "lifo": ["outer", "inner"], "module": "M12", "status": "ok"}
+IOTA_MODULE_OK M12-framework-mechanisms
+[exit 0]

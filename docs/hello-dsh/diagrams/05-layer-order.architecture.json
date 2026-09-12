@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "四层 patch 的叠加顺序",
+    "output": "05-layer-order.html",
+    "viewBox": [
+      1740,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "e0",
+      "type": "external",
+      "label": "空列表",
+      "sublabel": "起点是空的 entry 数组",
+      "pos": [
+        60,
+        190
+      ],
+      "size": [
+        190,
+        110
+      ]
+    },
+    {
+      "id": "l1",
+      "type": "frontend",
+      "label": "① bundle 层",
+      "sublabel": "按 profile 的 bundles 顺序，base 先用整体 insert",
+      "tag": "随后 dsh-web-app 按 id 覆盖",
+      "pos": [
+        290,
+        190
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "l2",
+      "type": "database",
+      "label": "② profile patch",
+      "sublabel": "用户对这个 profile 的定制",
+      "pos": [
+        630,
+        190
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "l3",
+      "type": "backend",
+      "label": "③ home 级 patch",
+      "sublabel": "整个 home 共享的定制",
+      "pos": [
+        920,
+        190
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "l4",
+      "type": "security",
+      "label": "④ --patch overlay",
+      "sublabel": "命令行临时覆盖",
+      "pos": [
+        1210,
+        190
+      ],
+      "size": [
+        230,
+        110
+      ]
+    },
+    {
+      "id": "out",
+      "type": "messagebus",
+      "label": "最终 entry 列表",
+      "sublabel": "交给 cordis Loader",
+      "pos": [
+        1480,
+        190
+      ],
+      "size": [
+        220,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "e0",
+      "to": "l1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "l1",
+      "to": "l2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "l2",
+      "to": "l3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "l3",
+      "to": "l4",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e",
+      "from": "l4",
+      "to": "out",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "一次调用完成全部叠加",
+      "items": [
+        "composeEntries() 位于 AB/profile.ts:413",
+        "它把所有层 flat 成一个 patch 数组",
+        "然后只调用一次 applyEntryPatches"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "底层就是 cordis 的 applyPatches",
+      "items": [
+        "与 cordis include 用的是同一套语义",
+        "insert 追加、按 id 覆盖两条路径",
+        "见 cordis 07 篇 § 7.5"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "顺序决定优先级",
+      "items": [
+        "后叠的层覆盖先叠的",
+        "命令行 --patch 优先级最高",
+        "便于临时调试而不改文件"
+      ]
+    }
+  ]
+}

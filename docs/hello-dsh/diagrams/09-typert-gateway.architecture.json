@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "TypeRT 到 API 端点的三行相邻",
+    "output": "09-typert-gateway.html",
+    "viewBox": [
+      1500,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "reg",
+      "type": "frontend",
+      "label": "typert/registry",
+      "sublabel": "909 行，运行时类型注册表",
+      "pos": [
+        70,
+        200
+      ],
+      "size": [
+        320,
+        140
+      ]
+    },
+    {
+      "id": "gw",
+      "type": "database",
+      "label": "api/gateway",
+      "sublabel": "1358 行，按注册的类型自动生成 API 端点",
+      "pos": [
+        430,
+        200
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "px",
+      "type": "cloud",
+      "label": "host/apiproxy",
+      "sublabel": "8571 行，把端点挂到 HTTP 与 WebSocket 上",
+      "pos": [
+        830,
+        200
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "rem",
+      "type": "backend",
+      "label": "api/remotes",
+      "sublabel": "449 行，客户端侧的对偶，负责远端连接",
+      "pos": [
+        1230,
+        200
+      ],
+      "size": [
+        200,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "reg",
+      "to": "gw",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "gw",
+      "to": "px",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "px",
+      "to": "rem",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三行相邻不是偶然",
+      "items": [
+        "dsh-base patch 里 typert、typert-loader、typert-gateway 相邻",
+        "前者提供类型信息，后者消费它",
+        "顺序即依赖顺序"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "端点是生成的",
+      "items": [
+        "不手写路由表",
+        "服务方法上标注装饰器即可暴露",
+        "于是新增远端方法不必改 gateway"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "包 id 与包名不一致",
+      "items": [
+        "配置里的 id 是 typert-gateway",
+        "实际包名是 api/gateway",
+        "按 id 覆盖时要用配置里的 id"
+      ]
+    }
+  ]
+}

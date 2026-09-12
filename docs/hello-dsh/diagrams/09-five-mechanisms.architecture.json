@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "运行面五种机制的定位",
+    "output": "09-five-mechanisms.html",
+    "viewBox": [
+      1500,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "m1",
+      "type": "database",
+      "label": "① Jobs 后台任务",
+      "sublabel": "jobs 424 行、jobs-local 567 行、tool-jobs 432 行",
+      "tag": "任务在 turn 之外跑，模型用 job 系列工具收结果",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "m2",
+      "type": "backend",
+      "label": "② Schedule 定时触发",
+      "sublabel": "按时间规则唤醒 agent",
+      "pos": [
+        70,
+        270
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "m3",
+      "type": "security",
+      "label": "③ Goals 目标驱动",
+      "sublabel": "在 turn-stopping 里判断是否续跑",
+      "pos": [
+        70,
+        410
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "m4",
+      "type": "cloud",
+      "label": "④ Commands 人类命令",
+      "sublabel": "斜杠命令，由人显式触发",
+      "pos": [
+        540,
+        200
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "m5",
+      "type": "messagebus",
+      "label": "⑤ Skills 数据驱动能力",
+      "sublabel": "模型可发现并调用的一组文件",
+      "pos": [
+        540,
+        340
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "axis",
+      "type": "frontend",
+      "label": "区分维度",
+      "sublabel": "谁触发、在 turn 内还是 turn 外",
+      "pos": [
+        1010,
+        270
+      ],
+      "size": [
+        420,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "m1",
+      "to": "m4",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "m4",
+      "to": "axis",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "m5",
+      "to": "axis",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "按触发者分",
+      "items": [
+        "Jobs 与 Schedule 由系统触发",
+        "Commands 由人触发",
+        "Goals 与 Skills 由模型或策略触发"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "按位置分",
+      "items": [
+        "Jobs 与 Schedule 在 turn 之外",
+        "Goals 与 Skills 在 turn 之内",
+        "这是选型时最关键的区别"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "官方文档的说法",
+      "items": [
+        "加后台工作就注册到 ctx.jobs",
+        "模型用 job 系列工具收集或停止它",
+        "见 docs/architecture.md 的映射表"
+      ]
+    }
+  ]
+}

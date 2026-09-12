@@ -1,0 +1,5 @@
+G5_OK brief=confirmed required=12
+DECK_OK 01-dsh-capabilities slides=16 audio=16 runtime=745.9s speech=94.6% pptx=ok mp4=ok
+DECK_OK 02-iota-alignment slides=14 audio=14 runtime=737.9s speech=93.3% pptx=ok mp4=ok
+DECK_OK 03-boundaries-selection slides=10 audio=10 runtime=736.0s speech=96.3% pptx=ok mp4=ok
+G6_G7_MEDIA_OK decks=3 slides=40 audio=40 commands=40 redaction=clean internal_terms=0 ai_tone=0

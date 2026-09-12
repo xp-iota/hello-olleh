@@ -1,0 +1,5 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M03-inference-service-access/run.py
+
+{"acp_refusal": "node 'infer': kernel 'acp' cannot activate per-node model middleware/hooks ['llm_execution']; remove them or use a kernel that advertises per_session_middleware", "alignment": "C", "module": "M03", "replaceable_unit": "KernelAdapter", "status": "ok"}
+IOTA_MODULE_OK M03-inference-service-access
+[exit 0]

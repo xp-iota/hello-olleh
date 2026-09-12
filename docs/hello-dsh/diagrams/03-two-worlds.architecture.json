@@ -1,0 +1,203 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "换两个 provider 就换掉整个执行世界",
+    "output": "03-two-worlds.html",
+    "viewBox": [
+      1480,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "l1",
+      "type": "database",
+      "label": "fs-local",
+      "sublabel": "1210 行",
+      "pos": [
+        70,
+        120
+      ],
+      "size": [
+        260,
+        90
+      ]
+    },
+    {
+      "id": "l2",
+      "type": "database",
+      "label": "subprocess-local",
+      "sublabel": "1391 行",
+      "pos": [
+        70,
+        235
+      ],
+      "size": [
+        260,
+        90
+      ]
+    },
+    {
+      "id": "l3",
+      "type": "backend",
+      "label": "bash-local 与 pwsh-local",
+      "sublabel": "363 行与 472 行",
+      "pos": [
+        400,
+        120
+      ],
+      "size": [
+        290,
+        90
+      ]
+    },
+    {
+      "id": "l4",
+      "type": "backend",
+      "label": "terminal-bash",
+      "sublabel": "1017 行",
+      "pos": [
+        400,
+        235
+      ],
+      "size": [
+        290,
+        90
+      ]
+    },
+    {
+      "id": "l5",
+      "type": "backend",
+      "label": "lsp-stdio",
+      "sublabel": "语言服务",
+      "pos": [
+        400,
+        350
+      ],
+      "size": [
+        290,
+        90
+      ]
+    },
+    {
+      "id": "e1",
+      "type": "security",
+      "label": "fs-e2b",
+      "sublabel": "远端文件系统",
+      "pos": [
+        790,
+        120
+      ],
+      "size": [
+        260,
+        90
+      ]
+    },
+    {
+      "id": "e2",
+      "type": "security",
+      "label": "subprocess-e2b",
+      "sublabel": "远端进程",
+      "pos": [
+        790,
+        235
+      ],
+      "size": [
+        260,
+        90
+      ]
+    },
+    {
+      "id": "e3",
+      "type": "cloud",
+      "label": "Bash / PTY / LSP 自动跟过去",
+      "sublabel": "它们只依赖 ctx.fs 与 ctx.subprocess",
+      "tag": "无需任何改动",
+      "pos": [
+        1120,
+        175
+      ],
+      "size": [
+        300,
+        120
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "本地执行世界",
+      "wraps": [
+        "l1",
+        "l2",
+        "l3",
+        "l4",
+        "l5"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "远端 E2B 执行世界",
+      "wraps": [
+        "e1",
+        "e2"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "l1",
+      "to": "l3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "l2",
+      "to": "l4",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "l2",
+      "to": "l5"
+    },
+    {
+      "id": "d",
+      "from": "e2",
+      "to": "e3",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "只换两个 provider",
+      "items": [
+        "fs 与 subprocess 是最底层的两个 seam",
+        "上层 Bash、PTY、LSP 只依赖这两个接口",
+        "于是它们跟着切到远端，代码零改动"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "这就是 seam 的收益",
+      "items": [
+        "一次 provider 替换改变整个产品形态",
+        "不需要在每个上层包里做平台判断",
+        "本地与远端共用同一套工具实现"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "沙箱是第三个世界",
+      "items": [
+        "fs-sandbox 与 subprocess-sandbox 组成沙箱世界",
+        "三个世界的上层完全一致",
+        "切换只在配置层发生"
+      ]
+    }
+  ]
+}

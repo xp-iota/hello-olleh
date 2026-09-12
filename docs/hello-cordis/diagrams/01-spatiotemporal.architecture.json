@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "时空可组合性与共同前提",
+    "output": "01-spatiotemporal.html",
+    "viewBox": [
+      1400,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "sq",
+      "type": "external",
+      "label": "空间维度的问题",
+      "sublabel": "两个插件都要 db 服务，却要连不同数据库",
+      "pos": [
+        80,
+        150
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "sa",
+      "type": "backend",
+      "label": "答案：isolate realm",
+      "sublabel": "ctx.isolate('db') 生成新 Symbol 作存储键",
+      "tag": "见 04 篇 § 4.5",
+      "pos": [
+        450,
+        150
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "tq",
+      "type": "external",
+      "label": "时间维度的问题",
+      "sublabel": "A 依赖 B，B 在运行中被卸载或替换",
+      "pos": [
+        80,
+        360
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "ta",
+      "type": "backend",
+      "label": "答案：Fiber + epoch",
+      "sublabel": "依赖身份编码成 epoch，变化即 unload 再 reload",
+      "tag": "见 03 篇 § 3.4",
+      "pos": [
+        450,
+        360
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "rev",
+      "type": "security",
+      "label": "共同前提：可逆效应",
+      "sublabel": "插件做的每件事都必须返回一个 disposer",
+      "tag": "卸载时同一 effect 内严格逆序",
+      "pos": [
+        900,
+        255
+      ],
+      "size": [
+        320,
+        110
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "空间可组合性 Spatial",
+      "wraps": [
+        "sq",
+        "sa"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "时间可组合性 Temporal",
+      "wraps": [
+        "tq",
+        "ta"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "s-solve",
+      "from": "sq",
+      "to": "sa",
+      "label": "cordis 的答案",
+      "variant": "emphasis"
+    },
+    {
+      "id": "t-solve",
+      "from": "tq",
+      "to": "ta",
+      "label": "cordis 的答案",
+      "variant": "emphasis"
+    },
+    {
+      "id": "s-base",
+      "from": "sa",
+      "to": "rev"
+    },
+    {
+      "id": "t-base",
+      "from": "ta",
+      "to": "rev"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "空间维度解决可见性",
+      "items": [
+        "isolate 生成新 Symbol 当存储键",
+        "同名服务在不同 realm 是彼此无关的实体",
+        "谁能看到哪个实现由 realm 决定"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "时间维度解决可替换",
+      "items": [
+        "依赖身份编码进 epoch 字符串",
+        "epoch 变化即触发 unload 再 reload",
+        "插件无需自己写重连逻辑"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "两者共享同一前提",
+      "items": [
+        "ctx.effect(() => { setup(); return teardown })",
+        "注册服务、监听事件、开定时器都要登记 disposer",
+        "没有可逆效应，隔离与替换都无法安全回收"
+      ]
+    }
+  ]
+}

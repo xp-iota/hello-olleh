@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "DSH 系列阅读路线",
+    "output": "00-dsh-reading-path.html",
+    "viewBox": [
+      1540,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "pre",
+      "type": "security",
+      "label": "先判断：懂 cordis 吗",
+      "sublabel": "不懂就先读 cordis 文档集",
+      "tag": "重点 03 Fiber 与 04 Context，再看 05 Service 与两个小节",
+      "pos": [
+        70,
+        240
+      ],
+      "size": [
+        380,
+        130
+      ]
+    },
+    {
+      "id": "a",
+      "type": "frontend",
+      "label": "🅐 地基（2 篇）",
+      "sublabel": "01 项目概览、02 代码结构地图",
+      "pos": [
+        500,
+        110
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "b",
+      "type": "database",
+      "label": "🅑 核心概念（2 篇）",
+      "sublabel": "03 能力缝与服务全景、04 扩展与生态",
+      "tag": "重点篇",
+      "pos": [
+        500,
+        270
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "c",
+      "type": "backend",
+      "label": "🅒 运行机制（3 篇）",
+      "sublabel": "05 启动、06 Agent 循环、07 请求管线",
+      "pos": [
+        840,
+        110
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "d",
+      "type": "cloud",
+      "label": "🅓 能力实现（2 篇）",
+      "sublabel": "08 执行侧服务、09 宿主与运行面",
+      "pos": [
+        840,
+        270
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "e",
+      "type": "messagebus",
+      "label": "🅔 工程与索引（2 篇）",
+      "sublabel": "10 测试与工程实践、11 关键调用链速查",
+      "pos": [
+        1200,
+        190
+      ],
+      "size": [
+        290,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "e1",
+      "from": "pre",
+      "to": "a",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e2",
+      "from": "pre",
+      "to": "b",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e3",
+      "from": "a",
+      "to": "c",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e4",
+      "from": "b",
+      "to": "d",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e5",
+      "from": "d",
+      "to": "e",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "cordis 是前置知识",
+      "items": [
+        "DSH 的每个能力都是 cordis Service",
+        "不懂 Fiber 与 Context 会读不动 05 篇之后",
+        "建议先花时间读 cordis 03 与 04"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "两篇重点",
+      "items": [
+        "03 能力缝解释整个架构的组织原则",
+        "04 扩展与生态给出全部扩展点地图",
+        "读完这两篇就能自己找路"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "11 篇是索引",
+      "items": [
+        "按调用链组织，便于回查",
+        "读完任一篇都可以随时跳回",
+        "配合各篇的源码行号使用"
+      ]
+    }
+  ]
+}

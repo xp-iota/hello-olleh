@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "append 的类型技巧与三道校验",
+    "output": "06-append-contract.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "sig",
+      "type": "frontend",
+      "label": "签名用条件类型强制配对",
+      "sublabel": "表面事件必须传 surfaceOp，非表面事件不能传",
+      "tag": "S/index.ts:604，编译期即拦截",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        380,
+        150
+      ]
+    },
+    {
+      "id": "s1",
+      "type": "database",
+      "label": "① 组装 surfaceMetadata",
+      "sublabel": "只在字段存在时加入，避免空值进 JSON",
+      "tag": ":610-613",
+      "pos": [
+        500,
+        90
+      ],
+      "size": [
+        330,
+        110
+      ]
+    },
+    {
+      "id": "s2",
+      "type": "security",
+      "label": "② 快照并校验可序列化",
+      "sublabel": "snapshotJsonValue(data) 失败即抛错",
+      "tag": ":614，错误信息点明该事件携带了不可序列化数据",
+      "pos": [
+        500,
+        240
+      ],
+      "size": [
+        330,
+        110
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "backend",
+      "label": "③ 校验请求头",
+      "sublabel": "assertSupportedRequestHeader(type, data)",
+      "pos": [
+        500,
+        390
+      ],
+      "size": [
+        330,
+        110
+      ]
+    },
+    {
+      "id": "out",
+      "type": "cloud",
+      "label": "写入日志",
+      "sublabel": "分配 seq 后落盘并广播 session/event",
+      "pos": [
+        890,
+        240
+      ],
+      "size": [
+        300,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "sig",
+      "to": "s1"
+    },
+    {
+      "id": "b",
+      "from": "sig",
+      "to": "s2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "sig",
+      "to": "s3"
+    },
+    {
+      "id": "d",
+      "from": "s2",
+      "to": "out",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "条件类型做了什么",
+      "items": [
+        "opts 的类型按事件是否属于表面事件而变",
+        "表面事件时是 [opts: SurfaceIntent]",
+        "否则是空元组，多传参数编译不过"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "三道校验都是 fail-closed",
+      "items": [
+        "不可序列化直接抛错，不做降级写入",
+        "请求头不受支持同样拒绝",
+        "保证日志永远可重放"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "避免空值进 JSON",
+      "items": [
+        "surfaceMetadata 按字段存在性拼装",
+        "这样日志里不会出现无意义的空字段",
+        "也让 diff 与压缩更干净"
+      ]
+    }
+  ]
+}

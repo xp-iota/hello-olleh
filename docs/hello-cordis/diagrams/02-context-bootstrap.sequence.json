@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "new Context() 的自举顺序",
+    "output": "02-context-bootstrap.html",
+    "viewBox": [
+      1520,
+      780
+    ],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "ctor",
+      "type": "external",
+      "label": "Context 构造",
+      "sublabel": "C/context.ts"
+    },
+    {
+      "id": "proxy",
+      "type": "security",
+      "label": "Proxy",
+      "sublabel": "ReflectService.handler"
+    },
+    {
+      "id": "fiber",
+      "type": "backend",
+      "label": "Fiber",
+      "sublabel": "根 Fiber uid=0"
+    },
+    {
+      "id": "reflect",
+      "type": "backend",
+      "label": "ReflectService",
+      "sublabel": "服务解析"
+    },
+    {
+      "id": "registry",
+      "type": "backend",
+      "label": "RegistryService",
+      "sublabel": "插件注册"
+    },
+    {
+      "id": "events",
+      "type": "messagebus",
+      "label": "EventsService",
+      "sublabel": "事件派发"
+    },
+    {
+      "id": "logger",
+      "type": "cloud",
+      "label": "LoggerService",
+      "sublabel": "日志"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 300,
+      "label": "建立代理与根 Fiber"
+    },
+    {
+      "from": 320,
+      "to": 512,
+      "label": "挂载四个内建服务"
+    },
+    {
+      "from": 520,
+      "to": 640,
+      "label": "收尾"
+    }
+  ],
+  "messages": [
+    {
+      "id": "make-proxy",
+      "from": "ctor",
+      "to": "proxy",
+      "y": 190,
+      "label": "self = new Proxy(this, ReflectService.handler)",
+      "variant": "emphasis",
+      "note": "构造前先置 this[isolate] = {} 与 this[intercept] = {}；从这一刻起属性访问都走 Proxy trap"
+    },
+    {
+      "id": "root-fiber",
+      "from": "ctor",
+      "to": "fiber",
+      "y": 248,
+      "label": "this.fiber = new Fiber(self, {}, {}, null)",
+      "note": "runtime 为 null 即根 Fiber，uid=0，state 直接 ACTIVE（fiber.ts:200-212）"
+    },
+    {
+      "id": "mount-reflect",
+      "from": "ctor",
+      "to": "reflect",
+      "y": 340,
+      "label": "this.reflect = new ReflectService(self)",
+      "note": "构造函数里 mixin 四组方法（reflect.ts:144-147）"
+    },
+    {
+      "id": "mount-registry",
+      "from": "ctor",
+      "to": "registry",
+      "y": 392,
+      "label": "this.registry = new RegistryService(self)"
+    },
+    {
+      "id": "mount-events",
+      "from": "ctor",
+      "to": "events",
+      "y": 444,
+      "label": "this.events = new EventsService(self)"
+    },
+    {
+      "id": "mount-logger",
+      "from": "ctor",
+      "to": "logger",
+      "y": 496,
+      "label": "this.logger = new LoggerService(self)"
+    },
+    {
+      "id": "clear-disposables",
+      "from": "ctor",
+      "to": "fiber",
+      "y": 560,
+      "label": "this.fiber._disposables.clear()",
+      "variant": "dashed",
+      "note": "清空自举期间登记的 disposer，否则根 Fiber 一 restart 就把自己拆了"
+    },
+    {
+      "id": "return-self",
+      "from": "proxy",
+      "to": "ctor",
+      "y": 616,
+      "label": "return self（并设 this.root = self）",
+      "variant": "return",
+      "note": "用户拿到的 ctx 始终是 Proxy，不是 Context 实例本身"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "proxy",
+      "from": 185,
+      "to": 622,
+      "type": "security"
+    },
+    {
+      "participant": "fiber",
+      "from": 243,
+      "to": 566,
+      "type": "backend"
+    },
+    {
+      "participant": "reflect",
+      "from": 335,
+      "to": 400,
+      "type": "backend"
+    },
+    {
+      "participant": "registry",
+      "from": 387,
+      "to": 452,
+      "type": "backend"
+    },
+    {
+      "participant": "events",
+      "from": 439,
+      "to": 504,
+      "type": "messagebus"
+    },
+    {
+      "participant": "logger",
+      "from": 491,
+      "to": 556,
+      "type": "cloud"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "顺序为什么不能换",
+      "items": [
+        "Proxy 必须最先建立，后续所有属性访问都依赖它",
+        "根 Fiber 必须在服务之前，服务要挂到 Fiber 的 effect 上",
+        "ReflectService 先于其余三个服务，因为它提供解析能力"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "根 Fiber 的特殊性",
+      "items": [
+        "runtime 传 null 是根 Fiber 的唯一标识",
+        "uid 固定为 0，state 跳过 PENDING 直接 ACTIVE",
+        "没有父 Fiber，因此不参与 epoch 依赖追踪"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "自举期的陷阱",
+      "items": [
+        "四个内建服务在挂载时会往根 Fiber 登记 disposer",
+        "这些 disposer 是自举产物，不应参与 restart",
+        "所以末尾要 _disposables.clear() 把它们丢掉"
+      ]
+    }
+  ]
+}

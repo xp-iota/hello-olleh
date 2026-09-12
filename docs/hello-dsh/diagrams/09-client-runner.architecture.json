@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "浏览器里也跑一棵 cordis 树",
+    "output": "09-client-runner.html",
+    "viewBox": [
+      1480,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "idea",
+      "type": "security",
+      "label": "浏览器里跑 cordis",
+      "sublabel": "cordis-client-runner 共 5080 行",
+      "tag": "比 cordis-host-runner 的 3360 行大约 1.5 倍",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "why",
+      "type": "database",
+      "label": "为什么更大",
+      "sublabel": "浏览器没有文件系统，也没有 node 内部模块加载器",
+      "tag": "cordis loader 依赖后者，见 cordis 08 篇 § 8.4",
+      "pos": [
+        470,
+        190
+      ],
+      "size": [
+        400,
+        140
+      ]
+    },
+    {
+      "id": "work",
+      "type": "backend",
+      "label": "必须自己做的事",
+      "sublabel": "另实现一套模块解析与加载",
+      "pos": [
+        910,
+        80
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "gain",
+      "type": "cloud",
+      "label": "收益",
+      "sublabel": "ui 系列包也是插件，可按 profile 组合",
+      "pos": [
+        910,
+        300
+      ],
+      "size": [
+        340,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "idea",
+      "to": "why",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "why",
+      "to": "work",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "why",
+      "to": "gain",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两个 runner 的差异来源",
+      "items": [
+        "host 版可以直接用 node 的模块系统",
+        "client 版必须自己解析与加载模块",
+        "这部分逻辑就是多出的 1700 行"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "前端也获得可组合性",
+      "items": [
+        "界面组件以插件形式注册",
+        "不同 profile 可以给出不同界面",
+        "与后端能力组合方式一致"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "代价是启动更慢",
+      "items": [
+        "浏览器侧要先建立插件树",
+        "首屏需要等树就绪",
+        "web-app bundle 因此关掉了 hmr"
+      ]
+    }
+  ]
+}

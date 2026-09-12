@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "一个 seam 等于三个角色",
+    "output": "03-seam-roles.html",
+    "viewBox": [
+      1460,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "def",
+      "type": "frontend",
+      "label": "① Service Definition",
+      "sublabel": "声明接口与 capability 事件，不含实现",
+      "tag": "例：P/fs/fs 共 503 行",
+      "pos": [
+        70,
+        240
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "prov",
+      "type": "database",
+      "label": "② Service Provider",
+      "sublabel": "实现接口，可以有多个候选",
+      "tag": "例：fs-local 1210 行、fs-sandbox 254 行、fs-e2b",
+      "pos": [
+        500,
+        90
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "cons",
+      "type": "cloud",
+      "label": "③ Consumer",
+      "sublabel": "使用者，通常是模型可见的工具",
+      "tag": "例：tool-fs 1463 行、tool-fs-search 1574 行",
+      "pos": [
+        500,
+        390
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "warn",
+      "type": "security",
+      "label": "只有一个角色不构成 seam",
+      "sublabel": "加一个能力就要同时设计三个角色",
+      "tag": "这是 DSH 对可替换性的强制约定",
+      "pos": [
+        970,
+        240
+      ],
+      "size": [
+        400,
+        140
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "一个 seam 的三个角色",
+      "wraps": [
+        "def",
+        "prov",
+        "cons"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "def",
+      "to": "prov",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "def",
+      "to": "cons",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "prov",
+      "to": "warn",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三者的依赖方向",
+      "items": [
+        "Provider 与 Consumer 都只依赖 Definition",
+        "两者之间不互相 import",
+        "因此换 Provider 不影响任何 Consumer"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Definition 里放什么",
+      "items": [
+        "接口方法签名",
+        "capability 事件的类型定义",
+        "不放任何具体实现或平台判断"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "为什么强制三角色",
+      "items": [
+        "少了 Definition 就无法替换实现",
+        "少了多个 Provider 就证明不了可替换",
+        "少了 Consumer 则能力对模型不可见"
+      ]
+    }
+  ]
+}

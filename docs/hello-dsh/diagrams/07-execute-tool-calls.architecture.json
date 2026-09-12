@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "executeToolCalls 的计划与执行",
+    "output": "07-execute-tool-calls.html",
+    "viewBox": [
+      1500,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "api",
+      "type": "frontend",
+      "label": "executeToolCalls(...)",
+      "sublabel": "AL/tool-calls.ts:59，由 AL/agent.ts:395 调用",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        320,
+        140
+      ]
+    },
+    {
+      "id": "who",
+      "type": "database",
+      "label": "确定发起者",
+      "sublabel": "ctx.agents.requireInitiator()",
+      "tag": "tool-calls.ts:67",
+      "pos": [
+        430,
+        190
+      ],
+      "size": [
+        300,
+        140
+      ]
+    },
+    {
+      "id": "plan",
+      "type": "backend",
+      "label": "映射成 PlannedCall",
+      "sublabel": "每个 ToolCallBlock 变成 block 加 exec 的组合",
+      "tag": "tool-calls.ts:71-80，exec 含 callId、name、参数、agent 与 signal",
+      "pos": [
+        770,
+        190
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "loop",
+      "type": "cloud",
+      "label": "逐个分发",
+      "sublabel": "while 循环取下一个待执行的 call",
+      "pos": [
+        1190,
+        190
+      ],
+      "size": [
+        240,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "api",
+      "to": "who",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "who",
+      "to": "plan",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "plan",
+      "to": "loop",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么先建 PlannedCall",
+      "items": [
+        "注释说明输入与执行上下文要分开",
+        "因为 tools/execute wrapper 可能替换 exec.signal",
+        "分开后原始输入始终可追溯"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "发起者必须存在",
+      "items": [
+        "用 requireInitiator 而非 currentInitiator",
+        "缺失时直接报错而不是猜一个",
+        "subagent 委派依赖这个身份"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "参数在计划期解析",
+      "items": [
+        "parseArguments 在建 PlannedCall 时执行",
+        "解析失败可以在分发前就报告",
+        "避免进入执行阶段才发现参数非法"
+      ]
+    }
+  ]
+}

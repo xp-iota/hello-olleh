@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "analyzeChanges 的传播算法",
+    "output": "08-analyze-changes.html",
+    "viewBox": [
+      1500,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "i1",
+      "type": "backend",
+      "label": "初始化 accepted",
+      "sublabel": "直接改动的文件集合",
+      "tag": "H/index.ts:177",
+      "pos": [
+        70,
+        140
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "i2",
+      "type": "security",
+      "label": "初始化 declined",
+      "sublabel": "externals，框架文件永不重载",
+      "tag": ":178",
+      "pos": [
+        70,
+        290
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "seed",
+      "type": "database",
+      "label": "播种 pending",
+      "sublabel": "取改动文件的依赖项，未定性的推入 pending",
+      "tag": ":182-189",
+      "pos": [
+        440,
+        140
+      ],
+      "size": [
+        330,
+        110
+      ]
+    },
+    {
+      "id": "loop",
+      "type": "cloud",
+      "label": "传播循环",
+      "sublabel": "遍历 pending 逐个查其依赖项",
+      "tag": ":191-220",
+      "pos": [
+        440,
+        300
+      ],
+      "size": [
+        330,
+        110
+      ]
+    },
+    {
+      "id": "rule",
+      "type": "messagebus",
+      "label": "三条判定规则",
+      "sublabel": "命中 declined 跳过，命中 accepted 即接受并中断",
+      "tag": "其余则继续下钻并推入 pending",
+      "pos": [
+        840,
+        140
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "settle",
+      "type": "frontend",
+      "label": "定性后出队",
+      "sublabel": "接受则入 accepted，否则入 declined",
+      "tag": "直到 pending 为空",
+      "pos": [
+        840,
+        300
+      ],
+      "size": [
+        380,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "i1",
+      "to": "seed",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "i2",
+      "to": "loop"
+    },
+    {
+      "id": "c",
+      "from": "seed",
+      "to": "rule",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "loop",
+      "to": "settle"
+    },
+    {
+      "id": "e",
+      "from": "rule",
+      "to": "settle",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "传播方向是沿依赖向下",
+      "items": [
+        "从改动文件出发查它的 children",
+        "只要依赖链上有 accepted 成员就整体接受",
+        "这是本包最核心的算法"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "两个集合互斥且单调",
+      "items": [
+        "accepted 与 declined 只增不减",
+        "一旦定性就不再重新判断",
+        "保证循环必然终止"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "declined 的两个来源",
+      "items": [
+        "externals 在初始化时就全部进入",
+        "传播中确认与改动无关的也会进入",
+        "后续 partialReload 用它排除候选"
+      ]
+    }
+  ]
+}

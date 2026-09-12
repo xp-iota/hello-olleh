@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "MCP 与 ACP 的方向相反",
+    "output": "04-mcp-vs-acp.html",
+    "viewBox": [
+      1600,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "m1",
+      "type": "external",
+      "label": "外部 MCP server",
+      "sublabel": "提供工具与资源",
+      "pos": [
+        70,
+        110
+      ],
+      "size": [
+        280,
+        100
+      ]
+    },
+    {
+      "id": "m2",
+      "type": "database",
+      "label": "mcp-client",
+      "sublabel": "P/mcp/mcp-client，929 行",
+      "pos": [
+        400,
+        110
+      ],
+      "size": [
+        280,
+        100
+      ]
+    },
+    {
+      "id": "m3",
+      "type": "backend",
+      "label": "注册进 ctx.tools",
+      "sublabel": "模型像用本地工具一样调用外部工具",
+      "pos": [
+        730,
+        110
+      ],
+      "size": [
+        320,
+        100
+      ]
+    },
+    {
+      "id": "a1",
+      "type": "external",
+      "label": "外部 ACP client",
+      "sublabel": "如 dsh-subagent-acp 或编辑器",
+      "pos": [
+        70,
+        360
+      ],
+      "size": [
+        280,
+        100
+      ]
+    },
+    {
+      "id": "a2",
+      "type": "security",
+      "label": "acp server",
+      "sublabel": "P/acp/acp，532 行，automation-only",
+      "pos": [
+        400,
+        360
+      ],
+      "size": [
+        280,
+        100
+      ]
+    },
+    {
+      "id": "a3",
+      "type": "cloud",
+      "label": "把 agent 能力暴露出去",
+      "sublabel": "外部可以驱动一个 DSH agent",
+      "pos": [
+        730,
+        360
+      ],
+      "size": [
+        320,
+        100
+      ]
+    },
+    {
+      "id": "combo",
+      "type": "messagebus",
+      "label": "组合起来",
+      "sublabel": "DSH 既能消费外部工具，也能被外部驱动",
+      "tag": "于是可以级联多个 DSH 实例",
+      "pos": [
+        1220,
+        235
+      ],
+      "size": [
+        320,
+        120
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "MCP：DSH 作为客户端",
+      "wraps": [
+        "m1",
+        "m2",
+        "m3"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "ACP：DSH 作为服务端",
+      "wraps": [
+        "a1",
+        "a2",
+        "a3"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "m1",
+      "to": "m2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "m2",
+      "to": "m3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "a1",
+      "to": "a2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "a2",
+      "to": "a3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e",
+      "from": "m3",
+      "to": "combo",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两个协议角色相反",
+      "items": [
+        "MCP 里 DSH 是客户端，去消费别人的工具",
+        "ACP 里 DSH 是服务端，被别人驱动",
+        "因此两者可以同时启用而不冲突"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "MCP 的落点是 ctx.tools",
+      "items": [
+        "外部工具被注册成普通工具",
+        "模型看不出它来自远端",
+        "权限与审批仍走本地的 tools waterfall"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "ACP 只面向自动化",
+      "items": [
+        "注释里明确写了 automation-only",
+        "人机交互界面由 host/webserver 负责",
+        "两者分工清晰"
+      ]
+    }
+  ]
+}

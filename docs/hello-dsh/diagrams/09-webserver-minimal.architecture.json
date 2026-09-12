@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "webserver 为什么只有 325 行",
+    "output": "09-webserver-minimal.html",
+    "viewBox": [
+      1480,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "srv",
+      "type": "frontend",
+      "label": "host/webserver",
+      "sublabel": "325 行",
+      "pos": [
+        70,
+        200
+      ],
+      "size": [
+        280,
+        140
+      ]
+    },
+    {
+      "id": "do",
+      "type": "database",
+      "label": "它只做三件事",
+      "sublabel": "监听端口、挂载路由、升级 WebSocket",
+      "tag": "默认监听本机 3080 端口",
+      "pos": [
+        390,
+        80
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "not",
+      "type": "security",
+      "label": "它不做的事",
+      "sublabel": "不鉴权、不做业务路由、不服务静态文件、不选端口",
+      "tag": "分别在 apiproxy、gateway、frontend-static 与别处",
+      "pos": [
+        390,
+        300
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "why",
+      "type": "cloud",
+      "label": "这样拆的好处",
+      "sublabel": "headless bundle 直接不加载它即可无 server 运行",
+      "pos": [
+        810,
+        190
+      ],
+      "size": [
+        380,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "srv",
+      "to": "do",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "srv",
+      "to": "not",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "do",
+      "to": "why",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "职责单一到极致",
+      "items": [
+        "它是一个纯粹的传输层挂载点",
+        "任何业务判断都不在这里",
+        "因此行数极少且几乎不变"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "路由交给别人",
+      "items": [
+        "apiproxy 处理 API 请求与鉴权",
+        "frontend-static 处理静态资源",
+        "gateway 按类型注册表生成端点"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "可插拔的直接证据",
+      "items": [
+        "web-app bundle 加载它",
+        "headless bundle 不加载",
+        "同一套后端能力两种形态"
+      ]
+    }
+  ]
+}

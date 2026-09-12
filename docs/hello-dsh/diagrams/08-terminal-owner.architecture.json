@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "terminals 的 owner 归属与操作语义",
+    "output": "08-terminal-owner.html",
+    "viewBox": [
+      1460,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "own",
+      "type": "security",
+      "label": "所有方法的首参都是 owner",
+      "sublabel": "类型是 Agent",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "iso",
+      "type": "database",
+      "label": "按 Agent 隔离",
+      "sublabel": "一个 agent 不能操作另一个 agent 的终端",
+      "pos": [
+        450,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "sub",
+      "type": "cloud",
+      "label": "subagent 有独立终端集",
+      "sublabel": "这里用显式参数而非 scope 载体",
+      "tag": "对照 03 篇 § 3.5 的 scope 机制",
+      "pos": [
+        830,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "两处 API 语义",
+      "sublabel": "startSend 返回 operation，read 同步返回缓冲输出",
+      "tag": "TM/index.ts:243 与 :263",
+      "pos": [
+        1210,
+        190
+      ],
+      "size": [
+        210,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "own",
+      "to": "iso",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "iso",
+      "to": "sub",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "sub",
+      "to": "api",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么用显式参数",
+      "items": [
+        "终端会话是长期存活的资源",
+        "归属必须可查询、可枚举",
+        "显式参数比隐式 scope 更易审计"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "startSend 是可观察操作",
+      "items": [
+        "返回 operation 而非裸 Promise",
+        "可以查询进度也可以取消",
+        "适合发送大段输入的场景"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "read 不阻塞",
+      "items": [
+        "同步返回已缓冲的输出",
+        "没有新输出时返回空",
+        "轮询由调用方决定节奏"
+      ]
+    }
+  ]
+}

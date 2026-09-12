@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "没有特权内核的架构差异",
+    "output": "01-no-kernel.html",
+    "viewBox": [
+      1420,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "other",
+      "type": "external",
+      "label": "通常的 agent 框架",
+      "sublabel": "模型调用、工具执行、会话管理写死在内核里",
+      "tag": "扩展只能在预留的 hook 里注册",
+      "pos": [
+        70,
+        180
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "dsh",
+      "type": "backend",
+      "label": "DSH",
+      "sublabel": "模型适配器、工具注册表、会话日志、主循环全是插件",
+      "tag": "扩展就是在插件树里再挂一个插件",
+      "pos": [
+        540,
+        180
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "proof",
+      "type": "database",
+      "label": "可验证的证据",
+      "sublabel": "dsh-base 的 cordis.patch.yml 共 451 行",
+      "tag": "agent-loop / tools / session / llm 都是普通配置行，任何一行都能被上层 patch 替换",
+      "pos": [
+        1000,
+        180
+      ],
+      "size": [
+        350,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "other",
+      "to": "dsh",
+      "label": "架构差异",
+      "variant": "dashed"
+    },
+    {
+      "id": "b",
+      "from": "dsh",
+      "to": "proof",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "特权内核的代价",
+      "items": [
+        "内核里的能力无法被替换，只能被配置",
+        "扩展点由框架作者预先决定",
+        "没有预留 hook 的地方就改不了"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "DSH 的取法",
+      "items": [
+        "连 agent 主循环本身都是一个 cordis 插件",
+        "于是替换主循环与替换一个工具是同一种操作",
+        "代价是启动链路更长、配置更显式"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "怎么自己验证",
+      "items": [
+        "读 dsh-base bundle 的 cordis.patch.yml",
+        "确认核心能力都以配置行形式出现",
+        "任何一行都可以被上层 patch 按 id 覆盖"
+      ]
+    }
+  ]
+}

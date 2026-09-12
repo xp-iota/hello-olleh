@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "文件变化的四路分诊",
+    "output": "08-change-triage.html",
+    "viewBox": [
+      1540,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "watch",
+      "type": "frontend",
+      "label": "chokidar 检测到变化",
+      "sublabel": "url = pathToFileURL(filename).href",
+      "tag": "H/index.ts:127",
+      "pos": [
+        60,
+        250
+      ],
+      "size": [
+        280,
+        120
+      ]
+    },
+    {
+      "id": "c1",
+      "type": "security",
+      "label": "是 externals 吗",
+      "sublabel": "框架自身的代码",
+      "tag": ":133",
+      "pos": [
+        400,
+        90
+      ],
+      "size": [
+        270,
+        105
+      ]
+    },
+    {
+      "id": "c2",
+      "type": "security",
+      "label": "在 loadCache 里吗",
+      "sublabel": "已被加载过的插件模块",
+      "tag": ":138",
+      "pos": [
+        400,
+        240
+      ],
+      "size": [
+        270,
+        105
+      ]
+    },
+    {
+      "id": "c3",
+      "type": "security",
+      "label": "是 include 配置文件吗",
+      "sublabel": "某个 Include 树的来源",
+      "tag": ":144-149",
+      "pos": [
+        400,
+        390
+      ],
+      "size": [
+        270,
+        105
+      ]
+    },
+    {
+      "id": "r1",
+      "type": "cloud",
+      "label": "整进程重启",
+      "sublabel": "loader.exit()，框架代码无法热更",
+      "pos": [
+        740,
+        90
+      ],
+      "size": [
+        320,
+        105
+      ]
+    },
+    {
+      "id": "r2",
+      "type": "backend",
+      "label": "插件级热重载",
+      "sublabel": "stashed.add(url) 后 partialReload()",
+      "tag": "去抖 100ms",
+      "pos": [
+        740,
+        240
+      ],
+      "size": [
+        320,
+        105
+      ]
+    },
+    {
+      "id": "r3",
+      "type": "messagebus",
+      "label": "配置重载",
+      "sublabel": "await include.refresh()，不换代码",
+      "pos": [
+        740,
+        390
+      ],
+      "size": [
+        320,
+        105
+      ]
+    },
+    {
+      "id": "r4",
+      "type": "external",
+      "label": "交给别人处理",
+      "sublabel": "ctx.emit('hmr/change', url)",
+      "pos": [
+        1120,
+        240
+      ],
+      "size": [
+        320,
+        105
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "watch",
+      "to": "c1"
+    },
+    {
+      "id": "b",
+      "from": "watch",
+      "to": "c2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "watch",
+      "to": "c3"
+    },
+    {
+      "id": "d",
+      "from": "c1",
+      "to": "r1",
+      "label": "是"
+    },
+    {
+      "id": "e",
+      "from": "c2",
+      "to": "r2",
+      "label": "是",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f",
+      "from": "c3",
+      "to": "r3",
+      "label": "是"
+    },
+    {
+      "id": "g",
+      "from": "r2",
+      "to": "r4",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "externals 不可热更",
+      "items": [
+        "框架自身的模块被列为 externals",
+        "它们的变化只能整进程重启",
+        "因为框架状态无法在替换后保持一致"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "判定顺序不能换",
+      "items": [
+        "先排除 externals，再看是否已加载过",
+        "已加载才有旧模块可替换",
+        "最后才考虑是否为配置文件"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "配置重载与代码重载分离",
+      "items": [
+        "include.refresh() 只重读 yml，不换模块",
+        "代码没变时插件不必重新执行",
+        "两条路径互不干扰"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "boot() 的两段式启动",
+    "output": "05-boot-sequence.html",
+    "viewBox": [
+      1520,
+      860
+    ],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "boot",
+      "type": "external",
+      "label": "boot()",
+      "sublabel": "启动入口"
+    },
+    {
+      "id": "ctx",
+      "type": "backend",
+      "label": "new Context()",
+      "sublabel": "cordis 根上下文"
+    },
+    {
+      "id": "loader",
+      "type": "backend",
+      "label": "cordis Loader",
+      "sublabel": "配置树加载"
+    },
+    {
+      "id": "prepare",
+      "type": "cloud",
+      "label": "prepare?",
+      "sublabel": "宿主准备钩子"
+    },
+    {
+      "id": "mount",
+      "type": "backend",
+      "label": "mountRootInclude",
+      "sublabel": "挂载插件树"
+    },
+    {
+      "id": "assert",
+      "type": "security",
+      "label": "assertEntriesActivated",
+      "sublabel": "激活校验"
+    }
+  ],
+  "segments": [
+    {
+      "from": 155,
+      "to": 420,
+      "label": "第一段 stage = host preparation failed"
+    },
+    {
+      "from": 440,
+      "to": 700,
+      "label": "第二段 stage = plugin tree failed to load"
+    }
+  ],
+  "messages": [
+    {
+      "id": "make-ctx",
+      "from": "boot",
+      "to": "ctx",
+      "y": 195,
+      "label": "new Context()",
+      "variant": "emphasis"
+    },
+    {
+      "id": "set-baseurl",
+      "from": "boot",
+      "to": "ctx",
+      "y": 250,
+      "label": "ctx.baseUrl = pathToFileURL(dirname(configPath)) + '/'"
+    },
+    {
+      "id": "provide-home",
+      "from": "boot",
+      "to": "ctx",
+      "y": 305,
+      "label": "ctx.provide('dshHomePath', dshHomePath)"
+    },
+    {
+      "id": "plug-loader",
+      "from": "boot",
+      "to": "loader",
+      "y": 360,
+      "label": "await ctx.plugin(Loader)"
+    },
+    {
+      "id": "call-prepare",
+      "from": "boot",
+      "to": "prepare",
+      "y": 405,
+      "label": "await prepare?.(ctx)",
+      "note": "宿主自定义准备逻辑，失败归入第一段错误"
+    },
+    {
+      "id": "mount-root",
+      "from": "boot",
+      "to": "mount",
+      "y": 480,
+      "label": "await mountRootInclude(ctx, configPath, patches, bareModuleBaseUrl)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "await-loader",
+      "from": "boot",
+      "to": "loader",
+      "y": 545,
+      "label": "await ctx.get('loader')?.await()",
+      "note": "每次 await 后都要重新取 loader，界面可能在启动途中退出并拆掉整棵树"
+    },
+    {
+      "id": "early-exit",
+      "from": "loader",
+      "to": "boot",
+      "y": 610,
+      "label": "loader 已消失则直接 return ctx",
+      "variant": "dashed",
+      "note": "这不是错误，是应用如约退出"
+    },
+    {
+      "id": "assert-entries",
+      "from": "boot",
+      "to": "assert",
+      "y": 665,
+      "label": "await assertEntriesActivated(ctx, binName)",
+      "variant": "security"
+    },
+    {
+      "id": "return-ctx",
+      "from": "assert",
+      "to": "boot",
+      "y": 725,
+      "label": "return ctx",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "ctx",
+      "from": 190,
+      "to": 311,
+      "type": "backend"
+    },
+    {
+      "participant": "loader",
+      "from": 355,
+      "to": 616,
+      "type": "backend"
+    },
+    {
+      "participant": "prepare",
+      "from": 400,
+      "to": 411,
+      "type": "cloud"
+    },
+    {
+      "participant": "mount",
+      "from": 475,
+      "to": 486,
+      "type": "backend"
+    },
+    {
+      "participant": "assert",
+      "from": 660,
+      "to": 731,
+      "type": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两段 stage 标签的作用",
+      "items": [
+        "第一段覆盖宿主准备，失败即 host preparation failed",
+        "第二段覆盖插件树，失败即 plugin tree failed to load",
+        "报错时用户能立刻分清是环境问题还是配置问题"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "为什么反复重取 loader",
+      "items": [
+        "每个 await 都是一次让界面推进的机会",
+        "用户可能在启动过程中就退出",
+        "退出会拆掉整棵插件树，loader 随之消失"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "正常退出与失败的区分",
+      "items": [
+        "loader 消失时直接 return ctx，不抛错",
+        "只有 assertEntriesActivated 不通过才算启动失败",
+        "这条边让 Ctrl+C 不会被报成崩溃"
+      ]
+    }
+  ]
+}

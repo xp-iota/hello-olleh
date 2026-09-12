@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "三种树的区别与 id 拼接",
+    "output": "02-three-trees.html",
+    "viewBox": [
+      1420,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "root",
+      "type": "backend",
+      "label": "① Loader（根树）",
+      "sublabel": "L/index.ts:47，内存中，write() 是 no-op",
+      "tag": "由宿主程序用代码填充",
+      "pos": [
+        70,
+        150
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "file",
+      "type": "database",
+      "label": "② Include（文件树）",
+      "sublabel": "packages/include/src/index.ts:48",
+      "tag": "对应一个 yml 或 json 文件，含 applyPatches",
+      "pos": [
+        510,
+        150
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "sub",
+      "type": "frontend",
+      "label": "③ Group（子树）",
+      "sublabel": "L/config/group.ts:73，配置里 group: true 的一行",
+      "tag": "其 config 是子 Entry 数组",
+      "pos": [
+        950,
+        150
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "ids",
+      "type": "external",
+      "label": "id 的拼接规则",
+      "sublabel": "entry.ts:56，子树 id 拼上父 entry 的 id",
+      "tag": "分隔符是冒号（tree.ts:7），形如 main:sub:leaf",
+      "pos": [
+        510,
+        400
+      ],
+      "size": [
+        300,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "r-f",
+      "from": "root",
+      "to": "file",
+      "label": "name = plugin-include",
+      "variant": "emphasis",
+      "labelDy": -46
+    },
+    {
+      "id": "f-s",
+      "from": "file",
+      "to": "sub",
+      "label": "某行 group: true",
+      "variant": "emphasis",
+      "labelDy": -46
+    },
+    {
+      "id": "r-i",
+      "from": "root",
+      "to": "ids",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三者的持久化位置不同",
+      "items": [
+        "Loader 根树只在内存，写操作是空实现",
+        "Include 树对应磁盘上的一个配置文件",
+        "Group 子树寄生在父配置的某一行里",
+        "根树到文件树的跳转条件是某 Entry 的 name 为 plugin-include"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Group 可以自嵌套",
+      "items": [
+        "一个 group 行的 config 里还能有 group 行",
+        "嵌套深度没有硬限制",
+        "每层都会在 id 上追加一段"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "混淆点在于都叫「树」",
+      "items": [
+        "只有 Include 树与文件一一对应",
+        "改配置文件影响的是 Include 树，不是根树",
+        "定位问题时先确认自己在哪棵树上"
+      ]
+    }
+  ]
+}

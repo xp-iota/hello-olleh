@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "钩子生命周期：turn-stopping 上的一次 steer 换来第二个 step",
+    "output": "12-example-09-hooks-lifecycle-steering.html",
+    "viewBox": [1680, 800],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "script", "type": "external", "label": "run.ts", "sublabel": "示例入口脚本" },
+    { "id": "harness", "type": "backend", "label": "createHarness", "sublabel": "plugins 先装载，再造 agent" },
+    { "id": "hooks", "type": "security", "label": "hooks 插件", "sublabel": "09-hooks-lifecycle-steering/index.ts" },
+    { "id": "loop", "type": "messagebus", "label": "agent-loop", "sublabel": "真实主循环" },
+    { "id": "inbox", "type": "database", "label": "agent inbox", "sublabel": "当前轮待认领消息" }
+  ],
+  "segments": [
+    { "from": 155, "to": 330, "label": "先装插件再造 agent" },
+    { "from": 345, "to": 500, "label": "策略拦截点：第 1 个 step" },
+    { "from": 515, "to": 720, "label": "轮末引导 → 再走一个 step" }
+  ],
+  "messages": [
+    {
+      "id": "harness",
+      "from": "script",
+      "to": "harness",
+      "y": 195,
+      "label": "createHarness({ plugins: [[钩子插件]] })",
+      "variant": "emphasis",
+      "note": "agent/session-start 只在会话开始那一刻派发一次，插件必须先于 agent 存在"
+    },
+    {
+      "id": "listen",
+      "from": "harness",
+      "to": "hooks",
+      "y": 245,
+      "label": "挂 agent/session-start、pre-step、request、turn-stopping",
+      "variant": "security"
+    },
+    {
+      "id": "session-start",
+      "from": "harness",
+      "to": "hooks",
+      "y": 295,
+      "label": "agent/session-start 派发一次：agent=demo-session source=startup"
+    },
+    {
+      "id": "runturn",
+      "from": "script",
+      "to": "loop",
+      "y": 365,
+      "label": "runTurn(...)：真实 turn 开始",
+      "variant": "emphasis"
+    },
+    {
+      "id": "pre-step",
+      "from": "loop",
+      "to": "hooks",
+      "y": 415,
+      "label": "agent/pre-step：turn=1 step=1，认领消息 1 条"
+    },
+    {
+      "id": "request",
+      "from": "loop",
+      "to": "hooks",
+      "y": 465,
+      "label": "agent/request：即将发出模型请求 → mock 回复"
+    },
+    {
+      "id": "stopping",
+      "from": "loop",
+      "to": "hooks",
+      "y": 535,
+      "label": "agent/turn-stopping（serial，没有 next）",
+      "variant": "security"
+    },
+    {
+      "id": "steer",
+      "from": "hooks",
+      "to": "inbox",
+      "y": 585,
+      "label": "反对停止 → agent.steer(...) 把引导插进当前轮",
+      "note": "hasSteered 闸门只允许引导一次；steer 插当前轮，followup 排下一轮"
+    },
+    {
+      "id": "reread",
+      "from": "loop",
+      "to": "inbox",
+      "y": 635,
+      "label": "主循环重读 inbox：非空 → 再跑第 2 个 step",
+      "variant": "emphasis"
+    },
+    {
+      "id": "evidence",
+      "from": "loop",
+      "to": "script",
+      "y": 685,
+      "label": "会话日志数出 steps=2 / steerRequested=true / steerCount=1",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    { "participant": "harness", "from": 190, "to": 300, "type": "backend" },
+    { "participant": "hooks", "from": 240, "to": 590, "type": "security" },
+    { "participant": "loop", "from": 360, "to": 690, "type": "messagebus" },
+    { "participant": "inbox", "from": 580, "to": 640, "type": "database" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "agent/* 携带活 Agent",
+      "items": [
+        "06 只观测 session/event，这里能改主循环走向",
+        "用户级与项目级 hook 都挂在这些拦截点上",
+        "dsh-hooks-* 桥接器把外部 hook 配置映射到同一批事件"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "turn-stopping 是 serial，data decides",
+      "items": [
+        "没有 next：反对停止就 agent.steer(...) 塞消息",
+        "主循环派发后重读 inbox，非空就再跑一个 step",
+        "监听者的顺序不影响最终结果"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "引导要有闸门，结论要有证据",
+      "items": [
+        "hasSteered 保证最多引导一次，避免停不下来",
+        "steps 从 step/start 事件数出",
+        "steerCount 从 agent/inbox/spliced 次数数出"
+      ]
+    }
+  ]
+}

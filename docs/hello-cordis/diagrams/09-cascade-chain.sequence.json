@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "链 3：服务卸载到依赖者级联重载",
+    "output": "09-cascade-chain.html",
+    "viewBox": [
+      1440,
+      780
+    ],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "prov",
+      "type": "external",
+      "label": "提供者插件",
+      "sublabel": "开始卸载"
+    },
+    {
+      "id": "disp",
+      "type": "backend",
+      "label": "provide 的 disposer",
+      "sublabel": "C/reflect.ts:193"
+    },
+    {
+      "id": "notify",
+      "type": "messagebus",
+      "label": "notify()",
+      "sublabel": "C/reflect.ts:205"
+    },
+    {
+      "id": "dep",
+      "type": "backend",
+      "label": "依赖者 Fiber",
+      "sublabel": "inject 了该服务"
+    },
+    {
+      "id": "down",
+      "type": "backend",
+      "label": "更下游 Fiber",
+      "sublabel": "依赖依赖者"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 268,
+      "label": "撤销注册"
+    },
+    {
+      "from": 290,
+      "to": 508,
+      "label": "逐个依赖者回落"
+    },
+    {
+      "from": 530,
+      "to": 690,
+      "label": "递归与收敛"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m1",
+      "from": "prov",
+      "to": "disp",
+      "y": 195,
+      "label": "_disposables 并发执行（启动顺序逆序）",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m2",
+      "from": "disp",
+      "to": "notify",
+      "y": 310,
+      "label": "delete store[key] 后 notify(['db'])",
+      "variant": "emphasis",
+      "note": "notify 内遍历 registry 的全部 runtime.fibers"
+    },
+    {
+      "id": "m3",
+      "from": "notify",
+      "to": "dep",
+      "y": 390,
+      "label": "_checkImpl('db') 删除本地记录",
+      "note": "C/fiber.ts:371"
+    },
+    {
+      "id": "m4",
+      "from": "notify",
+      "to": "dep",
+      "y": 440,
+      "label": "_refresh() 得 epoch = INACTIVE",
+      "note": "C/fiber.ts:385，_setEpoch 触发 _unload()，state 转 UNLOADING"
+    },
+    {
+      "id": "m5",
+      "from": "notify",
+      "to": "prov",
+      "y": 550,
+      "label": "emit('internal/service', 'db')",
+      "variant": "dashed",
+      "note": "C/reflect.ts:224"
+    },
+    {
+      "id": "m6",
+      "from": "dep",
+      "to": "down",
+      "y": 610,
+      "label": "依赖者若也 provide 服务则跨 ACTIVE 边界再触发一层",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m7",
+      "from": "down",
+      "to": "disp",
+      "y": 670,
+      "label": "await Promise.allSettled(fibers.map(f => f.await()))",
+      "variant": "return",
+      "note": "逐层收敛，直到没有 Fiber 的 epoch 再变化"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "disp",
+      "from": 190,
+      "to": 676,
+      "type": "backend"
+    },
+    {
+      "participant": "notify",
+      "from": 305,
+      "to": 556,
+      "type": "messagebus"
+    },
+    {
+      "participant": "dep",
+      "from": 385,
+      "to": 616,
+      "type": "backend"
+    },
+    {
+      "participant": "down",
+      "from": 605,
+      "to": 676,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "传播由 notify 单点驱动",
+      "items": [
+        "disposer 只负责删表并调 notify",
+        "notify 全量遍历 fibers 并按 inject 过滤",
+        "没有依赖图，因此也不需要维护它"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "卸载是并发的",
+      "items": [
+        "同一 effect 内的 disposer 按启动顺序逆序",
+        "跨 Fiber 用 allSettled 并发等待",
+        "单个失败不阻断其余"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "递归终止条件",
+      "items": [
+        "每层卸载可能触发下一层 notify",
+        "直到没有 Fiber 的 epoch 再变化",
+        "详见 03 篇 § 3.2 与 05 篇 § 5.6"
+      ]
+    }
+  ]
+}

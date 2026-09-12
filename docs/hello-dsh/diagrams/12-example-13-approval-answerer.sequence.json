@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "审批应答器：ask 流向审批 seam，三段局面三种 outcome",
+    "output": "12-example-13-approval-answerer.html",
+    "viewBox": [1680, 760],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "script", "type": "external", "label": "run.ts", "sublabel": "三段局面各起一个 harness" },
+    { "id": "loop", "type": "messagebus", "label": "agent-loop", "sublabel": "ToolCallingMockAdapter 驱动" },
+    { "id": "gate", "type": "backend", "label": "deployGate", "sublabel": "tools/pre-execute 返回 ask" },
+    { "id": "approval", "type": "cloud", "label": "ctx.approval", "sublabel": "审批能力缝" },
+    { "id": "answerer", "type": "security", "label": "应答器插件", "sublabel": "13-approval-answerer/index.ts" }
+  ],
+  "segments": [
+    { "from": 155, "to": 380, "label": "轮内派发一次 deploy" },
+    { "from": 395, "to": 600, "label": "ask → request → 裁决" },
+    { "from": 615, "to": 680, "label": "从会话日志取证" }
+  ],
+  "messages": [
+    {
+      "id": "harness",
+      "from": "script",
+      "to": "loop",
+      "y": 195,
+      "label": "createHarness({ adapter: ToolCallingMockAdapter('deploy'), plugins })",
+      "variant": "emphasis",
+      "note": "A 段不装应答器、B 段白名单含 deploy、C 段白名单不含 deploy"
+    },
+    {
+      "id": "runturn",
+      "from": "script",
+      "to": "loop",
+      "y": 245,
+      "label": "runTurn(...)：审批必须发生在打开的 turn 内"
+    },
+    {
+      "id": "toolcall",
+      "from": "loop",
+      "to": "gate",
+      "y": 295,
+      "label": "真实 agent-loop 派发 tool/call deploy"
+    },
+    {
+      "id": "ask",
+      "from": "gate",
+      "to": "approval",
+      "y": 345,
+      "label": "pre-execute 返回 { kind:'ask' } → ctx.approval.request(req)",
+      "variant": "security",
+      "note": "turn 外裸调会抛 approval.request() outside an open turn"
+    },
+    {
+      "id": "dispatch",
+      "from": "approval",
+      "to": "answerer",
+      "y": 415,
+      "label": "approval/request 事件交给应答器裁决",
+      "variant": "emphasis"
+    },
+    {
+      "id": "unavailable",
+      "from": "answerer",
+      "to": "approval",
+      "y": 465,
+      "label": "A 无应答器 → unavailable：fail closed，工具直接失败",
+      "variant": "security"
+    },
+    {
+      "id": "allowed",
+      "from": "answerer",
+      "to": "approval",
+      "y": 515,
+      "label": "B 白名单命中 → allowed-once：仅本次放行，deploy 真执行",
+      "variant": "return"
+    },
+    {
+      "id": "rejected",
+      "from": "answerer",
+      "to": "approval",
+      "y": 565,
+      "label": "C 不在白名单 → rejected：人类明确拒绝"
+    },
+    {
+      "id": "evidence",
+      "from": "approval",
+      "to": "script",
+      "y": 635,
+      "label": "会话日志读回 approval/decided + tool/result，三段结论各不相同",
+      "variant": "emphasis"
+    }
+  ],
+  "activations": [
+    { "participant": "loop", "from": 190, "to": 300, "type": "messagebus" },
+    { "participant": "gate", "from": 290, "to": 350, "type": "backend" },
+    { "participant": "approval", "from": 340, "to": 640, "type": "cloud" },
+    { "participant": "answerer", "from": 410, "to": 570, "type": "security" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "ApprovalOutcome 是封闭四值",
+      "items": [
+        "allowed-once：唯一放行授权，仅本次",
+        "rejected / cancelled：人类拒绝 / 请求被取消",
+        "unavailable：没有应答器或应答器抛错，fail closed"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "审批必须在轮内",
+      "items": [
+        "approval/asked + approval/decided 要被 turn 包住",
+        "turn 外裸调会 ask 的工具会直接抛错",
+        "所以本例让真实 agent-loop 在 turn 里派发 deploy"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "应答器只管裁决",
+      "items": [
+        "CLI 确认、Web 审批卡、CI 白名单都是不同应答器",
+        "本插件不碰工具，也不碰 pre-execute",
+        "真实序列：tool/call → approval/asked → approval/decided → tool/result"
+      ]
+    }
+  ]
+}

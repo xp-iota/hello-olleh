@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "capability 事件让策略与主循环解耦",
+    "output": "03-capability-events.html",
+    "viewBox": [
+      1460,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "cons",
+      "type": "cloud",
+      "label": "Consumer",
+      "sublabel": "如 tool-fs",
+      "pos": [
+        70,
+        180
+      ],
+      "size": [
+        260,
+        120
+      ]
+    },
+    {
+      "id": "def",
+      "type": "frontend",
+      "label": "Definition",
+      "sublabel": "如 ctx.fs，派发 fs 系列事件",
+      "pos": [
+        400,
+        180
+      ],
+      "size": [
+        280,
+        120
+      ]
+    },
+    {
+      "id": "prov",
+      "type": "database",
+      "label": "Provider",
+      "sublabel": "如 fs-local",
+      "pos": [
+        750,
+        180
+      ],
+      "size": [
+        260,
+        120
+      ]
+    },
+    {
+      "id": "pol",
+      "type": "security",
+      "label": "Policy 包",
+      "sublabel": "如 fs-observation-policy，189 行",
+      "tag": "只监听 fs 事件，不 import 主循环也不 import provider",
+      "pos": [
+        1060,
+        180
+      ],
+      "size": [
+        340,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "cons",
+      "to": "def",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "def",
+      "to": "prov",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "prov",
+      "to": "pol",
+      "label": "emit 事件",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "不 import 主循环是关键约束",
+      "items": [
+        "策略包不依赖 agent-loop",
+        "也不依赖任何具体 provider",
+        "它只认 Definition 声明的事件类型"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "带来的两个自由度",
+      "items": [
+        "换 provider 时策略照旧生效",
+        "换主循环时策略也照旧生效",
+        "策略因此可以独立发布与复用"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "事件是能力的公共面",
+      "items": [
+        "Definition 同时声明接口与事件",
+        "事件属于契约的一部分，不是实现细节",
+        "这让观测与准入都能做成独立包"
+      ]
+    }
+  ]
+}

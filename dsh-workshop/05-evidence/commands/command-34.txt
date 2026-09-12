@@ -1,0 +1,5 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M07-execution-backends/run.py
+
+{"alignment": "C", "module": "M07", "orchestrator_shell_registry": [], "route": "prompt -> KernelAdapter -> kernel.shell event", "status": "ok"}
+IOTA_MODULE_OK M07-execution-backends
+[exit 0]

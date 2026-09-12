@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "压缩的三个入口",
+    "output": "08-compaction-entries.html",
+    "viewBox": [
+      1480,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "t1",
+      "type": "database",
+      "label": "compactIfNeeded",
+      "sublabel": "自动：每步前检查 token 预算",
+      "tag": "CO/index.ts:113，由 agent/pre-step 监听器调用（见 06 篇 § 6.5）",
+      "pos": [
+        70,
+        140
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "t2",
+      "type": "frontend",
+      "label": "compactNow",
+      "sublabel": "手动：斜杠命令 /compact",
+      "tag": "CO/index.ts:139，命令实现 command-compact 共 136 行",
+      "pos": [
+        70,
+        300
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "t3",
+      "type": "backend",
+      "label": "compactRegion",
+      "sublabel": "精确：压缩指定的表面区间",
+      "tag": "CO/index.ts:164，界面上选中一段后调用",
+      "pos": [
+        520,
+        220
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "same",
+      "type": "cloud",
+      "label": "三者产出同一种结果",
+      "sublabel": "都是一次表面 replace 操作",
+      "pos": [
+        970,
+        220
+      ],
+      "size": [
+        440,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "t1",
+      "to": "t3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "t2",
+      "to": "t3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "t3",
+      "to": "same",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三种触发场景",
+      "items": [
+        "自动触发看 token 预算是否吃紧",
+        "手动触发由用户显式发起",
+        "精确触发由界面给出区间"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "出口只有一个",
+      "items": [
+        "无论哪个入口都归结为表面 replace",
+        "日志永不删除，只是被遮蔽",
+        "于是压缩结果可以被审计"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "自动触发挂在 pre-step",
+      "items": [
+        "在模型调用之前检查并压缩",
+        "避免超出上下文窗口才发现",
+        "实现是一个普通的事件监听器"
+      ]
+    }
+  ]
+}

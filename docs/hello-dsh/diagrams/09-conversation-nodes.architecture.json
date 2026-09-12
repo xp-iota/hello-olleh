@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "会话节点定义如何消费事件流",
+    "output": "09-conversation-nodes.html",
+    "viewBox": [
+      1500,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "ev",
+      "type": "frontend",
+      "label": "session 事件流",
+      "sublabel": "由 session/event 广播",
+      "tag": "见 06 篇 § 6.14",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        300,
+        140
+      ]
+    },
+    {
+      "id": "defn",
+      "type": "database",
+      "label": "ConversationNodeDefinition",
+      "sublabel": "声明 kind、match、start 与 update 四项",
+      "tag": "match 判断事件归属与角色，start 建初始 state，update 增量更新",
+      "pos": [
+        410,
+        190
+      ],
+      "size": [
+        420,
+        140
+      ]
+    },
+    {
+      "id": "rt",
+      "type": "backend",
+      "label": "运行时路由",
+      "sublabel": "把事件送给匹配的节点定义并累积 state",
+      "pos": [
+        870,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "ui",
+      "type": "cloud",
+      "label": "界面渲染",
+      "sublabel": "按节点 state 呈现对话",
+      "pos": [
+        1250,
+        190
+      ],
+      "size": [
+        180,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "ev",
+      "to": "defn",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "defn",
+      "to": "rt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "rt",
+      "to": "ui",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "加一种界面节点的成本",
+      "items": [
+        "只需实现一个 ConversationNodeDefinition",
+        "不改 session 也不改 agent-loop",
+        "注册后自动参与事件路由"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "match 决定归属",
+      "items": [
+        "同一事件可以属于某个已有节点",
+        "也可以开启一个新节点",
+        "还要说明这条事件在节点里的角色"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "state 由增量累积",
+      "items": [
+        "start 建立初始 state",
+        "update 用后续事件推进它",
+        "流式 chunk 因此能逐步显示"
+      ]
+    }
+  ]
+}

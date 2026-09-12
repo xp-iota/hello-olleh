@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "请求路由的四级解析",
+    "output": "07-routing-resolution.html",
+    "viewBox": [
+      1520,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "s1",
+      "type": "frontend",
+      "label": "① 声明的路由",
+      "sublabel": "Agent 创建时的 provider 与 model",
+      "tag": "来自 agent-default-model 或 settings 里保存的选择",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "s2",
+      "type": "database",
+      "label": "② 持久化的 header",
+      "sublabel": "session.requestHeader() 折叠日志里的 request/header 事件",
+      "tag": "S/index.ts:670，得到 EpochHeader",
+      "pos": [
+        70,
+        300
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "backend",
+      "label": "③ agent/request waterfall",
+      "sublabel": "监听器可改写 LlmCallConfig",
+      "tag": "AL/agent.ts:439",
+      "pos": [
+        540,
+        130
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "s4",
+      "type": "security",
+      "label": "④ requestProposal(header)",
+      "sublabel": "按 header.adapterDefaults 是否存在走不同分支",
+      "tag": "AL/agent.ts:55",
+      "pos": [
+        540,
+        300
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "out",
+      "type": "cloud",
+      "label": "最终请求配置",
+      "sublabel": "provider、model 与适配器参数全部定型",
+      "pos": [
+        1010,
+        215
+      ],
+      "size": [
+        420,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "s1",
+      "to": "s2",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 48
+    },
+    {
+      "id": "b",
+      "from": "s2",
+      "to": "s4",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "s3",
+      "to": "out",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "s4",
+      "to": "out",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么要四级",
+      "items": [
+        "声明层给默认值，可被用户设置覆盖",
+        "header 层让同一会话内的选择可持久",
+        "waterfall 层允许插件按内容动态改写"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "header 是折叠出来的",
+      "items": [
+        "日志里可能有多条 request/header 事件",
+        "requestHeader() 把它们折叠成一个 EpochHeader",
+        "于是最后一次设置生效"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "这是本篇最绕的一块",
+      "items": [
+        "四级来源都可能提供同一字段",
+        "优先级由 requestProposal 统一裁决",
+        "调试时先打印最终配置再回溯来源"
+      ]
+    }
+  ]
+}

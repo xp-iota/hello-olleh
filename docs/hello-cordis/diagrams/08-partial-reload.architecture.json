@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "partialReload 的四个阶段",
+    "output": "08-partial-reload.html",
+    "viewBox": [
+      1520,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "p1",
+      "type": "frontend",
+      "label": "① 分析变化",
+      "sublabel": "调 analyzeChanges() 得到 accepted 与 declined",
+      "tag": "H/index.ts:230",
+      "pos": [
+        60,
+        180
+      ],
+      "size": [
+        300,
+        150
+      ]
+    },
+    {
+      "id": "p2",
+      "type": "database",
+      "label": "② 找出候选插件",
+      "sublabel": "按 baseUrl 分组解析 entry name 得到 url",
+      "tag": ":236-259 插件入口文件是原子重载单元",
+      "pos": [
+        430,
+        180
+      ],
+      "size": [
+        320,
+        150
+      ]
+    },
+    {
+      "id": "p3",
+      "type": "security",
+      "label": "③ 判定哪些真要重载",
+      "sublabel": "算完整依赖树，树里有 accepted 成员才重载",
+      "tag": ":262-275 命中则整棵树标为 accepted",
+      "pos": [
+        820,
+        180
+      ],
+      "size": [
+        320,
+        150
+      ]
+    },
+    {
+      "id": "p4",
+      "type": "messagebus",
+      "label": "④ 清缓存并换代",
+      "sublabel": "清 ESM 与 CJS 缓存后 delete 旧插件再注册新插件",
+      "tag": "失败则整体回滚",
+      "pos": [
+        1200,
+        180
+      ],
+      "size": [
+        280,
+        150
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "p1",
+      "to": "p2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "p2",
+      "to": "p3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "p3",
+      "to": "p4",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "插件入口是原子单元",
+      "items": [
+        "候选以 entry.options.name 解析出的 url 为准",
+        "取到候选后立刻把该 url 加入 declined",
+        "避免同一入口被重复计入依赖树"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "第三步要临时放行自己",
+      "items": [
+        "算依赖树前先把自己从 declined 移除",
+        "否则整棵树会被自己截断",
+        "算完再据结果决定是否重载"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "这是全包最长的方法",
+      "items": [
+        "源码范围 H/index.ts:229-378",
+        "四个阶段职责清晰但耦合紧",
+        "改动前建议先读 § 8.2 的传播算法"
+      ]
+    }
+  ]
+}

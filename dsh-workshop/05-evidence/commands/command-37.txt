@@ -1,0 +1,7 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M08-delegation-presets/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M09-long-running-orchestration/run.py
+
+{"alignment": "A", "module": "M08", "order": ["research", "review"], "output": {"approved": "research:iota"}, "status": "ok"}
+IOTA_MODULE_OK M08-delegation-presets
+{"alignment": "A-reverse", "checkpoint_sequence": 1, "idempotent_task_id": "m09-task", "module": "M09", "queue": "succeeded", "status": "ok"}
+IOTA_MODULE_OK M09-long-running-orchestration
+[exit 0]

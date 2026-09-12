@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "shell 的两个家族与三个消费者",
+    "output": "08-shell-families.html",
+    "viewBox": [
+      1480,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "def",
+      "type": "frontend",
+      "label": "ctx.shell",
+      "sublabel": "350 行的服务定义",
+      "pos": [
+        70,
+        240
+      ],
+      "size": [
+        260,
+        130
+      ]
+    },
+    {
+      "id": "b1",
+      "type": "database",
+      "label": "bash-local",
+      "sublabel": "363 行",
+      "pos": [
+        370,
+        110
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "b2",
+      "type": "security",
+      "label": "bash-sandbox",
+      "sublabel": "328 行",
+      "pos": [
+        370,
+        225
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "p1",
+      "type": "database",
+      "label": "pwsh-local",
+      "sublabel": "472 行",
+      "pos": [
+        370,
+        350
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "p2",
+      "type": "security",
+      "label": "pwsh-sandbox",
+      "sublabel": "339 行",
+      "pos": [
+        370,
+        465
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "t1",
+      "type": "cloud",
+      "label": "tool-bash",
+      "sublabel": "554 行，一次性命令",
+      "pos": [
+        700,
+        170
+      ],
+      "size": [
+        300,
+        95
+      ]
+    },
+    {
+      "id": "env",
+      "type": "messagebus",
+      "label": "shell-env",
+      "sublabel": "247 行，环境变量处理",
+      "pos": [
+        700,
+        300
+      ],
+      "size": [
+        300,
+        95
+      ]
+    },
+    {
+      "id": "note",
+      "type": "backend",
+      "label": "两个家族的差异",
+      "sublabel": "pwsh 侧代码更多，因为参数转义规则更复杂",
+      "pos": [
+        1050,
+        235
+      ],
+      "size": [
+        380,
+        130
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "def",
+      "to": "b2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "def",
+      "to": "p1"
+    },
+    {
+      "id": "c",
+      "from": "b1",
+      "to": "t1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "t1",
+      "to": "note",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "每个家族都有 local 与 sandbox",
+      "items": [
+        "local 直接在宿主执行",
+        "sandbox 版先经 confine 改写 argv",
+        "两者对 ctx.shell 的调用方无差别"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "shell-env 单独成包",
+      "items": [
+        "环境变量组装逻辑与 shell 实现解耦",
+        "它负责过滤不应下传的变量",
+        "详见 § 8.16 的启动变量拦截"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "pwsh 更复杂的原因",
+      "items": [
+        "参数转义与引号规则与 bash 差异大",
+        "还要处理不同 PowerShell 版本",
+        "因此行数明显更多"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "链 1：ctx.plugin(p) 到插件运行",
+    "output": "09-plugin-chain.html",
+    "viewBox": [
+      1540,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "a1",
+      "type": "frontend",
+      "label": "ctx.plugin(p, config)",
+      "sublabel": "默认参数就地捕获调用栈",
+      "tag": "C/registry.ts:193",
+      "pos": [
+        60,
+        130
+      ],
+      "size": [
+        290,
+        110
+      ]
+    },
+    {
+      "id": "a2",
+      "type": "database",
+      "label": "resolve(p) 得 callback",
+      "sublabel": "抹平三种插件形态",
+      "tag": "C/registry.ts:144",
+      "pos": [
+        390,
+        130
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "a3",
+      "type": "security",
+      "label": "assertActive()",
+      "sublabel": "当前 Fiber 必须活着",
+      "tag": "C/registry.ts:197",
+      "pos": [
+        710,
+        130
+      ],
+      "size": [
+        260,
+        110
+      ]
+    },
+    {
+      "id": "a4",
+      "type": "backend",
+      "label": "取或建 Plugin.Runtime",
+      "sublabel": "{ name, callback, fibers, Config }",
+      "pos": [
+        1010,
+        130
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "a5",
+      "type": "messagebus",
+      "label": "new Fiber(...)",
+      "sublabel": "传入 Inject.resolve(p.inject) 与 runtime",
+      "tag": "C/registry.ts:207",
+      "pos": [
+        390,
+        390
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "a6",
+      "type": "cloud",
+      "label": "Fiber 构造",
+      "sublabel": "uid 取自 registry.counter，ctx 由 parent.extend 派生",
+      "tag": "C/fiber.ts:134 与 :135",
+      "pos": [
+        760,
+        390
+      ],
+      "size": [
+        360,
+        110
+      ]
+    },
+    {
+      "id": "a7",
+      "type": "external",
+      "label": "广播与解析",
+      "sublabel": "emit('internal/plugin') 后逐个 _checkImpl",
+      "tag": "依赖齐备则 _reload 执行插件",
+      "pos": [
+        1170,
+        390
+      ],
+      "size": [
+        300,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "a1",
+      "to": "a2"
+    },
+    {
+      "id": "b",
+      "from": "a2",
+      "to": "a3"
+    },
+    {
+      "id": "c",
+      "from": "a3",
+      "to": "a4"
+    },
+    {
+      "id": "d",
+      "from": "a4",
+      "to": "a5",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "e",
+      "from": "a5",
+      "to": "a6",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f",
+      "from": "a6",
+      "to": "a7",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "链路只有七步",
+      "items": [
+        "前四步在 registry 内完成归一化与去重",
+        "第五步起进入 Fiber 的构造",
+        "真正执行插件代码在 _reload 里"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "长堆栈起点在第一步",
+      "items": [
+        "getOuterStack 是默认参数，在调用处求值",
+        "因此捕获的是用户代码的真实位置",
+        "详见 03 篇 § 3.8"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "详细展开见各章",
+      "items": [
+        "Runtime 与 Fiber 的关系见 03 篇 § 3.1",
+        "Inject.resolve 的四条分支见 05 篇",
+        "_checkImpl 与 epoch 见 03 篇 § 3.4"
+      ]
+    }
+  ]
+}

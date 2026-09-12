@@ -1,0 +1,28 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.run_all
+
+{"alignment": "B+C", "module": "M01", "pipeline": "audit(guard(raw:x))", "refusal": "unknown stage 'typo' on pipeline 'iota-tools'; declared stages: audit, guard", "status": "ok"}
+IOTA_MODULE_OK M01-tool-pipeline
+{"alignment": "A+C", "compression_seam": "kernel-owned", "default_injection": false, "module": "M02", "scope": "session-a", "status": "ok"}
+IOTA_MODULE_OK M02-context-assembly-economics
+{"acp_refusal": "node 'infer': kernel 'acp' cannot activate per-node model middleware/hooks ['llm_execution']; remove them or use a kernel that advertises per_session_middleware", "alignment": "C", "module": "M03", "replaceable_unit": "KernelAdapter", "status": "ok"}
+IOTA_MODULE_OK M03-inference-service-access
+{"alignment": "A+C", "events": ["system_init", "text_delta", "final"], "mid_turn_injection": "not an orchestrator contract", "module": "M04", "node_hook": [["observe", "succeeded"]], "status": "ok"}
+IOTA_MODULE_OK M04-agent-loop-intervention
+{"alignment": "A+C", "messages": 2, "module": "M05", "run_status": "succeeded", "sequence_contract": "not added under D7", "status": "ok"}
+IOTA_MODULE_OK M05-session-surface
+{"alignment": "A+C", "hang_prevention": "request answered", "module": "M06", "permission": "no", "plan_mode": "kernel/harness-owned", "status": "ok"}
+IOTA_MODULE_OK M06-human-in-the-loop
+{"alignment": "C", "module": "M07", "orchestrator_shell_registry": [], "route": "prompt -> KernelAdapter -> kernel.shell event", "status": "ok"}
+IOTA_MODULE_OK M07-execution-backends
+{"alignment": "A", "module": "M08", "order": ["research", "review"], "output": {"approved": "research:iota"}, "status": "ok"}
+IOTA_MODULE_OK M08-delegation-presets
+{"alignment": "A-reverse", "checkpoint_sequence": 1, "idempotent_task_id": "m09-task", "module": "M09", "queue": "succeeded", "status": "ok"}
+IOTA_MODULE_OK M09-long-running-orchestration
+{"alignment": "A", "mcp": "hello iota", "module": "M10", "skill": "offline-greeter", "status": "ok"}
+IOTA_MODULE_OK M10-external-capabilities
+{"alignment": "A+C", "credentials_attachments": "host-owned", "dsh_profile_refusal": "config_profile is not supported for adapter 'dsh': it has no iota-managed config home to project into. Adapters that do: ['claude', 'hermes', 'hermes_direct']. Point the kernel at its own config file via 'command' instead (dsh: --config <cordis.yml>), and use 'env' for anything else it needs.", "module": "M11", "profile": "projected", "status": "ok", "storage": "memory"}
+IOTA_MODULE_OK M11-config-data-infrastructure
+{"alignment": "A+C", "architecture_not_imported": ["event-bus", "hmr", "intercept"], "capability_refusal": "BadCapability declares unknown capabilities ['typo-capability']; known capabilities: ['filesystem_skills', 'goal_commands', 'native_goal_manager', 'native_kanban_toolset']", "entry_points": "iota_core.providers", "inactive_refusal": "cannot push effect 'late' onto disposed stack 'm12'", "lifo": ["outer", "inner"], "module": "M12", "status": "ok"}
+IOTA_MODULE_OK M12-framework-mechanisms
+IOTA_ALL_OK modules=12 network=blocked
+[exit 0]

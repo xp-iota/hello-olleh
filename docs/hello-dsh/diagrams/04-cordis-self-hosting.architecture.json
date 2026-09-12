@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "让模型和人都能操作插件树",
+    "output": "04-cordis-self-hosting.html",
+    "viewBox": [
+      1480,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "hostr",
+      "type": "database",
+      "label": "cordis-host-runner",
+      "sublabel": "3360 行，在 host 进程里跑一棵 cordis 树",
+      "pos": [
+        70,
+        120
+      ],
+      "size": [
+        360,
+        120
+      ]
+    },
+    {
+      "id": "clir",
+      "type": "security",
+      "label": "cordis-client-runner",
+      "sublabel": "5080 行，在浏览器里跑一棵 cordis 树",
+      "tag": "比 host 版大 1.5 倍，浏览器环境限制更多",
+      "pos": [
+        70,
+        290
+      ],
+      "size": [
+        360,
+        120
+      ]
+    },
+    {
+      "id": "tool",
+      "type": "backend",
+      "label": "tool-cordis",
+      "sublabel": "5984 行，全组最大：让模型自己操作插件树",
+      "tag": "查看配置行、增删改、查服务与依赖状态",
+      "pos": [
+        510,
+        120
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "ui",
+      "type": "cloud",
+      "label": "ui-cordis",
+      "sublabel": "1666 行，前端的插件树视图，人类版",
+      "pos": [
+        510,
+        290
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "base",
+      "type": "frontend",
+      "label": "建立在 cordis 之上",
+      "sublabel": "依赖 ctx.loader 与 ctx.registry",
+      "tag": "见 cordis 07 篇",
+      "pos": [
+        990,
+        205
+      ],
+      "size": [
+        420,
+        120
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "两个 runner（8440 行）",
+      "wraps": [
+        "hostr",
+        "clir"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "tool",
+      "to": "base",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "ui",
+      "to": "base",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "clir",
+      "to": "ui",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "模型与人共用一套底座",
+      "items": [
+        "tool-cordis 是模型侧入口",
+        "ui-cordis 是人类侧入口",
+        "两者都读写同一棵插件树"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "两个 runner 的差异",
+      "items": [
+        "host runner 跑在 Node 进程里",
+        "client runner 跑在浏览器里",
+        "后者要绕开模块加载与文件系统限制，因此代码更多"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "这是自举能力",
+      "items": [
+        "模型可以增删自己的能力配置行",
+        "也能查询服务是否就绪、依赖是否满足",
+        "相当于把 cordis 的运维面开放给了 agent"
+      ]
+    }
+  ]
+}

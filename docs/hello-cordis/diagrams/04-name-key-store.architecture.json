@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "名字到存储键到实现的三级映射",
+    "output": "04-name-key-store.html",
+    "viewBox": [
+      1420,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "name",
+      "type": "frontend",
+      "label": "用户视角：名字",
+      "sublabel": "写下的是 ctx.db",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        300,
+        130
+      ]
+    },
+    {
+      "id": "map",
+      "type": "database",
+      "label": "ctx[symbols.isolate]",
+      "sublabel": "形如 { db: Symbol(db) }",
+      "tag": "原型链可继承也可覆盖",
+      "pos": [
+        530,
+        190
+      ],
+      "size": [
+        320,
+        130
+      ]
+    },
+    {
+      "id": "store",
+      "type": "backend",
+      "label": "reflect.store",
+      "sublabel": "形如 { [Symbol(db)]: Impl }",
+      "tag": "全局唯一一张表",
+      "pos": [
+        1010,
+        190
+      ],
+      "size": [
+        320,
+        130
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "name",
+      "to": "map",
+      "label": "查 isolate 映射拿 key",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "map",
+      "to": "store",
+      "label": "用 key 查 store",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "隔离靠键不同，不靠容器嵌套",
+      "items": [
+        "store 是全局的，只有一张表",
+        "两个 realm 的 db 对应两个不同 Symbol",
+        "于是表里是两条互不干扰的记录"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "为什么这样最省代码",
+      "items": [
+        "不需要实现嵌套作用域容器",
+        "查找永远是一次哈希，没有链式回溯",
+        "可见性完全由 isolate 映射的原型链决定"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "代价在可观测性",
+      "items": [
+        "Symbol 没有可读的稳定标识",
+        "调试时看 store 的键不直观",
+        "isolate 的第二个参数 label 就是为此准备的"
+      ]
+    }
+  ]
+}

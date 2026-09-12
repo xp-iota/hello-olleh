@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Inject.resolve 的四条分支",
+    "output": "05-inject-resolve.html",
+    "viewBox": [
+      1500,
+      660
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "enter",
+      "type": "frontend",
+      "label": "Inject.resolve(inject, result)",
+      "sublabel": "把各种写法归一成 { name: config }",
+      "pos": [
+        60,
+        200
+      ],
+      "size": [
+        280,
+        120
+      ]
+    },
+    {
+      "id": "empty",
+      "type": "external",
+      "label": "为空",
+      "sublabel": "直接返回 result",
+      "pos": [
+        420,
+        60
+      ],
+      "size": [
+        260,
+        100
+      ]
+    },
+    {
+      "id": "arr",
+      "type": "database",
+      "label": "数组",
+      "sublabel": "每项 result[name] 置为 null",
+      "pos": [
+        420,
+        200
+      ],
+      "size": [
+        260,
+        100
+      ]
+    },
+    {
+      "id": "proto",
+      "type": "security",
+      "label": "带 checkProto 标记",
+      "sublabel": "先递归解析原型再覆盖自己的键",
+      "tag": "支持类继承时 inject 累加",
+      "pos": [
+        420,
+        340
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "plain",
+      "type": "backend",
+      "label": "普通对象",
+      "sublabel": "result[name] 取 inject[name]，缺省为 null",
+      "pos": [
+        420,
+        480
+      ],
+      "size": [
+        300,
+        100
+      ]
+    },
+    {
+      "id": "out",
+      "type": "cloud",
+      "label": "归一化结果",
+      "sublabel": "键是依赖名，值是 intercept 配置或 null",
+      "tag": "这个对象即 Fiber 的 inject",
+      "pos": [
+        820,
+        200
+      ],
+      "size": [
+        300,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "enter",
+      "to": "empty"
+    },
+    {
+      "id": "b",
+      "from": "enter",
+      "to": "arr",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "enter",
+      "to": "proto"
+    },
+    {
+      "id": "d",
+      "from": "enter",
+      "to": "plain"
+    },
+    {
+      "id": "e",
+      "from": "arr",
+      "to": "out",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "四种写法等价",
+      "items": [
+        "数组写法只声明依赖名，配置为空",
+        "对象写法可同时给出 intercept 配置",
+        "带 checkProto 的对象来自类装饰器"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "递归是为了类继承",
+      "items": [
+        "子类的 inject 用 Object.create(父类.inject) 建立",
+        "递归解析原型后再覆盖自己的键",
+        "于是父类声明的依赖不会丢"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "结果直接决定 epoch",
+      "items": [
+        "Object.keys(inject) 就是 _refresh 的遍历范围",
+        "值为 null 表示只依赖存在性",
+        "值非空则同时注入 intercept 配置"
+      ]
+    }
+  ]
+}

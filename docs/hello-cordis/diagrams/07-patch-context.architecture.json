@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "patch-context 的三步切换",
+    "output": "07-patch-context.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "s1",
+      "type": "frontend",
+      "label": "① 生成新 isolate map",
+      "sublabel": "以父级 isolate 为原型建新对象",
+      "tag": "isolate.ts:93-98，逐个 name 调 access(entry, name, true)",
+      "pos": [
+        70,
+        180
+      ],
+      "size": [
+        400,
+        150
+      ]
+    },
+    {
+      "id": "s2",
+      "type": "backend",
+      "label": "② 算 service diff",
+      "sublabel": "对新旧 map 并集逐个比较存储键",
+      "tag": "isolate.ts:99-117，键不同则分配 delim 符号并记录四元组",
+      "pos": [
+        540,
+        180
+      ],
+      "size": [
+        400,
+        150
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "security",
+      "label": "③ 换父作用域并 swap",
+      "sublabel": "setPrototypeOf 换掉 isolate 与 intercept 的原型",
+      "tag": "isolate.ts:118-123，随后 swap 实际实现",
+      "pos": [
+        1010,
+        180
+      ],
+      "size": [
+        400,
+        150
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "s1",
+      "to": "s2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "s2",
+      "to": "s3",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "delim 是本次切换的标记",
+      "items": [
+        "delims[name] 缺省时新建一个 Symbol('delim:name')",
+        "entry.ctx[delim] 存放本次切换的标识",
+        "用于区分同名服务在切换前后的两个实例"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "diff 记录四个量",
+      "items": [
+        "旧 Symbol 与新 Symbol",
+        "entry 自己的 delim 值",
+        "实现所在 fiber 的 delim 值"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "运行时改原型链",
+      "items": [
+        "setPrototypeOf 直接改 isolate 与 intercept 的父级",
+        "这是「谁能看到什么」被重写的时刻",
+        "没有显式作用域表，因此必须在此一次性对齐"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+$ cd dsh-example && npm run M10
+
+
+> @example/dsh-examples@0.0.0 M10
+> node M10-external-capabilities/run.ts
+
+
+████ M10 · 外部能力接入：知识、协议、Webhook 与动态扩展 ████
+
+════════ M10.1 · 注册、发现并注入代码审查 Skill ════════
+① 模型在目录里发现的 skill:
+   name    = code-review-checklist | source = project-dsh | provider = runtime
+   何时该用 = Use when the user asks for a code review of a diff, PR, or recent change, to give a consistent, prioritized review instead of ad-hoc nitpicking.
+
+② 调用 skill：渲染正文并 inject 到下一步的模型可见上下文
+   inbox.nextStep 待认领 = 1
+
+③ 跑一个真实 turn：主循环在 step 边界认领，清单随请求进入模型可见上下文
+   已被认领（nextStep 清空）  = true
+   模型可见投影里有 skill 消息 = true (source=skill-invocation)
+   其正文带清单的输出格式要求 = true
+   本轮 step 数 = 1 | mock 回复 = "（mock 适配器固定回复：真实按清单评审见 npm run M10:real）"
+
+════════ M10.2 · 验证本地 MCP 启动失败边界 ════════
+mcp: {
+  transport: 'stdio',
+  networkUsed: false,
+  failLoud: true,
+  reason: 'mcp-client(offline_missing): initial connection or tool synchronization failed'
+}
+
+════════ M10.3 · 检查 Webhook Host-plane 组合边界 ════════
+webhookRuntime boundary: {
+  required: [
+    'agents',
+    'agentDefaultModel',
+    'agentPresets',
+    'permissionPresets',
+    'sessionTitle',
+    'workspaceRegistry'
+  ],
+  missing: [
+    'agentDefaultModel',
+    'agentPresets',
+    'permissionPresets',
+    'sessionTitle',
+    'workspaceRegistry'
+  ],
+  loaded: false,
+  reason: 'Host-plane dependencies stay explicit in an offline teaching profile'
+}
+
+════════ M10.4 · 装配动态 Cordis 扩展工具 ════════
+extensions: {
+  dynamicRunner: 'DynamicCordisRunnerService',
+  inspectRegistry: 'CordisInspectRegistryService',
+  tools: [
+    'cordis_inspect_list',
+    'cordis_inspect_query',
+    'cordis_inspect_self',
+    'cordis_define',
+    'cordis_run',
+    'cordis_stop',
+    'cordis_undefine'
+  ]
+}
+
+════════ M10.5 · 配置 Webhook 所需默认模型路由 ════════
+agentDefaultModel: { provider: 'mock', model: 'mock-1' }
+
+结论：Skill 是数据资产；MCP、Webhook 和 Cordis extensions 是显式 Host 能力，默认离线且依赖不完整时 fail loud。
+[exit 0]

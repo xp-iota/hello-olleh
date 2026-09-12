@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "单调拒绝守卫：pre-execute 放行也翻不了 guard 的案",
+    "output": "12-example-12-tool-guard.html",
+    "viewBox": [1680, 800],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "script", "type": "external", "label": "run.ts", "sublabel": "示例入口脚本" },
+    { "id": "pre", "type": "backend", "label": "pre-execute 监听器", "sublabel": "永远 allow：模拟翻案企图" },
+    { "id": "guard", "type": "security", "label": "ctx.tools.guard", "sublabel": "12-tool-guard/index.ts" },
+    { "id": "tools", "type": "messagebus", "label": "ctx.tools", "sublabel": "真实 ToolRuntime 工具管线" },
+    { "id": "tool", "type": "backend", "label": "bash", "sublabel": "演示工具" }
+  ],
+  "segments": [
+    { "from": 155, "to": 330, "label": "备工具、备翻案企图、装守卫" },
+    { "from": 345, "to": 545, "label": "ls -la：一路放行" },
+    { "from": 560, "to": 720, "label": "rm -rf /：单调拒绝" }
+  ],
+  "messages": [
+    {
+      "id": "register",
+      "from": "script",
+      "to": "tools",
+      "y": 195,
+      "label": "createHarness() 后 register(demoTool('bash'))",
+      "variant": "emphasis"
+    },
+    {
+      "id": "always-allow",
+      "from": "script",
+      "to": "pre",
+      "y": 245,
+      "label": "ctx.on('tools/pre-execute', 永远 allow)：用来证明 guard 的单调性"
+    },
+    {
+      "id": "install-guard",
+      "from": "script",
+      "to": "guard",
+      "y": 295,
+      "label": "loadPlugin(本插件) → apply(ctx)：ctx.tools.guard(fn)",
+      "variant": "security"
+    },
+    {
+      "id": "call-ls",
+      "from": "script",
+      "to": "tools",
+      "y": 365,
+      "label": "① callTool('bash', { cmd: 'ls -la' })",
+      "variant": "emphasis"
+    },
+    {
+      "id": "pre-ls",
+      "from": "tools",
+      "to": "pre",
+      "y": 415,
+      "label": "pre-execute waterfall 全部放行（可翻案策略链）"
+    },
+    {
+      "id": "guard-ls",
+      "from": "tools",
+      "to": "guard",
+      "y": 465,
+      "label": "guard 检查在 pre-execute 之后：未命中，不给拒绝理由"
+    },
+    {
+      "id": "exec-ls",
+      "from": "tools",
+      "to": "tool",
+      "y": 515,
+      "label": "execute → isError=false，bash 已执行 cmd=ls -la",
+      "variant": "return"
+    },
+    {
+      "id": "call-rm",
+      "from": "script",
+      "to": "tools",
+      "y": 585,
+      "label": "② callTool('bash', { cmd: 'rm -rf /' })",
+      "variant": "emphasis"
+    },
+    {
+      "id": "pre-rm",
+      "from": "tools",
+      "to": "pre",
+      "y": 635,
+      "label": "pre-execute 依旧 allow（明明放行了）"
+    },
+    {
+      "id": "guard-rm",
+      "from": "tools",
+      "to": "guard",
+      "y": 685,
+      "label": "命中危险模式 'rm -rf' → 返回字符串即拒绝，终局",
+      "variant": "security",
+      "note": "没有任何 guard 或 pre-execute 监听者能强制放行已被拒的调用；bash 的 execute 从未被调用"
+    }
+  ],
+  "activations": [
+    { "participant": "guard", "from": 290, "to": 690, "type": "security" },
+    { "participant": "tools", "from": 360, "to": 690, "type": "messagebus" },
+    { "participant": "pre", "from": 410, "to": 640, "type": "backend" },
+    { "participant": "tool", "from": 510, "to": 560, "type": "backend" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "guard 是单调最终拒绝",
+      "items": [
+        "运行位置在 tools/pre-execute 之后",
+        "任一命中的 guard 都能拒绝这次调用",
+        "没有谁能强制放行已被拒绝的调用"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "返回值语义极简",
+      "items": [
+        "返回字符串即拒绝，字符串就是给人和模型的理由",
+        "不置可否时不返回任何理由",
+        "拒绝后工具的 execute 根本不会跑"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "与 03 的分工",
+      "items": [
+        "pre-execute 是可重排、可翻案的策略链",
+        "guard 是绝不逾越的终局红线",
+        "危险命令、越权路径这类硬约束放 guard"
+      ]
+    }
+  ]
+}

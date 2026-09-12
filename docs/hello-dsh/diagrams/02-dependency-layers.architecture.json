@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "依赖分层：从 vendor 到能力包",
+    "output": "02-dependency-layers.html",
+    "viewBox": [
+      1660,
+      640
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "vendor",
+      "type": "external",
+      "label": "vendor/",
+      "sublabel": "cordis 4.0.1 加 loader / include / hmr / group / timer",
+      "tag": "第 0 层：框架底座，含 cosmokit 与 schemastery",
+      "pos": [
+        70,
+        303
+      ],
+      "size": [
+        330,
+        130
+      ]
+    },
+    {
+      "id": "session",
+      "type": "database",
+      "label": "core/session",
+      "sublabel": "3156 行，提供 ctx.sessions",
+      "pos": [
+        570,
+        90
+      ],
+      "size": [
+        260,
+        95
+      ]
+    },
+    {
+      "id": "tools",
+      "type": "backend",
+      "label": "core/tools",
+      "sublabel": "5620 行，提供 ctx.tools",
+      "pos": [
+        570,
+        205
+      ],
+      "size": [
+        260,
+        95
+      ]
+    },
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "core/agent",
+      "sublabel": "1636 行，提供 ctx.agents",
+      "pos": [
+        570,
+        320
+      ],
+      "size": [
+        260,
+        95
+      ]
+    },
+    {
+      "id": "loop",
+      "type": "security",
+      "label": "core/agent-loop",
+      "sublabel": "1643 行，提供 ctx.agentLoop 默认驱动",
+      "pos": [
+        570,
+        435
+      ],
+      "size": [
+        260,
+        95
+      ]
+    },
+    {
+      "id": "prompt",
+      "type": "cloud",
+      "label": "core/system-prompt",
+      "sublabel": "605 行，提供 ctx.systemPrompt",
+      "pos": [
+        900,
+        90
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "scope",
+      "type": "external",
+      "label": "core/scope",
+      "sublabel": "561 行，纯库，无 ctx key",
+      "pos": [
+        900,
+        205
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "misc",
+      "type": "external",
+      "label": "两个小包",
+      "sublabel": "agent-default-model 137 行、agent-tool-presentation 104 行",
+      "pos": [
+        900,
+        320
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "cap",
+      "type": "messagebus",
+      "label": "第 2 层：能力定义与 provider",
+      "sublabel": "fs / shell / sandbox / llm 等各组",
+      "tag": "全部建在 core 契约之上",
+      "pos": [
+        1250,
+        205
+      ],
+      "size": [
+        300,
+        130
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "第 1 层：核心契约（core 组，40745 行）",
+      "wraps": [
+        "session",
+        "tools",
+        "agent",
+        "loop",
+        "prompt",
+        "scope",
+        "misc"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "vendor",
+      "to": "agent",
+      "label": "底座",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "b",
+      "from": "tools",
+      "to": "prompt",
+      "variant": "dashed"
+    },
+    {
+      "id": "c",
+      "from": "scope",
+      "to": "cap",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "vendor 是重写过的上游",
+      "items": [
+        "包名与 import 被 rescope 到 deepseek-ai 作用域",
+        "版本固定在 cordis 4.0.1",
+        "因此不能直接对照上游 cordis 源码行号"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "core 组只有七个包",
+      "items": [
+        "四个提供服务：sessions / tools / agents / agentLoop",
+        "system-prompt 提供提示组装",
+        "scope 是纯库，没有 ctx key"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "agent-loop 是可替换的",
+      "items": [
+        "它只是 ctx.agentLoop 的默认实现",
+        "换掉它就换掉整个 turn/step 语义",
+        "这是没有特权内核的最直接体现"
+      ]
+    }
+  ]
+}

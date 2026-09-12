@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "fs 的两个意图事件与一个观察事件",
+    "output": "08-fs-events.html",
+    "viewBox": [
+      1480,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "w",
+      "type": "security",
+      "label": "fs/write-intent",
+      "sublabel": "写之前派发，携带写意图与版本期望",
+      "tag": "F/index.ts:58，waterfall",
+      "pos": [
+        70,
+        140
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "e",
+      "type": "security",
+      "label": "fs/edit-intent",
+      "sublabel": "编辑之前派发，携带期望的版本",
+      "tag": "F/index.ts:66，waterfall",
+      "pos": [
+        70,
+        300
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "o",
+      "type": "database",
+      "label": "fs/observed",
+      "sublabel": "读到文件后派发，报告观察到的版本",
+      "tag": "F/index.ts:76，emit",
+      "pos": [
+        520,
+        220
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "use",
+      "type": "cloud",
+      "label": "消费方",
+      "sublabel": "策略包据此做准入、审计与乐观并发校验",
+      "tag": "声明位置在 F/index.ts:44-77",
+      "pos": [
+        940,
+        220
+      ],
+      "size": [
+        380,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "w",
+      "to": "o",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "e",
+      "to": "o",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "o",
+      "to": "use",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "意图与观察的区别",
+      "items": [
+        "意图事件是 waterfall，可以拒绝或改写",
+        "观察事件是 emit，只用于通知",
+        "因此准入逻辑只能挂在意图事件上"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "版本贯穿三个事件",
+      "items": [
+        "观察时记录读到的版本",
+        "写与编辑时带上期望的版本",
+        "不匹配即判定为并发冲突"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "策略包不依赖 provider",
+      "items": [
+        "fs-observation-policy 只监听这三个事件",
+        "换 provider 后策略照旧生效",
+        "见 03 篇的 capability 事件一节"
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "两个意图事件（waterfall）",
+      "wraps": [
+        "w",
+        "e"
+      ]
+    }
+  ]
+}

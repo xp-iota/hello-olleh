@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "effect 执行体的五种合法返回形态",
+    "output": "03-effect-return-shapes.html",
+    "viewBox": [
+      1440,
+      660
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "src",
+      "type": "frontend",
+      "label": "runner.execute.call(this)",
+      "sublabel": "的返回值",
+      "pos": [
+        60,
+        270
+      ],
+      "size": [
+        240,
+        120
+      ]
+    },
+    {
+      "id": "t1",
+      "type": "backend",
+      "label": "① function",
+      "sublabel": "return () => cleanup()",
+      "tag": ":241 直接 collect，最常用",
+      "pos": [
+        400,
+        90
+      ],
+      "size": [
+        300,
+        105
+      ]
+    },
+    {
+      "id": "t2",
+      "type": "external",
+      "label": "② nullish",
+      "sublabel": "直接 return 不给清理函数",
+      "tag": ":243 什么都不做",
+      "pos": [
+        400,
+        225
+      ],
+      "size": [
+        300,
+        105
+      ]
+    },
+    {
+      "id": "t3",
+      "type": "cloud",
+      "label": "③ Promise",
+      "sublabel": "async () => { await init(); return cleanup }",
+      "tag": ":246 走 effect.then(safeCollect)",
+      "pos": [
+        400,
+        360
+      ],
+      "size": [
+        300,
+        105
+      ]
+    },
+    {
+      "id": "t4",
+      "type": "database",
+      "label": "④ Iterable",
+      "sublabel": "function* () { yield d1; yield d2 }",
+      "tag": ":248-255 同步遍历逐个 collect",
+      "pos": [
+        800,
+        90
+      ],
+      "size": [
+        300,
+        105
+      ]
+    },
+    {
+      "id": "t5",
+      "type": "messagebus",
+      "label": "⑤ AsyncIterable",
+      "sublabel": "async function* () { yield d1 }",
+      "tag": ":256-269 每轮比对 epoch，变了就中止",
+      "pos": [
+        800,
+        225
+      ],
+      "size": [
+        300,
+        105
+      ]
+    },
+    {
+      "id": "t6",
+      "type": "security",
+      "label": "其它",
+      "sublabel": "throw new TypeError('Invalid effect')",
+      "tag": ":270",
+      "pos": [
+        800,
+        360
+      ],
+      "size": [
+        300,
+        105
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "c1",
+      "from": "src",
+      "to": "t1"
+    },
+    {
+      "id": "c2",
+      "from": "src",
+      "to": "t2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c3",
+      "from": "src",
+      "to": "t3"
+    },
+    {
+      "id": "c4",
+      "from": "t1",
+      "to": "t4",
+      "variant": "dashed"
+    },
+    {
+      "id": "c5",
+      "from": "t2",
+      "to": "t5",
+      "variant": "dashed"
+    },
+    {
+      "id": "c6",
+      "from": "t3",
+      "to": "t6",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "四种有效形态加一种拒绝",
+      "items": [
+        "Effect 类型在 C/fiber.ts:54 声明",
+        "函数、nullish、Promise、Iterable、AsyncIterable 均合法",
+        "其余一律抛 TypeError，不做静默降级"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "生成器形态的堆栈修正",
+      "items": [
+        "Iterable 分支会 info.error = new Error()",
+        "目的是重置堆栈锚点，让报错指向 yield 处",
+        "否则错误会归到遍历循环上"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "异步生成器可被打断",
+      "items": [
+        "每轮 yield 后比对 runner.epoch 与开始时的值",
+        "不一致即中止遍历（:263）",
+        "这让依赖变化能及时终止长流程"
+      ]
+    }
+  ]
+}

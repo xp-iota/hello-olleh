@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "turn() 的实现骨架",
+    "output": "06-turn-impl.html",
+    "viewBox": [
+      1500,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "pre",
+      "type": "frontend",
+      "label": "前置检查",
+      "sublabel": "phase.kind 必须是 running",
+      "tag": "AL/agent.ts:246",
+      "pos": [
+        70,
+        220
+      ],
+      "size": [
+        280,
+        120
+      ]
+    },
+    {
+      "id": "open",
+      "type": "database",
+      "label": "开 turn",
+      "sublabel": "throwIfAborted 后 turn 自增并 append turn/start",
+      "tag": ":255，写日志失败会 throwError",
+      "pos": [
+        400,
+        220
+      ],
+      "size": [
+        320,
+        120
+      ]
+    },
+    {
+      "id": "state",
+      "type": "backend",
+      "label": "初始化循环变量",
+      "sublabel": "turnEnds 置空，target 置为 next-turn",
+      "pos": [
+        770,
+        220
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "loop",
+      "type": "security",
+      "label": "while 循环",
+      "sublabel": "step 自增后 await preStep(target, position)",
+      "tag": ":266",
+      "pos": [
+        1120,
+        220
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "exit",
+      "type": "cloud",
+      "label": "退出条件",
+      "sublabel": "preStep 拒绝、或不再欠任何东西",
+      "tag": "退出后 append turn/end",
+      "pos": [
+        400,
+        420
+      ],
+      "size": [
+        320,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "pre",
+      "to": "open",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "open",
+      "to": "state",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "state",
+      "to": "loop",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "open",
+      "to": "exit",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 46
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "全文只有 85 行",
+      "items": [
+        "源码范围 AL/agent.ts:246-330",
+        "主体是一个 while 循环",
+        "每轮对应一个 step"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "target 会在循环中变化",
+      "items": [
+        "首轮取 next-turn 队列",
+        "后续轮次改取 next-step 队列",
+        "这就是 steer 与 inject 能插入的位置"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "写日志失败即中止",
+      "items": [
+        "append turn/start 包在 try/catch 里",
+        "失败直接 throwError，不继续执行",
+        "因为无法重建的 turn 不允许存在"
+      ]
+    }
+  ]
+}

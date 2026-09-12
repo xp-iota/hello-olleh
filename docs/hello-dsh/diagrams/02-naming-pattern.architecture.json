@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "包名后缀对应的角色（以 fs 组为例）",
+    "output": "02-naming-pattern.html",
+    "viewBox": [
+      1500,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "def",
+      "type": "frontend",
+      "label": "fs",
+      "sublabel": "Service Definition，声明 ctx.fs 接口",
+      "tag": "不含任何实现",
+      "pos": [
+        70,
+        250
+      ],
+      "size": [
+        280,
+        120
+      ]
+    },
+    {
+      "id": "local",
+      "type": "database",
+      "label": "fs-local",
+      "sublabel": "Provider，本地文件系统",
+      "pos": [
+        430,
+        90
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "sbx",
+      "type": "database",
+      "label": "fs-sandbox",
+      "sublabel": "Provider，沙箱内文件系统",
+      "pos": [
+        430,
+        215
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "e2b",
+      "type": "database",
+      "label": "fs-e2b",
+      "sublabel": "Provider，远端 E2B，位于 e2b 组",
+      "pos": [
+        430,
+        340
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "pol",
+      "type": "security",
+      "label": "fs-observation-policy",
+      "sublabel": "Policy，监听 fs 事件并施加策略",
+      "pos": [
+        430,
+        465
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "t1",
+      "type": "cloud",
+      "label": "tool-fs",
+      "sublabel": "Consumer，模型可见工具",
+      "pos": [
+        800,
+        90
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "t2",
+      "type": "cloud",
+      "label": "tool-fs-search",
+      "sublabel": "Consumer",
+      "pos": [
+        800,
+        215
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "t3",
+      "type": "cloud",
+      "label": "tool-str-replace-editor",
+      "sublabel": "Consumer",
+      "pos": [
+        800,
+        340
+      ],
+      "size": [
+        280,
+        95
+      ]
+    },
+    {
+      "id": "scale",
+      "type": "messagebus",
+      "label": "整组规模",
+      "sublabel": "fs 组共 7 个包、13044 行",
+      "pos": [
+        1160,
+        215
+      ],
+      "size": [
+        270,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "def",
+      "to": "local",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "def",
+      "to": "sbx"
+    },
+    {
+      "id": "c",
+      "from": "def",
+      "to": "e2b"
+    },
+    {
+      "id": "d",
+      "from": "def",
+      "to": "pol"
+    },
+    {
+      "id": "e",
+      "from": "local",
+      "to": "t1",
+      "variant": "dashed"
+    },
+    {
+      "id": "f",
+      "from": "t2",
+      "to": "scale",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "这是读 DSH 的第一把钥匙",
+      "items": [
+        "后缀严格对应角色，没有例外",
+        "看到 tool- 就知道它是模型可见的",
+        "看到 -policy 就知道它只监听事件"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Provider 可以跨组",
+      "items": [
+        "fs-e2b 放在 e2b 组而不是 fs 组",
+        "因为它依赖 E2B 的运行时",
+        "组织按依赖归属，不按接口归属"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "一个定义可带多个消费者",
+      "items": [
+        "tool-fs 是通用读写",
+        "tool-fs-search 专做搜索",
+        "tool-str-replace-editor 专做精确替换"
+      ]
+    }
+  ]
+}

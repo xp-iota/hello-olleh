@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "四种输入方式的差异",
+    "output": "06-four-inputs.html",
+    "viewBox": [
+      1500,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "f1",
+      "type": "frontend",
+      "label": "followup(m)",
+      "sublabel": "send(m, 'next-turn', true)",
+      "tag": "AL/agent.ts:122，排到下一个 turn 并立即唤醒；用户新一轮提问",
+      "pos": [
+        70,
+        120
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "f2",
+      "type": "security",
+      "label": "steer(m)",
+      "sublabel": "send(m, 'next-step', true)",
+      "tag": "AL/agent.ts:126，插入下一个 step 并立即唤醒；运行中改变方向",
+      "pos": [
+        70,
+        260
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "f3",
+      "type": "database",
+      "label": "inject(m)",
+      "sublabel": "send(m, 'next-step', false)",
+      "tag": "AL/agent.ts:130，插入下一个 step 但不唤醒；等自然轮到",
+      "pos": [
+        70,
+        400
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "f4",
+      "type": "backend",
+      "label": "send(m, target, wake)",
+      "sublabel": "底层统一入口",
+      "tag": "AL/agent.ts:113，前三者都是它的语义化包装",
+      "pos": [
+        560,
+        260
+      ],
+      "size": [
+        400,
+        110
+      ]
+    },
+    {
+      "id": "inbox",
+      "type": "messagebus",
+      "label": "Inbox",
+      "sublabel": "按 target 分队列存放，claim 时按队列取出",
+      "pos": [
+        1020,
+        260
+      ],
+      "size": [
+        400,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "f1",
+      "to": "f4",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "f2",
+      "to": "f4",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "f3",
+      "to": "f4"
+    },
+    {
+      "id": "d",
+      "from": "f4",
+      "to": "inbox",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两个维度决定语义",
+      "items": [
+        "target 决定排到下一个 turn 还是下一个 step",
+        "wake 决定是否立即唤醒驱动器",
+        "四种组合覆盖了全部使用场景"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "steer 与 inject 的区别只在 wake",
+      "items": [
+        "steer 会立刻打断当前等待",
+        "inject 只是排队，等自然轮到",
+        "后者适合程序化补充上下文"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "实现集中在 20 行内",
+      "items": [
+        "AL/agent.ts:113-132",
+        "三个方法都只是转调 send",
+        "语义差异全部体现在两个参数上"
+      ]
+    }
+  ]
+}

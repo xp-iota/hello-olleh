@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "持久化与投影是两个独立 seam",
+    "output": "06-persistence-seam.html",
+    "viewBox": [
+      1500,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "def",
+      "type": "frontend",
+      "label": "session-persistence",
+      "sublabel": "2159 行，持久化的服务定义",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        350,
+        110
+      ]
+    },
+    {
+      "id": "jsonl",
+      "type": "database",
+      "label": "session-persistence-jsonl",
+      "sublabel": "1939 行，每行一个事件，天然 append-only",
+      "pos": [
+        70,
+        280
+      ],
+      "size": [
+        350,
+        110
+      ]
+    },
+    {
+      "id": "sqlite",
+      "type": "database",
+      "label": "session-persistence-sqlite",
+      "sublabel": "714 行，SQLite provider",
+      "pos": [
+        70,
+        430
+      ],
+      "size": [
+        350,
+        110
+      ]
+    },
+    {
+      "id": "ckpt",
+      "type": "security",
+      "label": "session-checkpoint-policy",
+      "sublabel": "113 行，决定何时落盘",
+      "pos": [
+        480,
+        430
+      ],
+      "size": [
+        350,
+        110
+      ]
+    },
+    {
+      "id": "proj",
+      "type": "backend",
+      "label": "投影侧两个包",
+      "sublabel": "共 888 行，把日志渲染成可展示与可请求的形态",
+      "pos": [
+        480,
+        180
+      ],
+      "size": [
+        350,
+        110
+      ]
+    },
+    {
+      "id": "core",
+      "type": "cloud",
+      "label": "core/session 只管内存",
+      "sublabel": "日志与投影都在内存里，落盘交给 seam",
+      "pos": [
+        900,
+        300
+      ],
+      "size": [
+        350,
+        110
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "持久化：4 个包共 4812 行",
+      "wraps": [
+        "def",
+        "jsonl",
+        "sqlite",
+        "ckpt"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "def",
+      "to": "jsonl",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 46
+    },
+    {
+      "id": "b",
+      "from": "jsonl",
+      "to": "sqlite",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 46
+    },
+    {
+      "id": "c",
+      "from": "proj",
+      "to": "core",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三层职责分明",
+      "items": [
+        "core/session 只维护内存日志与投影",
+        "persistence seam 负责落盘",
+        "checkpoint policy 决定落盘时机"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "JSONL 与日志模型天然契合",
+      "items": [
+        "每行一个事件，追加即写",
+        "崩溃后按行恢复，无需事务",
+        "SQLite provider 适合需要查询的场景"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "策略独立成包的好处",
+      "items": [
+        "改落盘频率不需要动 provider",
+        "也不需要动 core/session",
+        "是 capability 事件解耦的又一例"
+      ]
+    }
+  ]
+}

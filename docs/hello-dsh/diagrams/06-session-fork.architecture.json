@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "session.fork 的参数与语义",
+    "output": "06-session-fork.html",
+    "viewBox": [
+      1520,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "api",
+      "type": "frontend",
+      "label": "fork(source, boundary, childSessionId)",
+      "sublabel": "S/index.ts:1081",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        330,
+        140
+      ]
+    },
+    {
+      "id": "src",
+      "type": "database",
+      "label": "source",
+      "sublabel": "活的 session 对象，或它在 store 里的 id",
+      "tag": "S/index.ts:761 注释",
+      "pos": [
+        440,
+        80
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "bnd",
+      "type": "backend",
+      "label": "boundary",
+      "sublabel": "从哪个 seq 切断，不传则全量",
+      "pos": [
+        440,
+        240
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "seed",
+      "type": "cloud",
+      "label": "新 session 的种子",
+      "sublabel": "父会话区间 [0, boundary) 的事件作为 seed",
+      "tag": "firstLiveSeq 指向种子之后",
+      "pos": [
+        820,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "err",
+      "type": "security",
+      "label": "失败抛 SessionForkError",
+      "sublabel": "带结构化的 SessionForkErrorCode",
+      "tag": "S/index.ts:779",
+      "pos": [
+        1210,
+        190
+      ],
+      "size": [
+        240,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "api",
+      "to": "src"
+    },
+    {
+      "id": "b",
+      "from": "api",
+      "to": "bnd",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "bnd",
+      "to": "seed",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "seed",
+      "to": "err",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "fork 是官方支持的分叉",
+      "items": [
+        "docs/architecture.md 的映射表里专门列了它",
+        "subagent-fork-in-process 直接用它",
+        "不需要复制文件或手工裁剪日志"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "种子与活跃区分开",
+      "items": [
+        "[0, boundary) 的事件成为不可变种子",
+        "firstLiveSeq 之后才是子会话自己的事件",
+        "于是父子共享历史但互不影响"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "source 可以只给 id",
+      "items": [
+        "不必先把父会话加载进内存",
+        "store 会按需读取",
+        "便于对归档会话做分叉"
+      ]
+    }
+  ]
+}

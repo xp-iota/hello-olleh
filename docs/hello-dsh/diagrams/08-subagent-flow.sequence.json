@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "subagent 的创建、回报与控制",
+    "output": "08-subagent-flow.html",
+    "viewBox": [
+      1620,
+      860
+    ],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "parent",
+      "type": "external",
+      "label": "父 Agent",
+      "sublabel": "模型侧"
+    },
+    {
+      "id": "tool",
+      "type": "backend",
+      "label": "tool-subagent",
+      "sublabel": "创建工具"
+    },
+    {
+      "id": "svc",
+      "type": "backend",
+      "label": "subagent 服务",
+      "sublabel": "ctx.subagent"
+    },
+    {
+      "id": "provider",
+      "type": "cloud",
+      "label": "Provider",
+      "sublabel": "如 fork-in-process"
+    },
+    {
+      "id": "child",
+      "type": "backend",
+      "label": "子 Agent",
+      "sublabel": "独立 turn/step 循环"
+    },
+    {
+      "id": "report",
+      "type": "messagebus",
+      "label": "tool-subagent-report",
+      "sublabel": "回报通道"
+    },
+    {
+      "id": "control",
+      "type": "security",
+      "label": "tool-subagent-control",
+      "sublabel": "查状态与取消"
+    }
+  ],
+  "segments": [
+    {
+      "from": 155,
+      "to": 400,
+      "label": "创建"
+    },
+    {
+      "from": 420,
+      "to": 620,
+      "label": "独立执行与回报"
+    },
+    {
+      "from": 640,
+      "to": 740,
+      "label": "带外控制"
+    }
+  ],
+  "messages": [
+    {
+      "id": "tool-call",
+      "from": "parent",
+      "to": "tool",
+      "y": 195,
+      "label": "tool_call（描述任务）",
+      "variant": "emphasis"
+    },
+    {
+      "id": "request-create",
+      "from": "tool",
+      "to": "svc",
+      "y": 250,
+      "label": "请求创建 subagent"
+    },
+    {
+      "id": "pick-provider",
+      "from": "svc",
+      "to": "provider",
+      "y": 305,
+      "label": "选中的 provider 启动"
+    },
+    {
+      "id": "fork-child",
+      "from": "provider",
+      "to": "child",
+      "y": 360,
+      "label": "创建或 fork agent，enter(child, owner = parent)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "handle-back",
+      "from": "svc",
+      "to": "tool",
+      "y": 440,
+      "label": "返回 subagent 句柄",
+      "variant": "return"
+    },
+    {
+      "id": "result-back",
+      "from": "tool",
+      "to": "parent",
+      "y": 490,
+      "label": "tool_result（subagent id）",
+      "variant": "return",
+      "note": "父 agent 不阻塞，子 agent 独立跑自己的 turn/step 循环"
+    },
+    {
+      "id": "child-report",
+      "from": "child",
+      "to": "report",
+      "y": 555,
+      "label": "完成时调 tool-subagent-report"
+    },
+    {
+      "id": "defer-inbox",
+      "from": "report",
+      "to": "parent",
+      "y": 605,
+      "label": "deferContext() 把报告塞进父 agent 的 inbox",
+      "variant": "emphasis",
+      "note": "详见 07 篇 § 7.10 请求管线"
+    },
+    {
+      "id": "control-query",
+      "from": "parent",
+      "to": "control",
+      "y": 680,
+      "label": "期间可用 tool-subagent-control 查状态或取消",
+      "variant": "security"
+    },
+    {
+      "id": "control-to-svc",
+      "from": "control",
+      "to": "svc",
+      "y": 730,
+      "label": "查询 / cancel",
+      "variant": "security"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "tool",
+      "from": 190,
+      "to": 496,
+      "type": "backend"
+    },
+    {
+      "participant": "svc",
+      "from": 245,
+      "to": 736,
+      "type": "backend"
+    },
+    {
+      "participant": "provider",
+      "from": 300,
+      "to": 366,
+      "type": "cloud"
+    },
+    {
+      "participant": "child",
+      "from": 355,
+      "to": 561,
+      "type": "backend"
+    },
+    {
+      "participant": "report",
+      "from": 550,
+      "to": 611,
+      "type": "messagebus"
+    },
+    {
+      "participant": "control",
+      "from": 675,
+      "to": 736,
+      "type": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "父 agent 不等子 agent",
+      "items": [
+        "tool_result 只返回 subagent id 就立刻结束",
+        "父 agent 的 turn 可以继续推进",
+        "子 agent 的产出通过 inbox 异步汇入"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "provider 是可替换的缝",
+      "items": [
+        "fork-in-process 只是其中一种实现",
+        "同一套工具接口可以换成独立进程或远端",
+        "subagent 服务负责选型，工具层不感知"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "三个工具各管一段",
+      "items": [
+        "tool-subagent 负责创建",
+        "tool-subagent-report 负责子到父的回报",
+        "tool-subagent-control 负责查状态与取消"
+      ]
+    }
+  ]
+}

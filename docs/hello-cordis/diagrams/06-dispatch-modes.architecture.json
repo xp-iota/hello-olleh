@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "五种事件派发模式",
+    "output": "06-dispatch-modes.html",
+    "viewBox": [
+      1500,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "emit",
+      "type": "frontend",
+      "label": "emit",
+      "sublabel": "全部执行并忽略返回值",
+      "tag": "events.ts:96，纯通知",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        290,
+        105
+      ]
+    },
+    {
+      "id": "bail",
+      "type": "security",
+      "label": "bail",
+      "sublabel": "依次执行，首个非空返回值即中断",
+      "tag": "events.ts:109，询问式：谁能处理",
+      "pos": [
+        70,
+        265
+      ],
+      "size": [
+        290,
+        105
+      ]
+    },
+    {
+      "id": "waterfall",
+      "type": "backend",
+      "label": "waterfall",
+      "sublabel": "中间件链，每个监听器收到 next",
+      "tag": "events.ts:117，拦截、改写或委托",
+      "pos": [
+        70,
+        400
+      ],
+      "size": [
+        290,
+        105
+      ]
+    },
+    {
+      "id": "parallel",
+      "type": "messagebus",
+      "label": "parallel",
+      "sublabel": "Promise.allSettled 全部并发",
+      "tag": "events.ts:89，有失败则抛 AggregateError",
+      "pos": [
+        520,
+        180
+      ],
+      "size": [
+        290,
+        105
+      ]
+    },
+    {
+      "id": "serial",
+      "type": "messagebus",
+      "label": "serial",
+      "sublabel": "逐个 await，首个非空返回值即中断",
+      "tag": "events.ts:101，bail 的异步版",
+      "pos": [
+        520,
+        340
+      ],
+      "size": [
+        290,
+        105
+      ]
+    },
+    {
+      "id": "bailed",
+      "type": "cloud",
+      "label": "isBailed(value) 的判定",
+      "sublabel": "既非 null 也非 false 且已赋值即算非空",
+      "tag": "events.ts:6，注意 0 与空字符串也算非空",
+      "pos": [
+        960,
+        255
+      ],
+      "size": [
+        420,
+        120
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "同步",
+      "wraps": [
+        "emit",
+        "bail",
+        "waterfall"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "异步",
+      "wraps": [
+        "parallel",
+        "serial"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "bail",
+      "to": "bailed",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "serial",
+      "to": "bailed",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "按用途选模式",
+      "items": [
+        "只想广播用 emit，不关心结果",
+        "想问「谁能处理」用 bail 或 serial",
+        "想改写或替换默认行为用 waterfall"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "非空判定的陷阱",
+      "items": [
+        "数字 0 与空字符串都被判为非空",
+        "监听器返回 0 会意外中断整条链",
+        "要表达「我不处理」必须返回 null、false 或不返回"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "同步与异步的对应关系",
+      "items": [
+        "bail 与 serial 语义相同，差别只在是否 await",
+        "emit 与 parallel 同为无返回值的通知",
+        "parallel 用 allSettled，单个失败不影响其余"
+      ]
+    }
+  ]
+}

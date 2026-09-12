@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SDK 的两层结构",
+    "output": "04-sdk-two-layers.html",
+    "viewBox": [
+      1560,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "proto",
+      "type": "frontend",
+      "label": "protocol",
+      "sublabel": "440 行，协议定义",
+      "pos": [
+        70,
+        240
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "client",
+      "type": "database",
+      "label": "client",
+      "sublabel": "952 行，客户端实现",
+      "pos": [
+        400,
+        120
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "server",
+      "type": "backend",
+      "label": "server",
+      "sublabel": "362 行，服务端实现",
+      "pos": [
+        400,
+        360
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "pysdk",
+      "type": "cloud",
+      "label": "python sdk",
+      "sublabel": "发布为 deepseek-harness-sdk，模块名 deepseek_harness",
+      "tag": "高层 turns API 加低层 JSON-RPC 客户端",
+      "pos": [
+        760,
+        120
+      ],
+      "size": [
+        400,
+        110
+      ]
+    },
+    {
+      "id": "pyrt",
+      "type": "security",
+      "label": "python sdk-runtime",
+      "sublabel": "发布为 deepseek-harness-runtime-bin",
+      "tag": "模块名 deepseek_harness_runtime，内含预编译二进制",
+      "pos": [
+        760,
+        360
+      ],
+      "size": [
+        400,
+        110
+      ]
+    },
+    {
+      "id": "scale",
+      "type": "messagebus",
+      "label": "两侧规模",
+      "sublabel": "TS 侧 1754 行源码，Python 侧 14 文件 2629 行",
+      "pos": [
+        1290,
+        240
+      ],
+      "size": [
+        210,
+        110
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "TS 侧 packages/sdk/",
+      "wraps": [
+        "proto",
+        "client",
+        "server"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "Python 侧 python/",
+      "wraps": [
+        "pysdk",
+        "pyrt"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "proto",
+      "to": "client",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "proto",
+      "to": "server",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "client",
+      "to": "pysdk",
+      "variant": "dashed"
+    },
+    {
+      "id": "d",
+      "from": "pyrt",
+      "to": "scale",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "protocol 是唯一的共享契约",
+      "items": [
+        "client 与 server 都只依赖它",
+        "Python 侧按同一协议重新实现",
+        "于是跨语言不需要代码生成"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Python 分成两个发行包",
+      "items": [
+        "sdk 是纯 Python 客户端",
+        "sdk-runtime 装的是预编译的 DSH 可执行文件",
+        "两者版本对应，缺一不可"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "高低两层 API",
+      "items": [
+        "高层是 turns API，面向常见用法",
+        "低层是 JSON-RPC 客户端，可完全控制",
+        "需要自定义流程时降到低层"
+      ]
+    }
+  ]
+}

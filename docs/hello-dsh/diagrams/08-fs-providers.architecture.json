@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "fs 的三个 provider",
+    "output": "08-fs-providers.html",
+    "viewBox": [
+      1440,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "local",
+      "type": "database",
+      "label": "fs-local",
+      "sublabel": "1210 行，直接用 node:fs",
+      "tag": "13 个抽象方法的完整实现，含版本计算与事件发射",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "sbx",
+      "type": "security",
+      "label": "fs-sandbox",
+      "sublabel": "仅 254 行，不重新实现文件系统",
+      "tag": "在 resolve 里用 contains 做边界校验，其余委托底层 provider",
+      "pos": [
+        490,
+        190
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "e2b",
+      "type": "cloud",
+      "label": "fs-e2b",
+      "sublabel": "把 13 个方法映射到 E2B 远端 API",
+      "tag": "processPath 返回容器内路径",
+      "pos": [
+        910,
+        190
+      ],
+      "size": [
+        380,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "local",
+      "to": "sbx",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "sbx",
+      "to": "e2b",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "sandbox 是装饰器",
+      "items": [
+        "254 行说明它不做实际 IO",
+        "只在 resolve 阶段加边界校验",
+        "其余方法透传给被装饰的 provider"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "e2b 只做映射",
+      "items": [
+        "13 个方法逐个对应远端 API",
+        "关键差异在 processPath 返回容器内路径",
+        "于是子进程拿到的是容器视角的路径"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "三者对上层完全一致",
+      "items": [
+        "工具代码不感知在哪个 provider 上运行",
+        "切换只在配置层发生",
+        "这是 seam 的核心收益"
+      ]
+    }
+  ]
+}

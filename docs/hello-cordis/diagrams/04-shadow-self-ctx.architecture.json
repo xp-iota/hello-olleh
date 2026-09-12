@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "服务如何取回自己的 ctx",
+    "output": "04-shadow-self-ctx.html",
+    "viewBox": [
+      1460,
+      480
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "call",
+      "type": "frontend",
+      "label": "服务方法内写 this.ctx",
+      "sublabel": "直觉上应拿到服务自己的 ctx",
+      "pos": [
+        60,
+        170
+      ],
+      "size": [
+        280,
+        120
+      ]
+    },
+    {
+      "id": "hijack",
+      "type": "security",
+      "label": "traceable 拦截",
+      "sublabel": "实际返回的是调用方的 ctx",
+      "tag": "这是 tracker.property 的设计意图",
+      "pos": [
+        400,
+        170
+      ],
+      "size": [
+        280,
+        120
+      ]
+    },
+    {
+      "id": "stash",
+      "type": "database",
+      "label": "createShadow 藏原件",
+      "sublabel": "ctx.extend({ [symbols.shadow]: origin })",
+      "tag": "把服务原本的 ctx 藏进 shadow",
+      "pos": [
+        740,
+        170
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "take",
+      "type": "backend",
+      "label": "需要时解包取回",
+      "sublabel": "getTraceable 见到 shadow 就 getPrototypeOf",
+      "tag": "utils.ts:112-114",
+      "pos": [
+        1100,
+        170
+      ],
+      "size": [
+        300,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "call",
+      "to": "hijack",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "hijack",
+      "to": "stash",
+      "label": "需要时",
+      "variant": "dashed",
+      "labelDy": -46
+    },
+    {
+      "id": "c",
+      "from": "stash",
+      "to": "take",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么默认要劫持",
+      "items": [
+        "服务方法里用调用方 ctx 才能正确归属副作用",
+        "否则调用方卸载时服务里登记的 effect 不会回收",
+        "这是可逆性跨服务边界的保证"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "shadow 是逃生舱",
+      "items": [
+        "仅当服务确实需要读自己的配置时才走 shadow 取回",
+        "服务确实需要读自己的配置时才用",
+        "藏在原型上，不污染正常属性访问",
+        "解包是显式动作，不会误触发"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "两条路径要分清",
+      "items": [
+        "this.ctx 给的是调用方视角",
+        "经 shadow 解包拿到的是服务自身视角",
+        "混用会导致副作用归属错乱"
+      ]
+    }
+  ]
+}

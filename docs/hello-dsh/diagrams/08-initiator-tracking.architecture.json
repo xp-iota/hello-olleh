@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "工具调用如何知道是哪个 agent",
+    "output": "08-initiator-tracking.html",
+    "viewBox": [
+      1480,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "prob",
+      "type": "security",
+      "label": "问题",
+      "sublabel": "工具代码里没有 agent 参数",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        280,
+        140
+      ]
+    },
+    {
+      "id": "enter",
+      "type": "database",
+      "label": "enter(agent, owner)",
+      "sublabel": "建立 agent 的执行上下文并返回 disposer",
+      "tag": "AG/index.ts:474",
+      "pos": [
+        390,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "req",
+      "type": "backend",
+      "label": "requireInitiator()",
+      "sublabel": "执行期取当前 agent",
+      "tag": "AG/index.ts:322；executeToolCalls 第一行就调它（AL/tool-calls.ts:67）",
+      "pos": [
+        770,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "tree",
+      "type": "cloud",
+      "label": "owner 建立父子关系",
+      "sublabel": "isOwnedBy 判归属，roots 列出顶层 agent",
+      "tag": "AG/index.ts:595 与 :613",
+      "pos": [
+        1150,
+        190
+      ],
+      "size": [
+        280,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "prob",
+      "to": "enter",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "enter",
+      "to": "req",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "req",
+      "to": "tree",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "用执行上下文而非参数",
+      "items": [
+        "工具签名保持简洁，不带 agent",
+        "上下文由 enter 在外层建立",
+        "于是任意深度的调用都能取到"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "require 而非 current",
+      "items": [
+        "缺失时直接报错，不返回空",
+        "因为无法归属的工具调用不该发生",
+        "这是 fail-closed 的又一处"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "owner 支撑 agent 树",
+      "items": [
+        "isOwnedBy 判断某 agent 是否属于某 owner",
+        "roots 列出没有 owner 的顶层 agent",
+        "subagent 层级因此可枚举"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "服务的动态解析路径",
+    "output": "04-dynamic-resolve.html",
+    "viewBox": [
+      1520,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "miss",
+      "type": "frontend",
+      "label": "ctx.db 不在 target 上",
+      "sublabel": "进入 C/reflect.ts:63-99",
+      "pos": [
+        60,
+        130
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "err",
+      "type": "external",
+      "label": "提前构造 error",
+      "sublabel": "cannot get property without inject",
+      "tag": ":71 提前构造以保留调用栈",
+      "pos": [
+        360,
+        130
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "acc",
+      "type": "security",
+      "label": "props 里是 accessor 吗",
+      "sublabel": "是则 def.get.call(ctx, receiver, error)",
+      "tag": "mixin 走这条，见 § 4.7",
+      "pos": [
+        690,
+        130
+      ],
+      "size": [
+        290,
+        110
+      ]
+    },
+    {
+      "id": "root",
+      "type": "database",
+      "label": "根 ctx 分支",
+      "sublabel": "fiber.runtime 不存在时 reflect.get(prop, false)",
+      "tag": ":79 非严格模式，不要求 ACTIVE",
+      "pos": [
+        1030,
+        130
+      ],
+      "size": [
+        290,
+        110
+      ]
+    },
+    {
+      "id": "hook",
+      "type": "messagebus",
+      "label": "给插件拦截机会",
+      "sublabel": "events.waterfall('internal/get', ...)",
+      "tag": ":80",
+      "pos": [
+        360,
+        400
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "walk",
+      "type": "cloud",
+      "label": "沿 fiber 链向上循环",
+      "sublabel": "key 取自 target[symbols.isolate][name]",
+      "tag": ":81-93 fiber 取自 shadow 或 ctx 自身",
+      "pos": [
+        700,
+        400
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "hit",
+      "type": "backend",
+      "label": "命中即返回",
+      "sublabel": "fiber.store 里查到则包成 traceable 返回",
+      "tag": "走到链顶仍未命中则抛出预先构造的 error",
+      "pos": [
+        1050,
+        400
+      ],
+      "size": [
+        300,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "miss",
+      "to": "err",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "err",
+      "to": "acc"
+    },
+    {
+      "id": "c",
+      "from": "acc",
+      "to": "root",
+      "label": "否"
+    },
+    {
+      "id": "d",
+      "from": "err",
+      "to": "hook",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "e",
+      "from": "hook",
+      "to": "walk"
+    },
+    {
+      "id": "f",
+      "from": "walk",
+      "to": "hit",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "error 为什么提前构造",
+      "items": [
+        "构造 Error 的那一刻才能拿到正确调用栈",
+        "若等到确认失败再构造，栈已经在框架内部",
+        "这是长堆栈能指回用户代码的前提"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "根 ctx 走非严格模式",
+      "items": [
+        "根 ctx 没有 runtime，也没有依赖声明",
+        "因此允许拿到尚未 ACTIVE 的实现",
+        "插件的 ctx 一律走严格模式"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "waterfall 钩子的位置",
+      "items": [
+        "在向上查找之前派发 internal/get",
+        "插件可以短路并返回自己的实现",
+        "这是服务代理与 mock 的官方入口"
+      ]
+    }
+  ]
+}

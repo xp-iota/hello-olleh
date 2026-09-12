@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "每文件 100% 覆盖率门禁",
+    "output": "10-coverage-gate.html",
+    "viewBox": [
+      1460,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "cfg",
+      "type": "security",
+      "label": "perFile 加四项全 100%",
+      "sublabel": "vitest.config.ts:273-279",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "mean",
+      "type": "database",
+      "label": "不是整体 100%",
+      "sublabel": "是每个文件都要 100%",
+      "tag": "无法用高覆盖文件拉平低覆盖文件",
+      "pos": [
+        450,
+        190
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "rep",
+      "type": "backend",
+      "label": "专用报告器",
+      "sublabel": "scripts/coverage-uncovered-locations.cjs",
+      "tag": "vitest.config.ts:13，打印每处未覆盖的精确位置",
+      "pos": [
+        850,
+        190
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "why",
+      "type": "cloud",
+      "label": "目的",
+      "sublabel": "让未覆盖处可直接跳转修补",
+      "pos": [
+        1270,
+        190
+      ],
+      "size": [
+        160,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "cfg",
+      "to": "mean",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "mean",
+      "to": "rep",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "rep",
+      "to": "why",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "门禁很硬",
+      "items": [
+        "项目口号是不到 100% 就不合并",
+        "四项指标语句、分支、函数、行全部要满",
+        "perFile 让平均值失效"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "报告器给精确坐标",
+      "items": [
+        "输出形如 路径:行:列 的记录",
+        "覆盖语句、分支路径与函数三类",
+        "于是补测试不需要人工找位置"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "代价与收益",
+      "items": [
+        "代价是写测试成本高",
+        "收益是重构时几乎不会漏改",
+        "对 agent 驱动开发尤其重要"
+      ]
+    }
+  ]
+}

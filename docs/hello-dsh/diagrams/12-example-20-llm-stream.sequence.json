@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "llm/stream waterfall：从外向内取流，从内向外包装",
+    "output": "12-example-20-llm-stream.html",
+    "viewBox": [1680, 690],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "script", "type": "external", "label": "run.ts", "sublabel": "示例入口脚本" },
+    { "id": "llm", "type": "messagebus", "label": "ctx.llm", "sublabel": "LlmRuntime.stream 不直透适配器" },
+    { "id": "outer", "type": "security", "label": "外层监听者", "sublabel": "包装：text-delta 转大写" },
+    { "id": "inner", "type": "backend", "label": "内层监听者", "sublabel": "观察：统计 chunk 与 token" },
+    { "id": "adapter", "type": "cloud", "label": "mock 适配器", "sublabel": "waterfall 的最内层" }
+  ],
+  "segments": [
+    { "from": 155, "to": 230, "label": "挂两个监听者" },
+    { "from": 245, "to": 440, "label": "从外向内取流" },
+    { "from": 455, "to": 610, "label": "chunk 流从内向外回来" }
+  ],
+  "messages": [
+    {
+      "id": "install",
+      "from": "script",
+      "to": "llm",
+      "y": 195,
+      "label": "createHarness({ reply }) 后 loadPlugin：挂两个 llm/stream 监听者",
+      "variant": "emphasis"
+    },
+    {
+      "id": "stream",
+      "from": "script",
+      "to": "llm",
+      "y": 265,
+      "label": "① stream(options)：经 llm/stream waterfall 派发",
+      "variant": "emphasis"
+    },
+    {
+      "id": "toouter",
+      "from": "llm",
+      "to": "outer",
+      "y": 315,
+      "label": "外层监听者拿到 (options, next)"
+    },
+    {
+      "id": "toinner",
+      "from": "outer",
+      "to": "inner",
+      "y": 365,
+      "label": "await next() → 内层透传并打印 model=mock-1"
+    },
+    {
+      "id": "toadapter",
+      "from": "inner",
+      "to": "adapter",
+      "y": 415,
+      "label": "再 await next() → 最内层是 adapter.stream(options, prepared)"
+    },
+    {
+      "id": "chunks",
+      "from": "adapter",
+      "to": "inner",
+      "y": 475,
+      "label": "block-start / text-delta / block-end / usage / finish",
+      "variant": "return"
+    },
+    {
+      "id": "count",
+      "from": "inner",
+      "to": "outer",
+      "y": 525,
+      "label": "③ 统计 chunks=5、outputTokens=13 后原样透传"
+    },
+    {
+      "id": "upper",
+      "from": "outer",
+      "to": "script",
+      "y": 575,
+      "label": "② 包装生效：text-delta 变成 'HELLO HARNESS'",
+      "variant": "emphasis",
+      "note": "不调 next() 直接返回自己的流就是整段接管：缓存命中、内容审查、fixture 回放"
+    }
+  ],
+  "activations": [
+    { "participant": "llm", "from": 260, "to": 320, "type": "messagebus" },
+    { "participant": "outer", "from": 310, "to": 580, "type": "security" },
+    { "participant": "inner", "from": 360, "to": 530, "type": "backend" },
+    { "participant": "adapter", "from": 410, "to": 480, "type": "cloud" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "stream 经 waterfall 派发",
+      "items": [
+        "stream(options) 包装的是 () => adapterStream(options, prepared)",
+        "监听者签名固定为 (options, next)",
+        "最内层才是适配器"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "包装与接管两条路",
+      "items": [
+        "await next() 拿下游流：改写、记录、限流、重放",
+        "不调 next() 直接返回自己的流即整段接管",
+        "本例外层改写、内层观察，互不干扰"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "与 agent/request 的分工",
+      "items": [
+        "agent/request 只能换冻结的调用配置",
+        "provider 与 model 属于那一层",
+        "llm/stream 才能碰到 chunk 流本身"
+      ]
+    }
+  ]
+}

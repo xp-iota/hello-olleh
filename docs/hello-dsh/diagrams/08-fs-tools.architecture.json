@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "三个编辑工具的分工",
+    "output": "08-fs-tools.html",
+    "viewBox": [
+      1440,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "t1",
+      "type": "frontend",
+      "label": "tool-fs",
+      "sublabel": "1463 行，基础文件操作",
+      "tag": "读、写、列目录，对应 readText / writeText / listDir",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "t2",
+      "type": "database",
+      "label": "tool-fs-search",
+      "sublabel": "1574 行，组内最大",
+      "tag": "按内容或文件名搜索，需要遍历、匹配与结果截断",
+      "pos": [
+        490,
+        190
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "t3",
+      "type": "security",
+      "label": "tool-str-replace-editor",
+      "sublabel": "553 行，字符串替换式编辑",
+      "tag": "对应 editText，模型给旧串与新串而非整份内容",
+      "pos": [
+        910,
+        190
+      ],
+      "size": [
+        380,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "t1",
+      "to": "t2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "t2",
+      "to": "t3",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么搜索最大",
+      "items": [
+        "需要遍历目录树并做匹配",
+        "还要处理结果截断与相关性排序",
+        "比单纯读写复杂得多"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "替换式编辑的好处",
+      "items": [
+        "模型不必输出整个文件内容",
+        "减少 token 消耗与出错概率",
+        "但要求旧串在文件中唯一"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "三者共享同一 seam",
+      "items": [
+        "都只依赖 ctx.fs 接口",
+        "因此在沙箱与远端环境下同样可用",
+        "版本校验由 Definition 层统一施加"
+      ]
+    }
+  ]
+}

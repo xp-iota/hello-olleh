@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "按事件扩展的六组扩展点",
+    "output": "04-extension-events.html",
+    "viewBox": [
+      1500,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "e1",
+      "type": "security",
+      "label": "agent 系列",
+      "sublabel": "9 个事件：pre-step / request / request-error / turn-stopping 等",
+      "tag": "见 06 篇 § 6.8",
+      "pos": [
+        70,
+        120
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "e2",
+      "type": "backend",
+      "label": "tools 系列",
+      "sublabel": "3 个 waterfall：pre-execute / execute / post-execute",
+      "tag": "见 07 篇 § 7.11",
+      "pos": [
+        70,
+        260
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "e3",
+      "type": "cloud",
+      "label": "llm/stream",
+      "sublabel": "单个 waterfall，可包裹整个流式调用",
+      "tag": "见 07 篇 § 7.3",
+      "pos": [
+        70,
+        400
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "e4",
+      "type": "database",
+      "label": "fs 系列",
+      "sublabel": "3 个事件：write-intent / edit-intent / observed",
+      "tag": "见 08 篇 § 8.3",
+      "pos": [
+        560,
+        120
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "e5",
+      "type": "frontend",
+      "label": "system-prompt 系列",
+      "sublabel": "assemble 是 waterfall，另有 change 通知",
+      "tag": "见 07 篇 § 7.26",
+      "pos": [
+        560,
+        260
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "e6",
+      "type": "messagebus",
+      "label": "session/event",
+      "sublabel": "emit 型，会话日志的每条事件都会广播",
+      "pos": [
+        560,
+        400
+      ],
+      "size": [
+        420,
+        110
+      ]
+    },
+    {
+      "id": "why",
+      "type": "external",
+      "label": "共同特点",
+      "sublabel": "都不需要改代码结构，挂一个监听即可",
+      "tag": "waterfall 型还能改写或短路",
+      "pos": [
+        1050,
+        260
+      ],
+      "size": [
+        380,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "e2",
+      "to": "e5",
+      "variant": "dashed"
+    },
+    {
+      "id": "b",
+      "from": "e5",
+      "to": "why",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "emit 与 waterfall 的区别",
+      "items": [
+        "emit 型只能观测，不能改结果",
+        "waterfall 型可以改写参数、替换返回值或短路",
+        "扩展前先确认目标事件是哪一种"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "最常用的三个切入点",
+      "items": [
+        "tools 的三段 waterfall 用于审批与改写工具调用",
+        "llm/stream 用于替换或包裹模型调用",
+        "system-prompt/assemble 用于注入上下文"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "对应上游文档",
+      "items": [
+        "这份清单对应 docs/architecture.md 的扩展点映射",
+        "每组事件的完整签名在各章节展开",
+        "策略包只依赖事件，不依赖实现"
+      ]
+    }
+  ]
+}

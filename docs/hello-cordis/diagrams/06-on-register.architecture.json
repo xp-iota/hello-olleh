@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "on() 注册监听器的六步",
+    "output": "06-on-register.html",
+    "viewBox": [
+      1520,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "api",
+      "type": "frontend",
+      "label": "on(name, listener, options)",
+      "sublabel": "C/events.ts:144-158",
+      "pos": [
+        60,
+        130
+      ],
+      "size": [
+        290,
+        110
+      ]
+    },
+    {
+      "id": "compat",
+      "type": "external",
+      "label": "归一化 options",
+      "sublabel": "非对象则视为 { prepend: options }",
+      "tag": ":145-147 兼容 on(name, fn, true) 旧写法",
+      "pos": [
+        400,
+        130
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "assert",
+      "type": "security",
+      "label": "活性断言",
+      "sublabel": "ctx.fiber.assertActive()",
+      "tag": ":150",
+      "pos": [
+        750,
+        130
+      ],
+      "size": [
+        260,
+        110
+      ]
+    },
+    {
+      "id": "bind",
+      "type": "database",
+      "label": "包一层 traceable",
+      "sublabel": "listener = ctx.reflect.bind(listener)",
+      "tag": ":151 使监听器内的 this 与参数都经过 traceable",
+      "pos": [
+        1060,
+        130
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "hook",
+      "type": "messagebus",
+      "label": "给插件劫持机会",
+      "sublabel": "bail(ctx, 'internal/listener', ...)",
+      "tag": ":152 返回非空则由劫持者接管，直接返回",
+      "pos": [
+        400,
+        400
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "reg",
+      "type": "backend",
+      "label": "真正注册",
+      "sublabel": "hooks = _hooks[name] 后 register(...)",
+      "tag": ":157",
+      "pos": [
+        790,
+        400
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "eff",
+      "type": "cloud",
+      "label": "register 内部是一个 effect",
+      "sublabel": "setup 做 push 或 unshift，disposer 做 unregister",
+      "tag": ":130",
+      "pos": [
+        1150,
+        400
+      ],
+      "size": [
+        300,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "api",
+      "to": "compat"
+    },
+    {
+      "id": "b",
+      "from": "compat",
+      "to": "assert"
+    },
+    {
+      "id": "c",
+      "from": "assert",
+      "to": "bind"
+    },
+    {
+      "id": "d",
+      "from": "bind",
+      "to": "hook",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "right"
+    },
+    {
+      "id": "e",
+      "from": "hook",
+      "to": "reg",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f",
+      "from": "reg",
+      "to": "eff"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么要 bind 一层",
+      "items": [
+        "监听器内的 this 与参数都要经过 traceable",
+        "这样它登记的副作用才归属正确的调用方",
+        "代价是监听器拿到的不是原始对象"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "internal/listener 是注册劫持点",
+      "items": [
+        "用 bail 派发，任一监听器返回非空即接管",
+        "可用于把事件转发到别的进程或做去重",
+        "返回空则走默认注册流程"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "注册本身可逆",
+      "items": [
+        "register 包在 fiber.effect 里",
+        "setup 按 prepend 决定 push 还是 unshift",
+        "插件卸载时自动 unregister，不留悬挂监听"
+      ]
+    }
+  ]
+}

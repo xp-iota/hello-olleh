@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "_resolve 的四步预处理",
+    "output": "06-resolve-pipeline.html",
+    "viewBox": [
+      1520,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "enter",
+      "type": "frontend",
+      "label": "_resolve(type, args)",
+      "sublabel": "五种派发模式共用的入口",
+      "pos": [
+        60,
+        240
+      ],
+      "size": [
+        250,
+        120
+      ]
+    },
+    {
+      "id": "s1",
+      "type": "database",
+      "label": "① 识别可选 thisArg",
+      "sublabel": "首参是对象或函数则 shift，否则置空",
+      "tag": "events.ts:73",
+      "pos": [
+        360,
+        120
+      ],
+      "size": [
+        290,
+        110
+      ]
+    },
+    {
+      "id": "s2",
+      "type": "database",
+      "label": "② 取事件名",
+      "sublabel": "name = args.shift()，其余作监听器参数",
+      "tag": "events.ts:74",
+      "pos": [
+        360,
+        270
+      ],
+      "size": [
+        290,
+        110
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "messagebus",
+      "label": "③ 通知观测钩子",
+      "sublabel": "非 internal 事件且有人监听才发 internal/dispatch",
+      "tag": "events.ts:75-77",
+      "pos": [
+        720,
+        120
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "s4",
+      "type": "security",
+      "label": "④ 按 Context.filter 筛选",
+      "sublabel": "global 为真或无 filter 则保留",
+      "tag": "events.ts:78-80 否则 filter.call 为真才保留",
+      "pos": [
+        720,
+        300
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "out",
+      "type": "backend",
+      "label": "返回 [thisArg, callbacks]",
+      "sublabel": "callbacks 只含回调，不含 Hook 元数据",
+      "pos": [
+        1140,
+        210
+      ],
+      "size": [
+        300,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "enter",
+      "to": "s1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "enter",
+      "to": "s2"
+    },
+    {
+      "id": "c",
+      "from": "s1",
+      "to": "s3"
+    },
+    {
+      "id": "d",
+      "from": "s2",
+      "to": "s4"
+    },
+    {
+      "id": "e",
+      "from": "s4",
+      "to": "out",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "thisArg 是可选首参",
+      "items": [
+        "调用方可以传一个 Context 作为派发上下文",
+        "不传则为空，监听器的 this 保持默认",
+        "filter 的判定就依赖这个 thisArg"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "internal/dispatch 是审计入口",
+      "items": [
+        "除 internal 事件本身外的所有派发都会通知它",
+        "没有监听器时直接跳过，零开销",
+        "可视化与埋点靠它拿到全量事件流"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "筛选决定可见范围",
+      "items": [
+        "global 事件对所有监听器可见",
+        "否则用 Context.filter 逐个判定",
+        "这是 isolate realm 在事件系统里的对应机制"
+      ]
+    }
+  ]
+}

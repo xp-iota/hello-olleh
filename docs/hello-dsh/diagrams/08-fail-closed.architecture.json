@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "fail-closed 原则在全仓的四处体现",
+    "output": "08-fail-closed.html",
+    "viewBox": [
+      1500,
+      680
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "root",
+      "type": "security",
+      "label": "fail-closed",
+      "sublabel": "不确定时选择更安全的行为",
+      "pos": [
+        70,
+        220
+      ],
+      "size": [
+        280,
+        140
+      ]
+    },
+    {
+      "id": "b1",
+      "type": "database",
+      "label": "沙箱执行",
+      "sublabel": "内核无法强制则不运行命令",
+      "tag": "见 landlock-run 说明",
+      "pos": [
+        420,
+        80
+      ],
+      "size": [
+        400,
+        110
+      ]
+    },
+    {
+      "id": "b2",
+      "type": "database",
+      "label": "沙箱探测",
+      "sublabel": "probe 报不可用则消费方直接关闭该能力",
+      "tag": "没有安装期编译回退",
+      "pos": [
+        420,
+        215
+      ],
+      "size": [
+        400,
+        110
+      ]
+    },
+    {
+      "id": "b3",
+      "type": "backend",
+      "label": "工具审批",
+      "sublabel": "没有审批能力时 ask 等价于 deny",
+      "tag": "T/index.ts:145",
+      "pos": [
+        420,
+        350
+      ],
+      "size": [
+        400,
+        110
+      ]
+    },
+    {
+      "id": "b4",
+      "type": "cloud",
+      "label": "启动校验",
+      "sublabel": "任何配置行未激活则启动失败",
+      "tag": "assertEntriesActivated，见 05 篇 § 5.9",
+      "pos": [
+        420,
+        485
+      ],
+      "size": [
+        400,
+        110
+      ]
+    },
+    {
+      "id": "why",
+      "type": "messagebus",
+      "label": "共同点",
+      "sublabel": "宁可不工作，也不在不确定的状态下继续",
+      "pos": [
+        880,
+        220
+      ],
+      "size": [
+        400,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "root",
+      "to": "b2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "root",
+      "to": "b3"
+    },
+    {
+      "id": "c",
+      "from": "b2",
+      "to": "why",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "四处的共同结构",
+      "items": [
+        "都在能力缺失时选择拒绝而非降级",
+        "都把判断放在最早可判断的时刻",
+        "都给出明确的错误而非静默行为"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "为什么不做静默降级",
+      "items": [
+        "静默降级会让用户误以为约束仍在生效",
+        "安全能力的假象比没有更危险",
+        "显式失败可以被监控发现"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "延伸到 SDK 层",
+      "items": [
+        "Python runtime 拒绝无配置启动",
+        "便利层只能补默认值，不能跳过校验",
+        "见 04 篇的 SDK 契约"
+      ]
+    }
+  ]
+}

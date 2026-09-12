@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Skill 是数据扩展：SKILL.md 从发现到被 step 边界认领进请求",
+    "output": "12-example-08-skill-code-review.html",
+    "viewBox": [1680, 700],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "script", "type": "external", "label": "run.ts", "sublabel": "共享逻辑在 review.ts" },
+    { "id": "file", "type": "database", "label": "SKILL.md", "sublabel": "frontmatter + 正文（纯数据）" },
+    { "id": "skills", "type": "messagebus", "label": "ctx.skills", "sublabel": "真实 SkillRegistry（dsh-skill）" },
+    { "id": "inbox", "type": "security", "label": "agent inbox", "sublabel": "nextStep 待认领队列" },
+    { "id": "loop", "type": "backend", "label": "agent-loop", "sublabel": "真实 turn / step 边界" }
+  ],
+  "segments": [
+    { "from": 155, "to": 280, "label": "读一份纯数据" },
+    { "from": 295, "to": 450, "label": "发现 → 取用 → 注入" },
+    { "from": 465, "to": 620, "label": "真实 turn 认领并送达" }
+  ],
+  "messages": [
+    {
+      "id": "parse",
+      "from": "script",
+      "to": "file",
+      "y": 195,
+      "label": "解析本目录 SKILL.md：YAML frontmatter + Markdown 正文",
+      "variant": "emphasis"
+    },
+    {
+      "id": "register",
+      "from": "script",
+      "to": "skills",
+      "y": 245,
+      "label": "register({ name, description, content, invocation })",
+      "variant": "security",
+      "note": "真实产品由 skill-filesystem provider 从 skills 根目录自动发现；这里直接喂同一份数据"
+    },
+    {
+      "id": "list",
+      "from": "script",
+      "to": "skills",
+      "y": 315,
+      "label": "① list() → 发现 code-review-checklist（source=project-dsh / provider=runtime）",
+      "variant": "emphasis"
+    },
+    {
+      "id": "get",
+      "from": "script",
+      "to": "skills",
+      "y": 365,
+      "label": "get(name) → 含正文的完整定义"
+    },
+    {
+      "id": "inject",
+      "from": "skills",
+      "to": "inbox",
+      "y": 415,
+      "label": "② renderSkillContent(skill) → agent.inject(...) 排进 nextStep",
+      "variant": "return",
+      "note": "inject 不唤醒 driver：排进去只是等下一次 step 边界认领（见 19）"
+    },
+    {
+      "id": "runturn",
+      "from": "script",
+      "to": "loop",
+      "y": 485,
+      "label": "③ runTurn('帮我 review 这段改动…')：唤醒 driver",
+      "variant": "emphasis"
+    },
+    {
+      "id": "claim",
+      "from": "loop",
+      "to": "inbox",
+      "y": 535,
+      "label": "pre-step 认领边界把 nextStep 取空"
+    },
+    {
+      "id": "delivered",
+      "from": "loop",
+      "to": "script",
+      "y": 585,
+      "label": "清单正文随请求进入模型可见上下文（surface 投影里 source=skill-invocation）",
+      "variant": "emphasis",
+      "note": "离线 mock 回复固定，这一节只证明「清单送到了」；照清单作答见 08:minimax"
+    }
+  ],
+  "activations": [
+    { "participant": "file", "from": 190, "to": 250, "type": "database" },
+    { "participant": "skills", "from": 240, "to": 420, "type": "messagebus" },
+    { "participant": "inbox", "from": 410, "to": 540, "type": "security" },
+    { "participant": "loop", "from": 480, "to": 590, "type": "backend" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "一个 Skill 就是一个目录",
+      "items": [
+        "frontmatter 的 name + description 让模型发现它",
+        "description 写成「什么时候该用我」",
+        "正文是这项能力的操作手册"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "inject 不唤醒，所以必须真的跑一个 turn",
+      "items": [
+        "inject 只把渲染后的正文排进 nextStep",
+        "主循环在 step 边界认领后它才进请求",
+        "送达证据取自会话日志的 surface 投影"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "数据扩展与代码扩展的分工",
+      "items": [
+        "01~07 是代码扩展：写 cordis 插件，能力上限高",
+        "08 是数据扩展：写一份 Markdown",
+        "Skill 适合教模型一套固定做法或流程"
+      ]
+    }
+  ]
+}

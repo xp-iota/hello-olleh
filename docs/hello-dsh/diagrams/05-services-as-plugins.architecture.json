@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "每个能力都是一个 cordis Service",
+    "output": "05-services-as-plugins.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "core",
+      "type": "database",
+      "label": "核心契约类",
+      "sublabel": "sessions / tools / agents / agentLoop / systemPrompt",
+      "tag": "来自 core 组的五个包",
+      "pos": [
+        70,
+        180
+      ],
+      "size": [
+        400,
+        150
+      ]
+    },
+    {
+      "id": "exec",
+      "type": "backend",
+      "label": "执行侧类",
+      "sublabel": "llm / fs / shell / subprocess / sandbox / terminals",
+      "tag": "每个都有多个 provider 可换",
+      "pos": [
+        520,
+        180
+      ],
+      "size": [
+        400,
+        150
+      ]
+    },
+    {
+      "id": "host",
+      "type": "cloud",
+      "label": "运行面类",
+      "sublabel": "jobs / commands / goals / skills / storage / credentials / settings",
+      "tag": "面向宿主与人机交互",
+      "pos": [
+        970,
+        180
+      ],
+      "size": [
+        440,
+        150
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "core",
+      "to": "exec",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "exec",
+      "to": "host",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "全部是普通 cordis Service",
+      "items": [
+        "每个都通过 provide 注册到 ctx 上",
+        "都可以被 inject 声明为依赖",
+        "都能被上层 patch 换成别的实现"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "没有一个是特权的",
+      "items": [
+        "连 agentLoop 也只是一个 Service",
+        "换掉它就换掉整个 turn/step 语义",
+        "这是没有特权内核的最终证据"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "可跑的最小示例",
+      "items": [
+        "deepseek-harness-examples 里 26 个示例各演示一个扩展点",
+        "例如 26-cordis-timer 演示如何接入定时器",
+        "装的是真实发布的 npm 包"
+      ]
+    }
+  ]
+}

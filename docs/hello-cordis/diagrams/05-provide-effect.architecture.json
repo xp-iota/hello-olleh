@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "provide 的 setup 与撤销",
+    "output": "05-provide-effect.html",
+    "viewBox": [
+      1500,
+      660
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "api",
+      "type": "frontend",
+      "label": "provide(name, value, check)",
+      "sublabel": "整体包在一个 fiber.effect 里",
+      "tag": "C/reflect.ts:175-204",
+      "pos": [
+        60,
+        260
+      ],
+      "size": [
+        290,
+        120
+      ]
+    },
+    {
+      "id": "s1",
+      "type": "security",
+      "label": "① 占位检查",
+      "sublabel": "props[name] 不存在则置为 service 类型",
+      "tag": ":178-180 已存在且非 service 则抛错",
+      "pos": [
+        420,
+        90
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "s2",
+      "type": "database",
+      "label": "② 登记默认 Symbol",
+      "sublabel": "在根 ctx 上 isolate[name] 缺省即新建",
+      "tag": ":184 首次 provide 才发生",
+      "pos": [
+        420,
+        240
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "backend",
+      "label": "③ 组装 impl",
+      "sublabel": "{ name, value, fiber, check }，key 取自当前 ctx",
+      "pos": [
+        420,
+        390
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "s4",
+      "type": "security",
+      "label": "④ 重复注册检查",
+      "sublabel": "store[key] 已存在则抛 has been registered",
+      "tag": ":188 报错里带上原注册位置",
+      "pos": [
+        800,
+        240
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "s5",
+      "type": "cloud",
+      "label": "⑤ 双写",
+      "sublabel": "写 store[key] 同时写 fiber.store[name]",
+      "tag": "ACTIVE 时随即 notify 唤醒等待者",
+      "pos": [
+        800,
+        390
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "undo",
+      "type": "external",
+      "label": "disposer",
+      "sublabel": "卸载时删除两处记录并再次 notify",
+      "tag": "这就是服务可逆的全部实现",
+      "pos": [
+        1160,
+        240
+      ],
+      "size": [
+        290,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "api",
+      "to": "s1"
+    },
+    {
+      "id": "b",
+      "from": "api",
+      "to": "s2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "api",
+      "to": "s3"
+    },
+    {
+      "id": "d",
+      "from": "s2",
+      "to": "s4",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e",
+      "from": "s4",
+      "to": "s5",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "f",
+      "from": "s5",
+      "to": "undo"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "默认 Symbol 登记在根上",
+      "items": [
+        "根 ctx 的 isolate 映射是所有视图的原型",
+        "首次 provide 才写入，之后复用",
+        "这样未 isolate 的插件天然共享同一实现"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "两处抛错的区别",
+      "items": [
+        "props 冲突表示名字被非服务占用",
+        "store 冲突表示同一 realm 重复注册",
+        "后者的报错会带上原注册位置"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "provide 本身就是一个 effect",
+      "items": [
+        "setup 写两张表，disposer 删两张表",
+        "登记与撤销天然对称",
+        "卸载后再 notify，依赖方随之回落"
+      ]
+    }
+  ]
+}

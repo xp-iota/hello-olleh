@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "乐观并发控制的版本模型",
+    "output": "08-fs-version.html",
+    "viewBox": [
+      1480,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "ver",
+      "type": "frontend",
+      "label": "FsVersion",
+      "sublabel": "文件内容的版本标识，可为内容哈希或时间与大小组合",
+      "pos": [
+        70,
+        200
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "state",
+      "type": "security",
+      "label": "版本状态是联合类型",
+      "sublabel": "present 携带 version，absent 表示文件不存在",
+      "tag": "F/types.ts:53-54，不存在也是合法状态",
+      "pos": [
+        490,
+        200
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "f1",
+      "type": "database",
+      "label": "① 读时记录",
+      "sublabel": "provider 派发 fs/observed 报告当前版本",
+      "pos": [
+        910,
+        80
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "f2",
+      "type": "backend",
+      "label": "② 写时校验",
+      "sublabel": "write-intent 带上期望版本，与实际不符即拒绝",
+      "pos": [
+        910,
+        220
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "f3",
+      "type": "cloud",
+      "label": "③ 冲突处理",
+      "sublabel": "由调用方决定重读还是放弃，不做静默覆盖",
+      "pos": [
+        910,
+        360
+      ],
+      "size": [
+        380,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "ver",
+      "to": "state",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "state",
+      "to": "f2",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么把 absent 建模成状态",
+      "items": [
+        "「文件不存在」也需要参与版本比较",
+        "创建文件时期望的正是 absent",
+        "否则无法区分创建与覆盖"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "不做静默覆盖",
+      "items": [
+        "版本不匹配一律拒绝写入",
+        "由调用方重读后决定如何合并",
+        "这是 fail-closed 在文件层的体现"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "版本实现可换",
+      "items": [
+        "内容哈希更准确但成本高",
+        "时间与大小组合更快但可能漏判",
+        "provider 自行选择实现方式"
+      ]
+    }
+  ]
+}

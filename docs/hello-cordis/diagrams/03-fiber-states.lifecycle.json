@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Fiber 的六态状态机",
+    "output": "03-fiber-states.html",
+    "viewBox": [
+      1180,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "主生命周期"
+    },
+    {
+      "id": "exit",
+      "label": "异常与卸载"
+    }
+  ],
+  "states": [
+    {
+      "id": "born",
+      "type": "start",
+      "label": "new Fiber()",
+      "sublabel": "依赖未就绪",
+      "lane": "main",
+      "col": 0
+    },
+    {
+      "id": "pending",
+      "type": "waiting",
+      "label": "PENDING",
+      "sublabel": "等待依赖",
+      "lane": "main",
+      "col": 1
+    },
+    {
+      "id": "loading",
+      "type": "active",
+      "label": "LOADING",
+      "sublabel": "_reload() 执行中",
+      "lane": "main",
+      "col": 2
+    },
+    {
+      "id": "active",
+      "type": "success",
+      "label": "ACTIVE",
+      "sublabel": "插件生效",
+      "lane": "main",
+      "col": 3
+    },
+    {
+      "id": "disposed",
+      "type": "neutral",
+      "label": "DISPOSED",
+      "sublabel": "uid = null",
+      "lane": "main",
+      "col": 4
+    },
+    {
+      "id": "failed",
+      "type": "failure",
+      "label": "FAILED",
+      "sublabel": "_error 已设置",
+      "lane": "exit",
+      "col": 0
+    },
+    {
+      "id": "unloading",
+      "type": "active",
+      "label": "UNLOADING",
+      "sublabel": "_unload() 执行中",
+      "lane": "exit",
+      "col": 1
+    }
+  ],
+  "transitions": [
+    {
+      "id": "born-pending",
+      "from": "born",
+      "to": "pending",
+      "label": "构造完成",
+      "labelDy": -25
+    },
+    {
+      "id": "pending-loading",
+      "from": "pending",
+      "to": "loading",
+      "label": "epoch 转具体值",
+      "note": "_setEpoch 触发 _reload()",
+      "labelDy": -42
+    },
+    {
+      "id": "loading-active",
+      "from": "loading",
+      "to": "active",
+      "label": "_reload 成功",
+      "labelDy": -25,
+      "route": "straight"
+    },
+    {
+      "id": "active-disposed",
+      "from": "active",
+      "to": "disposed",
+      "label": "uid = null",
+      "labelDy": -25
+    },
+    {
+      "id": "loading-failed",
+      "from": "loading",
+      "to": "failed",
+      "label": "抛异常",
+      "variant": "dashed",
+      "labelDy": -22
+    },
+    {
+      "id": "active-unloading",
+      "from": "active",
+      "to": "unloading",
+      "label": "epoch 变化",
+      "labelDy": 22
+    },
+    {
+      "id": "unloading-pending",
+      "from": "unloading",
+      "to": "pending",
+      "label": "回 INACTIVE",
+      "route": "bottom-channel"
+    },
+    {
+      "id": "unloading-loading",
+      "from": "unloading",
+      "to": "loading",
+      "label": "换新值即重载",
+      "variant": "emphasis",
+      "labelDy": -2
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "_getState() 的判定优先级",
+      "items": [
+        "① uid === null 则 DISPOSED",
+        "② _error 存在则 FAILED",
+        "③ epoch 不等于 INACTIVE 则 ACTIVE",
+        "④ 否则 PENDING"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "状态是算出来的，不是存的",
+      "items": [
+        "六个状态没有任何一个字段直接保存",
+        "全部由 uid / _error / epoch 三个量推导（fiber.ts:348）",
+        "dispose() 可从 PENDING / ACTIVE / FAILED 任一状态发生，都是置 uid = null"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "迁移触发条件与 UNLOADING 的两条出路",
+      "items": [
+        "LOADING → FAILED：_reload 抛异常，_error 被设置且 epoch 强制回 INACTIVE",
+        "ACTIVE → UNLOADING：epoch 变为新值或变回 INACTIVE，均触发 _unload()",
+        "卸载完成时再查 epoch：是 INACTIVE 则回 PENDING，已换新值则直接进 LOADING",
+        "后者让热重载可以连续发生，省掉一次回落"
+      ]
+    }
+  ]
+}

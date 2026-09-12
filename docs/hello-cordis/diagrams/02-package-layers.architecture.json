@@ -1,0 +1,220 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "包的依赖方向与分层",
+    "output": "02-package-layers.html",
+    "viewBox": [
+      1500,
+      660
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "core",
+      "type": "backend",
+      "label": "cordis (core)",
+      "sublabel": "1848 行，只依赖 standard-schema 与 cosmokit",
+      "tag": "第 0 层：无依赖",
+      "pos": [
+        60,
+        270
+      ],
+      "size": [
+        280,
+        120
+      ]
+    },
+    {
+      "id": "timer",
+      "type": "cloud",
+      "label": "plugin-timer",
+      "sublabel": "142 行，把 setTimeout 包成可逆 effect",
+      "pos": [
+        430,
+        110
+      ],
+      "size": [
+        260,
+        100
+      ]
+    },
+    {
+      "id": "logcon",
+      "type": "cloud",
+      "label": "plugin-logger-console",
+      "sublabel": "137 行，实现 Exporter 接口",
+      "pos": [
+        430,
+        250
+      ],
+      "size": [
+        260,
+        100
+      ]
+    },
+    {
+      "id": "utils",
+      "type": "external",
+      "label": "cordisjs/utils",
+      "sublabel": "42 行",
+      "pos": [
+        430,
+        390
+      ],
+      "size": [
+        260,
+        80
+      ]
+    },
+    {
+      "id": "loader",
+      "type": "frontend",
+      "label": "plugin-loader",
+      "sublabel": "870 行，把配置行变成插件树",
+      "tag": "第 2 层：配置驱动",
+      "pos": [
+        780,
+        500
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "include",
+      "type": "database",
+      "label": "plugin-include",
+      "sublabel": "219 行，读 yml/json 生成 EntryTree",
+      "tag": "applyPatches 是 DSH profile 的地基",
+      "pos": [
+        1160,
+        250
+      ],
+      "size": [
+        280,
+        120
+      ]
+    },
+    {
+      "id": "group",
+      "type": "external",
+      "label": "plugin-group",
+      "sublabel": "3 行",
+      "pos": [
+        1160,
+        410
+      ],
+      "size": [
+        280,
+        80
+      ]
+    },
+    {
+      "id": "hmr",
+      "type": "security",
+      "label": "plugin-hmr",
+      "sublabel": "440 行，Inject('loader') + Inject('timer')",
+      "pos": [
+        1160,
+        110
+      ],
+      "size": [
+        280,
+        100
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "第 1 层：直接建在 core 上",
+      "wraps": [
+        "timer",
+        "logcon",
+        "utils"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "第 3 层：建在 loader 上",
+      "wraps": [
+        "hmr",
+        "include",
+        "group"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "c-t",
+      "from": "core",
+      "to": "timer"
+    },
+    {
+      "id": "c-l",
+      "from": "core",
+      "to": "logcon",
+      "variant": "dashed"
+    },
+    {
+      "id": "c-u",
+      "from": "core",
+      "to": "utils",
+      "variant": "dashed"
+    },
+    {
+      "id": "c-ld",
+      "from": "core",
+      "to": "loader",
+      "variant": "emphasis"
+    },
+    {
+      "id": "l-i",
+      "from": "loader",
+      "to": "include",
+      "variant": "emphasis"
+    },
+    {
+      "id": "l-g",
+      "from": "loader",
+      "to": "group"
+    },
+    {
+      "id": "t-h",
+      "from": "timer",
+      "to": "hmr"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "依赖是单向的",
+      "items": [
+        "core 不依赖任何 cordis 包，只有两个外部依赖",
+        "第 1 层直接建在 core 上，彼此不互相依赖",
+        "第 3 层同时依赖 loader 与 timer（仅 hmr）"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "loader 是第二个中心",
+      "items": [
+        "870 行，包含 EntryTree / Entry / Group / isolate",
+        "它把配置行翻译成插件树",
+        "include 与 group 都只是它的适配层"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "两个规模异常值",
+      "items": [
+        "plugin-group 只有 3 行，纯粹是个标记插件",
+        "create-cordis 314 行是独立脚手架，不参与运行时",
+        "hmr 440 行是唯一需要双重注入的包"
+      ]
+    }
+  ]
+}

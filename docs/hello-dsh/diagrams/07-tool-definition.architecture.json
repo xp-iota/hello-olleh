@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ToolDefinition 的必需与可选",
+    "output": "07-tool-definition.html",
+    "viewBox": [
+      1480,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "sch",
+      "type": "database",
+      "label": "继承 ToolSchema",
+      "sublabel": "名字、描述与输入 schema",
+      "pos": [
+        70,
+        150
+      ],
+      "size": [
+        350,
+        120
+      ]
+    },
+    {
+      "id": "out",
+      "type": "backend",
+      "label": "output 定义",
+      "sublabel": "readonly output: ToolOutputDefinition",
+      "tag": "T/index.ts:224",
+      "pos": [
+        70,
+        310
+      ],
+      "size": [
+        350,
+        120
+      ]
+    },
+    {
+      "id": "exe",
+      "type": "security",
+      "label": "execute(args, exec)",
+      "sublabel": "唯一必需的行为",
+      "tag": "T/index.ts:235，exec 是 ToolRunContext",
+      "pos": [
+        470,
+        150
+      ],
+      "size": [
+        350,
+        120
+      ]
+    },
+    {
+      "id": "opt",
+      "type": "cloud",
+      "label": "其它可选字段",
+      "sublabel": "超时等由策略包作为 tools/execute wrapper 强制",
+      "tag": "T/index.ts:250 注释",
+      "pos": [
+        470,
+        310
+      ],
+      "size": [
+        350,
+        120
+      ]
+    },
+    {
+      "id": "whole",
+      "type": "frontend",
+      "label": "整体定义",
+      "sublabel": "T/index.ts:222-290",
+      "pos": [
+        880,
+        230
+      ],
+      "size": [
+        300,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "sch",
+      "to": "exe",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "out",
+      "to": "opt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "exe",
+      "to": "whole",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "超时不由工具自己实现",
+      "items": [
+        "由 dsh-tool-call-timeout-policy 统一施加",
+        "它是一个 tools/execute wrapper",
+        "于是所有工具的超时行为一致"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "output 定义的作用",
+      "items": [
+        "声明工具返回值的结构",
+        "用于生成类型与校验实际输出",
+        "也决定界面如何呈现结果"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "只有 execute 必需",
+      "items": [
+        "其余字段都可省略或由策略补齐",
+        "写一个新工具的最小成本很低",
+        "复杂行为通过 waterfall 叠加"
+      ]
+    }
+  ]
+}

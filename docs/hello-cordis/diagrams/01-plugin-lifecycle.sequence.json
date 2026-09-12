@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "ctx.plugin() 从注册到服务就绪",
+    "output": "cordis-plugin-lifecycle.html",
+    "viewBox": [
+      1460,
+      700
+    ],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "用户代码",
+      "sublabel": "调用方"
+    },
+    {
+      "id": "registry",
+      "type": "backend",
+      "label": "RegistryService",
+      "sublabel": "C/registry.ts:125"
+    },
+    {
+      "id": "fiber",
+      "type": "backend",
+      "label": "Fiber",
+      "sublabel": "C/fiber.ts:103"
+    },
+    {
+      "id": "reflect",
+      "type": "backend",
+      "label": "ReflectService",
+      "sublabel": "C/reflect.ts:61"
+    }
+  ],
+  "segments": [
+    {
+      "from": 141,
+      "to": 382,
+      "label": "注册 Greeter 并 provide 服务"
+    },
+    {
+      "from": 401,
+      "to": 632,
+      "label": "注册 consumer 并解析依赖"
+    }
+  ],
+  "messages": [
+    {
+      "id": "plugin-greeter",
+      "from": "user",
+      "to": "registry",
+      "y": 175,
+      "label": "ctx.plugin(Greeter)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "new-fiber",
+      "from": "registry",
+      "to": "fiber",
+      "y": 221,
+      "label": "new Fiber(ctx, config, inject, runtime)",
+      "note": "先 resolve(plugin) 建出 Plugin.Runtime"
+    },
+    {
+      "id": "construct-greeter",
+      "from": "fiber",
+      "to": "user",
+      "y": 267,
+      "label": "执行 new Greeter(ctx)",
+      "variant": "return",
+      "note": "_refresh() 得 epoch 空串，非 INACTIVE 即 _reload()"
+    },
+    {
+      "id": "provide-greeter",
+      "from": "user",
+      "to": "reflect",
+      "y": 314,
+      "label": "provide('greeter', self)"
+    },
+    {
+      "id": "effect-store",
+      "from": "reflect",
+      "to": "fiber",
+      "y": 360,
+      "label": "fiber.effect() 登记 store[key] = impl",
+      "note": "随后 notify(['greeter']) 唤醒等待该服务的 Fiber"
+    },
+    {
+      "id": "plugin-consumer",
+      "from": "user",
+      "to": "registry",
+      "y": 420,
+      "label": "ctx.plugin(consumer)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "new-fiber-inject",
+      "from": "registry",
+      "to": "fiber",
+      "y": 466,
+      "label": "new Fiber(inject = { greeter: null })"
+    },
+    {
+      "id": "check-impl",
+      "from": "fiber",
+      "to": "reflect",
+      "y": 513,
+      "label": "_checkImpl('greeter') 沿 fiber 链查找"
+    },
+    {
+      "id": "impl-hit",
+      "from": "reflect",
+      "to": "fiber",
+      "y": 559,
+      "label": "命中并返回实现",
+      "variant": "return",
+      "note": "_refresh() 把 epoch 更新为 ':1'"
+    },
+    {
+      "id": "apply-consumer",
+      "from": "fiber",
+      "to": "user",
+      "y": 605,
+      "label": "_reload() 执行 consumer.apply(ctx)",
+      "variant": "return",
+      "note": "ctx.effect() 登记的 disposer 挂在该 Fiber 的 _disposables 上"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "registry",
+      "from": 170,
+      "to": 472,
+      "type": "backend"
+    },
+    {
+      "participant": "fiber",
+      "from": 216,
+      "to": 611,
+      "type": "backend"
+    },
+    {
+      "participant": "reflect",
+      "from": 309,
+      "to": 565,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "主链路",
+      "items": [
+        "RegistryService 把插件解析成 Plugin.Runtime",
+        "每次 ctx.plugin() 产生一个独立 Fiber",
+        "真正执行插件函数的是 Fiber 的 _reload()"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "epoch 依赖追踪",
+      "items": [
+        "无依赖插件 epoch 为空串，立即激活",
+        "依赖命中后 epoch 变为 ':1'",
+        "epoch 变化是 unload 再 reload 的唯一触发条件"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "可逆效应",
+      "items": [
+        "provide 经 fiber.effect() 登记，卸载时自动撤销",
+        "disposer 挂在所属 Fiber 的 _disposables 上",
+        "同一 effect 内的 disposer 严格逆序执行"
+      ]
+    }
+  ]
+}

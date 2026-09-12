@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Agent inbox 四通道：谁排哪条队列，谁唤醒 driver",
+    "output": "12-example-19-agent-inbox.html",
+    "viewBox": [
+      1680,
+      900
+    ],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "script",
+      "type": "external",
+      "label": "run.ts",
+      "sublabel": "示例入口脚本"
+    },
+    {
+      "id": "plugin",
+      "type": "backend",
+      "label": "pre-step 观察者",
+      "sublabel": "19-agent-inbox/index.ts"
+    },
+    {
+      "id": "agent",
+      "type": "messagebus",
+      "label": "agent 输入 API",
+      "sublabel": "send / followup / steer / inject"
+    },
+    {
+      "id": "inbox",
+      "type": "security",
+      "label": "inbox",
+      "sublabel": "nextStep 与 nextTurn 两条有序队列"
+    },
+    {
+      "id": "session",
+      "type": "database",
+      "label": "session",
+      "sublabel": "agent/inbox/spliced 流水"
+    }
+  ],
+  "segments": [
+    {
+      "from": 155,
+      "to": 350,
+      "label": "inject：排队但不唤醒"
+    },
+    {
+      "from": 365,
+      "to": 490,
+      "label": "followup：唤醒并在认领边界取空"
+    },
+    {
+      "from": 505,
+      "to": 600,
+      "label": "send 全显式"
+    },
+    {
+      "from": 620,
+      "to": 800,
+      "label": "两条引导的对照与清空"
+    }
+  ],
+  "messages": [
+    {
+      "id": "install",
+      "from": "script",
+      "to": "plugin",
+      "y": 195,
+      "label": "createHarness({ plugins: [[本插件]] })：在 agent/pre-step 打印认领条数与来源",
+      "variant": "emphasis"
+    },
+    {
+      "id": "inject",
+      "from": "script",
+      "to": "agent",
+      "y": 265,
+      "label": "① inject(...)：排进 nextStep，不唤醒 driver"
+    },
+    {
+      "id": "state1",
+      "from": "agent",
+      "to": "inbox",
+      "y": 315,
+      "label": "队列状态：nextStep = 1 / nextTurn = 0"
+    },
+    {
+      "id": "followup",
+      "from": "script",
+      "to": "agent",
+      "y": 385,
+      "label": "② runTurn(...) 即 followup：排进 nextTurn 并唤醒 driver",
+      "variant": "emphasis"
+    },
+    {
+      "id": "claim",
+      "from": "inbox",
+      "to": "plugin",
+      "y": 435,
+      "label": "step1 的认领边界一次取空两个队列：认领 2 条（source: plugin, user）",
+      "variant": "return",
+      "note": "inject 的上下文与 followup 的用户输入一起进了第一步，实际 step 数 = 1"
+    },
+    {
+      "id": "send",
+      "from": "script",
+      "to": "agent",
+      "y": 525,
+      "label": "③ send(msg, 'next-turn', false)：target 与 wakeup 全显式",
+      "variant": "security"
+    },
+    {
+      "id": "state2",
+      "from": "agent",
+      "to": "inbox",
+      "y": 575,
+      "label": "队列状态：nextStep = 0 / nextTurn = 1（入队但不唤醒）"
+    },
+    {
+      "id": "followup-explicit",
+      "from": "script",
+      "to": "agent",
+      "y": 630,
+      "label": "⑤ followup(...)：唤醒 driver，消息独占一个新 turn",
+      "variant": "emphasis"
+    },
+    {
+      "id": "steer",
+      "from": "script",
+      "to": "agent",
+      "y": 675,
+      "label": "⑥ turn-stopping 上 steer(...)：同一 turn 的下一 step 边界被消费",
+      "variant": "security",
+      "note": "step 数 1 → 2，turn 不变；对照 followup 的新开一轮"
+    },
+    {
+      "id": "replay",
+      "from": "script",
+      "to": "session",
+      "y": 725,
+      "label": "④⑦ 读 agent/inbox/spliced：target 记下每条消息落在哪条队列",
+      "variant": "emphasis",
+      "note": "followup 写 next-turn，steer 写 next-step —— 落点的书面证据"
+    },
+    {
+      "id": "clear",
+      "from": "script",
+      "to": "inbox",
+      "y": 770,
+      "label": "⑧ inbox.clear()：丢弃全部待认领消息"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "plugin",
+      "from": 190,
+      "to": 440,
+      "type": "backend"
+    },
+    {
+      "participant": "agent",
+      "from": 260,
+      "to": 680,
+      "type": "messagebus"
+    },
+    {
+      "participant": "inbox",
+      "from": 310,
+      "to": 775,
+      "type": "security"
+    },
+    {
+      "participant": "session",
+      "from": 720,
+      "to": 775,
+      "type": "database"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "四个入口，两个边界",
+      "items": [
+        "send 显式二选一，是底层全显式入口",
+        "followup 进 nextTurn 且唤醒；steer 进 nextStep 且唤醒",
+        "inject 进 nextStep 但不唤醒"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "steer 与 followup 的分界",
+      "items": [
+        "两者都唤醒，差别只在落在哪条队列",
+        "followup 落在下一轮，独占一个新 turn",
+        "steer 落在本轮下一步，turn 不关闭"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "认领与关轮都发生在边界上",
+      "items": [
+        "主循环在每个 step 边界整体认领对应队列",
+        "turn-stopping 派发后重读 inbox 决定是否关轮（见 09）",
+        "agent/inbox/spliced 让入队与认领可回放"
+      ]
+    }
+  ]
+}

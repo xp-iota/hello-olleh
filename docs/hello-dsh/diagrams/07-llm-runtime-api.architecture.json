@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "LlmRuntime 的注册与查询面",
+    "output": "07-llm-runtime-api.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "ra",
+      "type": "database",
+      "label": "registerAdapter",
+      "sublabel": "返回 AdapterRegistrationHandle，即 disposer",
+      "tag": "L/index.ts:239，支持同一实例的原子路由替换",
+      "pos": [
+        70,
+        150
+      ],
+      "size": [
+        400,
+        130
+      ]
+    },
+    {
+      "id": "rd",
+      "type": "database",
+      "label": "registerModelDiscovery",
+      "sublabel": "返回 DirectoryRegistrationHandle",
+      "tag": "L/index.ts:504 与 :263",
+      "pos": [
+        70,
+        320
+      ],
+      "size": [
+        400,
+        130
+      ]
+    },
+    {
+      "id": "q1",
+      "type": "backend",
+      "label": "listConfigurableProviders",
+      "sublabel": "列出可配置的 provider",
+      "tag": "L/index.ts:490",
+      "pos": [
+        520,
+        120
+      ],
+      "size": [
+        360,
+        110
+      ]
+    },
+    {
+      "id": "q2",
+      "type": "backend",
+      "label": "discoverModels",
+      "sublabel": "发现某 provider 下的可用模型",
+      "tag": "L/index.ts:532",
+      "pos": [
+        520,
+        260
+      ],
+      "size": [
+        360,
+        110
+      ]
+    },
+    {
+      "id": "q3",
+      "type": "security",
+      "label": "providerRetryPolicy",
+      "sublabel": "一定返回已解析的策略，不会是空",
+      "tag": "L/index.ts:566",
+      "pos": [
+        520,
+        400
+      ],
+      "size": [
+        360,
+        110
+      ]
+    },
+    {
+      "id": "main",
+      "type": "frontend",
+      "label": "主类",
+      "sublabel": "L/index.ts:284，整文件 947 行",
+      "pos": [
+        930,
+        260
+      ],
+      "size": [
+        300,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "ra",
+      "to": "q1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "rd",
+      "to": "q2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "q2",
+      "to": "main",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "注册都返回 handle",
+      "items": [
+        "handle 本身是 disposer，符合 cordis effect 模型",
+        "插件卸载时适配器自动注销",
+        "支持同一适配器实例的原子路由替换"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "查询面服务于配置界面",
+      "items": [
+        "listConfigurableProviders 给出可选项",
+        "discoverModels 动态拉取模型列表",
+        "于是界面不需要硬编码模型名"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "重试策略一定有值",
+      "items": [
+        "providerRetryPolicy 保证返回已解析的策略",
+        "调用方不需要处理缺省情况",
+        "这是 fail-closed 在配置面的体现"
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "注册",
+      "wraps": [
+        "ra",
+        "rd"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "查询",
+      "wraps": [
+        "q1",
+        "q2",
+        "q3"
+      ]
+    }
+  ]
+}

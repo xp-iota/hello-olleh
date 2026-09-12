@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "TypeRT 的完整生成管线",
+    "output": "09-typert-pipeline.html",
+    "viewBox": [
+      1500,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "a1",
+      "type": "frontend",
+      "label": "服务侧声明",
+      "sublabel": "继承 TypertRemoteService 并标注方法",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        320,
+        140
+      ]
+    },
+    {
+      "id": "a2",
+      "type": "database",
+      "label": "registry 收集",
+      "sublabel": "909 行，运行时记录方法签名与类型",
+      "pos": [
+        430,
+        190
+      ],
+      "size": [
+        320,
+        140
+      ]
+    },
+    {
+      "id": "a3",
+      "type": "backend",
+      "label": "gateway 暴露",
+      "sublabel": "1358 行，生成 HTTP 与 WebSocket 端点",
+      "pos": [
+        790,
+        80
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "a4",
+      "type": "cloud",
+      "label": "generator 产出",
+      "sublabel": "6245 行，客户端存根加类型声明",
+      "pos": [
+        790,
+        300
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "a5",
+      "type": "messagebus",
+      "label": "remotes 连接",
+      "sublabel": "449 行，客户端侧发起远端调用",
+      "pos": [
+        1150,
+        190
+      ],
+      "size": [
+        280,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "a1",
+      "to": "a2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "a2",
+      "to": "a3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "a2",
+      "to": "a4",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "a4",
+      "to": "a5",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "五个包构成闭环",
+      "items": [
+        "protocol 提供装饰器与基类",
+        "registry 在运行时收集",
+        "gateway 与 generator 分别面向服务端与客户端，remotes 负责实际连接"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "类型安全跨进程",
+      "items": [
+        "客户端存根的类型来自服务端定义",
+        "改服务端签名会让客户端编译失败",
+        "避免运行期才发现协议不一致"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "配置里三行相邻",
+      "items": [
+        "typert、typert-loader、typert-gateway",
+        "dsh-base patch 中顺序固定",
+        "这是依赖顺序的直接体现"
+      ]
+    }
+  ]
+}

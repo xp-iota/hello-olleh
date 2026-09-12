@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "读这个仓库前必须知道的五件事",
+    "output": "01-five-facts.html",
+    "viewBox": [
+      1500,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "k1",
+      "type": "database",
+      "label": "① 上游文档极完整且有中文",
+      "sublabel": "docs/ 共 215 个 md，其中 105 个中文版加 105 个 i18n.yaml",
+      "tag": "契约与扩展指南直接读官方，本文档集只做实现级补充",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        420,
+        120
+      ]
+    },
+    {
+      "id": "k2",
+      "type": "frontend",
+      "label": "② agent 设计笔记 1372 篇",
+      "sublabel": ".agents/notes/ 下按 feature、architecture、bug-fix 等分类",
+      "tag": "这是 agent 驱动开发的产物，也是最好的设计动机史料",
+      "pos": [
+        70,
+        290
+      ],
+      "size": [
+        420,
+        120
+      ]
+    },
+    {
+      "id": "k3",
+      "type": "backend",
+      "label": "③ 二级包结构",
+      "sublabel": "packages/<组>/<包>，49 个组、219 个包",
+      "tag": "后缀有强规律：x 定义、x-local 等是 provider、tool-x 是工具",
+      "pos": [
+        550,
+        130
+      ],
+      "size": [
+        420,
+        120
+      ]
+    },
+    {
+      "id": "k4",
+      "type": "security",
+      "label": "④ 命名即角色",
+      "sublabel": "x-policy 是策略、command-x 是人类命令、ui-x 是界面",
+      "tag": "看包名就能判断它在 Seam 里的位置",
+      "pos": [
+        550,
+        290
+      ],
+      "size": [
+        420,
+        120
+      ]
+    },
+    {
+      "id": "k5",
+      "type": "cloud",
+      "label": "⑤ vendor 是重写过的",
+      "sublabel": "上游 cordis 的包名与 import 被重写为 deepseek-ai 作用域",
+      "tag": "由 scripts/rescope-vendor.ts 完成",
+      "pos": [
+        1030,
+        210
+      ],
+      "size": [
+        400,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "k3",
+      "to": "k4",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 46
+    },
+    {
+      "id": "b",
+      "from": "k4",
+      "to": "k5",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "先读官方再读这里",
+      "items": [
+        "上游 docs 的 subsystems 有 92 篇，user 26 篇",
+        "cookbook 16 篇、cordis-tutorial 16 篇",
+        "本文档集补的是实现细节与调用链"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "包名后缀对照",
+      "items": [
+        "无后缀是 Service Definition",
+        "-local / -sandbox / -e2b 是 Provider",
+        "tool- 前缀是模型可见工具，command- 是人类命令"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "219 个包怎么读",
+      "items": [
+        "按组读，不要按包读",
+        "先定位 core 组的七个包",
+        "再按需下钻到具体能力组"
+      ]
+    }
+  ]
+}

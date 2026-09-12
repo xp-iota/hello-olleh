@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "在 turn 内还是 turn 外",
+    "output": "09-in-turn-vs-out.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "i1",
+      "type": "database",
+      "label": "Goal",
+      "sublabel": "goal-round-driver 共 555 行",
+      "tag": "在 agent/turn-stopping 里往 inbox 塞消息，延续同一个 turn",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        400,
+        110
+      ]
+    },
+    {
+      "id": "i2",
+      "type": "backend",
+      "label": "Plan mode",
+      "sublabel": "拦截 agent/pre-step 改变模型看到的内容",
+      "tag": "先出计划再执行",
+      "pos": [
+        70,
+        270
+      ],
+      "size": [
+        400,
+        110
+      ]
+    },
+    {
+      "id": "i3",
+      "type": "security",
+      "label": "Todo",
+      "sublabel": "写 todo 类 session 事件，仅作状态记录",
+      "pos": [
+        70,
+        410
+      ],
+      "size": [
+        400,
+        110
+      ]
+    },
+    {
+      "id": "o1",
+      "type": "cloud",
+      "label": "Jobs 与 Schedule",
+      "sublabel": "完全在 turn 之外运行",
+      "tag": "结果通过工具或 inbox 汇入",
+      "pos": [
+        540,
+        200
+      ],
+      "size": [
+        400,
+        110
+      ]
+    },
+    {
+      "id": "key",
+      "type": "messagebus",
+      "label": "判断方法",
+      "sublabel": "看它是否改变当前 turn 的推进",
+      "pos": [
+        1010,
+        270
+      ],
+      "size": [
+        420,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "i1",
+      "to": "o1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "o1",
+      "to": "key",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "i2",
+      "to": "key",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "turn 内的三种介入",
+      "items": [
+        "Goal 通过塞 inbox 让 turn 继续",
+        "Plan mode 改写模型看到的提示与消息",
+        "Todo 只记录状态，不影响推进"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "turn 外的特点",
+      "items": [
+        "不阻塞当前 turn 的结束",
+        "结果需要显式收取",
+        "适合耗时长的工作"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "为什么要分清",
+      "items": [
+        "turn 内介入会影响延迟与 token 消耗",
+        "turn 外介入需要额外的结果汇入设计",
+        "选错会导致行为不符预期"
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "turn 内（同一 agent 的 turn/step 循环里）",
+      "wraps": [
+        "i1",
+        "i2",
+        "i3"
+      ]
+    }
+  ]
+}

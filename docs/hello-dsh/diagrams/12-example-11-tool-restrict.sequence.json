@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "收紧可见工具集：restrict 的 scope 要求、交集语义与 effect 归属",
+    "output": "12-example-11-tool-restrict.html",
+    "viewBox": [1680, 800],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "script", "type": "external", "label": "run.ts", "sublabel": "示例入口脚本" },
+    { "id": "harness", "type": "backend", "label": "createHarness", "sublabel": "plugins 先装载，再造 agent" },
+    { "id": "plugin", "type": "security", "label": "restrict 插件", "sublabel": "11-tool-restrict/index.ts" },
+    { "id": "tools", "type": "messagebus", "label": "ctx.tools", "sublabel": "真实 ToolRuntime 注册表" },
+    { "id": "agent", "type": "database", "label": "agent.ctx", "sublabel": "该 agent 自己的 fiber" }
+  ],
+  "segments": [
+    { "from": 155, "to": 380, "label": "先注册工具，再造 agent" },
+    { "from": 395, "to": 545, "label": "可见集与执行对齐" },
+    { "from": 560, "to": 720, "label": "撤销语义与 effect 归属" }
+  ],
+  "messages": [
+    {
+      "id": "harness",
+      "from": "script",
+      "to": "harness",
+      "y": 195,
+      "label": "createHarness({ plugins: [seedTools, restrictPlugin] })",
+      "variant": "emphasis",
+      "note": "seedTools 先注册 echo / read / write / bash：restrict 对未知工具名抛错，工具必须先就位"
+    },
+    {
+      "id": "create",
+      "from": "script",
+      "to": "harness",
+      "y": 245,
+      "label": "ctx.agents.create(...) → 派发 agent/session-start"
+    },
+    {
+      "id": "hook",
+      "from": "harness",
+      "to": "plugin",
+      "y": 295,
+      "label": "监听器在 session-start 上拿到活 agent"
+    },
+    {
+      "id": "restrict",
+      "from": "plugin",
+      "to": "tools",
+      "y": 345,
+      "label": "agent.ctx.tools.restrict({ allow: ['echo','read'] })",
+      "variant": "security",
+      "note": "必须经 scoped context：plain context 上的收紧会遮蔽每个 agent，那是误伤不是收紧"
+    },
+    {
+      "id": "visible",
+      "from": "script",
+      "to": "tools",
+      "y": 415,
+      "label": "① 全局 4 个工具　② schemas(assembleContextFor(agent).scope) 只剩 2 个",
+      "variant": "emphasis"
+    },
+    {
+      "id": "call",
+      "from": "script",
+      "to": "tools",
+      "y": 465,
+      "label": "③ callTool('write') → UNKNOWN_TOOL 结构化失败"
+    },
+    {
+      "id": "failclosed",
+      "from": "tools",
+      "to": "script",
+      "y": 515,
+      "label": "④ fail-closed 三连：plain context / 空 filter / 未知工具名都抛错",
+      "variant": "security"
+    },
+    {
+      "id": "intersect",
+      "from": "script",
+      "to": "tools",
+      "y": 585,
+      "label": "⑤ 再叠一条 deny echo 取交集 → ['read']；lift() 只撤这一条"
+    },
+    {
+      "id": "dispose",
+      "from": "script",
+      "to": "plugin",
+      "y": 635,
+      "label": "⑥ restrictFiber.dispose()：只撤销 session-start 监听器"
+    },
+    {
+      "id": "ownership",
+      "from": "tools",
+      "to": "agent",
+      "y": 685,
+      "label": "老 agent 仍被收紧；新建 agent 恢复全部 4 个工具",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    { "participant": "harness", "from": 190, "to": 300, "type": "backend" },
+    { "participant": "plugin", "from": 290, "to": 640, "type": "security" },
+    { "participant": "tools", "from": 340, "to": 690, "type": "messagebus" },
+    { "participant": "agent", "from": 680, "to": 720, "type": "database" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "展示 / 查找 / 执行三者对齐",
+      "items": [
+        "被收紧的工具模型看不见，也调不动",
+        "调用它读作 UNKNOWN_TOOL 结构化失败",
+        "ToolSearch、按阶段放权、精简上下文都走这个点"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "三条 fail-closed 校验",
+      "items": [
+        "plain context 上调用 restrict 直接抛错",
+        "既没 allow 也没 deny 的空 filter 抛错",
+        "名字不是已注册全局工具时抛错，而不是静默无效"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "effect 归被调用的那个 context",
+      "items": [
+        "restrict 在 agent.ctx 上调，effect 随该 agent 回收",
+        "插件 fiber 只拥有它自己注册的监听器",
+        "restrict 改可见集，guard（见 12）改放行判定"
+      ]
+    }
+  ]
+}

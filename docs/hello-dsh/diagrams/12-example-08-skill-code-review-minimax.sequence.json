@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "真实 MiniMax 对照：同一段 diff，注入 SKILL.md 前后作答格式的差异",
+    "output": "12-example-08-skill-code-review-minimax.html",
+    "viewBox": [1680, 760],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "script", "type": "external", "label": "run-minimax.ts", "sublabel": "A / B 两组共用 review()" },
+    { "id": "skills", "type": "messagebus", "label": "ctx.skills", "sublabel": "只有 B 组注册并注入" },
+    { "id": "loop", "type": "backend", "label": "agent-loop", "sublabel": "provider = minimax-m3" },
+    { "id": "api", "type": "cloud", "label": "MiniMax M3", "sublabel": "真实 HTTP + SSE" },
+    { "id": "check", "type": "security", "label": "checkFormat", "sublabel": "清单格式硬断言" }
+  ],
+  "segments": [
+    { "from": 155, "to": 330, "label": "A 组：不注入 skill" },
+    { "from": 345, "to": 550, "label": "B 组：注入同一份 Markdown" },
+    { "from": 565, "to": 680, "label": "格式核对与 fail loud" }
+  ],
+  "messages": [
+    {
+      "id": "plain",
+      "from": "script",
+      "to": "loop",
+      "y": 195,
+      "label": "① createHarness({ provider:'minimax-m3' })：不注册任何 skill",
+      "variant": "emphasis"
+    },
+    {
+      "id": "askA",
+      "from": "loop",
+      "to": "api",
+      "y": 245,
+      "label": "真实请求：埋了下标越界与 eval 的那段 diff"
+    },
+    {
+      "id": "ansA",
+      "from": "api",
+      "to": "check",
+      "y": 295,
+      "label": "A 组回答：小标题 + 表格 + emoji，没有结论行",
+      "variant": "return"
+    },
+    {
+      "id": "registerB",
+      "from": "script",
+      "to": "skills",
+      "y": 365,
+      "label": "② B 组：register(SKILL.md) → get → renderSkillContent",
+      "variant": "emphasis"
+    },
+    {
+      "id": "injectB",
+      "from": "skills",
+      "to": "loop",
+      "y": 415,
+      "label": "agent.inject(...) 排进 nextStep，由 pre-step 认领",
+      "variant": "security"
+    },
+    {
+      "id": "askB",
+      "from": "loop",
+      "to": "api",
+      "y": 465,
+      "label": "真实请求：diff 与 prompt 与 A 组逐字相同"
+    },
+    {
+      "id": "ansB",
+      "from": "api",
+      "to": "check",
+      "y": 515,
+      "label": "B 组回答：结论：阻断 + 三条 [严重性] 行",
+      "variant": "return"
+    },
+    {
+      "id": "assert",
+      "from": "check",
+      "to": "script",
+      "y": 585,
+      "label": "断言：第一行是结论、条目数 3、顺序 正确性 → 安全 → 风格",
+      "variant": "emphasis",
+      "note": "B 组缺结论行或零条目就抛错：数据扩展的效果没被验证"
+    },
+    {
+      "id": "diff",
+      "from": "check",
+      "to": "script",
+      "y": 635,
+      "label": "唯一差异是 B 组多了一次 inject，模型与 prompt 都没换",
+      "variant": "security"
+    }
+  ],
+  "activations": [
+    { "participant": "loop", "from": 190, "to": 470, "type": "backend" },
+    { "participant": "api", "from": 240, "to": 520, "type": "cloud" },
+    { "participant": "skills", "from": 360, "to": 420, "type": "messagebus" },
+    { "participant": "check", "from": 290, "to": 640, "type": "security" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "对照只差一次 inject",
+      "items": [
+        "同一段 diff、同一句 prompt、同一个 review() 函数",
+        "A 组不注册 skill，B 组注入渲染后的清单正文",
+        "provider 与 model 两组完全一致"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "效果是可核对的，不是观感",
+      "items": [
+        "第一行必须是 结论：可合 / 需改 / 阻断",
+        "问题行必须是 [严重性] 文件:行 — 问题 — 建议",
+        "严重性按 正确性 → 安全 → 风格 排列"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "真实量与契约分开看",
+      "items": [
+        "措辞、条目数、A 组行文风格每次都不同",
+        "稳定的是 B 组落进清单的硬格式",
+        "不合格即抛错，不给「看起来还行」留余地"
+      ]
+    }
+  ]
+}

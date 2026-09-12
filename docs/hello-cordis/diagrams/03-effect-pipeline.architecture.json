@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ctx.effect() 的九步登记流程",
+    "output": "03-effect-pipeline.html",
+    "viewBox": [
+      1500,
+      660
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "s1",
+      "type": "frontend",
+      "label": "① 入口",
+      "sublabel": "ctx.effect(execute, label)",
+      "tag": "C/fiber.ts:277",
+      "pos": [
+        60,
+        130
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "s2",
+      "type": "security",
+      "label": "② 活性断言",
+      "sublabel": "assertActive()，uid 为 null 即抛 INACTIVE_EFFECT",
+      "tag": ":278",
+      "pos": [
+        370,
+        130
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "backend",
+      "label": "③ 本地清理闭包",
+      "sublabel": "构造 disposables 数组与 dispose() 闭包",
+      "tag": ":280-295",
+      "pos": [
+        680,
+        130
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "s4",
+      "type": "backend",
+      "label": "④ 构造 runner",
+      "sublabel": "epoch 是布尔，仅表示尚未被 dispose",
+      "tag": "collect 推入本地数组并从 fiber._disposables 摘除（:302）",
+      "pos": [
+        990,
+        130
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "s5",
+      "type": "cloud",
+      "label": "⑤ 执行",
+      "sublabel": "this._execute(runner)",
+      "tag": ":312，返回形态见 § 3.3",
+      "pos": [
+        1300,
+        130
+      ],
+      "size": [
+        150,
+        110
+      ]
+    },
+    {
+      "id": "s6",
+      "type": "database",
+      "label": "⑥ 构造 wrapper",
+      "sublabel": "既是函数（调用即 dispose），又挂 symbols.effect",
+      "tag": ":322",
+      "pos": [
+        370,
+        420
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "s7",
+      "type": "database",
+      "label": "⑦ 加 then",
+      "sublabel": "await 它得到 disposer，而不是执行 dispose",
+      "tag": ":333",
+      "pos": [
+        680,
+        420
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "s8",
+      "type": "backend",
+      "label": "⑧ 双向登记",
+      "sublabel": "wrapper 登记到 Fiber，摘除动作也作为本地 disposer",
+      "tag": ":338",
+      "pos": [
+        990,
+        420
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "s9",
+      "type": "frontend",
+      "label": "⑨ 返回 wrapper",
+      "sublabel": "调用方拿到的即是可逆句柄",
+      "pos": [
+        1300,
+        420
+      ],
+      "size": [
+        150,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "e12",
+      "from": "s1",
+      "to": "s2"
+    },
+    {
+      "id": "e23",
+      "from": "s2",
+      "to": "s3"
+    },
+    {
+      "id": "e34",
+      "from": "s3",
+      "to": "s4"
+    },
+    {
+      "id": "e45",
+      "from": "s4",
+      "to": "s5"
+    },
+    {
+      "id": "e56",
+      "from": "s5",
+      "to": "s6",
+      "label": "换行继续",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "e67",
+      "from": "s6",
+      "to": "s7"
+    },
+    {
+      "id": "e78",
+      "from": "s7",
+      "to": "s8"
+    },
+    {
+      "id": "e89",
+      "from": "s8",
+      "to": "s9"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "为什么先断言活性",
+      "items": [
+        "已卸载的 Fiber 不能再登记新效应",
+        "否则 disposer 永远不会被执行",
+        "这是防止资源泄漏的第一道闸门"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "wrapper 的双重身份",
+      "items": [
+        "作为函数调用即触发 dispose",
+        "作为对象挂着 symbols.effect 的 EffectMeta",
+        "加 then 后可以 await 出 disposer 而不误触发"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "登记是双向的",
+      "items": [
+        "wrapper 进入 fiber._disposables",
+        "把「从 fiber 摘除」也存进本地 disposables",
+        "因此局部 dispose 不会在 Fiber 上留下悬挂项"
+      ]
+    }
+  ]
+}

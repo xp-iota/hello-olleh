@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "vendored cordis 与上游的差异构成",
+    "output": "05-vendor-diff.html",
+    "viewBox": [
+      1440,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "total",
+      "type": "external",
+      "label": "总差异 845 行",
+      "sublabel": "vendored 版相对上游",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        260,
+        130
+      ]
+    },
+    {
+      "id": "doc",
+      "type": "database",
+      "label": "约 739 行是 JSDoc",
+      "sublabel": "给每个导出、字段与非平凡分支都补了文档注释",
+      "pos": [
+        400,
+        80
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "code",
+      "type": "security",
+      "label": "约 106 行是有效代码",
+      "sublabel": "其中 116 行集中在 fiber.ts，其余文件净减 10 行",
+      "pos": [
+        400,
+        290
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "concl",
+      "type": "cloud",
+      "label": "结论",
+      "sublabel": "语义与 API 与上游一致，差异不足 3%",
+      "tag": "cordis 文档集可直接用于理解 DSH，但行号必须换算（§ 5.16）",
+      "pos": [
+        850,
+        190
+      ],
+      "size": [
+        520,
+        130
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "total",
+      "to": "doc",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "total",
+      "to": "code",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "doc",
+      "to": "concl",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "差异主要是文档",
+      "items": [
+        "近九成新增行是注释",
+        "这说明 DSH 没有 fork 语义，只是补充说明",
+        "阅读上游 cordis 源码仍然有效"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "有效改动集中在 fiber.ts",
+      "items": [
+        "fiber.ts 净增 116 行",
+        "其余文件合计净减 10 行",
+        "因此只需重点关注 Fiber 的行为差异"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "唯一必须注意的坑",
+      "items": [
+        "行号与上游不对应",
+        "引用源码位置时要以 vendored 版为准",
+        "换算方法见 § 5.16"
+      ]
+    }
+  ]
+}

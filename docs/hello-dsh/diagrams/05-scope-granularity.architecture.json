@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "core/scope 提供比 realm 更细的粒度",
+    "output": "05-scope-granularity.html",
+    "viewBox": [
+      1520,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "prob",
+      "type": "security",
+      "label": "问题",
+      "sublabel": "一个进程跑多个 Agent，各自要有不同工具集与策略",
+      "tag": "但它们共享同一棵 cordis 插件树",
+      "pos": [
+        70,
+        200
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "pkg",
+      "type": "database",
+      "label": "core/scope",
+      "sublabel": "store.ts 267 行、index.ts 204 行",
+      "tag": "另有生成的 scoped-events 49 行与 invariant 41 行",
+      "pos": [
+        470,
+        200
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "type",
+      "type": "backend",
+      "label": "Scoped<T> 贯穿全仓",
+      "sublabel": "如 tools 三段 waterfall 的 this 类型",
+      "tag": "P/core/tools/src/index.ts:152",
+      "pos": [
+        870,
+        200
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "actx",
+      "type": "cloud",
+      "label": "agent.ctx",
+      "sublabel": "每个 Agent 自己的 Context",
+      "tag": "细粒度隔离的落点",
+      "pos": [
+        1250,
+        200
+      ],
+      "size": [
+        240,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "prob",
+      "to": "pkg",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "pkg",
+      "to": "type",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "type",
+      "to": "actx",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "cordis realm 不够用的原因",
+      "items": [
+        "realm 的粒度是配置行，启动时定型",
+        "subagent 是运行期动态创建的",
+        "无法为每个 subagent 预先写一个 realm"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Scoped 的做法",
+      "items": [
+        "同一个服务实例按 scope 分层存放条目",
+        "查询时按当前 scope 逐层向上找",
+        "撤销时只影响自己那层"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "两级配合",
+      "items": [
+        "realm 负责启动期的静态隔离",
+        "scope 负责运行期的动态隔离",
+        "两者叠加才覆盖全部场景，见 03 篇"
+      ]
+    }
+  ]
+}

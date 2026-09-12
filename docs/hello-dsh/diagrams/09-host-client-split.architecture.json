@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Host 与 Client 的分离",
+    "output": "09-host-client-split.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "h1",
+      "type": "cloud",
+      "label": "host/webserver",
+      "sublabel": "325 行，监听与路由挂载",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        340,
+        105
+      ]
+    },
+    {
+      "id": "h2",
+      "type": "cloud",
+      "label": "host/apiproxy",
+      "sublabel": "8571 行，最大的宿主包",
+      "pos": [
+        70,
+        255
+      ],
+      "size": [
+        340,
+        105
+      ]
+    },
+    {
+      "id": "h3",
+      "type": "external",
+      "label": "host/frontend-static",
+      "sublabel": "144 行，服务静态资源",
+      "pos": [
+        70,
+        380
+      ],
+      "size": [
+        340,
+        105
+      ]
+    },
+    {
+      "id": "h4",
+      "type": "backend",
+      "label": "api/gateway",
+      "sublabel": "1358 行，按类型生成端点",
+      "pos": [
+        450,
+        255
+      ],
+      "size": [
+        340,
+        105
+      ]
+    },
+    {
+      "id": "c1",
+      "type": "security",
+      "label": "apps/web",
+      "sublabel": "Vite 加 React 壳，发布为 dsh-web-frontend",
+      "pos": [
+        830,
+        130
+      ],
+      "size": [
+        340,
+        105
+      ]
+    },
+    {
+      "id": "c2",
+      "type": "database",
+      "label": "ui 系列包",
+      "sublabel": "作为插件在浏览器侧的 cordis 树中注册",
+      "pos": [
+        830,
+        380
+      ],
+      "size": [
+        340,
+        105
+      ]
+    },
+    {
+      "id": "link",
+      "type": "messagebus",
+      "label": "两侧通过 HTTP 与 WebSocket 相连",
+      "sublabel": "事件流走 WebSocket，请求走 HTTP",
+      "pos": [
+        1210,
+        255
+      ],
+      "size": [
+        220,
+        105
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "h1",
+      "to": "h4",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "h4",
+      "to": "c1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "c1",
+      "to": "link",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Host 侧四个包各司其职",
+      "items": [
+        "webserver 只负责监听与挂载",
+        "apiproxy 负责鉴权与请求映射",
+        "frontend-static 只服务静态文件"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Client 侧是完整的插件树",
+      "items": [
+        "不只是一个 React 应用",
+        "ui 包以 cordis 插件形式注册",
+        "于是界面能力也可按 profile 组合"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "分离带来的好处",
+      "items": [
+        "headless bundle 直接不起 server",
+        "CLI 与 Web 共用同一套后端能力",
+        "前端可以独立部署"
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Host（Node）",
+      "wraps": [
+        "h1",
+        "h2",
+        "h3",
+        "h4"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Client（浏览器）",
+      "wraps": [
+        "c1",
+        "c2"
+      ]
+    }
+  ]
+}

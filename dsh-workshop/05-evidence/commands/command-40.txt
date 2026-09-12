@@ -1,0 +1,885 @@
+$ cd dsh-example && npm run all; cd ../iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.run_all
+
+
+> @example/dsh-examples@0.0.0 all
+> bash ./runtime/run-all.sh
+
+
+══════════════════════════════════════════════════════════════
+  ▶ 运行模块 M01-tool-pipeline
+══════════════════════════════════════════════════════════════
+
+████ M01 · 工具管线：从注册、可见性到执行前后策略 ████
+
+════════ M01.1 · 注册工具与 Fiber 回收 ════════
+① 已注册模型可见工具: [ 'word_count' ]
+② canonical value: { words: 4, chars: 27 }
+③ render 给模型看: 4 词 / 27 字符
+④ dispose 之后工具集合: [] （应为空）
+
+════════ M01.2 · pre-execute 权限门 ════════
+read_file → isError: false | read_file 已执行: path=a.txt
+bash      → isError: true | failure.message: 工具 "bash" 被示例权限门拒绝。
+返回给模型的内容: Error: 工具 "bash" 被示例权限门拒绝。
+
+════════ M01.3 · post-execute 结果变换 ════════
+[audit] 工具 word_count 结束 → ok
+规范值 value（未变）: { words: 5, chars: 23 }
+模型可见 content（已被转换追加）:
+  • "5 词 / 23 字符"
+  • "\n[post-execute 策略] 已在结果后追加一条模型可见提示"
+
+════════ M01.4 · 按 Agent 收紧可见工具 ════════
+① 全部已注册（全局视角）: [ 'echo', 'read', 'write', 'bash' ]
+② 该 agent 可见（已被收紧）: [ 'echo', 'read' ]
+③ 调用被收紧的 write → isError: true | Error: unknown tool "write"
+
+④ fail-closed 三连（真实实现的抛错原文）:
+   plain context: tools.restrict() requires a scoped context (agent.ctx): a context-global restriction would mask every agent — deny the tool for the intended agent instead
+   空 filter    : tools.restrict({}) is a no-op: pass `allow` and/or `deny` (an empty filter is almost always a materialized-empty-config bug)
+   未知工具名   : tools.restrict() names unknown global tool "nope"; known global tools: bash, echo, read, write
+
+⑤ restrict 返回的 disposer 精确撤销这一条收紧（同 scope 多条取交集）:
+   再叠一条 deny echo → [ 'read' ]
+   lift() 撤销这一条  → [ 'echo', 'read' ] （插件那条收紧仍在）
+
+⑥ 插件 fiber.dispose() 之后：
+   老 agent 仍被收紧 → [ 'echo', 'read' ]
+   —— 因为这条 restrict 是在 `agent.ctx` 上调的，effect 归**那个 agent 的 fiber**，
+      随 agent 一起回收；插件 fiber 只拥有它自己注册的那个 session-start 监听器。
+   新建的 agent 不再被收紧 → [ 'echo', 'read', 'write', 'bash' ] （监听器已随插件撤销）
+
+════════ M01.5 · 不可翻案的单调守卫 ════════
+ls -la    → isError: false | bash 已执行: cmd=ls -la
+rm -rf /  → isError: true | Error: 命令命中危险模式 "rm -rf"，被单调守卫拒绝
+（pre-execute 明明 allow 了，但 guard 是单调最终拒绝，翻不了案）
+
+结论：工具是可回收注册项；restrict 决定“看见什么”，gate/guard 决定“能否执行”，post hook 决定“怎样回给模型”。
+
+══════════════════════════════════════════════════════════════
+  ▶ 运行模块 M02-context-assembly-economics
+══════════════════════════════════════════════════════════════
+
+████ M02 · 上下文装配与经济学：构造、改写、压缩 ████
+
+════════ M02.1 · 按顺序贡献 Prompt section ════════
+===== 组装后的 System Prompt =====
+You are an AI agent powered by DeepSeek Harness.
+
+你是一个乐于助人的编码助手。
+
+# 回复风格
+- 保持简洁，先给结论再给理由。
+- 涉及代码时给出可运行的最小示例。
+- 结尾署名：—— 来自扩展示例工程
+
+════════ M02.2 · 变量解析与 assembly waterfall ════════
+===== ① assemble() 的返回值是结构化 PromptAssembly，不是字符串 =====
+   sections : runtime-preamble → harness:identity → deployment:persona-prefix → persona → date-aware → deployment:persona-suffix
+   variables: {"provider":"mock","model":"mock-1","today":"2026-09-12"}
+   contexts : 1 | tools: 0
+
+===== ② 渲染成最终提示词（拼 section + 插值 {{today}}）=====
+# 运行时前言（由 assemble 钩子注入）
+
+You are an AI agent powered by DeepSeek Harness.
+
+你是一个乐于助人的编码助手。
+
+当前日期是 2026-09-12。请在涉及"今天/昨天"的回答里以该日期为准。
+
+===== ③ 未注册的变量是**硬错误**：渲染阶段直接抛，不静默清空也不原样保留 =====
+   renderPrompt 抛错: unknown prompt variable "{{nope}}" in section "x"; registered variables: (none)
+
+===== ④ 已注册但求值为 undefined 的变量：同样 fail loud =====
+   variables.maybe = undefined
+   renderPrompt 抛错: prompt variable "{{maybe}}" has no value for this assembly (section "maybe-user")
+
+════════ M02.3 · 压缩历史并替换模型可见 surface ════════
+① 已装载 compaction 实现: DemoCompactionEngine （构造里 super(ctx) 即挂载，无手工 provide）
+
+② 构建初始上下文：向 longCtx 的会话逐条追加 12 条 user 消息（surfaceOp: append）:
+     + seq  0  "m0"
+     + seq  1  "m1"
+     + seq  2  "m2"
+     + seq  3  "m3"
+     + seq  4  "m4"
+     + seq  5  "m5"
+     + seq  6  "m6"
+     + seq  7  "m7"
+     + seq  8  "m8"
+     + seq  9  "m9"
+     + seq 10  "m10"
+     + seq 11  "m11"
+   → longCtx 的 surface 现有 12 条
+   另造 shortCtx（2 条消息），用于对照“未到阈值不压”的分支
+
+③ 压缩过程：compactIfNeeded(longCtx, 'pressure') —— 插件内部的判定与动作逐步可见:
+   [demo-compaction] 压力信号：surface 12 条 ≥ 阈值 8 → 触发折叠
+   [demo-compaction] 折叠区间：12 条 - 保留最近 3 条 → seq [0..8]（9 条）
+   [demo-compaction] 追加摘要事件 seq 12：'user/message' 检查点 + surfaceOp { op:'replace', 0..8 }（摘要占据被遮蔽区间的原位）
+   返回 CompactionResult（一笔可核对的账）:
+     shadowedRange      = [0..8]  ← 被遮蔽的 9 条
+     summarySeq         = 12      ← 摘要事件自己的 seq
+     shadowedTokenCount = 1080    ← 省下的 token（示例用常数估算）
+
+④ 最终结果：模型可见面从 12 条折叠成 4 条，日志一条没删:
+   折叠后 surface（4 条）:
+     seq 12  user       "（已把 9 条历史压成一段摘要）"
+     seq  9  user       "m9"
+     seq 10  user       "m10"
+     seq 11  user       "m11"
+   session 日志仍 13 条（append-only），seq 0–8 只是被摘要从可见面遮蔽
+
+⑤ 对照：compactIfNeeded(shortCtx, 'pressure') —— 2 条 < 阈值 8，不压:
+   [demo-compaction] 压力信号：surface 2 条 < 阈值 8 → 不压，返回 null
+   返回值 = null
+
+⑥ 手动 compactNow(shortCtx) —— 不受阈值约束，但 2 条都在“保留最近 3 条”之内:
+   [demo-compaction] 2 条全在"保留最近 3 条"之内 → 无可折叠节点，返回 null
+   返回值 = null
+
+⑦ 尊重 signal：已 abort 的压力检查:
+   [demo-compaction] signal 已 abort → 直接返回 null
+   返回值 = null
+
+⑧ 插件 fiber.dispose() 后 seam 自动卸载（回到未装）:
+   ctx.compaction = undefined
+
+════════ M02.4 · 回放日志估算 token 压力 ════════
+tokenMeter: { baseline: 'estimated', surfaceTokens: 11, totalTokens: 11, nodes: 1 }
+
+════════ M02.5 · 确定性裁剪超长工具结果 ════════
+toolResultPruner: { before: 112, after: 55, marker: true }
+
+════════ M02.6 · 把超长结果 spill 到本地文件 ════════
+spillStore: {
+  backend: 'LocalSpillStore',
+  inlineBytes: 255,
+  hasLocator: true,
+  isError: false
+}
+
+结论：上下文是结构化装配结果；section/variable 控制进入什么，compaction 控制历史以什么成本继续可见；meter、pruner 与 spill 把预算变成可观测且可执行的策略。
+
+══════════════════════════════════════════════════════════════
+  ▶ 运行模块 M03-inference-service-access
+══════════════════════════════════════════════════════════════
+
+████ M03 · 推理服务接入：Provider 路由与流协议 ████
+
+════════ M03.1 · 注册并消费离线 LLM Adapter ════════
+已注册的 provider 路由: [ 'mock' ]
+逐 chunk 流出：
+  - block-start
+  - text-delta "你好，我是示例 mock 模型。"
+  - block-end
+  - usage
+  - finish {"kind":"stop"}
+
+聚合 assistant 文本: 你好，我是示例 mock 模型。
+协议检查: usage 在 finish 之前 = true
+协议检查: finish 是最后一个 = true
+协议检查: delta 的 index 都有 block-start = true
+协议检查: 有 usage 载荷 = true
+
+chunk 类型统计: {"block-start":1,"text-delta":1,"block-end":1,"usage":1,"finish":1}
+block-start 的 blockType 序列: ["text"]
+finish.reason: {"kind":"stop"}
+usage: {"inputTokens":0,"outputTokens":16}
+
+════════ M03.2 · 用 llm/stream waterfall 包装 chunk 流 ════════
+① 消费经 llm/stream waterfall 包装后的 chunk 流:
+  [内层·统计] 请求 model=mock-1，透传并计数
+  [外层·改写] 包装下游流：text-delta → 大写
+  - block-start
+  - text-delta "HELLO HARNESS"
+  - block-end
+  - usage
+  - finish
+
+② 外层改写生效（应为全大写）: "HELLO HARNESS"
+③ 内层统计生效: chunks=5（应为 5）, outputTokens=13（应为 13）
+
+结论：Adapter 决定流从哪里来，llm/stream 决定流途中怎样被观测或改写，Consumer 只依赖统一 StreamChunk 契约。
+
+══════════════════════════════════════════════════════════════
+  ▶ 运行模块 M04-agent-loop-intervention
+══════════════════════════════════════════════════════════════
+
+████ M04 · Agent 循环与干预面：先观察，再引导 ████
+
+════════ M04.1 · 观察 turn/step/session 事件 ════════
+----- 开始 turn（下面应由遥测插件打印生命周期）-----
+[telemetry] ▶ turn 开始
+[telemetry]  · step 开始
+
+[telemetry]  · step 结束
+[telemetry] ■ turn 结束
+
+----- 结束 turn；聚合文本 = "观测到了这一次对话" | step 数 = 1 -----
+
+════════ M04.2 · 在生命周期边界请求 steering ════════
+[hooks] session-start：agent=demo-session source=startup
+----- 跑一个 turn -----
+[hooks] pre-step：turn=1 step=1，认领消息 1 条
+[hooks] request：turn=1 step=1 即将发出模型请求
+[hooks] turn-stopping：turn=1 发现还有未清 TODO → steer 一条引导，强制再走一步
+[hooks] pre-step：turn=1 step=2，认领消息 1 条
+[hooks] request：turn=1 step=2 即将发出模型请求
+
+聚合文本: "任务基本完成了。任务基本完成了。"
+本轮实际 step 数(应为 2): 2
+本轮是否被引导(steerRequested): true
+累计 steer 次数(应为 1): 1
+
+════════ M04.3 · 比较 inbox 四种输入通道 ════════
+① inject：排入 nextStep 但不唤醒（turn 开始前注入的上下文）
+   inbox 状态: nextStep = 1 | nextTurn = 0
+   ↑ 排进去了，但 driver 没被叫醒 —— inject 不唤醒
+
+② 跑一个 turn：真实主循环在 step1 的认领边界把两个队列都取空
+   （inject 的上下文与 followup 的用户输入一起进了第一步，见下面 pre-step 的 source 列表）
+  [inbox] pre-step turn=1 step=1 认领 2 条 (source: plugin, user)
+   实际 step 数 = 1
+
+③ send：全显式入口（target + wakeup 自己定）—— wakeup=false 不唤醒 driver
+   inbox 状态: nextStep = 0 | nextTurn = 1
+   ↑ 与 ① 的 inject 同为"不唤醒"，但目标队列是 nextTurn
+
+④ 会话日志里的 inbox 流水（agent/inbox/spliced 可回放）:
+   seq=0 target=next-step 入队 1 条 / 移除 0 条 → "背景：这是个演示。"
+   seq=1 target=next-turn 入队 1 条 / 移除 0 条 → "开始吧"
+   seq=3 target=next-step 入队 0 条 / 移除 1 条
+   seq=4 target=next-turn 入队 0 条 / 移除 1 条
+   seq=15 target=next-turn 入队 1 条 / 移除 0 条 → "下一轮再处理我"
+
+⑤ followup：nextTurn + 唤醒 —— 该消息独占它自己的一个 turn
+   inbox 状态: nextStep = 0 | nextTurn = 1
+   ↑ 入队即返回（此时 driver 刚被唤醒，还没到认领边界），所以 nextTurn 仍是 1
+  [inbox] pre-step turn=2 step=1 认领 1 条 (source: user)
+  [inbox] pre-step turn=3 step=1 认领 1 条 (source: user)
+   到目前的累计 step 数 = 3 （followup 唤醒了 driver，所以又多跑了一轮）
+
+⑥ steer：nextStep + 唤醒 —— running driver 在【同一 turn 的下一步】消费
+   下面在 turn-stopping 上 steer 一条：不 steer 的话本轮就该关轮了
+  [inbox] pre-step turn=4 step=1 认领 1 条 (source: user)
+  [turn-stopping] turn=4 反对停止 → steer 一条，强制再走一步
+  [inbox] pre-step turn=4 step=2 认领 1 条 (source: plugin)
+  [turn-stopping] turn=4 不再 steer → 本轮正常关闭
+   steer 那一轮的 step 数 = 2 | 被引导 = true | 引导次数 = 1
+   ↑ 对比 ⑤ 的 followup：steer 没有新开 turn，而是在同一个 turn 里多走了一步
+
+⑦ 两条引导的 spliced 对照（target 决定落在哪条队列）:
+   target=next-step source=plugin → "背景：这是个演示。"
+   target=next-turn source=user   → "开始吧"
+   target=next-turn source=user   → "下一轮再处理我"
+   target=next-turn source=user   → "我是独立的一轮"
+   target=next-turn source=user   → "做点事"
+   target=next-step source=plugin → "继续：还有事没做完"
+
+⑧ clear：丢弃全部待认领消息
+   inbox 状态: nextStep = 0 | nextTurn = 0
+
+════════ M04.4 · 捕获会话遥测账本 ════════
+sessionTelemetry: {
+  backend: 'MemorySessionTelemetry',
+  records: 1,
+  channels: [ 'ledger' ],
+  eventTypes: [ 'user/message' ]
+}
+
+════════ M04.5 · 注册包归属运行时不变量 ════════
+invariants: {
+  service: 'InvariantRegistry',
+  selectedInstallerRan: true,
+  duplicateNamesFailLoud: true
+}
+
+结论：插件通过稳定事件边界观察循环，通过 inbox/steer 请求下一步行为，而不是侵入或复制 AgentLoop。
+
+══════════════════════════════════════════════════════════════
+  ▶ 运行模块 M05-session-surface
+══════════════════════════════════════════════════════════════
+
+████ M05 · 会话面：日志、持久化、查询、投影与标题 ████
+
+════════ M05.1 · 验证会话日志和模型可见面的不变量 ════════
+① 跑一个 turn（事件先落日志，append 即广播）:
+  [log] seq=0 agent/inbox/spliced
+  [log] seq=1 turn/start
+  [log] seq=2 agent/inbox/spliced
+  [log] seq=3 step/start
+  [log] seq=4 system/message surfaceOp="append"
+  [log] seq=5 user/message surfaceOp="append"
+  [log] seq=6 user/message surfaceOp="append"
+  [log] seq=7 request/header
+  [log] seq=8 request/context
+  [log] seq=9 assistant/message surfaceOp="append"
+  [log] seq=10 step/end
+  [log] seq=11 turn/end
+
+② 不变量：seq 连续性（seq === 数组下标）
+   连续 = true | 事件数 = 12
+
+③ 不变量：事件深冻结（改写被拒）
+   改写冻结事件 → TypeError（符合预期）
+
+④ deriveMessages：只投影 surface 事件（chunk 不在其中）
+   投影消息: system:You are an A | user:你好 | user:Current runt | assistant:收到。
+
+⑤ surfaceOp replace：位置性替换——摘要占据被遮蔽区间的原位置
+  [log] seq=12 user/message surfaceOp={"op":"replace","startSeq":5,"endSeq":6}
+   surface 节点 4 → 3，投影现在以摘要开头:
+    system:You are an A | user:（摘要）前文已折叠 | assistant:收到。
+
+⑤b 两条 fail-closed 校验（真实实现的抛错原文）:
+   区间不在 surface 上: surface replace at seq 13: startSeq and endSeq must reference earlier events
+   引用不完整      : sourceEventSeqs must not be empty
+
+⑥ fork：只能从**稳定前缀**分叉——边界落在未闭合的 turn 里会被拒
+   边界在 open turn 内: fork boundary 2 in session "demo-session" ends inside open turn 1
+  [store] session/created → demo-fork
+   从 boundary=12 分叉 → 子会话 demo-fork 继承了 14 条事件
+
+⑦ flush：parallel 持久化检查点（无监听者也正常返回）
+   flush → false
+
+════════ M05.2 · 装载 JSONL persistence Provider ════════
+sessionPersistence: { backend: 'JsonlSessionPersistence', storedSessions: 0 }
+
+════════ M05.3 · 查询 live-preferred 会话语料 ════════
+sessionQuery: {
+  provider: 'ExactReadSessionQuery',
+  livePreferredCount: 1,
+  firstId: 'demo-session'
+}
+
+════════ M05.4 · 耐久化 projection checkpoint ════════
+sessionProjectionCache: {
+  backend: 'JsonStorageBackend',
+  cached: true,
+  keys: [ 'subagentCatalog', 'subagentTiming', 'subagent', 'goal', 'inbox' ]
+}
+
+════════ M05.5 · 把标题写成 latest-wins 日志事件 ════════
+sessionTitle: { title: 'A4 会话服务链', source: 'user', foldedAgain: 'A4 会话服务链' }
+
+结论：事件日志是事实源；persistence 保存事实，query 读取语料，projection cache 加速重放，title 仍以日志投影表达。
+
+══════════════════════════════════════════════════════════════
+  ▶ 运行模块 M06-human-in-the-loop
+══════════════════════════════════════════════════════════════
+
+████ M06 · 人在环路：显式命令与执行审批 ████
+
+════════ M06.1 · 人类斜杠命令直接进入宿主 ════════
+已注册命令: [ '/hello [可选: 要问候的名字]' ]
+/hello 张三    → {"kind":"success","text":"你好，张三！"}
+/hello       → {"kind":"success","text":"你好，朋友！"}
+/nope        → (undefined：不是已注册命令)
+会话日志里的命令事件: [ 'command/run', 'command/done', 'command/run', 'command/done' ]
+
+════════ M06.2 · 工具 ask 请求进入审批 seam ════════
+== A: 无应答器 → fail closed ==
+  approval/decided → outcome: unavailable
+  tool/result      → isError: true | Error: tool "deploy" requires approval, but no approval channel is available
+
+== B: 应答器把 deploy 列入白名单 → allowed-once ==
+[approval] 自动放行(allowed-once)：deploy
+  approval/decided → outcome: allowed-once
+  tool/result      → isError: false | deploy 已执行: env=prod
+
+== C: 应答器不在白名单 → rejected ==
+[approval] 拒绝(rejected)：deploy —— 部署需人工确认
+  approval/decided → outcome: rejected
+  tool/result      → isError: true | Error: the user rejected tool "deploy"
+
+════════ M06.3 · 结构化问题进入宿主 answerer ════════
+userQuestions: { answers: [ { id: 'confirm', selected: [Array] } ] }
+
+════════ M06.4 · 用日志投影切换计划模式 ════════
+planMode: {
+  transition: 'committed',
+  state: { active: true },
+  exitToolVisible: true
+}
+
+════════ M06.5 · 整体替换 todo 列表 ════════
+todo: {
+  isError: false,
+  projection: [
+    { content: '核对服务', status: 'completed' },
+    { content: '运行门禁', status: 'in_progress' }
+  ]
+}
+
+════════ M06.6 · 读取耐久消息反馈 ════════
+messageFeedback: {
+  service: 'MessageFeedbackService',
+  persistence: 'JsonlSessionPersistence',
+  listResult: { ok: true, value: { items: [] } }
+}
+
+结论：命令是人绕过模型的控制入口，审批是模型执行副作用前回到人的裁决入口；两条路都不应伪装成普通提示词。
+
+══════════════════════════════════════════════════════════════
+  ▶ 运行模块 M07-execution-backends
+══════════════════════════════════════════════════════════════
+
+████ M07 · 执行侧后端：I/O、进程与沙箱边界 ████
+
+════════ M07.1 · 通过 fs/subprocess seam 执行副作用 ════════
+① 已注册模型可见工具: [ 'write_note', 'run_cmd' ]
+   seam 后端: LocalFileSystem / LocalSubprocessRuntime
+
+----- ② write_note：经 ctx.fs seam 真实写盘 -----
+    isError=false, 成功 | render: 已写入 <temp> 字节）
+
+----- ③ 用同一个 seam 读回，验证真的落盘 -----
+   读回内容: "hello from the fs seam\n第二行：中文也没问题"
+
+----- ④ run_cmd：经 ctx.subprocess seam 真跑一条命令 -----
+    isError=false, 成功 | value: {"exitCode":0,"stdout":"stdout from child: 2\n","stderr":""}
+
+----- ⑤ 派发前取消：注册表短路，工具主体根本不执行 -----
+    isError=true, code=ABORTED_BEFORE_DISPATCH
+    render: Error: tool call aborted before dispatch
+    文件内容仍是: "hello from the fs seam\n第二行：中文也没问题"
+    注意 code = ABORTED_BEFORE_DISPATCH：index.ts 里那句 `signal.aborted` 守卫
+    在这条路径上是够不着的 —— 注册表在调用工具主体之前就已经返回了。
+
+----- ⑤b 派发后取消：主体已启动，被中止并收敛（code 不同） -----
+    isError=true, code=ABORTED
+    耗时: 309 ms（子进程本身要跑 5000ms）
+    子进程被提前掐掉了，而不是等它自然跑完。
+
+⑥ 清理：演示文件已删除 = /var/folders/tr/zqmjm0dn6_nfthzqnztrd1gw0000gn/T/dsh-example-16-1789222180404.txt
+
+════════ M07.2 · 消费 shell 的 run/start 双形态 ════════
+[shell-service] shell seam 可用: LocalBashExecutor | sandboxMode = (未装沙箱)
+
+① resolve：补默认值并夹紧上限（请求 999_999ms）
+   spec = {"command":"echo hello-shell","workdir":"<repo>/dsh-example","timeoutMs":600000,"stdoutMaxBytes":64000}
+
+② run：正常退出（resolve 出结果，非 reject）
+   exitCode = 0 | stdout = "hello-shell" | truncated = false
+
+③ run：非零退出同样 resolve（不 reject）
+   exitCode = 42 | stderr = "oops"
+
+④ run：超时杀 → timedOut: true（依然 resolve，不 reject）
+   exitCode = null | timedOut = true | aborted = false | signal = SIGTERM
+
+⑤ start：后台句柄立即返回；readOutput 增量读 { delta, lossy }；done 是 Promise<void> 且永不 reject
+   status = running （立即返回，进程还在跑）
+   第一次读: "line1\n"
+   done settle 后: status = completed | exitCode = 0
+   第二次读（只剩增量）: "line2\n"
+
+⑥ kill 幂等：对已结束的进程再 kill
+   kill() → false | 再 kill() → false
+
+════════ M07.3 · 用 sandbox provider 强制策略 ════════
+[sandbox] 已装载 WrapSandbox（enforcement=full）
+① 调用方给出的策略: {"mode":"workspace-write","workspaceRoot":"<repo>/dsh-example"}
+
+② confine：把调用者 argv 包装成受约束的 argv（argv 是程序+参数，不是 shell 字符串）
+   包装后 argv : ["demo-sandbox-exec","--mode=workspace-write","--allow-write=<repo>/dsh-example","--allow-write=/private/tmp","--allow-write=<temp>","--","bash","-c","echo hi"]
+   强制力      : full
+   拒绝签名    : ["[sandbox: file access denied under workspace-write mode]"]
+
+③ 一个 context 只能有一个实现：重复装载同一 seam 直接抛错
+   service "sandbox" has been registered at <WrapSandbox>
+
+④ 换后端要先卸掉旧的（effect-based：dispose 即还原）
+   卸掉 WrapSandbox → ctx.sandbox = undefined
+   装上 RefuseSandbox → ctx.sandbox = RefuseSandbox
+
+⑤ fail-closed：强制不了的模式抛 SandboxUnavailableError，绝不静默放行
+   workspace-write → sandbox mode "workspace-write" is requested but no sandbox backend is usable on this host; refusing to run the command unconfined. Install bubblewrap or run a Landlock-enforcing kernel (Linux), ensure sandbox-exec is usable (macOS), or ensure the ACL restricted-token runner can start (Windows) — otherwise switch the consumer to danger-full-access. Runner failure: 本后端只会 read-only
+   read-only 仍给出可执行的包装: ["demo-sandbox-exec","--mode=read-only","--","ls"]
+
+⑥ 最后卸掉 RefuseSandbox → seam 回到未装
+   ctx.sandbox = undefined
+
+════════ M07.4 · 观察 terminal backend 注册边界 ════════
+terminals: {
+  backends: [],
+  rejection: { name: 'TerminalError', code: 'NO_BACKEND' },
+  nativeBackendSkipped: 'npm install scripts were not approved'
+}
+
+════════ M07.5 · 解析共享 sandbox policy ════════
+sandboxPolicy: {
+  default: 'read-only',
+  sessionOverride: 'workspace-write',
+  workspaceRoot: '<repo>/dsh-example'
+}
+
+结论：工具只表达意图；fs/shell/subprocess 提供可替换执行后端，sandbox 在派发前把策略变成可强制执行的 argv。
+
+══════════════════════════════════════════════════════════════
+  ▶ 运行模块 M08-delegation-presets
+══════════════════════════════════════════════════════════════
+
+████ M08 · 委派与预设：Provider、组合、权限与模型选择 ████
+
+════════ M08.1 · 注册子代理 Provider，并显式包装成工具 ════════
+① 已注册子代理 provider: [ 'local-reviewer' ]
+② 已注册模型可见工具: [ 'review_with_subagent' ]
+
+----- 模型调用 review_with_subagent（触发一次委派）-----
+[event] subagent/start → provider=local-reviewer child=local-reviewer-1 local=false
+[event] subagent/end   → runId=56f91faf-5070-4116-90c5-6716d6bbe186 stopReason=completed
+③ canonical value: {
+  text: '【子代理·local-reviewer】已评审：「检查这个支付模块 diff」 → 结论：可合并，建议补边界测试。',
+  childId: 'local-reviewer-1',
+  stopReason: 'completed'
+}
+④ render 给模型看: 【子代理·local-reviewer】已评审：「检查这个支付模块 diff」 → 结论：可合并，建议补边界测试。
+
+════════ M08.2 · 装配不扫描用户目录的空 preset roster ════════
+agentPresets: { service: 'AgentPresets', configuredRoots: 0, discovered: 0 }
+
+════════ M08.3 · 拒绝未隔离 shell 的权限预设 ════════
+permissionPresets: {
+  failLoud: true,
+  reason: 'permission: the mounted bash executor does not confine (no sandboxMode) — presets bundle a sandbox mode, so composing this plugin over an unconfined executor is a misconfiguration'
+}
+
+════════ M08.4 · 配置子代理精确模型路由 ════════
+subagentModelSelection: {
+  enabled: true,
+  allowedModels: [ { provider: 'mock', model: 'mock-1' } ]
+}
+
+结论：Provider 决定怎么跑，preset 决定装什么，permission 决定能做什么，model selection 决定允许走哪条子模型路由。
+
+══════════════════════════════════════════════════════════════
+  ▶ 运行模块 M09-long-running-orchestration
+══════════════════════════════════════════════════════════════
+
+████ M09 · 长任务与编排：运行句柄与目标状态 ████
+
+════════ M09.1 · 管理后台 Job 的启动、读取、终止与等待 ════════
+① 启动一个长跑任务（JobHooks：run() 同步返回 { cancel, done, readOutput }）:
+   颁发 id = bash-1 （<kind>-N 形）
+
+② read 是增量读（连续读不重复；游标归生产者）:
+   第一次读: "进度 1/3\n"
+   第二次读: "" （只剩增量）
+
+③ wait：等结算或超时（不取消任务）:
+  [jobs] 完成通告：bash-1 → completed (exit code: 0) (owner=demo-session)
+   结算状态 = completed | detail = exit code: 0 | reported = true
+
+④ 属主栅栏：非属主读取被拒:
+   job bash-1 belongs to another session
+
+⑤ kill：live → stopping → killed（reason 原样转发给 hooks.cancel）:
+   kill → requested
+  [jobs] 完成通告：bash-2 → killed (演示取消)
+   结算 = killed
+
+⑥ 准入：没有 controller 时 start 被拒（先卸掉插件的 controller）:
+   background jobs unavailable: no job controller serves this agent (load @deepseek-ai/dsh-tool-jobs in its composition)
+
+════════ M09.2 · 以追加日志和 CAS 推进 Goal 生命周期 ════════
+① create：创建并 arm（rev=1, phase=active, activation=armed）
+  [goal/change] seq=0 → rev=1 phase=active "重构支付模块"
+   → active armed rev=1
+
+② pause：active → paused（撤 arm）
+  [goal/change] seq=1 → rev=2 phase=paused "重构支付模块"
+   → paused disarmed rev=2
+
+③ CAS 冲突：用旧 ref 操作被拒
+   stale goal ref "goal-a3403d30-c0c1-42bc-ab8c-cac13ba64c36" revision 1; current is "goal-a3403d30-c0c1-42bc-ab8c-cac13ba64c36" revision 2
+
+④ resume：paused → active（重新 arm）
+  [goal/change] seq=2 → rev=3 phase=active "重构支付模块"
+   → active armed rev=3
+
+⑤ block：→ blocked（携带人机可读 reason）
+  [goal/change] seq=3 → rev=4 phase=blocked "重构支付模块"
+   → blocked (code=needs-human) rev=4
+
+⑥ complete：→ complete 并撤 arm
+  [goal/change] seq=4 → rev=5 phase=complete "重构支付模块"
+   → complete disarmed rev=5
+
+⑦ clear：追加 null 墓碑，折叠结果回到 undefined
+   goals.get(agent) = undefined
+
+⑧ 日志即状态：回放 6 条 goal/change 事件即可重建全程
+
+════════ M09.3 · 在 worker thread 执行工作流脚本 ════════
+workflowEngine: {
+  provider: 'WorkerThreadWorkflowEngine',
+  stopReason: 'completed',
+  value: { ok: true, value: 42 },
+  agentsStarted: 0
+}
+
+════════ M09.4 · 把计划调度注册到耐久会话 ════════
+schedule: {
+  persistence: 'JsonlSessionPersistence',
+  tools: [ 'schedule_create', 'schedule_list', 'schedule_delete' ]
+}
+
+结论：Job 管“正在运行的工作”，Goal 管“为何运行及进展到哪”；两者都通过属主、日志和 revision 避免隐式全局状态。
+
+══════════════════════════════════════════════════════════════
+  ▶ 运行模块 M10-external-capabilities
+══════════════════════════════════════════════════════════════
+
+████ M10 · 外部能力接入：知识、协议、Webhook 与动态扩展 ████
+
+════════ M10.1 · 注册、发现并注入代码审查 Skill ════════
+① 模型在目录里发现的 skill:
+   name    = code-review-checklist | source = project-dsh | provider = runtime
+   何时该用 = Use when the user asks for a code review of a diff, PR, or recent change, to give a consistent, prioritized review instead of ad-hoc nitpicking.
+
+② 调用 skill：渲染正文并 inject 到下一步的模型可见上下文
+   inbox.nextStep 待认领 = 1
+
+③ 跑一个真实 turn：主循环在 step 边界认领，清单随请求进入模型可见上下文
+   已被认领（nextStep 清空）  = true
+   模型可见投影里有 skill 消息 = true (source=skill-invocation)
+   其正文带清单的输出格式要求 = true
+   本轮 step 数 = 1 | mock 回复 = "（mock 适配器固定回复：真实按清单评审见 npm run M10:real）"
+
+════════ M10.2 · 验证本地 MCP 启动失败边界 ════════
+mcp: {
+  transport: 'stdio',
+  networkUsed: false,
+  failLoud: true,
+  reason: 'mcp-client(offline_missing): initial connection or tool synchronization failed'
+}
+
+════════ M10.3 · 检查 Webhook Host-plane 组合边界 ════════
+webhookRuntime boundary: {
+  required: [
+    'agents',
+    'agentDefaultModel',
+    'agentPresets',
+    'permissionPresets',
+    'sessionTitle',
+    'workspaceRegistry'
+  ],
+  missing: [
+    'agentDefaultModel',
+    'agentPresets',
+    'permissionPresets',
+    'sessionTitle',
+    'workspaceRegistry'
+  ],
+  loaded: false,
+  reason: 'Host-plane dependencies stay explicit in an offline teaching profile'
+}
+
+════════ M10.4 · 装配动态 Cordis 扩展工具 ════════
+extensions: {
+  dynamicRunner: 'DynamicCordisRunnerService',
+  inspectRegistry: 'CordisInspectRegistryService',
+  tools: [
+    'cordis_inspect_list',
+    'cordis_inspect_query',
+    'cordis_inspect_self',
+    'cordis_define',
+    'cordis_run',
+    'cordis_stop',
+    'cordis_undefine'
+  ]
+}
+
+════════ M10.5 · 配置 Webhook 所需默认模型路由 ════════
+agentDefaultModel: { provider: 'mock', model: 'mock-1' }
+
+结论：Skill 是数据资产；MCP、Webhook 和 Cordis extensions 是显式 Host 能力，默认离线且依赖不完整时 fail loud。
+
+══════════════════════════════════════════════════════════════
+  ▶ 运行模块 M11-config-data-infrastructure
+══════════════════════════════════════════════════════════════
+
+████ M11 · 配置与数据设施：配置、存储、附件、凭证与工作区 ████
+
+════════ M11.1 · 注册并驱动 settings 命名空间 ════════
+① 未写任何东西：解析值 = schema 默认值
+   { theme: 'dark', fontSize: 14 } | revision = 0
+
+② update：合并补丁进 user 层
+  [watch] demo 提交 → {"theme":"dark","fontSize":16} （prev: {"theme":"dark","fontSize":14}）
+   revision = 1
+
+③ 乐观并发：过期 expectedRevision 被拒
+   settings namespace "demo" changed since it was read (expected revision 0, now 1)
+
+④ 带对的 expectedRevision 则放行
+  [watch] demo 提交 → {"theme":"light","fontSize":16} （prev: {"theme":"dark","fontSize":16}）
+   revision = 2
+
+⑤ mutate：路径级编辑（op 是 set / unset）
+  [watch] demo 提交 → {"theme":"light","fontSize":18} （prev: {"theme":"light","fontSize":16}）
+   当前值: { theme: 'light', fontSize: 18 }
+
+⑥ replace({})：整段清空 user 层 → 全部回落默认值（merge 表达不了的"重置"）
+  [watch] demo 提交 → {"theme":"dark","fontSize":14} （prev: {"theme":"light","fontSize":18}）
+   重置后: { theme: 'dark', fontSize: 14 }
+
+⑦ 重复注册同一命名空间抛错
+   settings namespace "demo" is already registered
+
+════════ M11.2 · 装配 JSON storage 与 domain 路由 ════════
+storage: {
+  hub: 'Storage',
+  backend: 'JsonStorageBackend',
+  domainFacility: 'DomainFacility'
+}
+
+════════ M11.3 · 保存 content-addressed 本地附件 ════════
+attachments: {
+  backend: 'LocalAttachmentStore',
+  attachmentId: 'sha256:4e808094851fc2eac7a386fc7d64677b34bda5e41d366ec4943233f9e6f2cd63',
+  name: 'a4.bin'
+}
+
+════════ M11.4 · 按 Agent workspace 搜索文件引用 ════════
+fileReferences: {
+  backend: 'LocalFileReferenceService',
+  matches: 5,
+  sample: 'README.md'
+}
+
+════════ M11.5 · 只读取凭证状态并列出授权 flow ════════
+credentials: {
+  provider: 'LocalCredentialProvider',
+  safeDescription: { configured: false, writable: true },
+  authorizationFlows: []
+}
+
+════════ M11.6 · 组合 workspace 与耐久 Session ════════
+workspaceRegistry: {
+  service: 'WorkspaceRegistry',
+  listed: 0,
+  persistence: 'JsonlSessionPersistence'
+}
+
+结论：配置只保存引用和策略；真实数据由显式 backend/provider 持有，domain、credential 与 workspace 都在故障边界上 fail loud。
+
+══════════════════════════════════════════════════════════════
+  ▶ 运行模块 M12-framework-mechanisms
+══════════════════════════════════════════════════════════════
+
+████ M12 · 框架机制本体：事件语义与生命周期资源 ████
+
+════════ M12.1 · 对照五种事件派发模式 ════════
+① emit：同步广播，立即返回，不等任何 Promise
+  [观察者 A] 看到 hello
+  [观察者 B] 看到 hello
+  → emit 已返回（异步观察者 C 此时还没打印）
+  [异步观察者 C] 睡够 20ms 才看到 hello
+
+② parallel：并发等齐，完成顺序由耗时决定（A 注册在前但更慢）
+  [持久化 B] 已落盘 batch-1（耗时 10ms）
+  [持久化 A] 已落盘 batch-1（耗时 50ms）
+  → 全部 settle 后才走到这里
+
+③ parallel：有监听者拒绝 → AggregateError
+  [持久化 A] 已落盘 fail（耗时 50ms）
+  → 捕获 AggregateError，内含 1 个失败: 模拟持久化后端故障
+
+④ serial：按序 await，首个 bail 值截链（监听者全同步）
+  [候选 A] 不接盘（return undefined → 继续问下一个）
+  [候选 B] 接盘 1 → 返回 bail 值截链
+  → 返回值 = winner:1
+
+⑤ bail：同一批监听者走同步版本，结果与 ④ 完全一样
+  [候选 A] 不接盘（return undefined → 继续问下一个）
+  [候选 B] 接盘 2 → 返回 bail 值截链
+  → 返回值 = winner:2
+
+⑥ waterfall：最后一个实参是内建默认（base），外层监听者包装内层结果
+  [B] 观察到输入 "原始文本"，交回 next()
+  → 返回值 = 【A 包装】【内建默认】原始文本
+
+⑦a isBailed 边界：return 0 会「意外」截链（0 既非 null 也非 false/undefined）
+  [返回 0 的监听者] 0 既不是 null 也不是 false/undefined → 竟然截链了
+  → 返回值 = 0
+
+⑦b 换成异步监听者：serial 与 bail 的唯一差别在这里暴露
+  [异步候选] 睡够 30ms 才返回 3
+  serial → 返回值 = async-winner:3
+  bail   → 返回值 = Promise { <pending> }
+  bail 没 await，直接把未决 Promise 当成了截链值 —— 这是用 bail 接异步监听者的坑。
+  [异步候选] 睡够 30ms 才返回 4
+
+════════ M12.2 · 验证绑定 Fiber 的可处置定时器 ════════
+① timeout(delay) → Promise（可 await 的延时）
+   50ms 到了
+
+② timeout(cb, delay) → disposer（回调版）
+   回调版 timeout 触发
+
+③ interval(delay) → AsyncIterableIterator（消费 3 个 tick 后停）
+   tick 1
+   tick 2
+   tick 3
+
+④ debounce：连续调用只触发最后一次
+   [debounced] 第三次（只有我会触发）
+
+⑤ 插件里的 throttle 监听器：跑一个真实 turn，高频 session/event 被节流
+  [throttled] session/event: agent/inbox/spliced
+
+⑥ dispose：fiber 卸载时挂起的 timeout Promise 被拒
+   被拒: Context has been disposed
+
+════════ M12.3 · 观察 Fiber 依赖状态机 ════════
+FiberState: {
+  beforeDependency: 'PENDING',
+  afterDependency: 'ACTIVE',
+  afterDispose: 'DISPOSED'
+}
+
+════════ M12.4 · 隔离同名服务 realm ════════
+isolate: { root: 'root', isolated: 'isolated', separated: true }
+
+════════ M12.5 · 叠加调用域 intercept 配置 ════════
+intercept: {
+  base: { mode: 'safe', budget: 100 },
+  scoped: { mode: 'strict', budget: 40 },
+  bothViewsAreDemoPolicy: true,
+  traceProxyIdentityDiffers: true
+}
+
+结论：派发模式定义监听者如何组合，Fiber 定义监听器与定时资源何时回收；两者构成插件可组合、可卸载的底层纪律。
+
+✅ 全部 12 个离线方向模块运行完毕。
+{"alignment": "B+C", "module": "M01", "pipeline": "audit(guard(raw:x))", "refusal": "unknown stage 'typo' on pipeline 'iota-tools'; declared stages: audit, guard", "status": "ok"}
+IOTA_MODULE_OK M01-tool-pipeline
+{"alignment": "A+C", "compression_seam": "kernel-owned", "default_injection": false, "module": "M02", "scope": "session-a", "status": "ok"}
+IOTA_MODULE_OK M02-context-assembly-economics
+{"acp_refusal": "node 'infer': kernel 'acp' cannot activate per-node model middleware/hooks ['llm_execution']; remove them or use a kernel that advertises per_session_middleware", "alignment": "C", "module": "M03", "replaceable_unit": "KernelAdapter", "status": "ok"}
+IOTA_MODULE_OK M03-inference-service-access
+{"alignment": "A+C", "events": ["system_init", "text_delta", "final"], "mid_turn_injection": "not an orchestrator contract", "module": "M04", "node_hook": [["observe", "succeeded"]], "status": "ok"}
+IOTA_MODULE_OK M04-agent-loop-intervention
+{"alignment": "A+C", "messages": 2, "module": "M05", "run_status": "succeeded", "sequence_contract": "not added under D7", "status": "ok"}
+IOTA_MODULE_OK M05-session-surface
+{"alignment": "A+C", "hang_prevention": "request answered", "module": "M06", "permission": "no", "plan_mode": "kernel/harness-owned", "status": "ok"}
+IOTA_MODULE_OK M06-human-in-the-loop
+{"alignment": "C", "module": "M07", "orchestrator_shell_registry": [], "route": "prompt -> KernelAdapter -> kernel.shell event", "status": "ok"}
+IOTA_MODULE_OK M07-execution-backends
+{"alignment": "A", "module": "M08", "order": ["research", "review"], "output": {"approved": "research:iota"}, "status": "ok"}
+IOTA_MODULE_OK M08-delegation-presets
+{"alignment": "A-reverse", "checkpoint_sequence": 1, "idempotent_task_id": "m09-task", "module": "M09", "queue": "succeeded", "status": "ok"}
+IOTA_MODULE_OK M09-long-running-orchestration
+{"alignment": "A", "mcp": "hello iota", "module": "M10", "skill": "offline-greeter", "status": "ok"}
+IOTA_MODULE_OK M10-external-capabilities
+{"alignment": "A+C", "credentials_attachments": "host-owned", "dsh_profile_refusal": "config_profile is not supported for adapter 'dsh': it has no iota-managed config home to project into. Adapters that do: ['claude', 'hermes', 'hermes_direct']. Point the kernel at its own config file via 'command' instead (dsh: --config <cordis.yml>), and use 'env' for anything else it needs.", "module": "M11", "profile": "projected", "status": "ok", "storage": "memory"}
+IOTA_MODULE_OK M11-config-data-infrastructure
+{"alignment": "A+C", "architecture_not_imported": ["event-bus", "hmr", "intercept"], "capability_refusal": "BadCapability declares unknown capabilities ['typo-capability']; known capabilities: ['filesystem_skills', 'goal_commands', 'native_goal_manager', 'native_kanban_toolset']", "entry_points": "iota_core.providers", "inactive_refusal": "cannot push effect 'late' onto disposed stack 'm12'", "lifo": ["outer", "inner"], "module": "M12", "status": "ok"}
+IOTA_MODULE_OK M12-framework-mechanisms
+IOTA_ALL_OK modules=12 network=blocked
+[exit 0]

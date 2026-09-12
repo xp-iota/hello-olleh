@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Context 的三个派生方法",
+    "output": "04-three-derivations.html",
+    "viewBox": [
+      1460,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "ext",
+      "type": "frontend",
+      "label": "extend(meta)",
+      "sublabel": "Object.create(getTraceable(this, this)) 后 defineProperty",
+      "tag": "C/context.ts:55，原 ctx 有 shadow 时再包一层（:61-62）",
+      "pos": [
+        70,
+        180
+      ],
+      "size": [
+        400,
+        140
+      ]
+    },
+    {
+      "id": "iso",
+      "type": "database",
+      "label": "isolate(name, label)",
+      "sublabel": "shadow[name] = label 或新建 Symbol(name)",
+      "tag": "C/context.ts:65，换掉该服务名的存储键",
+      "pos": [
+        530,
+        180
+      ],
+      "size": [
+        400,
+        140
+      ]
+    },
+    {
+      "id": "itc",
+      "type": "cloud",
+      "label": "intercept(name, config)",
+      "sublabel": "intercept[name] = config 后 extend",
+      "tag": "C/context.ts:71，给该服务注入配置",
+      "pos": [
+        990,
+        180
+      ],
+      "size": [
+        400,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "i-e",
+      "from": "iso",
+      "to": "ext",
+      "label": "内部调用 extend",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "labelDy": 52
+    },
+    {
+      "id": "t-e",
+      "from": "itc",
+      "to": "ext",
+      "label": "内部调用 extend",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "top",
+      "labelDy": -52
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三者的共同点",
+      "items": [
+        "全部返回新的 Context 视图，绝不修改原对象",
+        "全部靠 Object.create 建立原型链继承",
+        "isolate 与 intercept 最终都走 extend"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "原型链就是作用域链",
+      "items": [
+        "新视图继承原 ctx 的全部可见性",
+        "只覆盖自己显式改动的那一个键",
+        "因此不需要显式的作用域表"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "两种覆盖的对象不同",
+      "items": [
+        "isolate 覆盖 symbols.isolate 里的存储键",
+        "intercept 覆盖 symbols.intercept 里的配置",
+        "前者改「看到哪个实现」，后者改「以什么参数用」"
+      ]
+    }
+  ]
+}

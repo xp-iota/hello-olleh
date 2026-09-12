@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Plugin / Runtime / Fiber 三层概念",
+    "output": "03-three-layers.html",
+    "viewBox": [
+      1400,
+      500
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "plugin",
+      "type": "external",
+      "label": "Plugin",
+      "sublabel": "函数、类或带 apply 的对象",
+      "tag": "就是代码本身，无状态",
+      "pos": [
+        80,
+        180
+      ],
+      "size": [
+        320,
+        130
+      ]
+    },
+    {
+      "id": "runtime",
+      "type": "frontend",
+      "label": "Plugin.Runtime",
+      "sublabel": "C/registry.ts:94，同一份代码的注册记录",
+      "tag": "{ name, callback, fibers, Config }，一份代码只有一个",
+      "pos": [
+        520,
+        180
+      ],
+      "size": [
+        340,
+        130
+      ]
+    },
+    {
+      "id": "fiber",
+      "type": "backend",
+      "label": "Fiber",
+      "sublabel": "C/fiber.ts:103，一次实例化",
+      "tag": "同一插件装两次得两个 Fiber，共享一个 Runtime",
+      "pos": [
+        980,
+        180
+      ],
+      "size": [
+        340,
+        130
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "三层概念，别混淆",
+      "wraps": [
+        "plugin",
+        "runtime",
+        "fiber"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "p-r",
+      "from": "plugin",
+      "to": "runtime",
+      "label": "首次注册时建立",
+      "variant": "emphasis"
+    },
+    {
+      "id": "r-f",
+      "from": "runtime",
+      "to": "fiber",
+      "label": "每次装载产生一个",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三者的基数关系",
+      "items": [
+        "一份代码对应一个 Runtime",
+        "一个 Runtime 对应任意多个 Fiber",
+        "Runtime 上的 fibers 列出全部实例"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Fiber 的身份与状态字段",
+      "items": [
+        "uid 是递增序号，为 null 表示已卸载",
+        "state 是六态之一，由其它字段推导得出",
+        "store 是本 Fiber 可见的服务快照，未激活时为空"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Fiber 的执行与回收字段",
+      "items": [
+        "inertia 持有在途的 reload 或 unload 任务，是串行化锁",
+        "_disposables 是本 Fiber 登记的全部可逆效应",
+        "_runner 持有 epoch 与 exec，字段定义见 fiber.ts:104-120"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "notify 是依赖系统的传播中心",
+    "output": "05-notify-propagation.html",
+    "viewBox": [
+      1500,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "api",
+      "type": "frontend",
+      "label": "notify(names, filter)",
+      "sublabel": "默认 filter 比较 isolate 键是否相同",
+      "tag": "C/reflect.ts:205-228",
+      "pos": [
+        60,
+        240
+      ],
+      "size": [
+        290,
+        120
+      ]
+    },
+    {
+      "id": "scan",
+      "type": "backend",
+      "label": "遍历全部 Fiber",
+      "sublabel": "registry 的每个 runtime 的每个 fiber",
+      "tag": ":207-220",
+      "pos": [
+        420,
+        110
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "filt",
+      "type": "security",
+      "label": "三重过滤",
+      "sublabel": "name 在 inject 里、filter 放行、再 _checkImpl",
+      "tag": "任一不满足即跳过该 Fiber",
+      "pos": [
+        790,
+        110
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "refresh",
+      "type": "cloud",
+      "label": "有更新则 _refresh",
+      "sublabel": "重算 epoch 并收集到待等待列表",
+      "pos": [
+        1150,
+        110
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "emit",
+      "type": "messagebus",
+      "label": "按 name 派发事件",
+      "sublabel": "self = Object.create(ctx) 并挂 symbols.filter",
+      "tag": ":221-226 用带 filter 的 this 派发 internal/service",
+      "pos": [
+        420,
+        400
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "wait",
+      "type": "database",
+      "label": "等待级联收敛",
+      "sublabel": "await Promise.allSettled(各 Fiber 的 await())",
+      "tag": "被唤醒的 Fiber 若也 provide 服务则递归再 notify",
+      "pos": [
+        880,
+        400
+      ],
+      "size": [
+        380,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "api",
+      "to": "scan",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "scan",
+      "to": "filt"
+    },
+    {
+      "id": "c",
+      "from": "filt",
+      "to": "refresh",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "api",
+      "to": "emit",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "e",
+      "from": "emit",
+      "to": "wait",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "filter 决定传播边界",
+      "items": [
+        "默认只通知 isolate 键相同的 Fiber",
+        "不同 realm 的同名服务互不影响",
+        "派发事件时把 filter 挂在 this 上一起传下去"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "扫描是全量但过滤很快",
+      "items": [
+        "遍历所有 runtime 与 fiber",
+        "第一道就用 name in fiber.inject 排除大多数",
+        "没有依赖图，所以也不需要维护它"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "级联是递归的",
+      "items": [
+        "被唤醒的 Fiber 若也 provide 服务会再触发 notify",
+        "用 allSettled 等待，单个失败不阻断其余",
+        "收敛后整棵依赖子树状态一致"
+      ]
+    }
+  ]
+}

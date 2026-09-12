@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "deriveMessages 的增量投影与缓存",
+    "output": "06-derive-messages.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "api",
+      "type": "frontend",
+      "label": "deriveMessages()",
+      "sublabel": "每个 step 都要调一次",
+      "tag": "S/index.ts:726",
+      "pos": [
+        70,
+        200
+      ],
+      "size": [
+        280,
+        130
+      ]
+    },
+    {
+      "id": "cache",
+      "type": "database",
+      "label": "三个缓存字段",
+      "sublabel": "derived 已投影消息、derivedNodes 处理进度、derivedGeneration 重写代号",
+      "tag": "S/index.ts:702-707",
+      "pos": [
+        390,
+        200
+      ],
+      "size": [
+        400,
+        130
+      ]
+    },
+    {
+      "id": "check",
+      "type": "security",
+      "label": "比对代号",
+      "sublabel": "surface.replaceGeneration 是否等于 derivedGeneration",
+      "pos": [
+        830,
+        240
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "full",
+      "type": "cloud",
+      "label": "不等则整体重建",
+      "sublabel": "清空 derived、进度归零并更新代号",
+      "tag": ":730-734",
+      "pos": [
+        1180,
+        90
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "inc",
+      "type": "backend",
+      "label": "相等则增量续算",
+      "sublabel": "只遍历表面上尚未处理的节点",
+      "pos": [
+        1180,
+        390
+      ],
+      "size": [
+        300,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "api",
+      "to": "cache",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "cache",
+      "to": "check",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "check",
+      "to": "full",
+      "label": "不等"
+    },
+    {
+      "id": "d",
+      "from": "check",
+      "to": "inc",
+      "label": "相等",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "代号是失效信号",
+      "items": [
+        "表面每次被 replace 就递增 replaceGeneration",
+        "投影缓存记下自己算的是哪一代",
+        "代号不匹配即全部重算"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "常态是增量",
+      "items": [
+        "普通 append 不改代号",
+        "于是只需处理新增的表面节点",
+        "这让每 step 一次调用的开销可接受"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "为什么不能只增量",
+      "items": [
+        "replace 会遮蔽已投影过的节点",
+        "增量无法回退已产出的消息",
+        "因此压缩后必须整体重建"
+      ]
+    }
+  ]
+}

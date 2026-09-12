@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "链 1：dsh web 到插件树就绪",
+    "output": "11-boot-chain.html",
+    "viewBox": [
+      1520,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "a1",
+      "type": "frontend",
+      "label": "dsh web",
+      "sublabel": "入口在 apps/cli，bin 指向 lib/bin.js",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "a2",
+      "type": "database",
+      "label": "parseCmdline",
+      "sublabel": "P/boot/cmdline/src/index.ts:98",
+      "pos": [
+        410,
+        130
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "a3",
+      "type": "backend",
+      "label": "loadProfile",
+      "sublabel": "AB/profile.ts:371，无 package.json 则用模板 initProfile（:152）",
+      "tag": "读 manifest 得到 dsh.profile.bundles",
+      "pos": [
+        750,
+        130
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "a4",
+      "type": "security",
+      "label": "loadOverlayPatches",
+      "sublabel": "每个 bundle 依次读入它的 patch 层",
+      "pos": [
+        410,
+        300
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "a5",
+      "type": "cloud",
+      "label": "composeEntries",
+      "sublabel": "把所有层 flat 后一次 applyEntryPatches",
+      "tag": "AB/profile.ts:413",
+      "pos": [
+        830,
+        300
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "a6",
+      "type": "messagebus",
+      "label": "boot() 挂树",
+      "sublabel": "mountRootInclude 后等 loader 就绪并校验激活",
+      "tag": "见 05 篇",
+      "pos": [
+        830,
+        460
+      ],
+      "size": [
+        380,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "a1",
+      "to": "a2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "a2",
+      "to": "a3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "a3",
+      "to": "a4",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 48
+    },
+    {
+      "id": "d",
+      "from": "a4",
+      "to": "a5",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e",
+      "from": "a5",
+      "to": "a6",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 46
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "六步就到插件树就绪",
+      "items": [
+        "前三步解析命令行与 profile",
+        "中间两步叠加 patch 层",
+        "最后一步交给 cordis Loader"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关键源码位置",
+      "items": [
+        "parseCmdline 在 P/boot/cmdline/src/index.ts:98",
+        "loadProfile 与 composeEntries 在 AB/profile.ts",
+        "mountRootInclude 在 AB/index.ts:486"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "详细展开",
+      "items": [
+        "profile 与 bundle 的关系见 05 篇 § 5.2",
+        "四层叠加顺序见 05 篇 § 5.3",
+        "启动失败处理见 05 篇 § 5.9"
+      ]
+    }
+  ]
+}

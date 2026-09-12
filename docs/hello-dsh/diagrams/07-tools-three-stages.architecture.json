@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "tools 的三段 waterfall",
+    "output": "07-tools-three-stages.html",
+    "viewBox": [
+      1520,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "call",
+      "type": "frontend",
+      "label": "一次工具调用",
+      "sublabel": "进入注册表的分发流程",
+      "pos": [
+        60,
+        210
+      ],
+      "size": [
+        240,
+        130
+      ]
+    },
+    {
+      "id": "p1",
+      "type": "security",
+      "label": "① tools/pre-execute",
+      "sublabel": "允许、拒绝或要求审批",
+      "tag": "T/index.ts:152；无审批支持时 ask 等价于拒绝（:145 注释）",
+      "pos": [
+        340,
+        120
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "p2",
+      "type": "backend",
+      "label": "② tools/execute",
+      "sublabel": "超时、重试与指标，around-dispatch 语义",
+      "tag": "T/index.ts:163；wrapper 只能改 exec.signal，调用身份不可变",
+      "pos": [
+        340,
+        300
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "p3",
+      "type": "database",
+      "label": "③ tools/post-execute",
+      "sublabel": "结果改写与观测",
+      "tag": "T/index.ts:175",
+      "pos": [
+        770,
+        300
+      ],
+      "size": [
+        340,
+        120
+      ]
+    },
+    {
+      "id": "note",
+      "type": "cloud",
+      "label": "取消语义",
+      "sublabel": "异步 gate 必须观察 exec.signal",
+      "tag": "注册表在它们 settle 后重查取消，但不放弃其 promise",
+      "pos": [
+        770,
+        120
+      ],
+      "size": [
+        340,
+        120
+      ]
+    },
+    {
+      "id": "resp",
+      "type": "messagebus",
+      "label": "最终结果",
+      "sublabel": "回到 agent-loop 并落日志",
+      "pos": [
+        1160,
+        210
+      ],
+      "size": [
+        280,
+        130
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "call",
+      "to": "p1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "p1",
+      "to": "p2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "p2",
+      "to": "p3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "p1",
+      "to": "note",
+      "variant": "dashed"
+    },
+    {
+      "id": "e",
+      "from": "p3",
+      "to": "resp",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三段的分工",
+      "items": [
+        "pre-execute 决定能不能做",
+        "execute 决定怎么做（含超时与重试）",
+        "post-execute 决定结果怎么呈现"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "调用身份不可变",
+      "items": [
+        "execute wrapper 只允许替换 exec.signal",
+        "不允许改 callId、name 或 agent",
+        "注册表会在 body 前重新熔接原始 caller 身份"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "审批的降级规则",
+      "items": [
+        "pre-execute 可以返回 ask 要求审批",
+        "若环境没有审批能力，ask 等价于拒绝",
+        "这是 fail-closed，不会静默放行"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "两级隔离机制",
+    "output": "03-two-level-isolation.html",
+    "viewBox": [
+      1480,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "l1",
+      "type": "database",
+      "label": "第一级：cordis isolate realm",
+      "sublabel": "静态，配置期生效，粒度是配置行",
+      "tag": "不同 Symbol 指向 store 里不同条目，见 cordis 04 篇 § 4.5",
+      "pos": [
+        70,
+        180
+      ],
+      "size": [
+        420,
+        150
+      ]
+    },
+    {
+      "id": "use",
+      "type": "backend",
+      "label": "在 DSH 里的用法",
+      "sublabel": "用 group 行把 provider 与它的 consumer 圈进同一 realm",
+      "tag": "这也是 cordis:group 必须作为 builtin 的原因，见 05 篇 § 5.6",
+      "pos": [
+        540,
+        180
+      ],
+      "size": [
+        420,
+        150
+      ]
+    },
+    {
+      "id": "l2",
+      "type": "security",
+      "label": "第二级：运行期作用域",
+      "sublabel": "动态，按会话或按 agent 叠加能力层",
+      "tag": "由 core/scope 的 ScopedLayers 支撑",
+      "pos": [
+        1010,
+        180
+      ],
+      "size": [
+        400,
+        150
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "l1",
+      "to": "use",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "use",
+      "to": "l2",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两级解决不同问题",
+      "items": [
+        "第一级解决「两组插件要用同名服务的不同实例」",
+        "第二级解决「同一进程内不同会话要有不同能力集」",
+        "前者在启动时定型，后者随会话变化"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "group 行是隔离的容器",
+      "items": [
+        "把 provider 与 consumer 一起放进一个 group",
+        "该 group 声明 isolate realm",
+        "于是这组包看到的是自己那份实现"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "给一个会话不同能力集",
+      "items": [
+        "官方文档的说法是 compose an agent preset",
+        "实现上是那一行服务需要一个 isolate realm",
+        "运行期再叠 scope 层做细粒度控制"
+      ]
+    }
+  ]
+}

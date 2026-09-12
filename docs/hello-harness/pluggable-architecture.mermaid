@@ -1,0 +1,79 @@
+%%{init: {'theme': 'neutral', 'themeVariables': { 'fontSize': '16px'}}}%%
+graph TB
+    subgraph "Business Logic Layer (Runtime-Agnostic)"
+        BL1[Custom Compression<br/>Strategies]
+        BL2[Memory Retrieval<br/>Algorithms]
+        BL3[Context Priority<br/>Rules]
+    end
+    
+    subgraph "Unified Abstraction Layer"
+        ICM[IContextManager<br/>━━━━━━━━━━━━━<br/>compileSystemPrompt<br/>compileMessages<br/>injectReminders<br/>resolveInstructions]
+        IMP[IMemoryProvider<br/>━━━━━━━━━━━━━<br/>prefetch<br/>syncTurn<br/>write<br/>search]
+        ICE[ICompressionEngine<br/>━━━━━━━━━━━━━<br/>shouldCompress<br/>compress<br/>updateTokenUsage]
+        IMS[IMessageStore<br/>━━━━━━━━━━━━━<br/>createSession<br/>writeMessage<br/>readMessages<br/>searchMessages]
+    end
+    
+    subgraph "OpenCode Adapters"
+        OCA[OpenCodeContext<br/>Manager]
+        OCM[OpenCodeMemory<br/>Provider]
+        OCE[OpenCodeCompression<br/>Engine]
+        OCS[OpenCodeMessage<br/>Store]
+    end
+    
+    subgraph "Hermes Adapters"
+        HCA[HermesContext<br/>Manager]
+        HCM[HermesMemory<br/>Provider]
+        HCE[HermesCompression<br/>Engine]
+        HCS[HermesMessage<br/>Store]
+    end
+    
+    subgraph "OpenCode Runtime"
+        ORT[TypeScript/Bun<br/>━━━━━━━━━━━━━<br/>SessionPrompt<br/>MessageV2<br/>SQLite + Bus]
+    end
+    
+    subgraph "Hermes Runtime"
+        HRT[Python<br/>━━━━━━━━━━━━━<br/>PromptBuilder<br/>MemoryManager<br/>SessionDB + FTS5]
+    end
+    
+    BL1 --> ICM
+    BL1 --> ICE
+    BL2 --> IMP
+    BL3 --> ICM
+    
+    ICM --> OCA
+    ICM --> HCA
+    IMP --> OCM
+    IMP --> HCM
+    ICE --> OCE
+    ICE --> HCE
+    IMS --> OCS
+    IMS --> HCS
+    
+    OCA --> ORT
+    OCM --> ORT
+    OCE --> ORT
+    OCS --> ORT
+    
+    HCA --> HRT
+    HCM --> HRT
+    HCE --> HRT
+    HCS --> HRT
+    
+    style ICM fill:#e1f5ff
+    style IMP fill:#e1f5ff
+    style ICE fill:#e1f5ff
+    style IMS fill:#e1f5ff
+    
+    style OCA fill:#fff4e1
+    style OCM fill:#fff4e1
+    style OCE fill:#fff4e1
+    style OCS fill:#fff4e1
+    
+    style HCA fill:#f0e1ff
+    style HCM fill:#f0e1ff
+    style HCE fill:#f0e1ff
+    style HCS fill:#f0e1ff
+    
+    style BL1 fill:#e8f5e9
+    style BL2 fill:#e8f5e9
+    style BL3 fill:#e8f5e9

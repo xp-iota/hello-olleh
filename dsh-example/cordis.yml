@@ -1,0 +1,137 @@
+# 把各示例插件组合进一个 agent 的示范配置(01~26)。
+#
+# 说明:
+#   - cordis 的配置是一组"行"(rows)。每一行加载一个插件包, 可选地给它 config。
+#   - 下面用 `name: '@example/dsh-*'` 假装每个示例已打成独立 npm 包(见各自 README)。
+#     真实使用时: 要么把示例 src 并进你自己的插件包再 `pnpm add`, 要么用本地路径 include。
+#   - 这里只列"本示例工程新增"的行; 一个能跑的 agent 还需要 dsh 的 core 组合
+#     (agent-loop / session / tools runtime / fs / shell / 真实 llm adapter ...)。
+#     那一层由官方 bundle 提供 —— 真实包里对应 `@deepseek-ai/dsh-base`(patch 451 行) /
+#     `dsh-web-app` / `dsh-headless`; 本工程的 `runtime/harness.ts` 扮演的就是这个角色,
+#     它用真实 npm 包把那 17 个 Service 按依赖顺序装了一遍(见 README「harness 装配了什么」)。
+#   - 分层与 patch 语义见本仓库 docs/hello-deepseek-harness/05-启动与Cordis落地.md § 5.1~5.3。
+
+# —— 01: 给模型加一个 word_count 工具 ——
+- id: example-wordcount-tool
+  name: '@example/dsh-tool-wordcount'
+
+# —— 02: 往 system prompt 注入一段"回复风格"指令 ——
+- id: example-prompt-section
+  name: '@example/dsh-prompt-section'
+  config:
+    # Config 由插件自己用 schemastery 声明; 这里传它的字段
+    signature: '本回复由扩展示例 agent 生成。'
+
+# —— 03: 权限门: 拦截高危工具(bash 等), 未确认则拒绝 ——
+- id: example-permission-gate
+  name: '@example/dsh-permission-gate'
+  config:
+    denyList:
+      - bash
+      - write
+      - edit
+
+# —— 04: 人类斜杠命令 /hello ——
+- id: example-command-hello
+  name: '@example/dsh-command-hello'
+
+# —— 06: 事件观测: 把 turn/step 生命周期打到 stdout ——
+- id: example-telemetry
+  name: '@example/dsh-agent-events'
+
+# —— 07: 工具结果转换/审计 ——
+- id: example-result-transform
+  name: '@example/dsh-tool-result-transform'
+
+# —— 09: agent 生命周期策略事件 + turn-stopping 中途引导 ——
+- id: example-lifecycle-steering
+  name: '@example/dsh-hooks-lifecycle-steering'
+
+# —— 10: system prompt 变量插值 + assemble 整段改写 ——
+- id: example-prompt-variable-assemble
+  name: '@example/dsh-prompt-variable-assemble'
+
+# —— 11: 渐进式披露: 收紧模型可见工具集 ——
+- id: example-tool-restrict
+  name: '@example/dsh-tool-restrict'
+  config:
+    allow:
+      - word_count
+
+# —— 12: 单调拒绝守卫: pre-execute 之后仍无法翻案 ——
+- id: example-tool-guard
+  name: '@example/dsh-tool-guard'
+  config:
+    denyPatterns:
+      - 'rm -rf'
+
+# —— 13: 审批应答器: 监听 approval/request 给出 ApprovalOutcome ——
+- id: example-approval-answerer
+  name: '@example/dsh-approval-answerer'
+  config:
+    autoApprove:
+      - read
+
+# —— 14: 上下文压缩 provider: CompactionEngine 子类, 构造即挂到 ctx.compaction ——
+- id: example-compaction-provider
+  name: '@example/dsh-compaction-provider'
+  config:
+    threshold: 8
+
+# —— 15: 子代理委派: 注册 provider + 把委派暴露成模型工具 ——
+- id: example-subagent-delegation
+  name: '@example/dsh-subagent-delegation'
+
+# —— 16: 真实副作用工具: 消费 ctx.fs / ctx.subprocess seam ——
+# 需要 core 先装载 fs / subprocess 后端(沙箱或本地), 否则这两个 seam 为空。
+- id: example-fs-shell-side-effects
+  name: '@example/dsh-fs-shell-side-effects'
+
+# —— 18: 会话日志观测: 打印每条 session/event 的 seq 与 surfaceOp ——
+- id: example-session-log
+  name: '@example/dsh-session-log'
+
+# —— 19: agent 收件箱观测: pre-step 打印每步认领的消息来源 ——
+- id: example-agent-inbox
+  name: '@example/dsh-agent-inbox'
+
+# —— 20: llm/stream 瀑布: 包装并改写 LLM 分块流(演示里全部转大写) ——
+- id: example-llm-stream
+  name: '@example/dsh-llm-stream-intercept'
+
+# —— 21: 后台任务: 挂接 jobs controller + 完成通告 ——
+- id: example-jobs-background
+  name: '@example/dsh-jobs-background'
+
+# —— 22: 目标生命周期观测: 打印 goal/change 的日志折叠过程 ——
+- id: example-goal-lifecycle
+  name: '@example/dsh-goal-lifecycle'
+
+# —— 23: 设置命名空间: 注册 demo 命名空间(schema 默认值 + 分层写入) ——
+- id: example-settings-namespaces
+  name: '@example/dsh-settings-namespaces'
+
+# —— 25: 沙箱 provider: SandboxProvider 子类, 构造即挂到 ctx.sandbox (fail-closed confine) ——
+- id: example-sandbox-seam
+  name: '@example/dsh-sandbox-seam'
+
+# —— 26: 可处置定时器: 用 ctx.throttle 对高频 session/event 节流打印 ——
+- id: example-cordis-timer
+  name: '@example/dsh-cordis-timer'
+
+# —— M12 dispatch / M07 shell: 纯演示插件, 不列为组合行 ——
+# M12 的 dispatch 监听器挂在 demo/* 事件上(对照演示五种派发模式), 真实 agent 里没有这些事件;
+# M07 的 shell phase 只探测 ctx.shell seam 是否可用, 没有常驻行为。想试就直接 npm run M12 / M07。
+
+# —— M03: mock LLM adapter(默认注释) ——
+# 与真实 provider 二选一。启用它会占用 'mock' 这条路由, 不影响 'deepseek-official'。
+# 想试 mock: 取消注释, 然后把某个 agent 的 provider 指到 'mock'。
+# - id: example-llm-mock
+#   name: '@example/dsh-llm-adapter'
+#   config:
+#     routeName: mock
+#     reply: '你好, 我是示例 mock 模型。'
+
+# —— M10: Skill 不是 cordis 行 ——
+# SKILL.md 是"数据驱动能力", 由 skill-filesystem provider 从磁盘目录发现。
+# 把 M10-external-capabilities/assets/SKILL.md 放进你的 skills 根目录即可, 模型会自动发现并可调用。

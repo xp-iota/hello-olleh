@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "installFailLoud：不允许静默降级",
+    "output": "05-fail-loud.html",
+    "viewBox": [
+      1660,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "f1",
+      "type": "security",
+      "label": "① 注册全局处理器",
+      "sublabel": "接住 unhandledRejection",
+      "tag": "AB/index.ts:609",
+      "pos": [
+        70,
+        180
+      ],
+      "size": [
+        330,
+        150
+      ]
+    },
+    {
+      "id": "f2",
+      "type": "database",
+      "label": "② 引用计数式暂扣",
+      "sublabel": "assembledActivationRejections Map 加 retain 与 release",
+      "tag": "index.ts:550 / :552 / :556",
+      "pos": [
+        450,
+        180
+      ],
+      "size": [
+        380,
+        150
+      ]
+    },
+    {
+      "id": "f3",
+      "type": "backend",
+      "label": "③ 检查点窗口",
+      "sublabel": "observeLoaderRejectionCheckpoint 给 loader 认领机会",
+      "tag": "index.ts:565，超时常量 2000 毫秒（:578）",
+      "pos": [
+        880,
+        180
+      ],
+      "size": [
+        380,
+        150
+      ]
+    },
+    {
+      "id": "audit",
+      "type": "cloud",
+      "label": "激活审计",
+      "sublabel": "未被认领的 rejection 一律上报为启动失败",
+      "pos": [
+        1310,
+        180
+      ],
+      "size": [
+        280,
+        150
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "f1",
+      "to": "f2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "f2",
+      "to": "f3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "f3",
+      "to": "audit",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "为什么需要暂扣",
+      "items": [
+        "启动期插件的 rejection 可能是正常的重试中间态",
+        "立即上报会产生大量假警报",
+        "于是先暂扣，给 loader 一个认领窗口"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "引用计数的作用",
+      "items": [
+        "retain 增加计数，release 减少",
+        "计数归零且无人认领才判定为真失败",
+        "避免多个观察者互相覆盖判断"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "超时是硬上限",
+      "items": [
+        "窗口只有 2000 毫秒",
+        "超时后未认领的 rejection 直接报错",
+        "这是 fail-closed 原则的具体实现"
+      ]
+    }
+  ]
+}

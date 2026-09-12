@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "两种 Realm 的隔离粒度",
+    "output": "07-two-realms.html",
+    "viewBox": [
+      1440,
+      500
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "base",
+      "type": "frontend",
+      "label": "abstract class Realm",
+      "sublabel": "store 是 Dict<symbol>",
+      "tag": "isolate.ts:25，提供 access(key, create) / delete / size",
+      "pos": [
+        70,
+        170
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "local",
+      "type": "database",
+      "label": "LocalRealm",
+      "sublabel": "suffix 是井号加 entry.options.id",
+      "tag": "isolate.ts:47，配置写 isolate: { x: true }",
+      "pos": [
+        520,
+        60
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "glob",
+      "type": "messagebus",
+      "label": "GlobalRealm",
+      "sublabel": "suffix 是 at 符号加 label",
+      "tag": "isolate.ts:57，配置写 isolate: { x: 'myRealm' }",
+      "pos": [
+        520,
+        290
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "note",
+      "type": "cloud",
+      "label": "隔离粒度",
+      "sublabel": "Local 每个 entry 私有，Global 同 label 共享",
+      "pos": [
+        970,
+        170
+      ],
+      "size": [
+        380,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "base",
+      "to": "local",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "base",
+      "to": "glob",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "local",
+      "to": "note",
+      "variant": "dashed"
+    },
+    {
+      "id": "d",
+      "from": "glob",
+      "to": "note",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "suffix 决定 Symbol 的唯一性",
+      "items": [
+        "Realm 的职责是为服务名分配存储键",
+        "suffix 拼进 Symbol 描述，保证不同 realm 不撞",
+        "access 的 create 参数控制缺失时是否新建"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "配置写法直接映射类型",
+      "items": [
+        "isolate: { x: true } 得到 LocalRealm",
+        "isolate: { x: 'myRealm' } 得到 GlobalRealm",
+        "后者让多个 entry 共用一份实现"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "回收策略也不同",
+      "items": [
+        "LocalRealm 随 entry 消亡，无需显式回收",
+        "GlobalRealm 要等最后一个引用者离开",
+        "详见 § 7.6 的部分回收流程"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Native 模式与 Code Mode",
+    "output": "07-code-mode.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "nat",
+      "type": "database",
+      "label": "Native 模式（默认）",
+      "sublabel": "模型发 tool_call，一次一个，参数是 JSON",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "c1",
+      "type": "security",
+      "label": "Code Mode 入口",
+      "sublabel": "模型写一段代码调用 run_code",
+      "tag": "常量 RUN_CODE_NAME 由 T/index.ts:104 导出",
+      "pos": [
+        480,
+        90
+      ],
+      "size": [
+        360,
+        110
+      ]
+    },
+    {
+      "id": "c2",
+      "type": "backend",
+      "label": "代码里可编排",
+      "sublabel": "调多个工具、做控制流、处理中间结果",
+      "pos": [
+        480,
+        240
+      ],
+      "size": [
+        360,
+        110
+      ]
+    },
+    {
+      "id": "c3",
+      "type": "cloud",
+      "label": "每个子调用产生一条日志",
+      "sublabel": "CodeDispatchLog 记录 exec、subCallId、name 与结果",
+      "tag": "T/index.ts:357",
+      "pos": [
+        480,
+        390
+      ],
+      "size": [
+        360,
+        110
+      ]
+    },
+    {
+      "id": "bridge",
+      "type": "messagebus",
+      "label": "桥接层落日志",
+      "sublabel": "append tool/code-dispatch 事件",
+      "tag": "实现在 T/code-mode.ts，673 行，配 T/ts-types.ts",
+      "pos": [
+        890,
+        240
+      ],
+      "size": [
+        340,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "nat",
+      "to": "c2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "c1",
+      "to": "c2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "c2",
+      "to": "c3",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 44
+    },
+    {
+      "id": "d",
+      "from": "c2",
+      "to": "bridge",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Code Mode 的收益",
+      "items": [
+        "一次请求内完成多步工具编排",
+        "中间结果不必回到模型再决策",
+        "显著减少往返次数"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "可观测性没有降低",
+      "items": [
+        "每个子调用都有独立的 CodeDispatchLog",
+        "通过 tool/code-dispatch 事件落日志",
+        "于是审计与回放依然完整"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "类型是生成的",
+      "items": [
+        "T/ts-types.ts 为工具生成 TypeScript 类型",
+        "模型写代码时有准确签名可依",
+        "减少参数错误"
+      ]
+    }
+  ]
+}

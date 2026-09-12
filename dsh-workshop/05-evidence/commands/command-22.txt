@@ -1,0 +1,7 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M05-session-surface/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M06-human-in-the-loop/run.py
+
+{"alignment": "A+C", "messages": 2, "module": "M05", "run_status": "succeeded", "sequence_contract": "not added under D7", "status": "ok"}
+IOTA_MODULE_OK M05-session-surface
+{"alignment": "A+C", "hang_prevention": "request answered", "module": "M06", "permission": "no", "plan_mode": "kernel/harness-owned", "status": "ok"}
+IOTA_MODULE_OK M06-human-in-the-loop
+[exit 0]

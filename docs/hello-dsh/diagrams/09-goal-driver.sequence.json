@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "goal-round-driver 如何把 turn 续下去",
+    "output": "09-goal-driver.html",
+    "viewBox": [1320, 740],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "user", "type": "external", "label": "用户", "sublabel": "斜杠命令" },
+    { "id": "cmd", "type": "frontend", "label": "command-goal", "sublabel": "命令实现" },
+    { "id": "goals", "type": "database", "label": "ctx.goals", "sublabel": "目标状态" },
+    { "id": "driver", "type": "backend", "label": "goal-round-driver", "sublabel": "turn-stopping 监听" },
+    { "id": "agent", "type": "backend", "label": "Agent turn 循环", "sublabel": "AL/agent.ts" }
+  ],
+  "segments": [
+    { "from": 155, "to": 320, "label": "设定目标" },
+    { "from": 340, "to": 520, "label": "turn 收尾前拦截" },
+    { "from": 540, "to": 660, "label": "续跑或放行" }
+  ],
+  "messages": [
+    { "id": "slash-goal", "from": "user", "to": "cmd", "y": 195, "label": "/goal <目标描述>", "variant": "emphasis" },
+    { "id": "set-goal", "from": "cmd", "to": "goals", "y": 250, "label": "设置目标" },
+    { "id": "normal-turn", "from": "goals", "to": "agent", "y": 300, "label": "Agent 正常跑 turn/step", "variant": "dashed" },
+    { "id": "turn-stopping", "from": "agent", "to": "driver", "y": 380, "label": "turn 快结束时派发 agent/turn-stopping（serial）", "variant": "emphasis" },
+    { "id": "ask-goal", "from": "driver", "to": "goals", "y": 440, "label": "目标达成了吗？" },
+    { "id": "goal-state", "from": "goals", "to": "driver", "y": 495, "label": "返回达成与否", "variant": "return" },
+    { "id": "push-inbox", "from": "driver", "to": "agent", "y": 570, "label": "未达成：往 inbox 塞消息推进下一轮", "variant": "emphasis", "note": "turn 因此继续，第二次检查 nextStep 时非空。见 06 篇 § 6.4 第四点" },
+    { "id": "let-go", "from": "driver", "to": "agent", "y": 630, "label": "已达成：不干预，turn 正常结束", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "cmd", "from": 190, "to": 256, "type": "frontend" },
+    { "participant": "goals", "from": 245, "to": 501, "type": "database" },
+    { "participant": "driver", "from": 375, "to": 636, "type": "backend" },
+    { "participant": "agent", "from": 295, "to": 636, "type": "backend" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么挂在 turn-stopping",
+      "items": [
+        "这是 turn 收尾前最后一个可干预点",
+        "serial 派发让监听器能按序阻塞式表态",
+        "此时塞 inbox 还来得及被同一个 turn 消费"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "续跑的机制是二次检查",
+      "items": [
+        "turn 循环在收尾后会再查一次 nextStep",
+        "inbox 有新消息则 nextStep 非空，循环继续",
+        "因此不需要新开 turn，多轮推进在同一 turn 内完成"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "目标态由独立服务持有",
+      "items": [
+        "ctx.goals 与 Agent 解耦，命令层只管写",
+        "driver 只管读并决定是否续跑",
+        "换掉判定策略不影响 Agent 主循环"
+      ]
+    }
+  ]
+}

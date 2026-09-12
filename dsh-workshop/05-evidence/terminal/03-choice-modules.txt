@@ -1,0 +1,12 @@
+$ python M03-inference-service-access/run.py
+{"acp_refusal": "node 'infer': kernel 'acp' cannot activate per-node model middleware/hooks ['llm_execution']; remove them or use a kernel that advertises per_session_middleware", "alignment": "C", "module": "M03", "replaceable_unit": "KernelAdapter", "status": "ok"}
+IOTA_MODULE_OK M03-inference-service-access
+
+$ python M07-execution-backends/run.py
+{"alignment": "C", "module": "M07", "orchestrator_shell_registry": [], "route": "prompt -> KernelAdapter -> kernel.shell event", "status": "ok"}
+IOTA_MODULE_OK M07-execution-backends
+
+$ python M12-framework-mechanisms/run.py
+{"alignment": "A+C", "architecture_not_imported": ["event-bus", "hmr", "intercept"], "capability_refusal": "BadCapability declares unknown capabilities ['typo-capability']; known capabilities: ['filesystem_skills', 'goal_commands', 'native_goal_manager', 'native_kanban_toolset']", "entry_points": "iota_core.providers", "inactive_refusal": "cannot push effect 'late' onto disposed stack 'm12'", "lifo": ["outer", "inner"], "module": "M12", "status": "ok"}
+IOTA_MODULE_OK M12-framework-mechanisms
+[exit 0]

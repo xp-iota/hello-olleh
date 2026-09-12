@@ -1,0 +1,7 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M10-external-capabilities/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M11-config-data-infrastructure/run.py
+
+{"alignment": "A", "mcp": "hello iota", "module": "M10", "skill": "offline-greeter", "status": "ok"}
+IOTA_MODULE_OK M10-external-capabilities
+{"alignment": "A+C", "credentials_attachments": "host-owned", "dsh_profile_refusal": "config_profile is not supported for adapter 'dsh': it has no iota-managed config home to project into. Adapters that do: ['claude', 'hermes', 'hermes_direct']. Point the kernel at its own config file via 'command' instead (dsh: --config <cordis.yml>), and use 'env' for anything else it needs.", "module": "M11", "profile": "projected", "status": "ok", "storage": "memory"}
+IOTA_MODULE_OK M11-config-data-infrastructure
+[exit 0]

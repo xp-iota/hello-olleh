@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "registry.plugin() 内部流程",
+    "output": "05-registry-plugin.html",
+    "viewBox": [
+      1420,
+      700
+    ],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "caller",
+      "type": "external",
+      "label": "调用方",
+      "sublabel": "ctx.plugin(p, config)"
+    },
+    {
+      "id": "registry",
+      "type": "backend",
+      "label": "RegistryService",
+      "sublabel": "C/registry.ts"
+    },
+    {
+      "id": "internal",
+      "type": "database",
+      "label": "_internal",
+      "sublabel": "Map<Function, Runtime>"
+    },
+    {
+      "id": "fiber",
+      "type": "backend",
+      "label": "new Fiber",
+      "sublabel": "本次注册的实例"
+    }
+  ],
+  "segments": [
+    {
+      "from": 139,
+      "to": 269,
+      "label": "入参校验"
+    },
+    {
+      "from": 287,
+      "to": 432,
+      "label": "Runtime 复用或首建"
+    },
+    {
+      "from": 439,
+      "to": 573,
+      "label": "建 Fiber 并包装返回"
+    }
+  ],
+  "messages": [
+    {
+      "id": "call-plugin",
+      "from": "caller",
+      "to": "registry",
+      "y": 175,
+      "label": "plugin(p, config, getOuterStack = buildOuterStack())",
+      "variant": "emphasis",
+      "note": "默认参数就地捕获调用栈，这是长堆栈的起点"
+    },
+    {
+      "id": "resolve-callback",
+      "from": "registry",
+      "to": "caller",
+      "y": 229,
+      "label": "callback = resolve(p)（:195）",
+      "variant": "return",
+      "note": "为空则抛 invalid plugin, expect function or object with an apply method；随后 ctx.fiber.assertActive()（:197）"
+    },
+    {
+      "id": "get-runtime",
+      "from": "registry",
+      "to": "internal",
+      "y": 314,
+      "label": "runtime = _internal.get(callback)"
+    },
+    {
+      "id": "runtime-hit",
+      "from": "internal",
+      "to": "registry",
+      "y": 367,
+      "label": "命中则复用，未命中则新建",
+      "variant": "return"
+    },
+    {
+      "id": "set-runtime",
+      "from": "registry",
+      "to": "internal",
+      "y": 414,
+      "label": "set(callback, { name, callback, fibers, Config })",
+      "variant": "dashed",
+      "note": "首次注册才走这步；name 取 p.name，若为 apply 则不记名（:201-202）"
+    },
+    {
+      "id": "new-fiber",
+      "from": "registry",
+      "to": "fiber",
+      "y": 497,
+      "label": "new Fiber(ctx, config, Inject.resolve(p.inject), runtime, getOuterStack)",
+      "variant": "emphasis",
+      "note": "registry.ts:207"
+    },
+    {
+      "id": "wrap-thenable",
+      "from": "fiber",
+      "to": "registry",
+      "y": 555,
+      "label": "wrapped = Object.create(fiber)",
+      "variant": "return",
+      "note": "再挂 wrapped.then = (...) => fiber.await().then(...)（:208-209）"
+    },
+    {
+      "id": "return-wrapped",
+      "from": "registry",
+      "to": "caller",
+      "y": 605,
+      "label": "return wrapped（Fiber 且 PromiseLike<Fiber>）",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "registry",
+      "from": 171,
+      "to": 610,
+      "type": "backend"
+    },
+    {
+      "participant": "internal",
+      "from": 309,
+      "to": 419,
+      "type": "database"
+    },
+    {
+      "participant": "fiber",
+      "from": 492,
+      "to": 560,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Runtime 按 callback 去重",
+      "items": [
+        "同一个插件函数多次注册共享一个 Plugin.Runtime",
+        "Runtime 上的 fibers 是 DisposableList，记录全部实例",
+        "热重载删插件时靠它找到所有待卸载的 Fiber"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "返回值刻意是 thenable",
+      "items": [
+        "wrapped 用 Object.create(fiber) 继承 Fiber 全部能力",
+        "额外挂 then 让调用方可以 await 到插件就绪",
+        "而 ctx 自身把 then 列为保留字，避免被 await 吞掉"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "长堆栈的起点",
+      "items": [
+        "getOuterStack 用默认参数在调用处求值",
+        "捕获的是用户代码的真实调用位置",
+        "之后异步错误会把这段栈拼上去"
+      ]
+    }
+  ]
+}

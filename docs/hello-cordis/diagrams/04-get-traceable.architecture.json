@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "getTraceable 的包装与解包判定",
+    "output": "04-get-traceable.html",
+    "viewBox": [
+      1520,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "enter",
+      "type": "frontend",
+      "label": "getTraceable(ctx, value)",
+      "sublabel": "C/utils.ts:110",
+      "pos": [
+        60,
+        140
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "isobj",
+      "type": "security",
+      "label": "是对象或函数吗",
+      "sublabel": "否则原样返回",
+      "pos": [
+        360,
+        140
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "hasshadow",
+      "type": "security",
+      "label": "自身带 shadow 吗",
+      "sublabel": "Object.hasOwn(value, symbols.shadow)",
+      "pos": [
+        660,
+        140
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "unwrap",
+      "type": "external",
+      "label": "解包 shadow",
+      "sublabel": "返回 Object.getPrototypeOf(value)",
+      "pos": [
+        990,
+        140
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "hastracker",
+      "type": "security",
+      "label": "带 tracker 吗",
+      "sublabel": "没有则原样返回",
+      "pos": [
+        660,
+        400
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "create",
+      "type": "backend",
+      "label": "createTraceable",
+      "sublabel": "createTraceable(ctx, value, tracker)",
+      "tag": "C/utils.ts:157，全框架最难读的 57 行",
+      "pos": [
+        990,
+        400
+      ],
+      "size": [
+        300,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "enter",
+      "to": "isobj",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "isobj",
+      "to": "hasshadow",
+      "label": "是"
+    },
+    {
+      "id": "c",
+      "from": "hasshadow",
+      "to": "unwrap",
+      "label": "是"
+    },
+    {
+      "id": "d",
+      "from": "hasshadow",
+      "to": "hastracker",
+      "label": "否",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 52,
+      "route": "straight"
+    },
+    {
+      "id": "e",
+      "from": "hastracker",
+      "to": "create",
+      "label": "是",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "createTraceable 的 get trap 要点",
+      "items": [
+        "symbols.original 返回原对象，symbols.caller 返回调用方 ctx",
+        "tracker.property（通常是 ctx）返回调用方的 ctx（:166）",
+        "associate 开启时把 db.xxx 形式的属性转发出去"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "三种出口",
+      "items": [
+        "非对象、无 tracker 都原样返回",
+        "带 shadow 的走解包，取原型上的真实 ctx",
+        "只有带 tracker 才真正建代理"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "读这段的顺序建议",
+      "items": [
+        "先读 core/tests/shadow.spec.ts（176 行）",
+        "它把四件事拆成独立断言",
+        "再回来看 createTraceable 的实现"
+      ]
+    }
+  ]
+}

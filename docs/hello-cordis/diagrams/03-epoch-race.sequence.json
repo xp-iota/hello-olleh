@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "epoch 竞态：依赖在加载途中又变了",
+    "output": "03-epoch-race.html",
+    "viewBox": [
+      1420,
+      660
+    ],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "outside",
+      "type": "external",
+      "label": "外部",
+      "sublabel": "依赖变化"
+    },
+    {
+      "id": "setepoch",
+      "type": "backend",
+      "label": "_setEpoch",
+      "sublabel": "唯一入口"
+    },
+    {
+      "id": "reload",
+      "type": "backend",
+      "label": "_reload",
+      "sublabel": "装载"
+    },
+    {
+      "id": "unload",
+      "type": "backend",
+      "label": "_unload",
+      "sublabel": "卸载"
+    }
+  ],
+  "segments": [
+    {
+      "from": 136,
+      "to": 279,
+      "label": "第一次依赖就绪"
+    },
+    {
+      "from": 298,
+      "to": 407,
+      "label": "加载途中依赖再变"
+    },
+    {
+      "from": 427,
+      "to": 577,
+      "label": "卸载后自动重载至收敛"
+    }
+  ],
+  "messages": [
+    {
+      "id": "epoch-first",
+      "from": "outside",
+      "to": "setepoch",
+      "y": 175,
+      "label": "epoch: INACTIVE 变为 ':3'",
+      "variant": "emphasis"
+    },
+    {
+      "id": "start-reload",
+      "from": "setepoch",
+      "to": "reload",
+      "y": 234,
+      "label": "inertia = _reload()，state = LOADING",
+      "note": "await 执行插件代码，这段时间是可被打断的窗口"
+    },
+    {
+      "id": "epoch-second",
+      "from": "outside",
+      "to": "setepoch",
+      "y": 328,
+      "label": "epoch: ':3' 变为 ':9'",
+      "variant": "emphasis",
+      "note": "inertia 已存在，_setEpoch 只记下新 epoch 就返回，不重入"
+    },
+    {
+      "id": "to-unload",
+      "from": "reload",
+      "to": "unload",
+      "y": 447,
+      "label": "inertia = _unload()，state = UNLOADING",
+      "note": "_reload 收尾时发现 _runner.epoch 已不等于 oldEpoch"
+    },
+    {
+      "id": "back-to-reload",
+      "from": "unload",
+      "to": "reload",
+      "y": 506,
+      "label": "inertia = _reload()，state = LOADING",
+      "variant": "emphasis",
+      "note": "disposer 并发跑完（启动顺序逆序）后 epoch 不是 INACTIVE，直接重载"
+    },
+    {
+      "id": "settled",
+      "from": "reload",
+      "to": "setepoch",
+      "y": 565,
+      "label": "inertia 归空，state = ACTIVE",
+      "variant": "return",
+      "note": "这一轮 epoch 一致，竞态收敛"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "setepoch",
+      "from": 170,
+      "to": 571,
+      "type": "backend"
+    },
+    {
+      "participant": "reload",
+      "from": 229,
+      "to": 571,
+      "type": "backend"
+    },
+    {
+      "participant": "unload",
+      "from": 442,
+      "to": 512,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "inertia 是防重入闸门",
+      "items": [
+        "inertia 非空表示已有一次装卸在途",
+        "此时 _setEpoch 只更新目标 epoch，不启动新流程",
+        "因此无论外部改多少次依赖，都只有一条执行链"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "收敛靠尾部比对",
+      "items": [
+        "_reload 结束时比对 _runner.epoch 与开始时的 oldEpoch",
+        "不相等说明期间依赖变过，转入 _unload",
+        "_unload 结束时再查 epoch 是否 INACTIVE，决定停还是重载"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "为什么不能直接打断",
+      "items": [
+        "插件代码正在 await，强行中断会留下未登记的副作用",
+        "只能等它跑完再整体卸载，保证 disposer 完整",
+        "代价是一次多余的完整装载，换来可逆性"
+      ]
+    }
+  ]
+}

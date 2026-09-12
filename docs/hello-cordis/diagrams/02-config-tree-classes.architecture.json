@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "配置树的四个类",
+    "output": "02-config-tree-classes.html",
+    "viewBox": [
+      1440,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "loader",
+      "type": "backend",
+      "label": "Loader — 树的根",
+      "sublabel": "L/index.ts:47 继承 EntryTree",
+      "tag": "write() 是 no-op，根树在内存里",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        300,
+        130
+      ]
+    },
+    {
+      "id": "tree",
+      "type": "database",
+      "label": "EntryTree — 一棵配置树",
+      "sublabel": "L/config/tree.ts:6，sep 为冒号",
+      "tag": "resolve / resolveGroup / import",
+      "pos": [
+        450,
+        190
+      ],
+      "size": [
+        300,
+        130
+      ]
+    },
+    {
+      "id": "group",
+      "type": "frontend",
+      "label": "EntryGroup — 一组配置",
+      "sublabel": "L/config/group.ts:5，管理子 Entry 增删",
+      "tag": "class Group (:73) 可当插件用",
+      "pos": [
+        830,
+        190
+      ],
+      "size": [
+        300,
+        130
+      ]
+    },
+    {
+      "id": "entry",
+      "type": "cloud",
+      "label": "Entry — 一行配置",
+      "sublabel": "L/config/entry.ts:34，持有一个 fiber",
+      "tag": "update() (:100) 算 diff 决定重载还是 patch",
+      "pos": [
+        1210,
+        190
+      ],
+      "size": [
+        190,
+        130
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "l-t",
+      "from": "loader",
+      "to": "tree",
+      "variant": "emphasis"
+    },
+    {
+      "id": "t-g",
+      "from": "tree",
+      "to": "group"
+    },
+    {
+      "id": "g-e",
+      "from": "group",
+      "to": "entry"
+    },
+    {
+      "id": "e-t",
+      "from": "entry",
+      "to": "tree",
+      "label": "子树递归",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两个 Symbol.for 键",
+      "items": [
+        "Entry 用 Symbol.for('cordis.entry')（entry.ts:35）",
+        "Group 用 Symbol.for('cordis.group')（group.ts:6）",
+        "跨实例共享，因此可以跨包识别"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Entry 是唯一持有 Fiber 的类",
+      "items": [
+        "一行配置对应一个 Fiber",
+        "get disabled (:64) 沿父链向上检查",
+        "父级禁用则整棵子树都不激活"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "递归靠 Entry 指回 EntryTree",
+      "items": [
+        "某个 Entry 的 name 是 plugin-include 时会生成子树",
+        "id 用冒号分层，形如 main:sub:leaf",
+        "Loader 的 internal 由 ModuleLoader.fromInternal() 提供（:55）"
+      ]
+    }
+  ]
+}

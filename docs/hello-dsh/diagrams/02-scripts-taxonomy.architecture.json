@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "scripts/ 的四类用途",
+    "output": "02-scripts-taxonomy.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "gen",
+      "type": "frontend",
+      "label": "生成类 gen-*",
+      "sublabel": "gen-cordis-api / catalog / config-catalog / client-catalog",
+      "tag": "产出 docs/cordis-api/ 与 docs/config-catalog.md 等",
+      "pos": [
+        70,
+        180
+      ],
+      "size": [
+        330,
+        150
+      ]
+    },
+    {
+      "id": "ver",
+      "type": "security",
+      "label": "校验类 verify-* 与 check-*",
+      "sublabel": "配置、catalog、API、许可、包不变量、运行时闭包",
+      "tag": "另有 check-vendor-manifest 与 workspace 约束检查",
+      "pos": [
+        440,
+        180
+      ],
+      "size": [
+        330,
+        150
+      ]
+    },
+    {
+      "id": "vend",
+      "type": "database",
+      "label": "vendor 管理",
+      "sublabel": "rescope-vendor.ts 与其 spec",
+      "tag": "把上游 cordis 的包名与 import 重写为 deepseek-ai 作用域",
+      "pos": [
+        810,
+        180
+      ],
+      "size": [
+        330,
+        150
+      ]
+    },
+    {
+      "id": "build",
+      "type": "cloud",
+      "label": "构建与发布",
+      "sublabel": "打包可执行文件、产物校验与发布流程",
+      "tag": "顶层共 145 个条目",
+      "pos": [
+        1180,
+        180
+      ],
+      "size": [
+        250,
+        150
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "gen",
+      "to": "ver",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "vend",
+      "to": "build",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "ver",
+      "to": "vend",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "生成与校验成对出现",
+      "items": [
+        "gen- 的产物随后被对应的 verify- 脚本校验",
+        "每个 gen- 脚本基本都有对应的 verify-",
+        "CI 靠 verify 保证生成物未过期",
+        "改了源码忘记重新生成会被拦住"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "vendor 重写是一次性动作",
+      "items": [
+        "rescope-vendor.ts 负责改包名与 import",
+        "check-vendor-manifest.sh 校验清单一致",
+        "verify-vendored-links 检查链接未失效"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "包不变量是硬门禁",
+      "items": [
+        "verify-package-invariants 检查源码侧",
+        "verify-built-package-invariants 检查产物侧",
+        "两者都通过才允许发布"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "assemble 的六步拼装",
+    "output": "07-assemble-pipeline.html",
+    "viewBox": [
+      1520,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "api",
+      "type": "frontend",
+      "label": "assemble(context)",
+      "sublabel": "SP/index.ts:467，全文 76 行",
+      "pos": [
+        70,
+        240
+      ],
+      "size": [
+        280,
+        130
+      ]
+    },
+    {
+      "id": "s1",
+      "type": "database",
+      "label": "① 取作用域链",
+      "sublabel": "layers.chainLayers(scope)",
+      "tag": ":469",
+      "pos": [
+        390,
+        110
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "s2",
+      "type": "security",
+      "label": "② 判定是否抑制运行时上下文",
+      "sublabel": "全局或链上任一层有 suppressor 即抑制",
+      "tag": ":470-471",
+      "pos": [
+        390,
+        260
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "backend",
+      "label": "③ 求值变量",
+      "sublabel": "先全局再沿作用域链，最远优先",
+      "tag": ":473-482，最近的作用域覆盖同名变量",
+      "pos": [
+        390,
+        410
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "s4",
+      "type": "cloud",
+      "label": "④ 合并 sections 与 contexts",
+      "sublabel": "layers.merge，作用域项遮蔽全局同名项",
+      "tag": ":484-485",
+      "pos": [
+        760,
+        260
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "s5",
+      "type": "messagebus",
+      "label": "⑤ 处理 complete 与排序",
+      "sublabel": "再收集工具并按 toolOrder 排列",
+      "pos": [
+        1140,
+        260
+      ],
+      "size": [
+        300,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "api",
+      "to": "s1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "api",
+      "to": "s2"
+    },
+    {
+      "id": "c",
+      "from": "api",
+      "to": "s3"
+    },
+    {
+      "id": "d",
+      "from": "s2",
+      "to": "s4",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e",
+      "from": "s4",
+      "to": "s5",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "最远优先的含义",
+      "items": [
+        "变量求值从最外层作用域开始",
+        "越靠近当前作用域的定义越后写入",
+        "于是最近的定义胜出"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "遮蔽而非合并",
+      "items": [
+        "同名 section 由作用域项整体遮蔽全局项",
+        "不做文本级拼接",
+        "这让覆盖行为可预测"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "每个 step 都要跑一次",
+      "items": [
+        "因此这 76 行在热路径上",
+        "实现里避免了重复的深拷贝",
+        "变量求值按需触发"
+      ]
+    }
+  ]
+}

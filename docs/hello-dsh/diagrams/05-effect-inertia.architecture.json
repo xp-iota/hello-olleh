@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "effectInertia 让 dispose 等待在途任务",
+    "output": "05-effect-inertia.html",
+    "viewBox": [
+      1500,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "map",
+      "type": "database",
+      "label": "WeakMap 关联表",
+      "sublabel": "effectInertia 把 Disposable 映射到一个等待函数",
+      "tag": "V/fiber.ts:112",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "fn",
+      "type": "backend",
+      "label": "runDisposable(dispose)",
+      "sublabel": "先调 dispose()，再取出并 await 关联的在途任务",
+      "tag": "V/fiber.ts:114",
+      "pos": [
+        450,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "write",
+      "type": "frontend",
+      "label": "写入点",
+      "sublabel": "effect 的 wrapper 关联它的在途任务",
+      "tag": "V/fiber.ts:515",
+      "pos": [
+        830,
+        80
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "use",
+      "type": "security",
+      "label": "使用点",
+      "sublabel": "dispose 链与 _unload 都改调 runDisposable",
+      "tag": "V/fiber.ts:433 / :435 / :681",
+      "pos": [
+        830,
+        320
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "why",
+      "type": "cloud",
+      "label": "解决什么",
+      "sublabel": "上游的 dispose 链只等 disposer 自己返回",
+      "tag": "异步 effect 的在途任务会被漏等",
+      "pos": [
+        1180,
+        190
+      ],
+      "size": [
+        250,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "map",
+      "to": "fn",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "fn",
+      "to": "write"
+    },
+    {
+      "id": "c",
+      "from": "fn",
+      "to": "use",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "use",
+      "to": "why",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "这是 DSH 对 cordis 的主要改动",
+      "items": [
+        "fiber.ts 净增的 116 行大部分与此有关",
+        "它补上了异步 effect 的等待语义",
+        "不改变任何公开 API"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "为什么用 WeakMap",
+      "items": [
+        "键是 Disposable 本身，不需要额外字段",
+        "Disposable 被回收时关联自动消失",
+        "避免在热路径上增加对象属性"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "漏等的后果",
+      "items": [
+        "卸载返回后在途任务仍在写文件或发请求",
+        "热重载时新旧实例会短暂并存",
+        "因此必须在 dispose 链上统一改造"
+      ]
+    }
+  ]
+}

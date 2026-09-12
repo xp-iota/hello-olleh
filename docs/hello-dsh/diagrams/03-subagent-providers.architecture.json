@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "subagent 的六种 provider",
+    "output": "03-subagent-providers.html",
+    "viewBox": [
+      1560,
+      640
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "def",
+      "type": "frontend",
+      "label": "subagent",
+      "sublabel": "Service Definition",
+      "tag": "整组 10 个包共 24466 行",
+      "pos": [
+        70,
+        250
+      ],
+      "size": [
+        260,
+        130
+      ]
+    },
+    {
+      "id": "p1",
+      "type": "database",
+      "label": "subagent-in-process-driver",
+      "sublabel": "进程内驱动",
+      "pos": [
+        400,
+        90
+      ],
+      "size": [
+        320,
+        90
+      ]
+    },
+    {
+      "id": "p2",
+      "type": "database",
+      "label": "subagent-spawn-in-process",
+      "sublabel": "进程内新开一个 agent",
+      "pos": [
+        400,
+        200
+      ],
+      "size": [
+        320,
+        90
+      ]
+    },
+    {
+      "id": "p3",
+      "type": "database",
+      "label": "subagent-fork-in-process",
+      "sublabel": "fork 当前会话，走 ctx.sessions.fork",
+      "pos": [
+        400,
+        310
+      ],
+      "size": [
+        320,
+        90
+      ]
+    },
+    {
+      "id": "p4",
+      "type": "backend",
+      "label": "subagent-dsh-sdk",
+      "sublabel": "通过 DSH SDK 调另一个 dsh",
+      "pos": [
+        400,
+        420
+      ],
+      "size": [
+        320,
+        90
+      ]
+    },
+    {
+      "id": "p5",
+      "type": "security",
+      "label": "subagent-claude-code",
+      "sublabel": "委派给 Claude Code",
+      "pos": [
+        790,
+        145
+      ],
+      "size": [
+        320,
+        90
+      ]
+    },
+    {
+      "id": "p6",
+      "type": "security",
+      "label": "subagent-codex",
+      "sublabel": "委派给 Codex",
+      "pos": [
+        790,
+        255
+      ],
+      "size": [
+        320,
+        90
+      ]
+    },
+    {
+      "id": "p7",
+      "type": "cloud",
+      "label": "subagent-acp",
+      "sublabel": "通过 ACP 协议委派",
+      "pos": [
+        790,
+        365
+      ],
+      "size": [
+        320,
+        90
+      ]
+    },
+    {
+      "id": "same",
+      "type": "messagebus",
+      "label": "同一个接口",
+      "sublabel": "六种实现差异极大，但对 Consumer 完全一致",
+      "pos": [
+        1250,
+        255
+      ],
+      "size": [
+        250,
+        130
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "进程内实现",
+      "wraps": [
+        "p1",
+        "p2",
+        "p3"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "委派给外部 agent",
+      "wraps": [
+        "p5",
+        "p6",
+        "p7"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "def",
+      "to": "p2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "def",
+      "to": "p3"
+    },
+    {
+      "id": "c",
+      "from": "def",
+      "to": "p4"
+    },
+    {
+      "id": "d",
+      "from": "p6",
+      "to": "same",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "差异最大的一组 provider",
+      "items": [
+        "从进程内 fork 到委派给别家 CLI 都在同一接口下",
+        "fork-in-process 复用当前会话状态",
+        "claude-code 与 codex 则是完全外部的进程"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Consumer 只有三个工具",
+      "items": [
+        "tool-subagent 负责创建",
+        "tool-subagent-report 负责回报",
+        "tool-subagent-control 负责查状态与取消"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "选型在配置层",
+      "items": [
+        "provider 由 profile 或 bundle 决定",
+        "模型不感知背后是哪种实现",
+        "这让同一套提示词能跨后端复用"
+      ]
+    }
+  ]
+}

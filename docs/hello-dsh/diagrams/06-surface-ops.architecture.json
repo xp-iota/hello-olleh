@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SurfaceOp 的两种形态与表面的作用",
+    "output": "06-surface-ops.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "app",
+      "type": "database",
+      "label": "append",
+      "sublabel": "加到表面尾部",
+      "tag": "user / assistant / tool 消息的正常路径",
+      "pos": [
+        70,
+        140
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "rep",
+      "type": "security",
+      "label": "replace 带 start 与 end",
+      "sublabel": "用本节点替换表面上该区间的节点，两端含",
+      "tag": "两端必须是当前表面已存在的节点；压缩用它",
+      "pos": [
+        70,
+        300
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "log",
+      "type": "frontend",
+      "label": "日志",
+      "sublabel": "append-only，永不删除",
+      "pos": [
+        520,
+        140
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "surf",
+      "type": "backend",
+      "label": "表面",
+      "sublabel": "日志之上的可变视图，决定模型看到什么",
+      "pos": [
+        520,
+        300
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "req",
+      "type": "cloud",
+      "label": "sourceEventSeqs 必须完整",
+      "sublabel": "replace 事件要列出每个被遮蔽的节点",
+      "tag": "这是压缩可回溯的前提",
+      "pos": [
+        890,
+        220
+      ],
+      "size": [
+        340,
+        120
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "SurfaceOp 两种形态（S/types.ts:372）",
+      "wraps": [
+        "app",
+        "rep"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "app",
+      "to": "log",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "rep",
+      "to": "surf",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "surf",
+      "to": "req",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "日志与表面分离",
+      "items": [
+        "日志只追加，是唯一事实来源",
+        "表面是可重写的投影视图",
+        "压缩只改表面，历史不丢"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "replace 的三条约束",
+      "items": [
+        "start 与 end 必须都在当前表面上",
+        "start 等于 end 时替换单个节点",
+        "sourceEventSeqs 必须包含全部被遮蔽节点"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "不只压缩能用",
+      "items": [
+        "任何表面替换型生产者都可用 replace",
+        "例如把多条工具输出合并成一条摘要",
+        "语义由生产者自己定义"
+      ]
+    }
+  ]
+}

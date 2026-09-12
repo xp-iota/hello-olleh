@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "applyPatches 的两条处理路径",
+    "output": "07-apply-patches.html",
+    "viewBox": [
+      1500,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "api",
+      "type": "frontend",
+      "label": "applyPatches(data)",
+      "sublabel": "I/index.ts:101-164",
+      "pos": [
+        60,
+        230
+      ],
+      "size": [
+        260,
+        120
+      ]
+    },
+    {
+      "id": "skip",
+      "type": "external",
+      "label": "patches 为空",
+      "sublabel": "原样返回，零开销",
+      "pos": [
+        380,
+        90
+      ],
+      "size": [
+        260,
+        105
+      ]
+    },
+    {
+      "id": "map",
+      "type": "database",
+      "label": "建 entryMap",
+      "sublabel": "递归下钻 group，收集 id 到 EntryOptions",
+      "tag": ":105-114 判定条件是 group 为真且 config 是数组",
+      "pos": [
+        380,
+        240
+      ],
+      "size": [
+        320,
+        120
+      ]
+    },
+    {
+      "id": "loop",
+      "type": "backend",
+      "label": "遍历每个 patch",
+      "sublabel": "解构出 id、insert 与其余 overrides",
+      "tag": ":116",
+      "pos": [
+        760,
+        240
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "ins",
+      "type": "cloud",
+      "label": "有 insert",
+      "sublabel": "带 id 则推入目标 group，无 id 则追加到根",
+      "tag": ":119-136 目标不存在或非 group 则 warn 跳过",
+      "pos": [
+        1120,
+        90
+      ],
+      "size": [
+        330,
+        120
+      ]
+    },
+    {
+      "id": "over",
+      "type": "messagebus",
+      "label": "无 insert",
+      "sublabel": "按 id 找到目标后合并 overrides",
+      "tag": ":138-159 缺 id 或找不到目标都只 warn，不中断",
+      "pos": [
+        1120,
+        300
+      ],
+      "size": [
+        330,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "api",
+      "to": "skip",
+      "label": "是"
+    },
+    {
+      "id": "b",
+      "from": "api",
+      "to": "map",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "map",
+      "to": "loop",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "loop",
+      "to": "ins"
+    },
+    {
+      "id": "e",
+      "from": "loop",
+      "to": "over"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "这是 DSH profile 与 bundle 的地基",
+      "items": [
+        "patch 让同一份 yml 派生出多套配置",
+        "insert 用于追加条目，overrides 用于改写既有条目",
+        "不需要复制整份配置文件"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "失败一律降级为警告",
+      "items": [
+        "非 insert 的 patch 缺 id 会 warn id is required",
+        "目标找不到会 warn entry not found",
+        "坏 patch 被跳过，其余仍然生效"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "entryMap 必须递归建",
+      "items": [
+        "group 的 config 是嵌套数组",
+        "只扫顶层会漏掉子树里的 id",
+        "下钻条件是 group 为真且 config 是数组"
+      ]
+    }
+  ]
+}

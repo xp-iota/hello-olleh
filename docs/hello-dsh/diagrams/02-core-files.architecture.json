@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "core 四大包的逐文件规模",
+    "output": "02-core-files.html",
+    "viewBox": [
+      1480,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "tools",
+      "type": "backend",
+      "label": "core/tools",
+      "sublabel": "5620 行，index.ts 独占 1946 行",
+      "tag": "注册表加三段 waterfall；py-types 818、code-mode 673",
+      "pos": [
+        70,
+        180
+      ],
+      "size": [
+        330,
+        150
+      ]
+    },
+    {
+      "id": "session",
+      "type": "database",
+      "label": "core/session",
+      "sublabel": "3156 行，index.ts 1157 行",
+      "tag": "Session 与 SessionStore；surface 460、types 436",
+      "pos": [
+        440,
+        180
+      ],
+      "size": [
+        330,
+        150
+      ]
+    },
+    {
+      "id": "loop",
+      "type": "security",
+      "label": "core/agent-loop",
+      "sublabel": "1643 行，agent.ts 496 行是主循环",
+      "tag": "index.ts 713 是服务与配置；tool-calls 289",
+      "pos": [
+        810,
+        180
+      ],
+      "size": [
+        330,
+        150
+      ]
+    },
+    {
+      "id": "agent",
+      "type": "cloud",
+      "label": "core/agent",
+      "sublabel": "1636 行，Agent 与 Inbox",
+      "tag": "驱动无关，只管消息投递与相位",
+      "pos": [
+        1180,
+        180
+      ],
+      "size": [
+        250,
+        150
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "tools",
+      "to": "session",
+      "variant": "dashed"
+    },
+    {
+      "id": "b",
+      "from": "session",
+      "to": "loop",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "loop",
+      "to": "agent",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "读哪个文件先",
+      "items": [
+        "主循环看 agent-loop/src/agent.ts，496 行",
+        "工具注册看 tools/index.ts，1946 行",
+        "日志投影看 session/index.ts，1157 行"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "tools 里的三块大件",
+      "items": [
+        "py-types.ts 818 行生成 Python 类型",
+        "code-mode.ts 673 行实现 Code Mode",
+        "json-schema 与 schema 各 600 余行做校验"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "session 的辅助文件值得看",
+      "items": [
+        "chunk-rows.ts 346 行处理流式分片",
+        "repair.ts 133 行做日志修复",
+        "known-event-types.ts 收敛事件类型白名单"
+      ]
+    }
+  ]
+}

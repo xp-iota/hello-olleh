@@ -1,0 +1,7 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M01-tool-pipeline/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M02-context-assembly-economics/run.py
+
+{"alignment": "B+C", "module": "M01", "pipeline": "audit(guard(raw:x))", "refusal": "unknown stage 'typo' on pipeline 'iota-tools'; declared stages: audit, guard", "status": "ok"}
+IOTA_MODULE_OK M01-tool-pipeline
+{"alignment": "A+C", "compression_seam": "kernel-owned", "default_injection": false, "module": "M02", "scope": "session-a", "status": "ok"}
+IOTA_MODULE_OK M02-context-assembly-economics
+[exit 0]

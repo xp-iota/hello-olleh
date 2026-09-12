@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Plugin 的三种形态与共同元数据",
+    "output": "05-plugin-forms.html",
+    "viewBox": [
+      1460,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "fn",
+      "type": "frontend",
+      "label": "Function",
+      "sublabel": "(ctx, config) => any",
+      "tag": "registry.ts:82，最简形式",
+      "pos": [
+        70,
+        120
+      ],
+      "size": [
+        280,
+        105
+      ]
+    },
+    {
+      "id": "ctor",
+      "type": "backend",
+      "label": "Constructor",
+      "sublabel": "new (ctx, config) => any",
+      "tag": "registry.ts:86，Service 子类走这条",
+      "pos": [
+        70,
+        255
+      ],
+      "size": [
+        280,
+        105
+      ]
+    },
+    {
+      "id": "obj",
+      "type": "database",
+      "label": "Object",
+      "sublabel": "{ apply(ctx, config) }",
+      "tag": "registry.ts:90，ctx.inject() 内部用它",
+      "pos": [
+        70,
+        390
+      ],
+      "size": [
+        280,
+        105
+      ]
+    },
+    {
+      "id": "base",
+      "type": "external",
+      "label": "Plugin.Base 元数据",
+      "sublabel": "name / Config / inject / provide / intercept",
+      "tag": "registry.ts:69，Config 走 Standard Schema 校验",
+      "pos": [
+        520,
+        255
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "resolve",
+      "type": "security",
+      "label": "resolve(plugin)",
+      "sublabel": "函数直接当 callback，否则取 apply",
+      "tag": "registry.ts:144，都不匹配则返回空并抛 invalid plugin",
+      "pos": [
+        1020,
+        255
+      ],
+      "size": [
+        340,
+        140
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "三种可调用形态",
+      "wraps": [
+        "fn",
+        "ctor",
+        "obj"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "fn",
+      "to": "base",
+      "variant": "dashed"
+    },
+    {
+      "id": "b",
+      "from": "ctor",
+      "to": "base",
+      "variant": "dashed"
+    },
+    {
+      "id": "c",
+      "from": "obj",
+      "to": "base",
+      "variant": "dashed"
+    },
+    {
+      "id": "d",
+      "from": "base",
+      "to": "resolve",
+      "label": "统一归一化",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三种形态最终都变成 callback",
+      "items": [
+        "Plugin 类型是三者的联合（registry.ts:63-66）",
+        "resolve 负责抹平差异",
+        "下游只面对一个函数"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "元数据是可选的但很关键",
+      "items": [
+        "Config 决定配置是否被校验",
+        "inject 决定 epoch 怎么算",
+        "provide 与 intercept 影响服务可见性"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "为什么留 Object 形态",
+      "items": [
+        "ctx.inject() 需要一个匿名的可注册单元",
+        "用带 apply 的对象最省包装",
+        "name 若为 apply 会被主动置空"
+      ]
+    }
+  ]
+}

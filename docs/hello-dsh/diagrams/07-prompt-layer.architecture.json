@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "PromptLayer 的五个容器",
+    "output": "07-prompt-layer.html",
+    "viewBox": [
+      1480,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "sec",
+      "type": "database",
+      "label": "sections",
+      "sublabel": "NamedEntries，支持同名遮蔽",
+      "tag": "SP/index.ts:305",
+      "pos": [
+        70,
+        150
+      ],
+      "size": [
+        340,
+        115
+      ]
+    },
+    {
+      "id": "ctxs",
+      "type": "database",
+      "label": "contexts",
+      "sublabel": "NamedEntries",
+      "tag": "SP/index.ts:306",
+      "pos": [
+        70,
+        300
+      ],
+      "size": [
+        340,
+        115
+      ]
+    },
+    {
+      "id": "sup",
+      "type": "security",
+      "label": "runtimeContextSuppressors",
+      "sublabel": "AnonymousEntries，只累加",
+      "tag": "SP/index.ts:307",
+      "pos": [
+        460,
+        150
+      ],
+      "size": [
+        340,
+        115
+      ]
+    },
+    {
+      "id": "tp",
+      "type": "backend",
+      "label": "toolProviders",
+      "sublabel": "AnonymousEntries",
+      "tag": "SP/index.ts:308",
+      "pos": [
+        460,
+        300
+      ],
+      "size": [
+        340,
+        115
+      ]
+    },
+    {
+      "id": "var",
+      "type": "cloud",
+      "label": "variables",
+      "sublabel": "NamedEntries",
+      "tag": "SP/index.ts:309",
+      "pos": [
+        850,
+        150
+      ],
+      "size": [
+        340,
+        115
+      ]
+    },
+    {
+      "id": "layer",
+      "type": "frontend",
+      "label": "PromptLayer",
+      "sublabel": "SP/index.ts:304-336",
+      "pos": [
+        850,
+        300
+      ],
+      "size": [
+        340,
+        115
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "sec",
+      "to": "sup",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "tp",
+      "to": "layer",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "var",
+      "to": "layer",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "命名与匿名的选择",
+      "items": [
+        "需要按名字覆盖的用 NamedEntries",
+        "只需累加的用 AnonymousEntries",
+        "suppressor 与 toolProvider 属于后者"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "容器来自 core/scope",
+      "items": [
+        "与 03 篇的三个可复用容器是同一套",
+        "因此天然支持分层与撤销",
+        "见 03 篇的 scope 容器一节"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "一层就是一个作用域",
+      "items": [
+        "全局是一层，每个 agent 是一层",
+        "assemble 时沿链合并",
+        "近的层遮蔽远的层"
+      ]
+    }
+  ]
+}

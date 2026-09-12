@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "可处置定时器：四种形态都挂在当前 fiber 的 effect 上",
+    "output": "12-example-26-cordis-timer.html",
+    "viewBox": [1680, 760],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "script", "type": "external", "label": "run.ts", "sublabel": "示例入口脚本" },
+    { "id": "timer", "type": "messagebus", "label": "ctx.timer", "sublabel": "TimerService mixin 到每个 ctx" },
+    { "id": "plugin", "type": "security", "label": "throttle 监听插件", "sublabel": "26-cordis-timer/index.ts" },
+    { "id": "loop", "type": "backend", "label": "agent-loop", "sublabel": "真实 turn 产生高频事件" }
+  ],
+  "segments": [
+    { "from": 155, "to": 430, "label": "四种定时器形态" },
+    { "from": 445, "to": 550, "label": "真实 turn 里的节流" },
+    { "from": 565, "to": 680, "label": "fiber 卸载即清理" }
+  ],
+  "messages": [
+    {
+      "id": "install",
+      "from": "script",
+      "to": "plugin",
+      "y": 195,
+      "label": "createHarness() 后 loadPlugin：ctx.throttle 监听高频 session/event",
+      "variant": "emphasis"
+    },
+    {
+      "id": "await-timeout",
+      "from": "script",
+      "to": "timer",
+      "y": 245,
+      "label": "① timeout(50)：无回调版返回可 await 的 Promise"
+    },
+    {
+      "id": "cb-timeout",
+      "from": "script",
+      "to": "timer",
+      "y": 295,
+      "label": "② timeout(cb, 30)：回调版返回 disposer"
+    },
+    {
+      "id": "interval",
+      "from": "script",
+      "to": "timer",
+      "y": 345,
+      "label": "③ interval(30)：无回调版是 AsyncIterableIterator，break 即清理"
+    },
+    {
+      "id": "debounce",
+      "from": "script",
+      "to": "timer",
+      "y": 395,
+      "label": "④ debounce(cb, 40)：连续调用只触发最后一次"
+    },
+    {
+      "id": "runturn",
+      "from": "script",
+      "to": "loop",
+      "y": 465,
+      "label": "⑤ runTurn({ prompt: '滴' })：跑一个真实 turn",
+      "variant": "emphasis"
+    },
+    {
+      "id": "throttled",
+      "from": "loop",
+      "to": "plugin",
+      "y": 515,
+      "label": "高频 session/event 涌入，throttle 只放行窗口内第一条",
+      "variant": "return"
+    },
+    {
+      "id": "dispose",
+      "from": "script",
+      "to": "timer",
+      "y": 585,
+      "label": "⑥ fiber.dispose()：定时器都是当前 fiber 的 effect",
+      "variant": "security"
+    },
+    {
+      "id": "rejected",
+      "from": "timer",
+      "to": "script",
+      "y": 635,
+      "label": "挂起的 timeout Promise 以 Context has been disposed 拒绝",
+      "note": "这就是 cordis 的热重载安全：插件重载不会留下孤儿定时器"
+    }
+  ],
+  "activations": [
+    { "participant": "plugin", "from": 190, "to": 520, "type": "security" },
+    { "participant": "timer", "from": 240, "to": 640, "type": "messagebus" },
+    { "participant": "loop", "from": 460, "to": 520, "type": "backend" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "四种助手 mixin 到每个 ctx",
+      "items": [
+        "timeout 与 interval 各有回调版和无回调版",
+        "throttle 与 debounce 返回带 dispose 的函数",
+        "同时也提供 ctx.timer 本体"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "所有定时器都挂 fiber 的 effect",
+      "items": [
+        "fiber 卸载时统一清理，无需手工记账",
+        "挂起的 Promise 以明确错误拒绝",
+        "插件重载不会留下孤儿定时器"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "节流与去抖各管一头",
+      "items": [
+        "throttle 用在高频事件面上，只放行窗口内首条",
+        "debounce 相反：连续调用只触发最后一次",
+        "interval 的迭代器 break 就地清理"
+      ]
+    }
+  ]
+}

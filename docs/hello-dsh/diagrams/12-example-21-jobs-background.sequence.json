@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "后台任务注册表：准入、增量读、结算 first-wins 与属主栅栏",
+    "output": "12-example-21-jobs-background.html",
+    "viewBox": [1680, 800],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "script", "type": "external", "label": "run.ts", "sublabel": "示例入口脚本" },
+    { "id": "plugin", "type": "backend", "label": "controller 插件", "sublabel": "attachController + onJobDone" },
+    { "id": "jobs", "type": "messagebus", "label": "ctx.jobs", "sublabel": "抽象 JobRegistry（Local 后端）" },
+    { "id": "hooks", "type": "security", "label": "JobHooks", "sublabel": "spec.run() 同步返回的句柄" },
+    { "id": "guest", "type": "cloud", "label": "别的 agent", "sublabel": "另一个 ownerSession" }
+  ],
+  "segments": [
+    { "from": 155, "to": 330, "label": "挂上 controller 才能起任务" },
+    { "from": 345, "to": 550, "label": "增量读与等结算" },
+    { "from": 565, "to": 720, "label": "栅栏、终止与准入" }
+  ],
+  "messages": [
+    {
+      "id": "attach",
+      "from": "script",
+      "to": "plugin",
+      "y": 195,
+      "label": "createHarness() 后 loadPlugin：attachController + onJobDone 通告",
+      "variant": "emphasis",
+      "note": "LocalJobRegistry 作 JobRegistry seam 的后端"
+    },
+    {
+      "id": "start",
+      "from": "script",
+      "to": "jobs",
+      "y": 245,
+      "label": "① start(spec)：颁发 id = bash-1（<kind>-N 形，kind 是封闭词表）",
+      "variant": "emphasis"
+    },
+    {
+      "id": "run",
+      "from": "jobs",
+      "to": "hooks",
+      "y": 295,
+      "label": "spec.run() 同步返回 { cancel, done, readOutput }",
+      "variant": "security",
+      "note": "run() 抛错则什么都不登记；cancel 同步且幂等；done 契约上不 reject"
+    },
+    {
+      "id": "read",
+      "from": "script",
+      "to": "jobs",
+      "y": 365,
+      "label": "② read(id, agent)：拉式增量读，消费游标归生产者"
+    },
+    {
+      "id": "forward",
+      "from": "jobs",
+      "to": "hooks",
+      "y": 415,
+      "label": "转发 hooks.readOutput()：第二次读只剩增量"
+    },
+    {
+      "id": "wait",
+      "from": "script",
+      "to": "jobs",
+      "y": 465,
+      "label": "③ wait(id, 5000, agent)：等结算或超时",
+      "variant": "emphasis"
+    },
+    {
+      "id": "settle",
+      "from": "hooks",
+      "to": "plugin",
+      "y": 515,
+      "label": "done 兑现 → 结算 first-wins → onJobDone 通告放最后",
+      "variant": "return"
+    },
+    {
+      "id": "fence",
+      "from": "guest",
+      "to": "jobs",
+      "y": 585,
+      "label": "④ 非属主读取：按 ownerSession 栅栏直接拒绝",
+      "variant": "security"
+    },
+    {
+      "id": "kill",
+      "from": "script",
+      "to": "jobs",
+      "y": 635,
+      "label": "⑤ kill(id2, ...)：stopping + hooks.cancel(reason) → killed"
+    },
+    {
+      "id": "admission",
+      "from": "script",
+      "to": "jobs",
+      "y": 685,
+      "label": "⑥ 卸掉 controller 后再 start：准入直接拒绝",
+      "variant": "emphasis"
+    }
+  ],
+  "activations": [
+    { "participant": "plugin", "from": 190, "to": 520, "type": "backend" },
+    { "participant": "jobs", "from": 240, "to": 690, "type": "messagebus" },
+    { "participant": "hooks", "from": 290, "to": 520, "type": "security" },
+    { "participant": "guest", "from": 580, "to": 620, "type": "cloud" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "准入与 JobHooks 拉模型",
+      "items": [
+        "没有挂接 controller 时 start 直接被拒",
+        "spec.run() 同步返回 { cancel, done, readOutput }",
+        "done 契约上不 reject，运行期把拒绝转成 failed"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "读与等各管一段",
+      "items": [
+        "read 是消费性增量，游标归生产者",
+        "final-output 任务终态后幂等返回结果并标记 reported",
+        "wait 的 signal 取消的是等待本身，不取消任务"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "结算 first-wins，访问有栅栏",
+      "items": [
+        "生命周期 running → stopping → completed / killed / failed",
+        "一条终态记录、释放所有等待者，通告放最后",
+        "owner 是 Agent，访问按 ownerSession 栅栏"
+      ]
+    }
+  ]
+}

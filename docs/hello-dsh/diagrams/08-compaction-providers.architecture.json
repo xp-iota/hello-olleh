@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "两个压缩 provider 的策略差异",
+    "output": "08-compaction-providers.html",
+    "viewBox": [
+      1460,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "basic",
+      "type": "security",
+      "label": "compaction-basic",
+      "sublabel": "1621 行，摘要式压缩",
+      "tag": "选一段表面节点，调 LLM 生成摘要后 replace",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        400,
+        140
+      ]
+    },
+    {
+      "id": "prune",
+      "type": "database",
+      "label": "compaction-tool-result-pruner",
+      "sublabel": "331 行，工具结果裁剪",
+      "tag": "只针对 tool/result 节点，把冗长输出截短或替换为占位",
+      "pos": [
+        520,
+        190
+      ],
+      "size": [
+        400,
+        140
+      ]
+    },
+    {
+      "id": "layer",
+      "type": "cloud",
+      "label": "分层压缩策略",
+      "sublabel": "先用便宜的 pruner 裁掉工具输出，不够再用 basic 做摘要",
+      "pos": [
+        970,
+        190
+      ],
+      "size": [
+        420,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "basic",
+      "to": "prune",
+      "variant": "dashed"
+    },
+    {
+      "id": "b",
+      "from": "prune",
+      "to": "layer",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "成本差异明显",
+      "items": [
+        "basic 需要模型调用，有成本与延迟",
+        "pruner 纯本地处理，便宜且快",
+        "因此优先用 pruner"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "工具输出占 token 大头",
+      "items": [
+        "搜索与读文件的结果通常最长",
+        "裁掉它们收益最高",
+        "且信息损失相对可控"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "两者可叠加",
+      "items": [
+        "都是标准的 compaction provider",
+        "按顺序注册即形成分层策略",
+        "换掉任一个不影响另一个"
+      ]
+    }
+  ]
+}

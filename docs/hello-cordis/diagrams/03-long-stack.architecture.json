@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "长堆栈是怎么拼出来的",
+    "output": "03-long-stack.html",
+    "viewBox": [
+      1480,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "compose",
+      "type": "frontend",
+      "label": "composeError",
+      "sublabel": "composeError(callback, getOuterStack)",
+      "tag": "C/utils.ts:260",
+      "pos": [
+        60,
+        110
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "anchor",
+      "type": "database",
+      "label": "记内层锚点",
+      "sublabel": "info = { offset: 1, error: new Error() }",
+      "tag": "即当前调用栈",
+      "pos": [
+        400,
+        110
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "run",
+      "type": "backend",
+      "label": "执行 callback",
+      "sublabel": "同步抛错与 Promise reject 都进 handleError",
+      "tag": "C/utils.ts:233",
+      "pos": [
+        740,
+        110
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "find",
+      "type": "security",
+      "label": "定位截断点",
+      "sublabel": "在 reason.stack 里找内层锚点的第 3 行",
+      "pos": [
+        1080,
+        110
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "join",
+      "type": "cloud",
+      "label": "找到则拼接",
+      "sublabel": "从该处截断，接上 getOuterStack() 的结果",
+      "tag": "即插件注册时的调用栈",
+      "pos": [
+        740,
+        370
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "raw",
+      "type": "external",
+      "label": "找不到则原样抛",
+      "sublabel": "不做任何改写",
+      "pos": [
+        1080,
+        370
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "outer",
+      "type": "messagebus",
+      "label": "buildOuterStack",
+      "sublabel": "注册时就 new Error() 存下来",
+      "tag": "C/utils.ts:275，返回按 offset 切片的函数",
+      "pos": [
+        330,
+        370
+      ],
+      "size": [
+        280,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "compose",
+      "to": "anchor"
+    },
+    {
+      "id": "b",
+      "from": "anchor",
+      "to": "run"
+    },
+    {
+      "id": "c",
+      "from": "run",
+      "to": "find"
+    },
+    {
+      "id": "d",
+      "from": "find",
+      "to": "raw",
+      "label": "未命中",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 40,
+      "route": "straight"
+    },
+    {
+      "id": "e",
+      "from": "outer",
+      "to": "join",
+      "label": "提供外层栈",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两个锚点缺一不可",
+      "items": [
+        "内层锚点在 composeError 里当场创建",
+        "外层锚点在插件注册时就已存下",
+        "拼接点靠内层锚点的第 3 行定位"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "为什么能跨 await",
+      "items": [
+        "异步栈天然断在 await 处",
+        "注册栈是提前捕获的，不受异步影响",
+        "两段拼起来才还原出完整因果链"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "看到长堆栈不是巧合",
+      "items": [
+        "这是刻意设计，不是引擎行为",
+        "定位失败时保持原样，不掩盖真实错误",
+        "offset 参数用于跳过框架自身的栈帧"
+      ]
+    }
+  ]
+}

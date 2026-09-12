@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "工具审批的参与方",
+    "output": "08-approval-flow.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "model",
+      "type": "external",
+      "label": "模型",
+      "sublabel": "发起 tool_call",
+      "pos": [
+        70,
+        200
+      ],
+      "size": [
+        240,
+        130
+      ]
+    },
+    {
+      "id": "rt",
+      "type": "frontend",
+      "label": "ToolRuntime",
+      "sublabel": "注册表，派发三段 waterfall",
+      "pos": [
+        350,
+        200
+      ],
+      "size": [
+        280,
+        130
+      ]
+    },
+    {
+      "id": "pre",
+      "type": "security",
+      "label": "tools/pre-execute",
+      "sublabel": "审批插件挂在这一段",
+      "pos": [
+        670,
+        200
+      ],
+      "size": [
+        280,
+        130
+      ]
+    },
+    {
+      "id": "pp",
+      "type": "database",
+      "label": "permission-presets",
+      "sublabel": "526 行，先查权限预设",
+      "pos": [
+        990,
+        80
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "ua",
+      "type": "backend",
+      "label": "user-approval",
+      "sublabel": "487 行，预设未命中时询问用户",
+      "pos": [
+        990,
+        320
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "ui",
+      "type": "cloud",
+      "label": "用户界面",
+      "sublabel": "呈现请求并收集决定",
+      "pos": [
+        1350,
+        320
+      ],
+      "size": [
+        100,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "model",
+      "to": "rt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "rt",
+      "to": "pre",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "pre",
+      "to": "pp",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "pre",
+      "to": "ua",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e",
+      "from": "ua",
+      "to": "ui",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两级判定",
+      "items": [
+        "先查 permission-presets 的静态规则",
+        "命中即直接放行或拒绝，无需打扰用户",
+        "未命中才走 user-approval 询问"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "实测事件序列可验证",
+      "items": [
+        "让真实 agent-loop 在轮内派发即可观察",
+        "预设命中时不会出现询问事件",
+        "这是判断配置是否生效的最快方法"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "没有审批能力时",
+      "items": [
+        "pre-execute 返回 ask 会被当作 deny",
+        "不会退回为静默放行",
+        "见 T/index.ts:145 的注释"
+      ]
+    }
+  ]
+}

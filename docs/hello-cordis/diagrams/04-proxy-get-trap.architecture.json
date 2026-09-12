@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ctx.db 触发的 Proxy get trap 分流",
+    "output": "04-proxy-get-trap.html",
+    "viewBox": [
+      1520,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "read",
+      "type": "frontend",
+      "label": "用户写 ctx.db",
+      "sublabel": "ctx 永远是 Proxy",
+      "pos": [
+        60,
+        210
+      ],
+      "size": [
+        220,
+        110
+      ]
+    },
+    {
+      "id": "trap",
+      "type": "backend",
+      "label": "进入 handler.get",
+      "sublabel": "ReflectService.handler.get",
+      "tag": "C/reflect.ts:63",
+      "pos": [
+        330,
+        210
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "special",
+      "type": "security",
+      "label": "是特殊属性吗",
+      "sublabel": "isSpecialProperty(prop)，C/reflect.ts:33",
+      "pos": [
+        630,
+        60
+      ],
+      "size": [
+        280,
+        105
+      ]
+    },
+    {
+      "id": "has",
+      "type": "security",
+      "label": "target 上已有吗",
+      "sublabel": "Reflect.has(target, prop)",
+      "pos": [
+        630,
+        360
+      ],
+      "size": [
+        280,
+        105
+      ]
+    },
+    {
+      "id": "direct",
+      "type": "external",
+      "label": "直通",
+      "sublabel": "Reflect.get 原样返回",
+      "tag": "symbol / prototype / then / 数字串 / 下划线前缀",
+      "pos": [
+        960,
+        60
+      ],
+      "size": [
+        300,
+        105
+      ]
+    },
+    {
+      "id": "trace",
+      "type": "database",
+      "label": "包成 traceable",
+      "sublabel": "getTraceable(ctx, Reflect.get(...))",
+      "tag": "见 § 4.6",
+      "pos": [
+        960,
+        240
+      ],
+      "size": [
+        300,
+        105
+      ]
+    },
+    {
+      "id": "resolve",
+      "type": "cloud",
+      "label": "动态解析路径",
+      "sublabel": "沿 fiber 链向上查找服务实现",
+      "tag": "见 § 4.3",
+      "pos": [
+        960,
+        420
+      ],
+      "size": [
+        300,
+        105
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "read",
+      "to": "trap",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "trap",
+      "to": "special"
+    },
+    {
+      "id": "c",
+      "from": "trap",
+      "to": "has"
+    },
+    {
+      "id": "d",
+      "from": "special",
+      "to": "direct",
+      "label": "是"
+    },
+    {
+      "id": "e",
+      "from": "has",
+      "to": "trace",
+      "label": "是"
+    },
+    {
+      "id": "f",
+      "from": "has",
+      "to": "resolve",
+      "label": "否",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "为什么要有特殊属性白名单",
+      "items": [
+        "symbol 与 prototype 若走解析会破坏语言语义",
+        "then 必须直通，否则 ctx 会被当成 thenable",
+        "下划线前缀留给框架内部字段"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "已有属性也不直接返回",
+      "items": [
+        "Reflect.has 命中后仍要包一层 traceable",
+        "目的是让服务方法内的 this.ctx 指向调用方",
+        "解包与包装规则见 § 4.6"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "三条出口互斥",
+      "items": [
+        "直通、traceable 包装、动态解析各走各路",
+        "判定顺序固定，先特殊属性再看是否已存在",
+        "只有都不命中才进入服务解析"
+      ]
+    }
+  ]
+}

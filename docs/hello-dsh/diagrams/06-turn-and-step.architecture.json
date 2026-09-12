@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "turn 与 step 的边界",
+    "output": "06-turn-and-step.html",
+    "viewBox": [
+      1480,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "begin",
+      "type": "frontend",
+      "label": "turn 开始",
+      "sublabel": "在第一个输入被 claim 之前",
+      "pos": [
+        70,
+        200
+      ],
+      "size": [
+        260,
+        130
+      ]
+    },
+    {
+      "id": "s1",
+      "type": "backend",
+      "label": "step 1",
+      "sublabel": "一次模型请求加它调的工具",
+      "pos": [
+        400,
+        90
+      ],
+      "size": [
+        280,
+        100
+      ]
+    },
+    {
+      "id": "s2",
+      "type": "backend",
+      "label": "step 2",
+      "sublabel": "工具还欠一次请求，或来了 next-step 输入",
+      "pos": [
+        400,
+        215
+      ],
+      "size": [
+        280,
+        100
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "backend",
+      "label": "step N",
+      "sublabel": "依此继续",
+      "pos": [
+        400,
+        340
+      ],
+      "size": [
+        280,
+        100
+      ]
+    },
+    {
+      "id": "end",
+      "type": "database",
+      "label": "turn 结束",
+      "sublabel": "不再欠任何东西时",
+      "tag": "没有 turnEnds 阻碍且 inbox.nextStep 为空",
+      "pos": [
+        750,
+        200
+      ],
+      "size": [
+        320,
+        130
+      ]
+    },
+    {
+      "id": "zero",
+      "type": "security",
+      "label": "turn 可以有 0 个 step",
+      "sublabel": "被 agent/pre-step 拒绝或首次 claim 被改写为空",
+      "tag": "turn 仍开启并关闭，日志记录这次尝试，但不花模型调用",
+      "pos": [
+        1120,
+        200
+      ],
+      "size": [
+        300,
+        130
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "一个 turn 内的多个 step",
+      "wraps": [
+        "s1",
+        "s2",
+        "s3"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "begin",
+      "to": "s2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "s1",
+      "to": "s2",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 40
+    },
+    {
+      "id": "c",
+      "from": "s2",
+      "to": "end",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "end",
+      "to": "zero",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "step 的定义",
+      "items": [
+        "一个 step 等于一次模型请求加它触发的工具执行",
+        "工具执行完若还需要模型继续，就再开一个 step",
+        "因此 step 数由对话内容决定"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "turn 的结束条件",
+      "items": [
+        "没有 turnEnds 阻碍",
+        "且 inbox 的 nextStep 队列为空",
+        "两者同时满足才关闭"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "零 step 的 turn 有意义",
+      "items": [
+        "它把「被拒绝的尝试」也记进日志",
+        "便于审计谁在什么时候试图介入",
+        "不消耗任何模型配额"
+      ]
+    }
+  ]
+}

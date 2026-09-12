@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "执行侧三层的分工",
+    "output": "08-exec-three-layers.html",
+    "viewBox": [
+      1500,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "l3",
+      "type": "security",
+      "label": "第 3 层 ctx.terminals",
+      "sublabel": "持久 PTY 会话，有状态可长期存活",
+      "tag": "TM/index.ts:105；按 owner 归属，后端可注册（:125）",
+      "pos": [
+        70,
+        140
+      ],
+      "size": [
+        420,
+        120
+      ]
+    },
+    {
+      "id": "l2",
+      "type": "database",
+      "label": "第 2 层 ctx.shell",
+      "sublabel": "一次性命令执行，350 行",
+      "tag": "resolve 后 run 或 start",
+      "pos": [
+        70,
+        300
+      ],
+      "size": [
+        420,
+        120
+      ]
+    },
+    {
+      "id": "l1",
+      "type": "backend",
+      "label": "第 1 层 ctx.subprocess",
+      "sublabel": "最底层进程创建",
+      "tag": "local 与 sandbox 与 e2b 三种 provider",
+      "pos": [
+        70,
+        460
+      ],
+      "size": [
+        420,
+        120
+      ]
+    },
+    {
+      "id": "pkg3",
+      "type": "cloud",
+      "label": "terminal 三包",
+      "sublabel": "terminal 683 行、terminal-bash 1017 行、tool-terminal 606 行",
+      "pos": [
+        560,
+        140
+      ],
+      "size": [
+        420,
+        120
+      ]
+    },
+    {
+      "id": "pkg2",
+      "type": "cloud",
+      "label": "shell 家族",
+      "sublabel": "bash 与 pwsh 各有 local 与 sandbox 实现",
+      "pos": [
+        560,
+        300
+      ],
+      "size": [
+        420,
+        120
+      ]
+    },
+    {
+      "id": "why",
+      "type": "messagebus",
+      "label": "为什么分三层",
+      "sublabel": "上层只依赖下一层的接口，替换互不影响",
+      "pos": [
+        1050,
+        300
+      ],
+      "size": [
+        380,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "l3",
+      "to": "pkg3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "l2",
+      "to": "pkg2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "pkg2",
+      "to": "why",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三层的状态性递增",
+      "items": [
+        "subprocess 无状态，一次一个进程",
+        "shell 半状态，负责命令组装与环境",
+        "terminals 全状态，会话可长期存活"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "terminals 按 Agent 归属",
+      "items": [
+        "所有方法的第一个参数都是 owner",
+        "一个 agent 不能操作另一个的终端",
+        "subagent 因此有独立的终端集合"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "后端可注册",
+      "items": [
+        "registerBackend 允许接入新的 PTY 实现",
+        "terminal-bash 是默认后端",
+        "返回 disposer，符合 effect 模型"
+      ]
+    }
+  ]
+}

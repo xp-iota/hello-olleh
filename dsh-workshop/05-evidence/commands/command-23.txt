@@ -1,0 +1,7 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M07-execution-backends/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M08-delegation-presets/run.py
+
+{"alignment": "C", "module": "M07", "orchestrator_shell_registry": [], "route": "prompt -> KernelAdapter -> kernel.shell event", "status": "ok"}
+IOTA_MODULE_OK M07-execution-backends
+{"alignment": "A", "module": "M08", "order": ["research", "review"], "output": {"approved": "research:iota"}, "status": "ok"}
+IOTA_MODULE_OK M08-delegation-presets
+[exit 0]

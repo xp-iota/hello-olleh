@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "结构化错误模型",
+    "output": "07-error-model.html",
+    "viewBox": [
+      1460,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "base",
+      "type": "database",
+      "label": "HarnessError",
+      "sublabel": "DSH 的错误基类，位于 L/error.ts",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        320,
+        140
+      ]
+    },
+    {
+      "id": "llm",
+      "type": "security",
+      "label": "LlmError extends HarnessError",
+      "sublabel": "持有结构化的 failure",
+      "tag": "L/index.ts:83，选项类型见 :70",
+      "pos": [
+        430,
+        190
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "fail",
+      "type": "backend",
+      "label": "LlmFailure",
+      "sublabel": "结构化失败事实，含 message 与 code 等字段",
+      "tag": "L/adapter-failure.ts，104 行",
+      "pos": [
+        830,
+        190
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "use",
+      "type": "cloud",
+      "label": "在 turn 里的用法",
+      "sublabel": "是 LlmError 则取 failure，否则退化为普通错误",
+      "tag": "AL/agent.ts:308-314",
+      "pos": [
+        1230,
+        190
+      ],
+      "size": [
+        200,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "base",
+      "to": "llm",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "llm",
+      "to": "fail",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "fail",
+      "to": "use",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么要结构化",
+      "items": [
+        "重试策略需要按 code 判断是否可重试",
+        "界面需要区分限流、鉴权与内容拦截",
+        "纯字符串消息无法可靠解析"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "失败事实与异常分离",
+      "items": [
+        "LlmFailure 只描述发生了什么",
+        "LlmError 负责把它作为异常抛出",
+        "于是同一事实可用于日志、遥测与展示"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "降级路径明确",
+      "items": [
+        "非 LlmError 的异常不会被强行解析",
+        "turn 里用 instanceof 判断后分流",
+        "保留原始错误不掩盖真实原因"
+      ]
+    }
+  ]
+}

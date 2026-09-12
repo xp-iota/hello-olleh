@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "apiproxy 的 8571 行构成",
+    "output": "09-apiproxy-composition.html",
+    "viewBox": [
+      1480,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "w1",
+      "type": "database",
+      "label": "请求映射",
+      "sublabel": "HTTP 路径与方法映射到服务调用",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        380,
+        105
+      ]
+    },
+    {
+      "id": "w2",
+      "type": "security",
+      "label": "流式转发",
+      "sublabel": "把 session 事件流推给 WebSocket",
+      "tag": "最复杂的一块，涉及背压、重连与断点续传",
+      "pos": [
+        70,
+        255
+      ],
+      "size": [
+        380,
+        105
+      ]
+    },
+    {
+      "id": "w3",
+      "type": "backend",
+      "label": "鉴权与边界",
+      "sublabel": "判定哪些操作允许从 API 发起",
+      "pos": [
+        70,
+        380
+      ],
+      "size": [
+        380,
+        105
+      ]
+    },
+    {
+      "id": "w4",
+      "type": "cloud",
+      "label": "错误映射",
+      "sublabel": "把内部错误转成 HTTP 状态码",
+      "pos": [
+        490,
+        130
+      ],
+      "size": [
+        380,
+        105
+      ]
+    },
+    {
+      "id": "w5",
+      "type": "external",
+      "label": "其余",
+      "sublabel": "连接管理、序列化与协议细节",
+      "pos": [
+        490,
+        255
+      ],
+      "size": [
+        380,
+        105
+      ]
+    },
+    {
+      "id": "note",
+      "type": "messagebus",
+      "label": "这是推断而非导出清单",
+      "sublabel": "该包没有可直接列举的导出符号",
+      "tag": "按行数与命名推断其职责构成",
+      "pos": [
+        910,
+        255
+      ],
+      "size": [
+        380,
+        105
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "w2",
+      "to": "w4",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "w5",
+      "to": "note",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么流式转发最难",
+      "items": [
+        "事件产生速度可能超过客户端消费速度",
+        "断线后要能从正确的 seq 续传",
+        "还要避免内存无界增长"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "鉴权在这一层",
+      "items": [
+        "webserver 不做鉴权",
+        "gateway 只管端点生成",
+        "准入判断集中在 apiproxy"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "结论的可信度",
+      "items": [
+        "构成是从行数与命名推断的",
+        "没有导出符号可以直接印证",
+        "要确认请读该包源码"
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "8571 行的构成（推断）",
+      "wraps": [
+        "w1",
+        "w2",
+        "w3",
+        "w4",
+        "w5"
+      ]
+    }
+  ]
+}

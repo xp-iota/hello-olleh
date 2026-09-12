@@ -1,0 +1,15 @@
+$ python -m runtime.run_all
+IOTA_MODULE_OK M01-tool-pipeline
+IOTA_MODULE_OK M02-context-assembly-economics
+IOTA_MODULE_OK M03-inference-service-access
+IOTA_MODULE_OK M04-agent-loop-intervention
+IOTA_MODULE_OK M05-session-surface
+IOTA_MODULE_OK M06-human-in-the-loop
+IOTA_MODULE_OK M07-execution-backends
+IOTA_MODULE_OK M08-delegation-presets
+IOTA_MODULE_OK M09-long-running-orchestration
+IOTA_MODULE_OK M10-external-capabilities
+IOTA_MODULE_OK M11-config-data-infrastructure
+IOTA_MODULE_OK M12-framework-mechanisms
+IOTA_ALL_OK modules=12 network=blocked
+[exit 0]

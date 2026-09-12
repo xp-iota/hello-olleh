@@ -1,0 +1,217 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "12 个方向模块：四条扩展路径汇入一个装配枢纽",
+    "output": "12-example-topology.html",
+    "viewBox": [
+      1780,
+      720
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "registration",
+      "type": "frontend",
+      "label": "按注册扩展",
+      "sublabel": "M01 工具 · M02 提示 · M06 命令 · M08 预设 · M09 任务 · M11 配置",
+      "tag": "register() 返回 disposer，effect 负责回收",
+      "pos": [
+        60,
+        45
+      ],
+      "size": [
+        360,
+        115
+      ]
+    },
+    {
+      "id": "events",
+      "type": "messagebus",
+      "label": "按事件扩展",
+      "sublabel": "M01 管线 · M04 生命周期 · M05 投影 · M06 反馈 · M12 dispatch",
+      "tag": "ctx.on / ctx.before / waterfall 拦截真实运行时",
+      "pos": [
+        60,
+        210
+      ],
+      "size": [
+        360,
+        115
+      ]
+    },
+    {
+      "id": "services",
+      "type": "backend",
+      "label": "按服务扩展",
+      "sublabel": "M02/M03/M05/M07/M08/M09/M10/M11：Definition → Provider → Consumer",
+      "tag": "换 Provider，不改 Consumer",
+      "pos": [
+        60,
+        375
+      ],
+      "size": [
+        360,
+        115
+      ]
+    },
+    {
+      "id": "data",
+      "type": "database",
+      "label": "按数据扩展",
+      "sublabel": "M10：SKILL.md 是能力数据包；注册、发现、渲染与注入彼此分离",
+      "tag": "改内容不必 fork 主循环",
+      "pos": [
+        60,
+        540
+      ],
+      "size": [
+        360,
+        115
+      ]
+    },
+    {
+      "id": "hub",
+      "type": "backend",
+      "label": "createHarness()",
+      "sublabel": "唯一装配枢纽；12 个模块共享同一棵 Cordis Context",
+      "tag": "runtime/harness.ts:L136 · 度数 66 = 入 62 + 出 4",
+      "pos": [
+        650,
+        270
+      ],
+      "size": [
+        360,
+        180
+      ]
+    },
+    {
+      "id": "runtime",
+      "type": "cloud",
+      "label": "18 个真实运行时服务",
+      "sublabel": "timer → settings → session → llm/tools → agentLoop；逐个等待 Fiber ACTIVE",
+      "tag": "发布版 @deepseek-ai/dsh-* 0.1.5-rc.2",
+      "pos": [
+        1230,
+        70
+      ],
+      "size": [
+        500,
+        140
+      ]
+    },
+    {
+      "id": "providers",
+      "type": "external",
+      "label": "离线与真实 Provider 分路",
+      "sublabel": "mock 默认离线；M01/M03/M10 三条 real 路径显式选择 minimax-m3",
+      "tag": "npm run all 永不隐式触网",
+      "pos": [
+        1230,
+        290
+      ],
+      "size": [
+        500,
+        140
+      ]
+    },
+    {
+      "id": "openSeams",
+      "type": "security",
+      "label": "两个 Provider 缝刻意留空",
+      "sublabel": "M02 实现 CompactionEngine；M07 实现 SandboxProvider",
+      "tag": "核心 harness 不预装默认压缩与沙箱后端",
+      "pos": [
+        1230,
+        510
+      ],
+      "size": [
+        500,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "registration-hub",
+      "from": "registration",
+      "to": "hub",
+      "label": "register + effect",
+      "variant": "emphasis"
+    },
+    {
+      "id": "events-hub",
+      "from": "events",
+      "to": "hub",
+      "label": "event / waterfall",
+      "labelSegment": 0
+    },
+    {
+      "id": "services-hub",
+      "from": "services",
+      "to": "hub",
+      "label": "service injection",
+      "labelSegment": 0
+    },
+    {
+      "id": "data-hub",
+      "from": "data",
+      "to": "hub",
+      "label": "content registration"
+    },
+    {
+      "id": "hub-runtime",
+      "from": "hub",
+      "to": "runtime",
+      "label": "按依赖顺序装载",
+      "variant": "emphasis"
+    },
+    {
+      "id": "hub-providers",
+      "from": "hub",
+      "to": "providers",
+      "label": "registerAdapter",
+      "labelAt": [
+        1175,
+        345
+      ]
+    },
+    {
+      "id": "hub-open-seams",
+      "from": "hub",
+      "to": "openSeams",
+      "label": "由模块提供实现",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "graphify 0.9.53 有向图",
+      "items": [
+        "13 个扫描根：runtime + M01–M12，共 169 文件",
+        "584 节点 · 744 边 · 45 社区",
+        "739 条 EXTRACTED · 5 条 INFERRED"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "结构与覆盖可复算",
+      "items": [
+        "26 个旧示例 → 12 个方向模块；58 steps + 58 phases",
+        "3 条真实 Provider 路径；默认 12 个模块全部离线",
+        "A3 基线 25 + A4 新增 34 = 覆盖 59，门槛 ≥ 50"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "单中心与版本边界",
+      "items": [
+        "createHarness 匹配 1 个；度数 66 = 入 62 + 出 4",
+        "4 条扩展路径：按注册 · 按事件 · 按服务 · 按数据",
+        "Node ≥ 22.18；DSH 精确锁定 0.1.5-rc.2"
+      ]
+    }
+  ]
+}

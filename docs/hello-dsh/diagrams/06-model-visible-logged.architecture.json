@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "模型可见即必须落日志",
+    "output": "06-model-visible-logged.html",
+    "viewBox": [
+      1460,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "rule",
+      "type": "security",
+      "label": "规则",
+      "sublabel": "任何进入模型请求的东西都必须能从日志重建",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        320,
+        140
+      ]
+    },
+    {
+      "id": "assert",
+      "type": "database",
+      "label": "运行时不变量断言它",
+      "sublabel": "S/invariant.ts 共 250 行，全仓最厚的不变量文件",
+      "pos": [
+        430,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "infer",
+      "type": "frontend",
+      "label": "推论",
+      "sublabel": "加一种模型可见输入就必须新增一个 session 事件",
+      "tag": "扩展 SessionEventMap（S/types.ts:236）并实现从日志渲染",
+      "pos": [
+        810,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "cost",
+      "type": "cloud",
+      "label": "代价与收益",
+      "sublabel": "代价是连每个流式 chunk 都要落日志",
+      "tag": "收益是回放、fork、UI 保真、压缩、遥测全部从同一条流派生",
+      "pos": [
+        1190,
+        190
+      ],
+      "size": [
+        220,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "rule",
+      "to": "assert",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "assert",
+      "to": "infer",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "infer",
+      "to": "cost",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "这是全仓最强的约束",
+      "items": [
+        "不是建议而是运行时断言",
+        "违反会直接抛错，不做降级",
+        "250 行不变量专门守这一条"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "扩展的正确姿势",
+      "items": [
+        "先在 SessionEventMap 里加事件类型",
+        "再实现从该事件渲染成 Message",
+        "最后才在业务侧 append"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "为什么值得",
+      "items": [
+        "回放与 fork 不需要额外快照机制",
+        "UI 显示的与模型看到的严格一致",
+        "压缩只需重写表面，不动日志"
+      ]
+    }
+  ]
+}

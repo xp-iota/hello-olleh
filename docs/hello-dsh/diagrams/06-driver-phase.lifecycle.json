@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Agent driver 的相位状态机",
+    "output": "06-driver-phase.html",
+    "viewBox": [
+      1120,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "主相位"
+    },
+    {
+      "id": "aux",
+      "label": "维护与终止"
+    }
+  ],
+  "states": [
+    {
+      "id": "born",
+      "type": "start",
+      "label": "构造",
+      "sublabel": "读日志末个 turn/start",
+      "lane": "main",
+      "col": 0
+    },
+    {
+      "id": "idle",
+      "type": "waiting",
+      "label": "idle",
+      "sublabel": "lastTurn 已记录",
+      "lane": "main",
+      "col": 1
+    },
+    {
+      "id": "running",
+      "type": "active",
+      "label": "running",
+      "sublabel": "abort / turn / step",
+      "lane": "main",
+      "col": 2
+    },
+    {
+      "id": "done",
+      "type": "neutral",
+      "label": "dispose",
+      "sublabel": "驱动器销毁",
+      "lane": "main",
+      "col": 3
+    },
+    {
+      "id": "maintenance",
+      "type": "external",
+      "label": "maintenance",
+      "sublabel": "如 compaction",
+      "lane": "aux",
+      "col": 1
+    }
+  ],
+  "transitions": [
+    {
+      "id": "born-idle",
+      "from": "born",
+      "to": "idle",
+      "label": "初始化",
+      "labelDy": -25
+    },
+    {
+      "id": "idle-running",
+      "from": "idle",
+      "to": "running",
+      "label": "wakeDriver()",
+      "labelDy": -25,
+      "route": "straight"
+    },
+    {
+      "id": "running-done",
+      "from": "running",
+      "to": "done",
+      "label": "dispose",
+      "labelDy": -25
+    },
+    {
+      "id": "running-idle",
+      "from": "running",
+      "to": "idle",
+      "label": "循环结束",
+      "route": "bottom-channel",
+      "labelDx": 96
+    },
+    {
+      "id": "idle-maintenance",
+      "from": "idle",
+      "to": "maintenance",
+      "label": "派发维护任务",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 26
+    },
+    {
+      "id": "maintenance-idle",
+      "from": "maintenance",
+      "to": "idle",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "status 只有两种对外取值",
+      "items": [
+        "idle 与 maintenance 都对外报 'idle'",
+        "其余相位报 'running'",
+        "见 AL/agent.ts:99 的 get status()"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "维护期的唤醒会被 latch 住",
+      "items": [
+        "维护中收到的唤醒请求记为 wakeRequested",
+        "不立即打断维护任务",
+        "任务结束后若仍有 pending 才真正唤醒（AL/agent.ts:145-158）",
+        "图上 maintenance 回 idle 的边未标注：方向即语义，条件见上三条"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "相位携带的上下文不同",
+      "items": [
+        "running 带 abort / turn / step / wakeRequested",
+        "maintenance 带 abort / lastTurn / wakeRequested",
+        "idle 只带 lastTurn，构造时从日志末个 turn/start 恢复"
+      ]
+    }
+  ]
+}

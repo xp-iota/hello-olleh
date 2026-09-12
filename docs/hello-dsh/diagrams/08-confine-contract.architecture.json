@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "confine 的参数与返回契约",
+    "output": "08-confine-contract.html",
+    "viewBox": [
+      1500,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "api",
+      "type": "security",
+      "label": "confine(argv, policy)",
+      "sublabel": "返回 ConfinedArgv",
+      "tag": "SB/index.ts:175",
+      "pos": [
+        70,
+        200
+      ],
+      "size": [
+        320,
+        140
+      ]
+    },
+    {
+      "id": "arg",
+      "type": "database",
+      "label": "argv 必须是精确 argv",
+      "sublabel": "程序加参数，不是 shell 字符串",
+      "tag": "SB/index.ts:165-172 注释；shell 形态的消费方传 bash -c 三元组",
+      "pos": [
+        430,
+        80
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "ret",
+      "type": "backend",
+      "label": "返回值含两部分",
+      "sublabel": "应该改成执行的 argv，加选中后端能达到的强制完整度",
+      "pos": [
+        430,
+        300
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "who",
+      "type": "cloud",
+      "label": "调用方自己 spawn",
+      "sublabel": "沙箱服务不负责启动进程",
+      "tag": "SB/index.ts:167 注释明确了这一点",
+      "pos": [
+        880,
+        200
+      ],
+      "size": [
+        380,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "api",
+      "to": "arg",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "api",
+      "to": "ret",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "ret",
+      "to": "who",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么要精确 argv",
+      "items": [
+        "shell 字符串无法可靠地判断真正执行什么",
+        "精确 argv 让策略判断有确定输入",
+        "需要 shell 语义时显式传三元组"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "强制完整度是诚实的",
+      "items": [
+        "返回值会说明后端实际能达到的约束级别",
+        "调用方可据此决定是否继续",
+        "不假装所有平台都同等强"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "不代替调用方 spawn",
+      "items": [
+        "沙箱只做 argv 改写这一件事",
+        "进程创建仍由 subprocess 负责",
+        "职责边界清晰"
+      ]
+    }
+  ]
+}

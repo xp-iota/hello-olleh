@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "工具执行上下文的类型收窄",
+    "output": "07-tool-exec-types.html",
+    "viewBox": [
+      1500,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "inp",
+      "type": "database",
+      "label": "ToolExecutionInput",
+      "sublabel": "callId、name、arguments、signal 等",
+      "tag": "T/index.ts:314 起，rootCallId 与 agent 与 parent 均可选",
+      "pos": [
+        70,
+        220
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "exec",
+      "type": "backend",
+      "label": "ToolExecution",
+      "sublabel": "rootCallId 变必需，并新增 token",
+      "tag": "T/index.ts:379-383",
+      "pos": [
+        490,
+        220
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "disp",
+      "type": "security",
+      "label": "ToolDispatchExecution",
+      "sublabel": "around-dispatch 视图，signal 由 wrapper 提供",
+      "tag": "T/index.ts:391",
+      "pos": [
+        880,
+        90
+      ],
+      "size": [
+        340,
+        120
+      ]
+    },
+    {
+      "id": "run",
+      "type": "cloud",
+      "label": "ToolRunContext",
+      "sublabel": "工具 execute 拿到的最终视图",
+      "pos": [
+        880,
+        350
+      ],
+      "size": [
+        340,
+        120
+      ]
+    },
+    {
+      "id": "why",
+      "type": "frontend",
+      "label": "为什么逐步收窄",
+      "sublabel": "每一层只暴露该层允许改动的字段",
+      "pos": [
+        1260,
+        220
+      ],
+      "size": [
+        180,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "inp",
+      "to": "exec",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "exec",
+      "to": "disp",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "exec",
+      "to": "run",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "disp",
+      "to": "why",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "类型即权限",
+      "items": [
+        "wrapper 拿到的是 Dispatch 视图，只能改 signal",
+        "工具本体拿到的是 RunContext，只能读",
+        "靠类型而非运行时检查约束改动范围"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "token 是执行凭据",
+      "items": [
+        "ToolExecution 上新增 token",
+        "用于关联子调用与父调用",
+        "Code Mode 的子调用靠它归属"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "parent 支持嵌套",
+      "items": [
+        "parent 是 ToolExecutionToken",
+        "于是工具内部还能再发起工具调用",
+        "rootCallId 始终指向最外层"
+      ]
+    }
+  ]
+}

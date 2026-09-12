@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "三个核心概念：Profile、Seam、日志",
+    "output": "01-three-concepts.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "bundle",
+      "type": "frontend",
+      "label": "① Bundle",
+      "sublabel": "cordis 配置行加代码的分发格式",
+      "tag": "package.json 的 dsh.bundle.patch 指向 patch 文件",
+      "pos": [
+        70,
+        150
+      ],
+      "size": [
+        330,
+        150
+      ]
+    },
+    {
+      "id": "profile",
+      "type": "database",
+      "label": "Profile",
+      "sublabel": "Harness home 里的命名组合",
+      "tag": "dsh.profile.bundles 列出要叠的 bundle 加自己的 patch",
+      "pos": [
+        440,
+        150
+      ],
+      "size": [
+        330,
+        150
+      ]
+    },
+    {
+      "id": "seam",
+      "type": "security",
+      "label": "② Seam",
+      "sublabel": "Definition 加 Provider 加 Consumer 三角色",
+      "tag": "如 P/fs/fs 定义、fs-local 实现、tool-fs 消费",
+      "pos": [
+        810,
+        150
+      ],
+      "size": [
+        330,
+        150
+      ]
+    },
+    {
+      "id": "log",
+      "type": "messagebus",
+      "label": "③ 会话日志",
+      "sublabel": "append-only 事件流，历史由投影得出",
+      "tag": "详见 06 篇",
+      "pos": [
+        1180,
+        150
+      ],
+      "size": [
+        250,
+        150
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "bundle",
+      "to": "profile",
+      "label": "被叠加",
+      "variant": "emphasis",
+      "labelDy": -52,
+      "route": "straight"
+    },
+    {
+      "id": "b",
+      "from": "profile",
+      "to": "seam",
+      "variant": "dashed"
+    },
+    {
+      "id": "c",
+      "from": "seam",
+      "to": "log",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "分层顺序是确定的",
+      "items": [
+        "profile 按序叠加它列出的每个 bundle",
+        "各 bundle 按序叠加，然后 profile patch",
+        "再叠 home patch，最后是命令行 --patch",
+        "底层就是 cordis include 的 applyPatches"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "三个内置 bundle",
+      "items": [
+        "dsh-base 451 行 patch，列出全部基础行",
+        "dsh-web-app 424 行，按 id 覆盖并加浏览器应用",
+        "dsh-headless 35 行，一次性 runner 不起 server"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Seam 三角色缺一不可",
+      "items": [
+        "Definition 声明接口，不含实现",
+        "Provider 提供实现，可有多个候选",
+        "Consumer 通常是模型可见的工具；换 provider 就换掉整个产品形态"
+      ]
+    }
+  ]
+}

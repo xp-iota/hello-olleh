@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "压缩前后的表面变化",
+    "output": "08-compaction-mechanics.html",
+    "viewBox": [
+      1500,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "b1",
+      "type": "database",
+      "label": "压缩前的日志",
+      "sublabel": "append-only 的完整事件序列",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "b2",
+      "type": "backend",
+      "label": "压缩前的表面",
+      "sublabel": "只含 user、assistant 与 tool/result 节点",
+      "pos": [
+        70,
+        280
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "b3",
+      "type": "cloud",
+      "label": "压缩前的投影",
+      "sublabel": "deriveMessages 沿表面产出全部消息",
+      "pos": [
+        70,
+        430
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "a1",
+      "type": "security",
+      "label": "① 生成摘要",
+      "sublabel": "通常需要调一次 LLM",
+      "pos": [
+        460,
+        180
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "a2",
+      "type": "security",
+      "label": "② append 带 replace 的事件",
+      "sublabel": "sourceEventSeqs 列出全部被遮蔽节点",
+      "pos": [
+        460,
+        340
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "res",
+      "type": "messagebus",
+      "label": "压缩后",
+      "sublabel": "表面被重写，replaceGeneration 递增",
+      "tag": "deriveMessages 因代号变化而整体重建",
+      "pos": [
+        850,
+        260
+      ],
+      "size": [
+        400,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "b2",
+      "to": "a1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "a1",
+      "to": "a2",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 46
+    },
+    {
+      "id": "c",
+      "from": "a2",
+      "to": "res",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "日志一个字节都不动",
+      "items": [
+        "压缩只写入新事件，不修改旧事件",
+        "被遮蔽的节点仍然在日志里",
+        "因此可以回溯压缩前的完整历史"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "表面是唯一被改的东西",
+      "items": [
+        "replace 操作重写表面节点序列",
+        "replaceGeneration 递增使投影缓存失效",
+        "下一次 deriveMessages 整体重建"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "全靠日志与表面分离",
+      "items": [
+        "这个设计见 06 篇 § 6.15",
+        "没有这层分离，压缩就只能删历史",
+        "删了就无法回放与审计"
+      ]
+    }
+  ]
+}

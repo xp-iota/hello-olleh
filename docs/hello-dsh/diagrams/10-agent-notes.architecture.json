@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "agent 驱动开发的产物",
+    "output": "10-agent-notes.html",
+    "viewBox": [
+      1460,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "impl",
+      "type": "frontend",
+      "label": "implemented 共 826 篇",
+      "sublabel": "feature 340、architecture 258、bug-fix 154",
+      "tag": "另有 process 138 与 simplification 96",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        400,
+        140
+      ]
+    },
+    {
+      "id": "arch",
+      "type": "database",
+      "label": "archived 共 285 篇",
+      "sublabel": "feature 108、simplification 54、process 40",
+      "tag": "另有 bug-fix 38、architecture 28、testing 16",
+      "pos": [
+        510,
+        190
+      ],
+      "size": [
+        400,
+        140
+      ]
+    },
+    {
+      "id": "use",
+      "type": "cloud",
+      "label": "怎么用",
+      "sublabel": "这是最好的设计动机史料",
+      "tag": "想知道为什么这样设计就先搜这里",
+      "pos": [
+        950,
+        190
+      ],
+      "size": [
+        400,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "impl",
+      "to": "arch",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "arch",
+      "to": "use",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "总量 1372 篇",
+      "items": [
+        "位于 .agents/notes/ 目录",
+        "按状态分 implemented 与 archived",
+        "再按类型细分为五到六类"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "archived 也有价值",
+      "items": [
+        "记录了被放弃的方案与原因",
+        "避免重复走已验证的弯路",
+        "simplification 类特别值得读"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "与官方 docs 的分工",
+      "items": [
+        "docs 讲契约是什么、怎么用",
+        "notes 讲为什么这样决定",
+        "两者互补而不重复"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "core 为什么只有 1848 行",
+    "output": "02-why-small.html",
+    "viewBox": [
+      1440,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "r1",
+      "type": "frontend",
+      "label": "① 只做机制不做策略",
+      "sublabel": "core 里没有 HTTP、文件、进程、序列化、DI 容器",
+      "tag": "唯一的业务是 logger，246 行占 13%",
+      "pos": [
+        70,
+        140
+      ],
+      "size": [
+        300,
+        130
+      ]
+    },
+    {
+      "id": "r2",
+      "type": "backend",
+      "label": "② 用语言原语替代框架代码",
+      "sublabel": "Proxy 代替属性表，原型链代替作用域链",
+      "tag": "reflect.ts:239 mixin 用生成器 yield accessor",
+      "pos": [
+        440,
+        140
+      ],
+      "size": [
+        300,
+        130
+      ]
+    },
+    {
+      "id": "r3",
+      "type": "security",
+      "label": "③ 可组合性压成一个字符串",
+      "sublabel": "依赖追踪没有图算法，只有 epoch 字符串比较",
+      "tag": "fiber.ts:385 _refresh 全文 13 行",
+      "pos": [
+        810,
+        140
+      ],
+      "size": [
+        300,
+        130
+      ]
+    },
+    {
+      "id": "r4",
+      "type": "cloud",
+      "label": "④ 复用 Standard Schema",
+      "sublabel": "fiber.ts:34 直接调 Config 的 standard validate",
+      "tag": "配置校验只有 5 行胶水加错误格式化",
+      "pos": [
+        1180,
+        140
+      ],
+      "size": [
+        190,
+        130
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "r1-r2",
+      "from": "r1",
+      "to": "r2",
+      "variant": "dashed"
+    },
+    {
+      "id": "r2-r3",
+      "from": "r2",
+      "to": "r3",
+      "variant": "dashed"
+    },
+    {
+      "id": "r3-r4",
+      "from": "r3",
+      "to": "r4",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "被拆出去的能力",
+      "items": [
+        "定时器拆成 plugin-timer，142 行",
+        "日志导出拆成 plugin-logger-console，137 行",
+        "配置驱动拆成 plugin-loader，870 行"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "用 Symbol 换命名空间隔离",
+      "items": [
+        "isolate 生成新 Symbol 当存储键",
+        "省掉一整套 realm 注册与查找表",
+        "代价是调试时看不到可读的键名"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "epoch 是最省代码的一处",
+      "items": [
+        "把依赖身份编码成字符串，比较即判定",
+        "不需要拓扑排序或环检测",
+        "详见 03 篇 § 3.4"
+      ]
+    }
+  ]
+}

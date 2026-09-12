@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "waterfall：监听器组成中间件链",
+    "output": "06-waterfall-chain.html",
+    "viewBox": [
+      1320,
+      700
+    ],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "caller",
+      "type": "external",
+      "label": "调用方",
+      "sublabel": "ctx.waterfall(...)"
+    },
+    {
+      "id": "waterfall",
+      "type": "messagebus",
+      "label": "waterfall",
+      "sublabel": "C/events.ts"
+    },
+    {
+      "id": "l1",
+      "type": "backend",
+      "label": "监听器 1",
+      "sublabel": "先注册"
+    },
+    {
+      "id": "l2",
+      "type": "backend",
+      "label": "监听器 2",
+      "sublabel": "后注册"
+    },
+    {
+      "id": "inner",
+      "type": "cloud",
+      "label": "inner",
+      "sublabel": "兜底实现"
+    }
+  ],
+  "segments": [
+    {
+      "from": 155,
+      "to": 260,
+      "label": "入口改写参数"
+    },
+    {
+      "from": 268,
+      "to": 482,
+      "label": "沿链向内委托"
+    },
+    {
+      "from": 490,
+      "to": 592,
+      "label": "返回值逐层回传"
+    }
+  ],
+  "messages": [
+    {
+      "id": "invoke",
+      "from": "caller",
+      "to": "waterfall",
+      "y": 195,
+      "label": "ctx.waterfall('evt', a, b, inner)",
+      "variant": "emphasis",
+      "note": "args = [a, b]，inner 被 pop 出来，再 push(next) 得到 [a, b, next]"
+    },
+    {
+      "id": "call-l1",
+      "from": "waterfall",
+      "to": "l1",
+      "y": 290,
+      "label": "L1(a, b, next)",
+      "note": "三种选择：直接 return 短路、改 a/b 再 next()、或 next() 后加工返回值"
+    },
+    {
+      "id": "l1-next",
+      "from": "l1",
+      "to": "waterfall",
+      "y": 375,
+      "label": "next()",
+      "variant": "dashed"
+    },
+    {
+      "id": "call-l2",
+      "from": "waterfall",
+      "to": "l2",
+      "y": 420,
+      "label": "L2(a, b, next)"
+    },
+    {
+      "id": "l2-next",
+      "from": "l2",
+      "to": "waterfall",
+      "y": 465,
+      "label": "next()",
+      "variant": "dashed"
+    },
+    {
+      "id": "call-inner",
+      "from": "waterfall",
+      "to": "inner",
+      "y": 510,
+      "label": "inner(a, b, next)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "bubble-back",
+      "from": "inner",
+      "to": "caller",
+      "y": 570,
+      "label": "返回值沿链回传给调用方",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "waterfall",
+      "from": 190,
+      "to": 516,
+      "type": "messagebus"
+    },
+    {
+      "participant": "l1",
+      "from": 285,
+      "to": 381,
+      "type": "backend"
+    },
+    {
+      "participant": "l2",
+      "from": 415,
+      "to": 471,
+      "type": "backend"
+    },
+    {
+      "participant": "inner",
+      "from": 505,
+      "to": 576,
+      "type": "cloud"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "waterfall 与其余四种派发的区别",
+      "items": [
+        "emit / parallel / serial / bail 都是把监听器当独立处理器",
+        "waterfall 把它们串成一条可委托的链",
+        "每个监听器拿到的最后一个参数是 next"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "inner 的位置",
+      "items": [
+        "调用方传入的最后一个函数被 pop 出来当兜底",
+        "它位于链的最内层，所有监听器都不短路时才执行",
+        "这让插件可以拦截并改写框架默认行为"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "短路的代价",
+      "items": [
+        "监听器不调 next 就直接返回，后面的链全部跳过",
+        "inner 也不会执行，默认行为被完全替换",
+        "注册顺序因此决定了拦截优先级"
+      ]
+    }
+  ]
+}

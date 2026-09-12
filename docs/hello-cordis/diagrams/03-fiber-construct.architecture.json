@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "非根 Fiber 的构造七步",
+    "output": "03-fiber-construct.html",
+    "viewBox": [
+      1520,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "n1",
+      "type": "frontend",
+      "label": "① 取号",
+      "sublabel": "uid = parent.registry.counter",
+      "tag": ":134",
+      "pos": [
+        60,
+        120
+      ],
+      "size": [
+        260,
+        110
+      ]
+    },
+    {
+      "id": "n2",
+      "type": "backend",
+      "label": "② 派生 Context",
+      "sublabel": "parent.extend({ fiber: this })",
+      "tag": ":135 带 fiber 指针的新视图",
+      "pos": [
+        380,
+        120
+      ],
+      "size": [
+        260,
+        110
+      ]
+    },
+    {
+      "id": "n3",
+      "type": "database",
+      "label": "③ 处理 intercept",
+      "sublabel": "非空的 config 写入 ctx[Context.intercept]",
+      "tag": ":137-144",
+      "pos": [
+        700,
+        120
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "n4",
+      "type": "cloud",
+      "label": "④ 构造 _runner",
+      "sublabel": "execute 内区分构造函数与普通函数",
+      "tag": ":146-162 构造函数走 initHooks 再 init()",
+      "pos": [
+        1040,
+        120
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "n5",
+      "type": "messagebus",
+      "label": "⑤ 广播",
+      "sublabel": "context.emit('internal/plugin', this)",
+      "tag": ":164 loader 借此设置 fiber.entry",
+      "pos": [
+        380,
+        400
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "n6",
+      "type": "backend",
+      "label": "⑥ 解析依赖",
+      "sublabel": "对每个 inject 名调 _checkImpl",
+      "tag": ":166-168",
+      "pos": [
+        720,
+        400
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "n7",
+      "type": "security",
+      "label": "⑦ 自我登记",
+      "sublabel": "dispose = parent.fiber.effect(...)",
+      "tag": ":170-198 把本 Fiber 的存在注册为父 Fiber 的一个 effect",
+      "pos": [
+        1060,
+        400
+      ],
+      "size": [
+        300,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "n1",
+      "to": "n2"
+    },
+    {
+      "id": "b",
+      "from": "n2",
+      "to": "n3"
+    },
+    {
+      "id": "c",
+      "from": "n3",
+      "to": "n4"
+    },
+    {
+      "id": "d",
+      "from": "n4",
+      "to": "n5",
+      "label": "换行继续",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "e",
+      "from": "n5",
+      "to": "n6"
+    },
+    {
+      "id": "f",
+      "from": "n6",
+      "to": "n7",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "第七步是全段的关键",
+      "items": [
+        "把「本 Fiber 存在」本身登记为父 Fiber 的一个 effect",
+        "父 Fiber 卸载时会连带拆掉本 Fiber",
+        "插件树的可逆性由此递归成立"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "构造函数与普通函数的差异",
+      "items": [
+        "isConstructor 走 new callback(ctx, config)",
+        "随后依次执行 symbols.initHooks 与 symbols.init",
+        "普通函数只是 callback(ctx, config)"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "这一段是全文最密的",
+      "items": [
+        "源码位置 C/fiber.ts:122-212",
+        "根 Fiber 走另一条分支（runtime 为 null）",
+        "派生 Context 早于依赖解析，因此插件内可直接用 ctx"
+      ]
+    }
+  ]
+}

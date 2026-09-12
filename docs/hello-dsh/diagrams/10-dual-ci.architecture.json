@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "双轨 CI",
+    "output": "10-dual-ci.html",
+    "viewBox": [
+      1480,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "gh",
+      "type": "frontend",
+      "label": "GitHub Actions",
+      "sublabel": "15 个 workflow，含 ci.yml 主流程",
+      "tag": "e2e、e2b-e2e、sandbox、landlock-run 与各发布流程",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        400,
+        140
+      ]
+    },
+    {
+      "id": "loc",
+      "type": "database",
+      "label": "本地与私有轨",
+      "sublabel": "另一套流水线覆盖不便公开的环境",
+      "pos": [
+        510,
+        190
+      ],
+      "size": [
+        400,
+        140
+      ]
+    },
+    {
+      "id": "why",
+      "type": "cloud",
+      "label": "为什么双轨",
+      "sublabel": "沙箱与原生组件依赖特定内核与系统",
+      "tag": "公共 runner 无法覆盖全部矩阵",
+      "pos": [
+        950,
+        190
+      ],
+      "size": [
+        400,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "gh",
+      "to": "loc",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "loc",
+      "to": "why",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "公共轨覆盖的范围",
+      "items": [
+        "主测试与类型检查",
+        "端到端测试含 E2B 与自建 provider",
+        "Python 与原生组件的发布流程"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "沙箱相关单独成 workflow",
+      "items": [
+        "sandbox.yml 与 landlock-run 系列",
+        "因为它们需要特定内核能力",
+        "失败原因也与业务测试不同"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "文档也进 CI",
+      "items": [
+        "docs-pages 类 workflow 负责站点构建",
+        "生成物过期会被 verify 脚本拦住",
+        "于是文档与代码同步演进"
+      ]
+    }
+  ]
+}

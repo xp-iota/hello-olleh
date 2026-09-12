@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "loadProfile 的分支与模板初始化",
+    "output": "05-load-profile.html",
+    "viewBox": [
+      1520,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "api",
+      "type": "frontend",
+      "label": "loadProfile(...)",
+      "sublabel": "AB/profile.ts:371-402",
+      "pos": [
+        60,
+        240
+      ],
+      "size": [
+        240,
+        120
+      ]
+    },
+    {
+      "id": "exist",
+      "type": "security",
+      "label": "profile 的 package.json 存在吗",
+      "sublabel": "路径是 home/profiles/<name>/",
+      "pos": [
+        350,
+        240
+      ],
+      "size": [
+        320,
+        120
+      ]
+    },
+    {
+      "id": "tpl",
+      "type": "security",
+      "label": "有内置模板吗",
+      "sublabel": "查 PROFILE_TEMPLATES[name]",
+      "pos": [
+        720,
+        90
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "err",
+      "type": "cloud",
+      "label": "抛错并给出修复命令",
+      "sublabel": "提示用 dsh plugin --profile x add <package> 创建",
+      "pos": [
+        1060,
+        90
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "init",
+      "type": "database",
+      "label": "initProfile 写出模板",
+      "sublabel": "生成 package.json、cordis.patch.yml 与 pnpm-workspace.yaml",
+      "tag": "profile.ts:152",
+      "pos": [
+        720,
+        250
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "read",
+      "type": "backend",
+      "label": "读清单并归一化",
+      "sublabel": "readProfileManifest 后 normalizeShippedProfile",
+      "tag": "profile.ts:263 与 :297",
+      "pos": [
+        720,
+        410
+      ],
+      "size": [
+        380,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "api",
+      "to": "exist",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "exist",
+      "to": "tpl",
+      "label": "不存在"
+    },
+    {
+      "id": "c",
+      "from": "tpl",
+      "to": "err",
+      "label": "无"
+    },
+    {
+      "id": "d",
+      "from": "tpl",
+      "to": "init",
+      "label": "有",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDx": 66
+    },
+    {
+      "id": "e",
+      "from": "exist",
+      "to": "read",
+      "label": "存在",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "报错必须可操作",
+      "items": [
+        "找不到 profile 且无模板时直接抛错",
+        "错误信息里给出创建它的完整命令",
+        "不做静默创建，避免产生意料外的配置"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "模板初始化写三个文件",
+      "items": [
+        "package.json 声明 profile 与要叠的 bundle",
+        "cordis.patch.yml 是空的定制层",
+        "pnpm-workspace.yaml 让 profile 能装自己的依赖"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "归一化的作用",
+      "items": [
+        "normalizeShippedProfile 处理随包分发的 profile",
+        "补齐缺省字段并校验 bundle 列表",
+        "之后各层才能安全 flat"
+      ]
+    }
+  ]
+}

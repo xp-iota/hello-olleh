@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "mixin 如何把 fiber 的方法搬到 ctx 上",
+    "output": "04-mixin-accessor.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "mix",
+      "type": "frontend",
+      "label": "mixin(source, mixins)",
+      "sublabel": "C/reflect.ts:239",
+      "pos": [
+        60,
+        180
+      ],
+      "size": [
+        250,
+        120
+      ]
+    },
+    {
+      "id": "gen",
+      "type": "database",
+      "label": "生成器 effect",
+      "sublabel": "fiber.effect(function* () { ... })",
+      "tag": "逐个 yield，每个都可单独回收",
+      "pos": [
+        360,
+        180
+      ],
+      "size": [
+        280,
+        120
+      ]
+    },
+    {
+      "id": "acc",
+      "type": "backend",
+      "label": "注册 accessor",
+      "sublabel": "yield self.accessor(value, { get, set })",
+      "tag": "C/reflect.ts:229，disposer 是 delete this.props[name]",
+      "pos": [
+        690,
+        180
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "trap",
+      "type": "security",
+      "label": "handler.get 命中 accessor",
+      "sublabel": "调 def.get.call(ctx, receiver, error)",
+      "tag": "C/reflect.ts:75",
+      "pos": [
+        1060,
+        180
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "impl",
+      "type": "cloud",
+      "label": "accessor 的 get 实现",
+      "sublabel": "取 ctx[source]，按 receiver 合成 mixin 后 Reflect.get",
+      "tag": ":249-256，取到函数则绑定到 mixin",
+      "pos": [
+        360,
+        400
+      ],
+      "size": [
+        620,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "mix",
+      "to": "gen",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "gen",
+      "to": "acc"
+    },
+    {
+      "id": "c",
+      "from": "acc",
+      "to": "trap"
+    },
+    {
+      "id": "d",
+      "from": "trap",
+      "to": "impl",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "right"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "这就是 ctx.effect 的来历",
+      "items": [
+        "effect 本来是 fiber 上的方法",
+        "mixin 把它注册成 ctx 上的 accessor",
+        "所以能写 ctx.effect 而不必写 ctx.fiber.effect"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "用生成器换来逐项可逆",
+      "items": [
+        "每个 yield 出去的 accessor 都有自己的 disposer",
+        "卸载时逐个 delete props 上的键",
+        "不需要记录批量注册的边界"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "绑定的是合成对象",
+      "items": [
+        "receiver 存在时用 withProps 合成 mixin",
+        "函数被 bind 到该合成对象上",
+        "于是方法内的 this 同时看到服务与调用方"
+      ]
+    }
+  ]
+}

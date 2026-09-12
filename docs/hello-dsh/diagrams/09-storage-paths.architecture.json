@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "存储的四条路径",
+    "output": "09-storage-paths.html",
+    "viewBox": [
+      1500,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "s1",
+      "type": "database",
+      "label": "① ctx.storage 通用键值",
+      "sublabel": "storage 331、storage-json 424、storage-sqlite 476、storage-domain 857",
+      "tag": "插件存自己的状态：设置、缓存、索引",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        420,
+        115
+      ]
+    },
+    {
+      "id": "s2",
+      "type": "security",
+      "label": "② spill 大内容外溢",
+      "sublabel": "spill 161、spill-local 215、spill-policy 288",
+      "tag": "工具输出过大时挪到外部，上下文里只留引用；合计 664 行最小",
+      "pos": [
+        70,
+        275
+      ],
+      "size": [
+        420,
+        115
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "backend",
+      "label": "③ session 持久化",
+      "sublabel": "JSONL 与 SQLite 两个 provider",
+      "tag": "见 06 篇的持久化 seam",
+      "pos": [
+        540,
+        130
+      ],
+      "size": [
+        400,
+        115
+      ]
+    },
+    {
+      "id": "s4",
+      "type": "cloud",
+      "label": "④ credentials 与 settings",
+      "sublabel": "凭据与用户设置，各有独立存储",
+      "pos": [
+        540,
+        275
+      ],
+      "size": [
+        400,
+        115
+      ]
+    },
+    {
+      "id": "why",
+      "type": "messagebus",
+      "label": "为什么不合并",
+      "sublabel": "生命周期、敏感级别与访问模式都不同",
+      "pos": [
+        990,
+        200
+      ],
+      "size": [
+        440,
+        115
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "s1",
+      "to": "s3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "s2",
+      "to": "s4",
+      "variant": "dashed"
+    },
+    {
+      "id": "c",
+      "from": "s3",
+      "to": "why",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "四条路径的取舍",
+      "items": [
+        "通用键值适合小而频繁的状态",
+        "spill 适合大块只读内容",
+        "session 持久化要求严格顺序与可恢复"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "spill 是最小的一组",
+      "items": [
+        "三个包合计只有 664 行",
+        "因为它只做搬运与引用，不做解释",
+        "策略包决定何时触发外溢"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "凭据单独隔离",
+      "items": [
+        "敏感级别最高，不与普通状态混放",
+        "便于施加额外的访问控制",
+        "也便于整体清除"
+      ]
+    }
+  ]
+}

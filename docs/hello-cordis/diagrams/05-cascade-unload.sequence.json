@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "服务卸载引发的级联",
+    "output": "05-cascade-unload.html",
+    "viewBox": [
+      1420,
+      760
+    ],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "a",
+      "type": "external",
+      "label": "插件 A",
+      "sublabel": "provide 'db'"
+    },
+    {
+      "id": "rf",
+      "type": "backend",
+      "label": "ReflectService",
+      "sublabel": "传播中心"
+    },
+    {
+      "id": "fb",
+      "type": "backend",
+      "label": "插件 B 的 Fiber",
+      "sublabel": "inject: ['db']"
+    },
+    {
+      "id": "fc",
+      "type": "backend",
+      "label": "插件 C 的 Fiber",
+      "sublabel": "inject: ['db', 'api']"
+    }
+  ],
+  "segments": [
+    {
+      "from": 150,
+      "to": 260,
+      "label": "A 被卸载"
+    },
+    {
+      "from": 280,
+      "to": 500,
+      "label": "逐个依赖方回落"
+    },
+    {
+      "from": 520,
+      "to": 660,
+      "label": "等待收敛"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m1",
+      "from": "a",
+      "to": "rf",
+      "y": 190,
+      "label": "provide 的 disposer 触发",
+      "variant": "emphasis",
+      "note": "随即 delete store[Sym_db] 并调用 notify(['db'])"
+    },
+    {
+      "id": "m2",
+      "from": "rf",
+      "to": "fb",
+      "y": 300,
+      "label": "_checkImpl('db') 取不到实现，删本地记录"
+    },
+    {
+      "id": "m3",
+      "from": "rf",
+      "to": "fb",
+      "y": 350,
+      "label": "_refresh() 得 epoch = INACTIVE",
+      "note": "_setEpoch 触发 _unload()，状态由 ACTIVE 转 UNLOADING"
+    },
+    {
+      "id": "m4",
+      "from": "rf",
+      "to": "fc",
+      "y": 420,
+      "label": "_checkImpl('db') 同样删除"
+    },
+    {
+      "id": "m5",
+      "from": "rf",
+      "to": "fc",
+      "y": 470,
+      "label": "_refresh() 得 epoch = INACTIVE",
+      "note": "C 也开始卸载，即使它的 api 依赖仍在"
+    },
+    {
+      "id": "m6",
+      "from": "rf",
+      "to": "a",
+      "y": 550,
+      "label": "emit('internal/service', 'db')",
+      "variant": "dashed"
+    },
+    {
+      "id": "m7",
+      "from": "fb",
+      "to": "rf",
+      "y": 610,
+      "label": "await Promise.allSettled([B.await(), C.await()])",
+      "variant": "return",
+      "note": "各自 _disposables 并发执行，见 03 篇 § 3.2"
+    },
+    {
+      "id": "m8",
+      "from": "rf",
+      "to": "a",
+      "y": 670,
+      "label": "delete A.fiber.store['db'] 收尾",
+      "variant": "return",
+      "note": "若 B 也 provide 了服务，会再触发下一层 notify，递归下去"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "rf",
+      "from": 185,
+      "to": 676,
+      "type": "backend"
+    },
+    {
+      "participant": "fb",
+      "from": 295,
+      "to": 616,
+      "type": "backend"
+    },
+    {
+      "participant": "fc",
+      "from": 415,
+      "to": 476,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "一个依赖缺失就整体回落",
+      "items": [
+        "C 声明了 db 与 api 两个依赖",
+        "只要 db 消失，epoch 就变成 INACTIVE",
+        "cordis 不做部分降级，只做全有或全无"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "卸载是并发的",
+      "items": [
+        "B 与 C 的卸载同时进行",
+        "用 allSettled 而非 all，单个失败不阻断",
+        "各自内部的 disposer 按启动顺序逆序"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "递归终止于叶子",
+      "items": [
+        "每层卸载都可能触发下一层 notify",
+        "直到没有 Fiber 的 epoch 再变化",
+        "收尾时才删掉 A 自己的 store 记录"
+      ]
+    }
+  ]
+}

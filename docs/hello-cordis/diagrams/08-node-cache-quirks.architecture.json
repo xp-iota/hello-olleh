@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Node 版本间的模块缓存差异",
+    "output": "08-node-cache-quirks.html",
+    "viewBox": [
+      1500,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "e1",
+      "type": "backend",
+      "label": "Node 22 与 23",
+      "sublabel": "loadCache 是 Map<url, ModuleJob>",
+      "tag": "delete(url) 行为正常",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "e2",
+      "type": "security",
+      "label": "Node 24",
+      "sublabel": "loadCache 是 Map 的子类，值按 type 分槽",
+      "tag": "delete 只把 type 槽清空，条目仍在",
+      "pos": [
+        70,
+        280
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "e3",
+      "type": "cloud",
+      "label": "ESM 侧解法",
+      "sublabel": "用 Map.prototype.delete.call(loadCache, url)",
+      "tag": "H/index.ts:295 与 :297，绕过子类重写直达原生实现",
+      "pos": [
+        480,
+        205
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "c1",
+      "type": "security",
+      "label": "CJS 侧的坑",
+      "sublabel": "Node 24 下经 import() 加载的 CJS 同时进两个缓存",
+      "pos": [
+        930,
+        130
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "c2",
+      "type": "messagebus",
+      "label": "CJS 侧解法",
+      "sublabel": "同时 delete require.cache[filepath]",
+      "tag": "只清 loadCache 会让旧模块继续被供应",
+      "pos": [
+        930,
+        280
+      ],
+      "size": [
+        380,
+        110
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "ESM loadCache",
+      "wraps": [
+        "e1",
+        "e2"
+      ]
+    },
+    {
+      "kind": "security-group",
+      "label": "CJS require.cache",
+      "wraps": [
+        "c1",
+        "c2"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "e2",
+      "to": "e3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "c1",
+      "to": "c2",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "这是本包最脏的一段",
+      "items": [
+        "源码里的注释写了整整 13 行说明",
+        "原因是 Node 内部缓存结构跨版本变了",
+        "没有公开 API 可以规避"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "子类重写导致 delete 失效",
+      "items": [
+        "Node 24 的 LoadCache 重写了 delete",
+        "它只清 type 槽而不删 Map 条目",
+        "于是旧 ModuleJob 仍可被命中"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "两个缓存必须一起清",
+      "items": [
+        "ESM 侧清 loadCache",
+        "CJS 侧清 require.cache",
+        "漏掉任一个都会拿到旧模块"
+      ]
+    }
+  ]
+}

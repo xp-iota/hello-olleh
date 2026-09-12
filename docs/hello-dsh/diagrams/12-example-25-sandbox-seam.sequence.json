@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "沙箱 seam：confine 包装 argv，强制不了就 fail-closed",
+    "output": "12-example-25-sandbox-seam.html",
+    "viewBox": [1680, 790],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "script", "type": "external", "label": "run.ts", "sublabel": "示例入口脚本" },
+    { "id": "cordis", "type": "messagebus", "label": "cordis Context", "sublabel": "一个 context 只装一个实现" },
+    { "id": "wrap", "type": "backend", "label": "WrapSandbox", "sublabel": "可强制执行的包装后端" },
+    { "id": "refuse", "type": "security", "label": "RefuseSandbox", "sublabel": "只支持 read-only 的后端" }
+  ],
+  "segments": [
+    { "from": 155, "to": 280, "label": "装一个沙箱后端" },
+    { "from": 295, "to": 400, "label": "confine 包装 argv" },
+    { "from": 415, "to": 520, "label": "一个 context 一个实现" },
+    { "from": 535, "to": 710, "label": "fail-closed 与逐层还原" }
+  ],
+  "messages": [
+    {
+      "id": "harness",
+      "from": "script",
+      "to": "cordis",
+      "y": 195,
+      "label": "createHarness()：刻意不装官方沙箱后端",
+      "variant": "emphasis"
+    },
+    {
+      "id": "mount",
+      "from": "cordis",
+      "to": "wrap",
+      "y": 245,
+      "label": "loadPlugin(WrapSandbox)：构造里 super(ctx) 即挂 ctx.sandbox",
+      "variant": "security",
+      "note": "装载形状与 14 的压缩 seam 完全同型：抽象 Service + effect-based 挂载"
+    },
+    {
+      "id": "confine",
+      "from": "script",
+      "to": "wrap",
+      "y": 315,
+      "label": "①② confine(argv, { mode:'workspace-write', workspaceRoot })",
+      "variant": "emphasis",
+      "note": "argv 是程序加参数的数组，不是 shell 字符串；策略只是一个普通值，没有策略服务"
+    },
+    {
+      "id": "confined",
+      "from": "wrap",
+      "to": "script",
+      "y": 365,
+      "label": "受约束 argv + enforcement=full + denialSignatures + runnerFailureRules",
+      "variant": "return"
+    },
+    {
+      "id": "dup",
+      "from": "script",
+      "to": "cordis",
+      "y": 435,
+      "label": "③ 同层再装一个实现 → service \"sandbox\" has been registered",
+      "variant": "security"
+    },
+    {
+      "id": "swap",
+      "from": "script",
+      "to": "cordis",
+      "y": 485,
+      "label": "④ wrapFiber.dispose() 之后才能装上 RefuseSandbox"
+    },
+    {
+      "id": "unusable",
+      "from": "script",
+      "to": "refuse",
+      "y": 555,
+      "label": "⑤ confine(argv, workspace-write)：该后端强制不了这个模式",
+      "variant": "emphasis"
+    },
+    {
+      "id": "failclosed",
+      "from": "refuse",
+      "to": "script",
+      "y": 605,
+      "label": "抛 SandboxUnavailableError；read-only 仍给出可执行的包装",
+      "variant": "security",
+      "note": "铁律：要么返回可强制执行的 argv，要么 fail-closed，绝不静默放行未加约束的命令"
+    },
+    {
+      "id": "dispose",
+      "from": "script",
+      "to": "cordis",
+      "y": 675,
+      "label": "⑥ refuseFiber.dispose()：seam 回到未装状态"
+    }
+  ],
+  "activations": [
+    { "participant": "cordis", "from": 190, "to": 680, "type": "messagebus" },
+    { "participant": "wrap", "from": 240, "to": 370, "type": "backend" },
+    { "participant": "refuse", "from": 550, "to": 610, "type": "security" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "confine 是这条 seam 的唯一方法",
+      "items": [
+        "把即将 spawn 的 argv 数组包装成受策略约束的 argv",
+        "连同强制力级别一起返回",
+        "argv 是程序加参数，不是 shell 字符串"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "两组分类线索不能省",
+      "items": [
+        "denialSignatures 让调用方认出「这次是沙箱拒的」",
+        "runnerFailureRules 区分 runner 起不来与程序自己失败",
+        "sandboxDenialMarker(mode) 帮你生成签名"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "策略是普通值，装载与 14 同型",
+      "items": [
+        "SandboxPolicy 把 mode 收窄成可约束的两档",
+        "danger-full-access 在类型层面就进不了 confine()",
+        "换后端必须先 dispose 旧的实现"
+      ]
+    }
+  ]
+}

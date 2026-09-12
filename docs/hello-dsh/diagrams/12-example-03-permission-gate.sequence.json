@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "权限门：tools/pre-execute waterfall 上的 allow / deny 两条路径",
+    "output": "12-example-03-permission-gate.html",
+    "viewBox": [1680, 840],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "script", "type": "external", "label": "run.ts", "sublabel": "示例入口脚本" },
+    { "id": "harness", "type": "backend", "label": "createHarness", "sublabel": "runtime/harness.ts 装配层" },
+    { "id": "gate", "type": "security", "label": "permission-gate", "sublabel": "03-permission-gate/index.ts" },
+    { "id": "tools", "type": "messagebus", "label": "ctx.tools", "sublabel": "真实 ToolRuntime 三段 waterfall" },
+    { "id": "tool", "type": "backend", "label": "read_file / bash", "sublabel": "两个演示工具" }
+  ],
+  "segments": [
+    { "from": 155, "to": 380, "label": "装配与挂拦截点" },
+    { "from": 395, "to": 595, "label": "read_file：未命中 → 放行" },
+    { "from": 610, "to": 765, "label": "bash：命中 denyList → 拒绝" }
+  ],
+  "messages": [
+    {
+      "id": "harness",
+      "from": "script",
+      "to": "harness",
+      "y": 195,
+      "label": "createHarness()：按依赖序装真实 @deepseek-ai/* 服务",
+      "variant": "emphasis"
+    },
+    {
+      "id": "register-tools",
+      "from": "script",
+      "to": "tools",
+      "y": 245,
+      "label": "register(read_file) / register(bash)：先备两个演示工具"
+    },
+    {
+      "id": "load-gate",
+      "from": "script",
+      "to": "harness",
+      "y": 295,
+      "label": "loadPlugin(权限门, { denyList: ['bash'] })"
+    },
+    {
+      "id": "apply",
+      "from": "harness",
+      "to": "gate",
+      "y": 345,
+      "label": "apply(ctx)：ctx.on('tools/pre-execute', ...) 挂上拦截点",
+      "variant": "security",
+      "note": "原生 hook 就是一个普通 cordis 插件挂在拦截点上，无需外部协议"
+    },
+    {
+      "id": "call-read",
+      "from": "script",
+      "to": "tools",
+      "y": 415,
+      "label": "① callTool('read_file')：直通真实 ctx.tools.execute",
+      "variant": "emphasis"
+    },
+    {
+      "id": "pre-read",
+      "from": "tools",
+      "to": "gate",
+      "y": 465,
+      "label": "tools/pre-execute waterfall 依次问过每个监听者"
+    },
+    {
+      "id": "allow",
+      "from": "gate",
+      "to": "tools",
+      "y": 515,
+      "label": "未命中 denyList → return next() 转发下游",
+      "variant": "return"
+    },
+    {
+      "id": "exec-read",
+      "from": "tools",
+      "to": "tool",
+      "y": 565,
+      "label": "execute(args, exec)：isError=false，读到 path=a.txt"
+    },
+    {
+      "id": "call-bash",
+      "from": "script",
+      "to": "tools",
+      "y": 635,
+      "label": "② callTool('bash')：同一条工具管线",
+      "variant": "emphasis"
+    },
+    {
+      "id": "pre-bash",
+      "from": "tools",
+      "to": "gate",
+      "y": 685,
+      "label": "tools/pre-execute waterfall 再问一次"
+    },
+    {
+      "id": "deny",
+      "from": "gate",
+      "to": "tools",
+      "y": 735,
+      "label": "命中 denyList → deny(reason) 接盘截链，不再 next()",
+      "variant": "security",
+      "note": "ctx.tools 把 deny 转成结构化 ToolExecutionFailure：isError=true，reason 进模型可见 content；bash 的 execute 从未被调用"
+    }
+  ],
+  "activations": [
+    { "participant": "harness", "from": 190, "to": 350, "type": "backend" },
+    { "participant": "gate", "from": 340, "to": 740, "type": "security" },
+    { "participant": "tools", "from": 240, "to": 740, "type": "messagebus" },
+    { "participant": "tool", "from": 560, "to": 610, "type": "backend" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "原生 hook 就是普通插件",
+      "items": [
+        "监听 tools/pre-execute 做 allow / deny / ask",
+        "不需要外部协议，也不改工具本身",
+        "权限系统、沙箱策略、plan-mode 复用同一个点"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "以责任链方式用 waterfall",
+      "items": [
+        "命中即接盘截链，未命中 return next() 转发",
+        "下游决定在返回途中还能被外层翻案",
+        "要一锤定音用 ctx.tools.guard()，见 12"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "拒绝是结构化结果，不是异常",
+      "items": [
+        "返回 PreToolDecision：allow / deny(reason) / ask",
+        "失败以 isError=true 的 ToolExecutionFailure 回灌",
+        "reason 直接成为模型可见的内容"
+      ]
+    }
+  ]
+}

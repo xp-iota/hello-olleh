@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "发布前的地基优先立场",
+    "output": "10-pre-release-stance.html",
+    "viewBox": [
+      1560,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "pos",
+      "type": "security",
+      "label": "立场",
+      "sublabel": "没有外部消费者时，地基优先于影响面",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        320,
+        140
+      ]
+    },
+    {
+      "id": "act",
+      "type": "database",
+      "label": "具体做法",
+      "sublabel": "自由重命名与重新打包并同步全部引用",
+      "tag": "后端拒绝旧磁盘格式，不做兼容读",
+      "pos": [
+        450,
+        190
+      ],
+      "size": [
+        400,
+        140
+      ]
+    },
+    {
+      "id": "ver",
+      "type": "backend",
+      "label": "版本策略",
+      "sublabel": "SQLite 用单调递增的 SCHEMA_VERSION",
+      "tag": "会话格式版本保持为 0，不做兼容承诺",
+      "pos": [
+        910,
+        190
+      ],
+      "size": [
+        400,
+        140
+      ]
+    },
+    {
+      "id": "impl",
+      "type": "cloud",
+      "label": "实现上的体现",
+      "sublabel": "版本不符直接抛错",
+      "tag": "P/core/session/src/index.ts:101-103",
+      "pos": [
+        1370,
+        190
+      ],
+      "size": [
+        140,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "pos",
+      "to": "act",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "act",
+      "to": "ver",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "ver",
+      "to": "impl",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么可以这么做",
+      "items": [
+        "发布前没有外部消费者需要照顾",
+        "保持地基整洁比维护兼容层价值更高",
+        "一旦发布这个立场就必须改变"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "拒绝而非迁移",
+      "items": [
+        "读到旧格式直接抛错，不尝试转换",
+        "于是不存在半迁移状态",
+        "错误信息明确指出版本要求"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "两种版本号的差异",
+      "items": [
+        "SCHEMA_VERSION 单调递增，用于数据库结构",
+        "SESSION_FORMAT_VERSION 保持为 0",
+        "后者表示格式尚未冻结"
+      ]
+    }
+  ]
+}

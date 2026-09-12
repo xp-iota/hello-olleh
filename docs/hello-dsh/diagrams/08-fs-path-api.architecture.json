@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ctx.fs 的路径解析四方法",
+    "output": "08-fs-path-api.html",
+    "viewBox": [
+      1480,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "res",
+      "type": "frontend",
+      "label": "resolve(path, opts)",
+      "sublabel": "一切操作的入口，把字符串路径变成受控 target",
+      "tag": "F/index.ts:116",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "pp",
+      "type": "database",
+      "label": "processPath(target)",
+      "sublabel": "给子进程用的路径，可能与内部表示不同",
+      "tag": "F/index.ts:126",
+      "pos": [
+        490,
+        80
+      ],
+      "size": [
+        360,
+        110
+      ]
+    },
+    {
+      "id": "url",
+      "type": "database",
+      "label": "fileUrl(target)",
+      "sublabel": "返回 file 协议的 URL",
+      "tag": "F/index.ts:135",
+      "pos": [
+        490,
+        215
+      ],
+      "size": [
+        360,
+        110
+      ]
+    },
+    {
+      "id": "cont",
+      "type": "security",
+      "label": "contains(parent, child)",
+      "sublabel": "包含判定，沙箱边界校验靠它",
+      "tag": "F/index.ts:144",
+      "pos": [
+        490,
+        350
+      ],
+      "size": [
+        360,
+        110
+      ]
+    },
+    {
+      "id": "svc",
+      "type": "cloud",
+      "label": "FsService extends Service",
+      "sublabel": "F/index.ts:86",
+      "pos": [
+        890,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "res",
+      "to": "url",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "url",
+      "to": "svc",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么不直接用字符串",
+      "items": [
+        "target 是受控对象，携带 provider 侧的内部表示",
+        "远端 provider 的真实路径与本地写法不同",
+        "于是路径转换必须显式经过接口"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "processPath 的用途",
+      "items": [
+        "把 target 转成能交给子进程的字符串",
+        "沙箱或容器里的路径可能被重映射",
+        "shell 与 subprocess 都依赖它"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "contains 是安全原语",
+      "items": [
+        "沙箱 provider 用它做路径边界校验",
+        "避免通过相对路径逃出允许目录",
+        "判定由 provider 实现，不在调用方"
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "路径解析（4 个）",
+      "wraps": [
+        "res",
+        "pp",
+        "url",
+        "cont"
+      ]
+    }
+  ]
+}

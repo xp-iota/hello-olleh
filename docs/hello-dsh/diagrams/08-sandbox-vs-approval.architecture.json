@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "沙箱与审批是两套机制",
+    "output": "08-sandbox-vs-approval.html",
+    "viewBox": [
+      1560,
+      500
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "s1",
+      "type": "security",
+      "label": "ctx.sandbox",
+      "sublabel": "唯一抽象方法 confine(argv, policy)",
+      "tag": "SB/index.ts:158 与 :175，返回应该改成执行的 argv",
+      "pos": [
+        70,
+        140
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "s2",
+      "type": "database",
+      "label": "沙箱 Provider",
+      "sublabel": "sandbox-local 655 行走 Linux Landlock",
+      "tag": "sandbox-windows-acl 2530 行走 Windows ACL，策略包 sandbox-policy 267 行",
+      "pos": [
+        70,
+        300
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "s3",
+      "type": "cloud",
+      "label": "沙箱的特点",
+      "sublabel": "内核或系统强制，进程无法绕过",
+      "tag": "粒度是文件系统允许列表",
+      "pos": [
+        540,
+        140
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "a1",
+      "type": "backend",
+      "label": "审批机制",
+      "sublabel": "挂在 tools/pre-execute 上，逐次询问",
+      "tag": "user-approval 与 permission-presets 两包",
+      "pos": [
+        540,
+        300
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "cmp",
+      "type": "messagebus",
+      "label": "两者互补",
+      "sublabel": "沙箱管「能不能做到」，审批管「该不该做」",
+      "tag": "沙箱是硬边界，审批是策略层",
+      "pos": [
+        980,
+        220
+      ],
+      "size": [
+        440,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "s1",
+      "to": "s3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "s2",
+      "to": "a1",
+      "variant": "dashed"
+    },
+    {
+      "id": "c",
+      "from": "s3",
+      "to": "cmp",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "沙箱不可绕过",
+      "items": [
+        "约束由内核或系统施加",
+        "即使进程有恶意也无法突破",
+        "但粒度较粗，只到文件系统级"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "审批粒度细但可绕过",
+      "items": [
+        "能针对具体工具与参数做判断",
+        "依赖 agent 走正常的工具调用路径",
+        "若绕开工具直接执行就失效"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "实践上要一起用",
+      "items": [
+        "沙箱兜住最坏情况",
+        "审批处理需要人判断的灰区",
+        "两者缺一都不完整"
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "① 沙箱：进程级强制约束",
+      "wraps": [
+        "s1",
+        "s2"
+      ]
+    }
+  ]
+}

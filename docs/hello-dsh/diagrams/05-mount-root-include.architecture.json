@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "mountRootInclude 如何挂 builtins",
+    "output": "05-mount-root-include.html",
+    "viewBox": [
+      1500,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "api",
+      "type": "frontend",
+      "label": "mountRootInclude(...)",
+      "sublabel": "AB/index.ts:486-529",
+      "pos": [
+        60,
+        220
+      ],
+      "size": [
+        260,
+        130
+      ]
+    },
+    {
+      "id": "ask",
+      "type": "security",
+      "label": "给了 bareModuleBaseUrl 吗",
+      "sublabel": "宿主是否指定裸模块解析基准",
+      "pos": [
+        370,
+        220
+      ],
+      "size": [
+        300,
+        130
+      ]
+    },
+    {
+      "id": "plain",
+      "type": "database",
+      "label": "直接用 Include",
+      "sublabel": "builtins.include = Include",
+      "pos": [
+        730,
+        80
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "sub",
+      "type": "cloud",
+      "label": "动态子类覆写 import",
+      "sublabel": "HostResolvedRootInclude extends Include",
+      "tag": "index.ts:494-503",
+      "pos": [
+        730,
+        250
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "rule",
+      "type": "backend",
+      "label": "三条解析规则",
+      "sublabel": "绝对路径转 file URL、点号或 cordis 前缀交 super",
+      "tag": "裸模块名走 internal.import 并带上宿主基准 URL",
+      "pos": [
+        1080,
+        250
+      ],
+      "size": [
+        350,
+        110
+      ]
+    },
+    {
+      "id": "grp",
+      "type": "messagebus",
+      "label": "再挂 group builtin",
+      "sublabel": "builtins.group = Group",
+      "tag": "index.ts:510，isolate realm 依赖它",
+      "pos": [
+        730,
+        420
+      ],
+      "size": [
+        300,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "api",
+      "to": "ask",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "ask",
+      "to": "plain",
+      "label": "否"
+    },
+    {
+      "id": "c",
+      "from": "ask",
+      "to": "sub",
+      "label": "是",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "sub",
+      "to": "rule",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e",
+      "from": "ask",
+      "to": "grp",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么要动态子类",
+      "items": [
+        "宿主可能把插件装在非默认位置",
+        "裸模块名需要从宿主给的基准 URL 解析",
+        "覆写 import 是最小侵入的做法"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "group 必须是 builtin",
+      "items": [
+        "isolate realm 要用 group 行做容器",
+        "若 group 不是 builtin 就无法在配置里直接用",
+        "见 § 5.6 与 03 篇的两级隔离"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "这一步是 cordis 与 DSH 的接缝",
+      "items": [
+        "把 cordis 的 Include 与 Group 接进 DSH 的解析策略",
+        "之后整棵插件树的加载都走这套规则",
+        "改这里等于改整个模块解析行为"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "从用户输入到 turn/step 循环",
+    "output": "01-request-loop.html",
+    "viewBox": [
+      1540,
+      680
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "用户在 Web UI 输入",
+      "sublabel": "浏览器端",
+      "pos": [
+        60,
+        120
+      ],
+      "size": [
+        250,
+        105
+      ]
+    },
+    {
+      "id": "host",
+      "type": "cloud",
+      "label": "host/webserver",
+      "sublabel": "HTTP 与 WebSocket 网关",
+      "pos": [
+        350,
+        120
+      ],
+      "size": [
+        250,
+        105
+      ]
+    },
+    {
+      "id": "agents",
+      "type": "backend",
+      "label": "ctx.agents",
+      "sublabel": "找到或创建 Agent",
+      "tag": "P/core/agent",
+      "pos": [
+        640,
+        120
+      ],
+      "size": [
+        250,
+        105
+      ]
+    },
+    {
+      "id": "inbox",
+      "type": "messagebus",
+      "label": "进 Inbox",
+      "sublabel": "send / followup / steer / inject 四种入口",
+      "pos": [
+        930,
+        120
+      ],
+      "size": [
+        290,
+        105
+      ]
+    },
+    {
+      "id": "t1",
+      "type": "database",
+      "label": "① 开 turn",
+      "sublabel": "append turn/start",
+      "pos": [
+        60,
+        370
+      ],
+      "size": [
+        230,
+        100
+      ]
+    },
+    {
+      "id": "t2",
+      "type": "security",
+      "label": "② preStep",
+      "sublabel": "从 Inbox claim 消息后走 agent/pre-step waterfall",
+      "tag": "可拒绝或改写",
+      "pos": [
+        330,
+        370
+      ],
+      "size": [
+        300,
+        100
+      ]
+    },
+    {
+      "id": "t3",
+      "type": "database",
+      "label": "③ 记录输入",
+      "sublabel": "append step/start 与每条 user/message",
+      "pos": [
+        670,
+        370
+      ],
+      "size": [
+        270,
+        100
+      ]
+    },
+    {
+      "id": "t4",
+      "type": "backend",
+      "label": "④ renderPrompt",
+      "sublabel": "ctx.systemPrompt 组装并从日志投影历史",
+      "tag": "session.deriveMessages()",
+      "pos": [
+        980,
+        370
+      ],
+      "size": [
+        280,
+        100
+      ]
+    },
+    {
+      "id": "t5",
+      "type": "cloud",
+      "label": "⑤ 流式调用",
+      "sublabel": "ctx.llm.stream(request) 逐 chunk append",
+      "tag": "assistant/chunk",
+      "pos": [
+        1300,
+        370
+      ],
+      "size": [
+        190,
+        100
+      ]
+    },
+    {
+      "id": "t6",
+      "type": "messagebus",
+      "label": "⑥ 落定与工具",
+      "sublabel": "append assistant/message，有 tool call 则执行后回到第二步",
+      "tag": "带 sourceEventSeqs 指回来源 chunk",
+      "pos": [
+        330,
+        540
+      ],
+      "size": [
+        620,
+        100
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "ctx.agentLoop 的 turn/step 循环",
+      "wraps": [
+        "t1",
+        "t2",
+        "t3",
+        "t4",
+        "t5",
+        "t6"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "user",
+      "to": "host",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "host",
+      "to": "agents"
+    },
+    {
+      "id": "c",
+      "from": "agents",
+      "to": "inbox",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "t1",
+      "to": "t2"
+    },
+    {
+      "id": "e",
+      "from": "t2",
+      "to": "t3"
+    },
+    {
+      "id": "f",
+      "from": "t3",
+      "to": "t4"
+    },
+    {
+      "id": "g",
+      "from": "t4",
+      "to": "t5"
+    },
+    {
+      "id": "h",
+      "from": "t3",
+      "to": "t6",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 44
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Inbox 是唯一入口",
+      "items": [
+        "四种投递方式最终都落进同一个 Inbox",
+        "preStep 统一从 Inbox claim",
+        "因此人类输入与程序注入走同一条路"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "历史来自日志投影",
+      "items": [
+        "会话历史不是内存里的数组",
+        "由 session.deriveMessages() 从事件日志算出",
+        "因此可以随时重放与修复"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "主循环实现位置",
+      "items": [
+        "P/core/agent-loop/src/agent.ts 共 496 行",
+        "turn 包含多个 step",
+        "有 tool call 就回到 preStep 继续下一 step"
+      ]
+    }
+  ]
+}

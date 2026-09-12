@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "子进程环境变量的拦截规则",
+    "output": "08-bootstrap-env-filter.html",
+    "viewBox": [
+      1480,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "env",
+      "type": "frontend",
+      "label": "dsh 进程的环境变量",
+      "sublabel": "待决定是否下传给子进程",
+      "pos": [
+        70,
+        200
+      ],
+      "size": [
+        300,
+        130
+      ]
+    },
+    {
+      "id": "ask",
+      "type": "security",
+      "label": "isBootstrapOnly(name)",
+      "sublabel": "AB/index.ts:125",
+      "pos": [
+        410,
+        200
+      ],
+      "size": [
+        300,
+        130
+      ]
+    },
+    {
+      "id": "drop",
+      "type": "cloud",
+      "label": "不下传",
+      "sublabel": "DSH 前缀影响自身启动，DYLD 前缀是 macOS 动态链接器",
+      "tag": "BASH_FUNC 前缀是导出的 bash 函数",
+      "pos": [
+        770,
+        80
+      ],
+      "size": [
+        340,
+        120
+      ]
+    },
+    {
+      "id": "pass",
+      "type": "database",
+      "label": "下传",
+      "sublabel": "由 shell-env 组装后传给子进程",
+      "tag": "shell-env 共 247 行",
+      "pos": [
+        770,
+        320
+      ],
+      "size": [
+        340,
+        120
+      ]
+    },
+    {
+      "id": "why",
+      "type": "backend",
+      "label": "为什么挡 bash 函数",
+      "sublabel": "这是 bash 导出函数的编码形式",
+      "tag": "历史上是 Shellshock 漏洞载体，属防御性做法",
+      "pos": [
+        1150,
+        80
+      ],
+      "size": [
+        280,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "env",
+      "to": "ask",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "ask",
+      "to": "drop",
+      "label": "是"
+    },
+    {
+      "id": "c",
+      "from": "ask",
+      "to": "pass",
+      "label": "否",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "drop",
+      "to": "why",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三类被拦截的前缀",
+      "items": [
+        "DSH 前缀会干扰子进程里的 dsh 启动",
+        "DYLD 前缀能改变 macOS 动态库加载",
+        "BASH_FUNC 前缀能注入 bash 函数"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "默认拦截而非默认放行",
+      "items": [
+        "白名单式判断，不确定就不传",
+        "避免宿主环境意外影响子进程行为",
+        "关联 05 篇 § 5.8"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "组装逻辑独立",
+      "items": [
+        "过滤之后由 shell-env 负责组装",
+        "它还处理路径与编码相关的变量",
+        "与 shell provider 解耦"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "读源码前必须知道的六件事",
+    "output": "01-six-pitfalls.html",
+    "viewBox": [
+      1460,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "w1",
+      "type": "security",
+      "label": "① ctx 是 Proxy",
+      "sublabel": "构造末尾 return new Proxy(this, handler)",
+      "tag": "调试器里看属性会触发 trap",
+      "pos": [
+        70,
+        140
+      ],
+      "size": [
+        290,
+        120
+      ]
+    },
+    {
+      "id": "w2",
+      "type": "backend",
+      "label": "② Symbol.for 元编程",
+      "sublabel": "symbols 表 18 个符号，跨实例共享",
+      "tag": "搜 symbols.xxx 而非字符串",
+      "pos": [
+        400,
+        140
+      ],
+      "size": [
+        290,
+        120
+      ]
+    },
+    {
+      "id": "w3",
+      "type": "backend",
+      "label": "③ then 是保留字",
+      "sublabel": "RESERVED_WORDS = ['prototype', 'then']",
+      "tag": "但 plugin() 返回值刻意是 thenable",
+      "pos": [
+        730,
+        140
+      ],
+      "size": [
+        290,
+        120
+      ]
+    },
+    {
+      "id": "w4",
+      "type": "cloud",
+      "label": "④ 错误堆栈被重写",
+      "sublabel": "composeError + buildOuterStack",
+      "tag": "跨 await 的完整堆栈是刻意设计",
+      "pos": [
+        70,
+        310
+      ],
+      "size": [
+        290,
+        120
+      ]
+    },
+    {
+      "id": "w5",
+      "type": "backend",
+      "label": "⑤ 原型链当作用域链",
+      "sublabel": "extend / isolate / intercept 靠 Object.create",
+      "tag": "没有显式作用域表",
+      "pos": [
+        400,
+        310
+      ],
+      "size": [
+        290,
+        120
+      ]
+    },
+    {
+      "id": "w6",
+      "type": "backend",
+      "label": "⑥ createTraceable 57 行",
+      "sublabel": "this 归属 / shadow / 方法绑定 / 嵌套 tracker",
+      "tag": "先读 shadow.spec.ts",
+      "pos": [
+        730,
+        310
+      ],
+      "size": [
+        290,
+        120
+      ]
+    },
+    {
+      "id": "tests",
+      "type": "database",
+      "label": "缓解手段：测试比实现好读",
+      "sublabel": "30 个 spec 共 4340 行，覆盖每条语义",
+      "tag": "见 09 篇 § 9.9 的映射表",
+      "pos": [
+        1090,
+        225
+      ],
+      "size": [
+        300,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "w3-t",
+      "from": "w3",
+      "to": "tests",
+      "variant": "dashed"
+    },
+    {
+      "id": "w6-t",
+      "from": "w6",
+      "to": "tests",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Proxy 带来的调试陷阱",
+      "items": [
+        "C/context.ts 构造函数末尾 return self",
+        "self = new Proxy(this, ReflectService.handler)",
+        "ctx.foo 可能抛错而不是返回空值"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "两处刻意的不对称",
+      "items": [
+        "ctx 把 then 列为保留字，避免被 await 吞掉",
+        "但 ctx.plugin() 的返回值刻意是 thenable（registry.ts:193）",
+        "错误堆栈把注册处调用栈拼到异步错误上（utils.ts:260 / :275）"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "没有显式作用域表",
+      "items": [
+        "extend / isolate / intercept 全靠 Object.create",
+        "loader 运行时还会 Object.setPrototypeOf（isolate.ts:118-119）",
+        "谁能看到什么由原型链决定，详见 04 篇 § 4.2"
+      ]
+    }
+  ]
+}

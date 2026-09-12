@@ -1,0 +1,30 @@
+{
+  "topic": "从 DSH 到 iota：能力接缝、结构对齐与工程选型",
+  "objective": "让开发者能运行两套 M01–M12 示例，理解能力缝的所有权，并依据执行栈归属选择 harness 或 orchestrator",
+  "audience": "熟悉 Python 或 TypeScript、了解 Agent 基础概念，但尚未系统学习 DSH 与 iota-core 的开发者",
+  "scope": "包含 DSH 十二个能力方向、iota 三分类对齐、M03/M07/M12 三堂结构差异课与离线复现；排除生产凭证、内部基础设施、在线模型实测和部署运维",
+  "entities": [
+    "DSH",
+    "iota-core",
+    "KernelAdapter",
+    "ToolPipeline",
+    "GraphSpec",
+    "EffectStack"
+  ],
+  "angle": "不按 API 名称机械对照，而以能力由谁拥有、在哪一层开缝、失败是否响亮为主线",
+  "tone": "严谨、克制、工程化，先结论后证据",
+  "language": "zh-CN",
+  "slideCount": 40,
+  "durationMinutes": 45,
+  "outputs": [
+    "中文讲稿",
+    "PPTX",
+    "MP4",
+    "旁白音频"
+  ],
+  "visualDirection": "深色工程蓝底、青色与琥珀色强调；架构图和终端证据优先；信息密度均衡，动效克制",
+  "constraints": "默认演示全离线；论断关联可复现命令；旁白不得包含内部代码托管地址、内部包索引主机、内部分支名、凭证或个人信息；外部语音服务仅接收已脱敏旁白",
+  "voiceCharacter": "清晰、沉稳、可信赖的普通话技术讲解",
+  "voiceEmotion": "平静但有重点",
+  "voicePace": "自然偏慢，关键边界处留停顿"
+}

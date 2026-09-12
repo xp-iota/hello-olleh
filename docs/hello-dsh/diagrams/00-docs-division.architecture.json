@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "官方文档、本文档集与示例工程的分工",
+    "output": "00-docs-division.html",
+    "viewBox": [
+      1480,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "off",
+      "type": "database",
+      "label": "官方文档",
+      "sublabel": "契约是什么、怎么扩展",
+      "tag": "docs/ 下 215 个 md，含 105 个中文版",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "here",
+      "type": "frontend",
+      "label": "本文档集",
+      "sublabel": "实现在哪一行、为什么这样实现、实际跑起来的路径",
+      "tag": "另提供 DSH 与 cordis 的跨仓库对应关系",
+      "pos": [
+        490,
+        190
+      ],
+      "size": [
+        420,
+        140
+      ]
+    },
+    {
+      "id": "ex",
+      "type": "backend",
+      "label": "配套示例工程",
+      "sublabel": "照着真实 npm 包把每个扩展点跑一遍",
+      "tag": "deepseek-harness-examples 共 26 个示例",
+      "pos": [
+        950,
+        190
+      ],
+      "size": [
+        420,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "off",
+      "to": "here",
+      "label": "互补",
+      "variant": "dashed"
+    },
+    {
+      "id": "b",
+      "from": "here",
+      "to": "ex",
+      "label": "落地",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三者的选择",
+      "items": [
+        "想知道怎么用与怎么扩展就读官方",
+        "想知道怎么实现与代码在哪就读这里",
+        "想立刻跑一个就看示例工程"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "官方文档已很完整",
+      "items": [
+        "subsystems 有 92 篇，user 26 篇",
+        "cookbook 与 cordis-tutorial 各 16 篇",
+        "并且一半有中文版"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "示例装的是真实包",
+      "items": [
+        "依赖发布到 npm 的 deepseek-ai 系列包",
+        "不是 vendored 快照",
+        "因此能验证真实的扩展契约"
+      ]
+    }
+  ]
+}

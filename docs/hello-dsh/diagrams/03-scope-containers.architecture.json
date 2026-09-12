@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "core/scope 的三个可复用容器",
+    "output": "03-scope-containers.html",
+    "viewBox": [
+      1460,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "named",
+      "type": "database",
+      "label": "NamedEntries<V>",
+      "sublabel": "有名字，支持同名遮蔽",
+      "tag": "SC/store.ts:30，insert 返回 disposer（:43）",
+      "pos": [
+        70,
+        180
+      ],
+      "size": [
+        400,
+        150
+      ]
+    },
+    {
+      "id": "anon",
+      "type": "backend",
+      "label": "AnonymousEntries<V>",
+      "sublabel": "无名字，只做累加",
+      "tag": "SC/store.ts:114，append 返回 disposer（:122）",
+      "pos": [
+        520,
+        180
+      ],
+      "size": [
+        400,
+        150
+      ]
+    },
+    {
+      "id": "layers",
+      "type": "security",
+      "label": "ScopedLayers<L>",
+      "sublabel": "分层叠加，按层查找与回收",
+      "tag": "SC/store.ts:159，运行期能力集的载体",
+      "pos": [
+        970,
+        180
+      ],
+      "size": [
+        400,
+        150
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "named",
+      "to": "anon",
+      "variant": "dashed"
+    },
+    {
+      "id": "b",
+      "from": "anon",
+      "to": "layers",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "共同点是都返回 disposer",
+      "items": [
+        "insert 与 append 都返回一个撤销函数",
+        "于是容器天然适配 cordis 的 effect 模型",
+        "插件卸载时登记的条目自动消失"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "同名遮蔽的用途",
+      "items": [
+        "NamedEntries 允许后注册的同名条目遮蔽先前的",
+        "撤销后自动恢复被遮蔽的那个",
+        "这是覆盖默认实现又能回滚的基础"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "三者的查询接口",
+      "items": [
+        "NamedEntries 提供 get / has / keys / entries / values",
+        "AnonymousEntries 只提供 values",
+        "两者都有 isEmpty"
+      ]
+    }
+  ]
+}

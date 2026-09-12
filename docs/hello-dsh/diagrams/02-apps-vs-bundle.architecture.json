@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "apps 与 bundle 的分工",
+    "output": "02-apps-vs-bundle.html",
+    "viewBox": [
+      1480,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "base",
+      "type": "frontend",
+      "label": "bundle/base",
+      "sublabel": "cordis.patch.yml 451 行，单个 insert 列出全部基础行",
+      "tag": "模型适配器 / 工具 / 持久化 / 沙箱 / 审批 / 设置 / 凭据 / 遥测",
+      "pos": [
+        70,
+        120
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "web",
+      "type": "database",
+      "label": "bundle/web-app",
+      "sublabel": "424 行，用 id 覆盖 base 的行",
+      "tag": "加浏览器应用，并把 hmr 设为 disabled",
+      "pos": [
+        70,
+        280
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "head",
+      "type": "cloud",
+      "label": "bundle/headless",
+      "sublabel": "35 行，一次性 runner，不起 server",
+      "pos": [
+        70,
+        440
+      ],
+      "size": [
+        380,
+        100
+      ]
+    },
+    {
+      "id": "cli",
+      "type": "backend",
+      "label": "apps/cli",
+      "sublabel": "发布为 deepseek-ai/dsh，bin 指向 lib/bin.js",
+      "tag": "另有 config/、reference/、composition.md",
+      "pos": [
+        620,
+        180
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "webapp",
+      "type": "backend",
+      "label": "apps/web",
+      "sublabel": "发布为 dsh-web-frontend，Vite 加 React",
+      "tag": "含 stress-tests/",
+      "pos": [
+        620,
+        340
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "split",
+      "type": "messagebus",
+      "label": "分工原则",
+      "sublabel": "bundle 分发配置，apps 装配产品",
+      "tag": "同一份 bundle 可被多个 app 复用",
+      "pos": [
+        1120,
+        260
+      ],
+      "size": [
+        300,
+        120
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "packages/bundle/ — 配置的分发单元",
+      "wraps": [
+        "base",
+        "web",
+        "head"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "apps/ — 产品装配",
+      "wraps": [
+        "cli",
+        "webapp"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "base",
+      "to": "web",
+      "label": "按 id 覆盖",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 48
+    },
+    {
+      "id": "b",
+      "from": "web",
+      "to": "webapp",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "cli",
+      "to": "split",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "base 用 insert，其余用 id 覆盖",
+      "items": [
+        "base 是唯一整体插入的 bundle",
+        "web-app 与 headless 都按 id 改写既有行",
+        "这正是 applyPatches 的两条路径"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "apps 里没有业务逻辑",
+      "items": [
+        "apps/cli 只负责 bin 入口与默认配置",
+        "apps/web 只负责前端界面",
+        "能力全部来自 bundle 叠出来的插件树"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "web-app 关掉了 hmr",
+      "items": [
+        "浏览器场景下热重载会干扰前端状态",
+        "于是在 patch 里把 hmr 设为 disabled",
+        "这是按 id 覆盖的典型用法"
+      ]
+    }
+  ]
+}

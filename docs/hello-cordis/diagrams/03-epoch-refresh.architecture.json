@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "_refresh() 如何把依赖压成一个字符串",
+    "output": "03-epoch-refresh.html",
+    "viewBox": [
+      1460,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "init",
+      "type": "frontend",
+      "label": "起点",
+      "sublabel": "epoch 置为空串",
+      "pos": [
+        60,
+        120
+      ],
+      "size": [
+        230,
+        100
+      ]
+    },
+    {
+      "id": "loop",
+      "type": "backend",
+      "label": "遍历 inject",
+      "sublabel": "取本插件声明的每个依赖名",
+      "pos": [
+        350,
+        120
+      ],
+      "size": [
+        230,
+        100
+      ]
+    },
+    {
+      "id": "check",
+      "type": "security",
+      "label": "判断",
+      "sublabel": "this._store[name] 是否存在",
+      "pos": [
+        640,
+        120
+      ],
+      "size": [
+        230,
+        100
+      ]
+    },
+    {
+      "id": "hit",
+      "type": "database",
+      "label": "存在",
+      "sublabel": "epoch 追加冒号与 impl.fiber.uid",
+      "tag": "回到遍历继续下一个依赖",
+      "pos": [
+        930,
+        120
+      ],
+      "size": [
+        280,
+        100
+      ]
+    },
+    {
+      "id": "miss",
+      "type": "cloud",
+      "label": "不存在",
+      "sublabel": "epoch 置为 INACTIVE 常量并 break",
+      "tag": "常量值见 fiber.ts:101",
+      "pos": [
+        640,
+        300
+      ],
+      "size": [
+        280,
+        100
+      ]
+    },
+    {
+      "id": "apply",
+      "type": "backend",
+      "label": "收尾",
+      "sublabel": "调用 _setEpoch(epoch)",
+      "tag": "全文 13 行，C/fiber.ts:385",
+      "pos": [
+        1030,
+        300
+      ],
+      "size": [
+        280,
+        100
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "_refresh() 的循环体",
+      "wraps": [
+        "init",
+        "loop",
+        "check",
+        "hit"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "init",
+      "to": "loop"
+    },
+    {
+      "id": "b",
+      "from": "loop",
+      "to": "check"
+    },
+    {
+      "id": "c",
+      "from": "check",
+      "to": "hit",
+      "label": "是"
+    },
+    {
+      "id": "d",
+      "from": "check",
+      "to": "miss",
+      "label": "否",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDx": 70
+    },
+    {
+      "id": "e",
+      "from": "miss",
+      "to": "apply",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "举例：inject 为 db 与 cache",
+      "items": [
+        "db 的 Fiber uid 是 3，cache 的是 7",
+        "于是 epoch 等于 ':3:7'",
+        "字符串本身就编码了全部依赖身份"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "依赖换代的效果",
+      "items": [
+        "db 卸载重装拿到新 uid 9",
+        "epoch 变成 ':9:7'，与 ':3:7' 不等",
+        "于是本插件自动 unload 再 reload"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "依赖消失的效果",
+      "items": [
+        "cache 不见了，epoch 直接置为 INACTIVE",
+        "触发 unload，状态回落到 PENDING",
+        "没有依赖图、拓扑排序或引用计数"
+      ]
+    }
+  ]
+}

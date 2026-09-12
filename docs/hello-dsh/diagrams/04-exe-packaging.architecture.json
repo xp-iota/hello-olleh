@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "用空包的依赖闭包定义打包范围",
+    "output": "04-exe-packaging.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "pkg",
+      "type": "frontend",
+      "label": "sdk-runtime 的 package.json",
+      "sublabel": "纯依赖清单，本身不含代码",
+      "pos": [
+        70,
+        180
+      ],
+      "size": [
+        330,
+        140
+      ]
+    },
+    {
+      "id": "clo",
+      "type": "database",
+      "label": "它的依赖闭包",
+      "sublabel": "等于 exe 要打包的内容，也等于要分发的内容",
+      "pos": [
+        450,
+        180
+      ],
+      "size": [
+        330,
+        140
+      ]
+    },
+    {
+      "id": "build",
+      "type": "backend",
+      "label": "构建脚本",
+      "sublabel": "scripts/build-exe-for-python-sdk.ts 配同名 workflow",
+      "pos": [
+        830,
+        180
+      ],
+      "size": [
+        330,
+        140
+      ]
+    },
+    {
+      "id": "out",
+      "type": "cloud",
+      "label": "单文件可执行程序",
+      "sublabel": "放进 deepseek-harness-runtime-bin wheel",
+      "pos": [
+        1210,
+        180
+      ],
+      "size": [
+        220,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "pkg",
+      "to": "clo",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "clo",
+      "to": "build",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "build",
+      "to": "out",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "这个做法的好处",
+      "items": [
+        "不需要手工维护打包白名单",
+        "加依赖即自动进入打包范围",
+        "漏掉依赖会在构建期暴露而不是运行期"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "配套脚本",
+      "items": [
+        "scripts/build-python-release.py 构建 wheel",
+        "scripts/check-macos-deployment-target.py 校验最低系统版本",
+        "PY/sdk-runtime/hatch_build.py 是 hatch 构建钩子"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "为什么用空包",
+      "items": [
+        "空包只表达依赖关系，不引入额外代码",
+        "它的闭包就是运行时的最小充分集",
+        "语义清晰且可被工具直接计算"
+      ]
+    }
+  ]
+}

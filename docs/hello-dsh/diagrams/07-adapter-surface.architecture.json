@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "LLM 适配器只有一个必需方法",
+    "output": "07-adapter-surface.html",
+    "viewBox": [
+      1460,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "req",
+      "type": "security",
+      "label": "必需：stream(options)",
+      "sublabel": "返回原始 chunk 的 AsyncIterable",
+      "tag": "L/index.ts:232，实现必须遵守 options.signal",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        380,
+        150
+      ]
+    },
+    {
+      "id": "o1",
+      "type": "database",
+      "label": "providerInfo(provider)",
+      "sublabel": "默认返回 id 与 name 都等于 provider",
+      "tag": "L/index.ts:186，展示用元数据，id 必须等于 provider",
+      "pos": [
+        520,
+        80
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "o2",
+      "type": "database",
+      "label": "providerRetryPolicy",
+      "sublabel": "默认策略，可按 provider 定制重试",
+      "pos": [
+        520,
+        215
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "o3",
+      "type": "backend",
+      "label": "模型发现与配置面",
+      "sublabel": "列可配置 provider、发现可用模型",
+      "pos": [
+        520,
+        350
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "why",
+      "type": "cloud",
+      "label": "为什么只留一个必需",
+      "sublabel": "适配一个新模型服务的最小成本就是实现 stream",
+      "tag": "其余四个都有默认实现，可按需覆写",
+      "pos": [
+        960,
+        190
+      ],
+      "size": [
+        420,
+        150
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "req",
+      "to": "o2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "o2",
+      "to": "why",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "抽象基类的位置",
+      "items": [
+        "L/index.ts:180-233 是适配器基类",
+        "只有 stream 是 abstract",
+        "其余四个方法都给了默认实现"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "必须遵守 signal",
+      "items": [
+        "调用方随时可能取消",
+        "适配器要在 signal abort 时停止产出",
+        "否则取消语义会在流层失效"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "覆写的常见理由",
+      "items": [
+        "providerInfo 用于在界面上显示友好名称",
+        "providerRetryPolicy 用于适配服务方的限流策略",
+        "模型发现用于动态列出可用模型"
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "可选：四个都有默认实现",
+      "wraps": [
+        "o1",
+        "o2",
+        "o3"
+      ]
+    }
+  ]
+}

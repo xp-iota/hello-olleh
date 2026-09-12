@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Entry.init() 从配置项到插件就绪",
+    "output": "07-entry-init.html",
+    "viewBox": [
+      1340,
+      760
+    ],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "entry",
+      "type": "external",
+      "label": "Entry.init()",
+      "sublabel": "配置树节点"
+    },
+    {
+      "id": "task",
+      "type": "backend",
+      "label": "_initTask",
+      "sublabel": "去重后的 _init()"
+    },
+    {
+      "id": "tree",
+      "type": "cloud",
+      "label": "tree.import",
+      "sublabel": "模块解析"
+    },
+    {
+      "id": "loader",
+      "type": "backend",
+      "label": "Loader",
+      "sublabel": "导出处理与日志"
+    },
+    {
+      "id": "registry",
+      "type": "backend",
+      "label": "ctx.registry",
+      "sublabel": "插件注册"
+    }
+  ],
+  "segments": [
+    {
+      "from": 155,
+      "to": 300,
+      "label": "去重并加载模块"
+    },
+    {
+      "from": 308,
+      "to": 482,
+      "label": "处理导出与上下文"
+    },
+    {
+      "from": 490,
+      "to": 640,
+      "label": "注册插件并等待就绪"
+    }
+  ],
+  "messages": [
+    {
+      "id": "await-init",
+      "from": "entry",
+      "to": "task",
+      "y": 195,
+      "label": "await (this._initTask ??= this._init())",
+      "variant": "emphasis",
+      "note": "loader.ts:148。并发 init 只会真正跑一次"
+    },
+    {
+      "id": "import-module",
+      "from": "task",
+      "to": "tree",
+      "y": 255,
+      "label": "import(options.name, getOuterStack)",
+      "note": "loader.ts:161"
+    },
+    {
+      "id": "import-result",
+      "from": "tree",
+      "to": "task",
+      "y": 320,
+      "label": "返回 exports",
+      "variant": "return",
+      "note": "失败则 ctx.logger.error(error) 后直接 return，不再往下走"
+    },
+    {
+      "id": "unwrap",
+      "from": "task",
+      "to": "loader",
+      "y": 400,
+      "label": "unwrapExports(exports) 并 showLog(this, 'apply')",
+      "note": "loader.ts:168，处理 default 与 __esModule 互操作"
+    },
+    {
+      "id": "patch-context",
+      "from": "task",
+      "to": "loader",
+      "y": 462,
+      "label": "_patchContext([])",
+      "variant": "dashed",
+      "note": "loader.ts:169"
+    },
+    {
+      "id": "register",
+      "from": "task",
+      "to": "registry",
+      "y": 545,
+      "label": "registry.plugin(plugin, _resolveConfig(plugin), getOuterStack)",
+      "variant": "emphasis",
+      "note": "loader.ts:171，返回值存为 this.fiber"
+    },
+    {
+      "id": "await-fiber",
+      "from": "registry",
+      "to": "entry",
+      "y": 615,
+      "label": "fiber.await().finally(...)",
+      "variant": "return",
+      "note": "loader.ts:152-156。全部任务完成后 ctx.reflect.notify(['loader'])，唤醒等待 loader 就绪的插件"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "task",
+      "from": 190,
+      "to": 551,
+      "type": "backend"
+    },
+    {
+      "participant": "tree",
+      "from": 250,
+      "to": 326,
+      "type": "cloud"
+    },
+    {
+      "participant": "loader",
+      "from": 395,
+      "to": 468,
+      "type": "backend"
+    },
+    {
+      "participant": "registry",
+      "from": 540,
+      "to": 621,
+      "type": "backend"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "_initTask 的去重语义",
+      "items": [
+        "??= 让并发调用共享同一个 Promise",
+        "配置热更新时同一 Entry 可能被反复 init",
+        "去重保证模块只被 import 一次"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "导出处理为什么必要",
+      "items": [
+        "CommonJS 与 ESM 的默认导出形态不一致",
+        "unwrapExports 统一成 cordis 认得的插件对象",
+        "否则 registry.resolve 会拿到 Module 命名空间对象"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "loader 就绪的广播",
+      "items": [
+        "全部 Entry 完成后才 notify(['loader'])",
+        "依赖 loader 服务的插件在此刻才被唤醒",
+        "这形成了配置树加载与插件激活的分界"
+      ]
+    }
+  ]
+}

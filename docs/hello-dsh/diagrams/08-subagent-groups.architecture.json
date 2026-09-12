@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "subagent 的进程内与外部两组实现",
+    "output": "08-subagent-groups.html",
+    "viewBox": [
+      1500,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "def",
+      "type": "frontend",
+      "label": "subagent",
+      "sublabel": "4531 行，统一接口与生命周期编排",
+      "pos": [
+        70,
+        250
+      ],
+      "size": [
+        300,
+        140
+      ]
+    },
+    {
+      "id": "i1",
+      "type": "database",
+      "label": "in-process-driver",
+      "sublabel": "405 行，驱动层，被下面两个复用",
+      "pos": [
+        420,
+        110
+      ],
+      "size": [
+        340,
+        105
+      ]
+    },
+    {
+      "id": "i2",
+      "type": "database",
+      "label": "spawn-in-process",
+      "sublabel": "94 行，全新子 agent，空白会话",
+      "pos": [
+        420,
+        240
+      ],
+      "size": [
+        340,
+        105
+      ]
+    },
+    {
+      "id": "i3",
+      "type": "database",
+      "label": "fork-in-process",
+      "sublabel": "124 行，fork 当前会话并继承历史",
+      "pos": [
+        420,
+        370
+      ],
+      "size": [
+        340,
+        105
+      ]
+    },
+    {
+      "id": "o1",
+      "type": "security",
+      "label": "外部委派组",
+      "sublabel": "dsh-sdk、claude-code、codex、acp",
+      "tag": "各自负责与目标 agent 的协议对接",
+      "pos": [
+        810,
+        240
+      ],
+      "size": [
+        340,
+        105
+      ]
+    },
+    {
+      "id": "ev",
+      "type": "messagebus",
+      "label": "两个生命周期事件",
+      "sublabel": "subagent/start 与 subagent 结束事件",
+      "tag": "编排层据此推进状态",
+      "pos": [
+        1180,
+        240
+      ],
+      "size": [
+        250,
+        105
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "def",
+      "to": "i2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "i1",
+      "to": "i2",
+      "variant": "dashed"
+    },
+    {
+      "id": "c",
+      "from": "i2",
+      "to": "i3",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "d",
+      "from": "i2",
+      "to": "o1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e",
+      "from": "o1",
+      "to": "ev",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "驱动层被复用",
+      "items": [
+        "in-process-driver 同时被 spawn 与 fork 复用",
+        "spawn 与 fork 各自只有百行左右",
+        "差别只在初始会话怎么来"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "fork 继承历史",
+      "items": [
+        "直接用 session.fork 拿到父会话的种子",
+        "于是子 agent 看得到之前的对话",
+        "spawn 则是完全空白的会话"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "外部委派的共同点",
+      "items": [
+        "都要把 DSH 的任务语义翻译成对方的协议",
+        "都要把对方的产出翻译回 session 事件",
+        "因此代码量普遍高于进程内实现"
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "进程内（3 种）",
+      "wraps": [
+        "i1",
+        "i2",
+        "i3"
+      ]
+    }
+  ]
+}

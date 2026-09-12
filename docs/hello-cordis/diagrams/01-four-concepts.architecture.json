@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "框架的四个概念与用户视角",
+    "output": "01-four-concepts.html",
+    "viewBox": [
+      1460,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "用户视角只有 ctx",
+      "sublabel": "plugin() · effect() · on() · ctx.xxx",
+      "pos": [
+        60,
+        200
+      ],
+      "size": [
+        230,
+        120
+      ]
+    },
+    {
+      "id": "context",
+      "type": "frontend",
+      "label": "① Context",
+      "sublabel": "能力的视图，ctx 是 Proxy（context.ts）",
+      "tag": "78 行",
+      "pos": [
+        370,
+        200
+      ],
+      "size": [
+        230,
+        120
+      ]
+    },
+    {
+      "id": "fiber",
+      "type": "backend",
+      "label": "② Fiber",
+      "sublabel": "生命周期单元，6 态机 + epoch（fiber.ts）",
+      "tag": "486 行",
+      "pos": [
+        680,
+        200
+      ],
+      "size": [
+        230,
+        120
+      ]
+    },
+    {
+      "id": "service",
+      "type": "database",
+      "label": "③ Service",
+      "sublabel": "跨插件共享，provide / inject（reflect.ts）",
+      "tag": "281 + 80 行",
+      "pos": [
+        990,
+        200
+      ],
+      "size": [
+        230,
+        120
+      ]
+    },
+    {
+      "id": "events",
+      "type": "messagebus",
+      "label": "④ Event",
+      "sublabel": "解耦通道，5 种派发（events.ts）",
+      "tag": "178 行",
+      "pos": [
+        1300,
+        200
+      ],
+      "size": [
+        120,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "u-c",
+      "from": "user",
+      "to": "context",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c-f",
+      "from": "context",
+      "to": "fiber"
+    },
+    {
+      "id": "f-s",
+      "from": "fiber",
+      "to": "service"
+    },
+    {
+      "id": "s-e",
+      "from": "service",
+      "to": "events"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Context 与 Fiber",
+      "items": [
+        "ctx 是 Proxy，ctx.db 是动态解析而非普通属性",
+        "extend / isolate / intercept 派生新视图（04 篇）",
+        "每次 ctx.plugin(p) 产生一个 Fiber，effect() 是唯一副作用入口（03 篇）"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Service 与 Event",
+      "items": [
+        "provide 注册、inject 声明依赖，get trap 沿 fiber 链向上查找（05 篇）",
+        "isolate realm 决定服务可见性",
+        "事件有 emit / parallel / serial / bail / waterfall 五种派发（06 篇）"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "四者合计 1848 行",
+      "items": [
+        "全部集中在 core 包的 C/ 目录",
+        "fiber.ts 486 行是全框架最核心的文件",
+        "用户只需面对 ctx 一个入口"
+      ]
+    }
+  ]
+}

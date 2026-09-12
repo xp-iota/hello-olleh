@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SystemPrompt 构造函数注册的默认分节",
+    "output": "07-prompt-constructor.html",
+    "viewBox": [
+      1480,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "ctor",
+      "type": "frontend",
+      "label": "构造函数",
+      "sublabel": "SP/index.ts:353",
+      "pos": [
+        70,
+        200
+      ],
+      "size": [
+        250,
+        130
+      ]
+    },
+    {
+      "id": "id",
+      "type": "database",
+      "label": "harness 身份分节",
+      "sublabel": "order 为 -100，声明自己由 DeepSeek Harness 驱动",
+      "tag": "SP/index.ts:356，受 includeHarnessIdentity 控制，默认开",
+      "pos": [
+        360,
+        80
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "per",
+      "type": "backend",
+      "label": "persona 分节",
+      "sublabel": "名字是 deployment:persona，order 为 0",
+      "tag": "常量见 :128 与 :131，文本取 config.persona",
+      "pos": [
+        360,
+        230
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "rc",
+      "type": "security",
+      "label": "运行时上下文分节",
+      "sublabel": "按 includeRuntimeContext 决定是否注册",
+      "pos": [
+        360,
+        380
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "res",
+      "type": "cloud",
+      "label": "默认提示骨架",
+      "sublabel": "三段构成开箱可用的最小提示词",
+      "pos": [
+        810,
+        230
+      ],
+      "size": [
+        300,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "ctor",
+      "to": "id",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "ctor",
+      "to": "per",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "ctor",
+      "to": "rc"
+    },
+    {
+      "id": "d",
+      "from": "per",
+      "to": "res",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "order 的分配有讲究",
+      "items": [
+        "身份分节 order 为 -100，永远最前",
+        "persona 为 0，是用户定制的主位",
+        "业务分节用正数排在其后"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "三个开关",
+      "items": [
+        "includeHarnessIdentity 默认为真",
+        "persona 默认为空字符串",
+        "includeRuntimeContext 控制运行时信息是否注入"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "为什么在构造期注册",
+      "items": [
+        "保证任何 assemble 都至少有这三段",
+        "插件可以后续覆盖同名分节",
+        "也可以用 complete 完全接管"
+      ]
+    }
+  ]
+}

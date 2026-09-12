@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "_checkImpl() 如何填充 _store",
+    "output": "03-check-impl.html",
+    "viewBox": [
+      1500,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "entry",
+      "type": "frontend",
+      "label": "_checkImpl(name)",
+      "sublabel": "C/fiber.ts:371-383",
+      "pos": [
+        60,
+        200
+      ],
+      "size": [
+        220,
+        110
+      ]
+    },
+    {
+      "id": "get",
+      "type": "backend",
+      "label": "查实现",
+      "sublabel": "ctx.reflect._getImpl(name, true)",
+      "tag": "strict 为真，要求提供者 Fiber 是 ACTIVE",
+      "pos": [
+        330,
+        200
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "exist",
+      "type": "security",
+      "label": "impl 存在吗",
+      "sublabel": "不存在则删除本地记录",
+      "pos": [
+        660,
+        60
+      ],
+      "size": [
+        240,
+        105
+      ]
+    },
+    {
+      "id": "guard",
+      "type": "security",
+      "label": "impl.check 通过吗",
+      "sublabel": "返回 false 或抛异常都视为不可用",
+      "pos": [
+        660,
+        340
+      ],
+      "size": [
+        240,
+        105
+      ]
+    },
+    {
+      "id": "drop",
+      "type": "cloud",
+      "label": "删除",
+      "sublabel": "delete this._store[name]",
+      "tag": "check 抛异常时另记 error 日志",
+      "pos": [
+        990,
+        60
+      ],
+      "size": [
+        280,
+        105
+      ]
+    },
+    {
+      "id": "keep",
+      "type": "database",
+      "label": "写入",
+      "sublabel": "this._store[name] = impl",
+      "tag": "随后 _refresh() 会把它算进 epoch",
+      "pos": [
+        990,
+        340
+      ],
+      "size": [
+        280,
+        105
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "entry",
+      "to": "get",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "get",
+      "to": "exist"
+    },
+    {
+      "id": "c",
+      "from": "get",
+      "to": "guard"
+    },
+    {
+      "id": "d",
+      "from": "exist",
+      "to": "drop",
+      "label": "否"
+    },
+    {
+      "id": "e",
+      "from": "guard",
+      "to": "keep",
+      "label": "是"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "strict 的含义",
+      "items": [
+        "只接受提供者 Fiber 处于 ACTIVE 的实现",
+        "半就绪的服务不会被写入 _store",
+        "避免依赖方拿到尚未初始化完的实例"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "check 是提供方的准入钩子",
+      "items": [
+        "返回 false 表示该实现对此消费者不可用",
+        "抛异常会被记进 error 日志后同样删除",
+        "让同名服务可以按消费者做差异化放行"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "_store 是 epoch 的输入",
+      "items": [
+        "_checkImpl 只负责填或删 _store",
+        "epoch 完全由 _store 的内容推导",
+        "两者分离让依赖判定保持无状态"
+      ]
+    }
+  ]
+}

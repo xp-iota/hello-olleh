@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "HMR 换代：旧 Fiber 拆除到新 Fiber 生效",
+    "output": "08-hmr-swap.html",
+    "viewBox": [
+      1480,
+      800
+    ],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "hmr",
+      "type": "external",
+      "label": "HMR",
+      "sublabel": "文件变更触发"
+    },
+    {
+      "id": "registry",
+      "type": "backend",
+      "label": "registry",
+      "sublabel": "插件注册表"
+    },
+    {
+      "id": "old",
+      "type": "backend",
+      "label": "旧 Fiber",
+      "sublabel": "待拆除"
+    },
+    {
+      "id": "loaderx",
+      "type": "cloud",
+      "label": "Loader",
+      "sublabel": "配置写回判定"
+    },
+    {
+      "id": "new",
+      "type": "backend",
+      "label": "新 Fiber",
+      "sublabel": "新 uid"
+    },
+    {
+      "id": "dep",
+      "type": "messagebus",
+      "label": "依赖方 Fiber",
+      "sublabel": "inject 了该服务"
+    }
+  ],
+  "segments": [
+    {
+      "from": 155,
+      "to": 340,
+      "label": "拆除旧代"
+    },
+    {
+      "from": 348,
+      "to": 512,
+      "label": "注册新代"
+    },
+    {
+      "from": 520,
+      "to": 660,
+      "label": "级联重载依赖方"
+    }
+  ],
+  "messages": [
+    {
+      "id": "delete-plugin",
+      "from": "hmr",
+      "to": "registry",
+      "y": 195,
+      "label": "registry.delete(oldPlugin)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "dispose-fibers",
+      "from": "registry",
+      "to": "old",
+      "y": 250,
+      "label": "对 runtime.fibers 每个 fiber 调 dispose()",
+      "note": "置 uid = null，随后 _setEpoch(INACTIVE) 触发 _unload()"
+    },
+    {
+      "id": "emit-internal",
+      "from": "old",
+      "to": "loaderx",
+      "y": 310,
+      "label": "emit('internal/plugin', fiber)",
+      "variant": "dashed",
+      "note": "case 4 命中：registry 里已无此 callback，因此不把 disabled 写回配置"
+    },
+    {
+      "id": "notify-unload",
+      "from": "old",
+      "to": "dep",
+      "y": 366,
+      "label": "provide 过的服务被撤销，notify 依赖方",
+      "variant": "dashed",
+      "note": "_disposables 并发执行，同一 effect 内按启动顺序逆序"
+    },
+    {
+      "id": "register-new",
+      "from": "hmr",
+      "to": "registry",
+      "y": 440,
+      "label": "oldFiber.parent.registry.plugin(newPlugin, oldFiber.config)",
+      "variant": "emphasis",
+      "note": "沿用旧 Fiber 的 config，保证配置不丢"
+    },
+    {
+      "id": "new-fiber",
+      "from": "registry",
+      "to": "new",
+      "y": 500,
+      "label": "new Fiber（分配新 uid）"
+    },
+    {
+      "id": "rebind-entry",
+      "from": "hmr",
+      "to": "new",
+      "y": 560,
+      "label": "fiber.entry = oldFiber.entry；entry.fiber = fiber",
+      "note": "配置树节点改指向新 Fiber"
+    },
+    {
+      "id": "reload-new",
+      "from": "new",
+      "to": "dep",
+      "y": 640,
+      "label": "_refresh() 得新 epoch，_reload() 后重新 provide 并 notify",
+      "variant": "emphasis",
+      "note": "依赖方 epoch 从 ':oldUid' 变为 ':newUid'，于是它也自动重载"
+    },
+    {
+      "id": "settled",
+      "from": "dep",
+      "to": "hmr",
+      "y": 700,
+      "label": "整棵依赖子树完成换代",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "registry",
+      "from": 190,
+      "to": 506,
+      "type": "backend"
+    },
+    {
+      "participant": "old",
+      "from": 245,
+      "to": 372,
+      "type": "backend"
+    },
+    {
+      "participant": "loaderx",
+      "from": 305,
+      "to": 316,
+      "type": "cloud"
+    },
+    {
+      "participant": "new",
+      "from": 495,
+      "to": 646,
+      "type": "backend"
+    },
+    {
+      "participant": "dep",
+      "from": 361,
+      "to": 706,
+      "type": "messagebus"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "为什么必须先删再注册",
+      "items": [
+        "delete 让 registry 里不再有旧 callback",
+        "Loader 因此判定为 case 4，不会把插件标记成 disabled",
+        "顺序反了会导致配置文件被写坏"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "换代靠 uid 而非内容比对",
+      "items": [
+        "新 Fiber 一定拿到新的 uid",
+        "依赖方的 epoch 里编码了被依赖 Fiber 的 uid",
+        "uid 变化即 epoch 变化，级联重载自动发生"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "级联范围是精确的",
+      "items": [
+        "只有 inject 了该服务的 Fiber 会重载",
+        "无关插件的 epoch 不变，完全不受影响",
+        "这是 Fiber 模型相对全量重启的核心收益"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SDK 的 channel 与配置契约",
+    "output": "04-sdk-channel-contract.html",
+    "viewBox": [
+      1500,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "call",
+      "type": "frontend",
+      "label": "Python 调用方",
+      "sublabel": "发起一次 turn",
+      "pos": [
+        70,
+        240
+      ],
+      "size": [
+        250,
+        110
+      ]
+    },
+    {
+      "id": "ask",
+      "type": "security",
+      "label": "指定了 channel 吗",
+      "sublabel": "channel 决定连到哪个 runtime",
+      "pos": [
+        370,
+        240
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "boot",
+      "type": "database",
+      "label": "未指定则启动 bundled runtime",
+      "sublabel": "用 sdk-runtime 里的预编译二进制",
+      "pos": [
+        700,
+        110
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "given",
+      "type": "backend",
+      "label": "已指定则直接用",
+      "sublabel": "连到调用方给出的 channel",
+      "pos": [
+        700,
+        370
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "fill",
+      "type": "cloud",
+      "label": "client 补默认配置",
+      "sublabel": "选定 channel 后由 client 提供默认配置",
+      "pos": [
+        1100,
+        110
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "strict",
+      "type": "security",
+      "label": "runtime 始终要求显式配置",
+      "sublabel": "不接受无配置启动",
+      "tag": "便利性来自 client 补默认值，而非 runtime 放宽",
+      "pos": [
+        1100,
+        370
+      ],
+      "size": [
+        340,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "call",
+      "to": "ask",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "ask",
+      "to": "boot",
+      "label": "否"
+    },
+    {
+      "id": "c",
+      "from": "ask",
+      "to": "given",
+      "label": "是"
+    },
+    {
+      "id": "d",
+      "from": "boot",
+      "to": "fill",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e",
+      "from": "given",
+      "to": "strict",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "与 boot() 的契约一致",
+      "items": [
+        "DSH 启动必须有 config path，见 05 篇 § 5.5",
+        "Python SDK 没有例外",
+        "差别只在谁来提供这份配置"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "这是 fail-closed 的延伸",
+      "items": [
+        "runtime 拒绝在缺配置时启动",
+        "便利层只允许加默认值，不允许跳过校验",
+        "同一原则见 08 篇 § 8.23"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "channel 的两种来源",
+      "items": [
+        "调用方显式给出，用于连到已有实例",
+        "不给则由 SDK 启动匹配版本的 bundled runtime",
+        "版本匹配由 wheel 依赖保证"
+      ]
+    }
+  ]
+}

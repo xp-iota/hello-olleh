@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "提示变量与整体装配：assemble 交出结构，renderPrompt 才插值",
+    "output": "12-example-10-prompt-variable-assemble.html",
+    "viewBox": [1680, 800],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "script", "type": "external", "label": "run.ts", "sublabel": "示例入口脚本" },
+    { "id": "harness", "type": "backend", "label": "createHarness", "sublabel": "runtime/harness.ts 装配层" },
+    { "id": "plugin", "type": "security", "label": "prompt-variable 插件", "sublabel": "10-prompt-variable-assemble/index.ts" },
+    { "id": "prompt", "type": "messagebus", "label": "ctx.systemPrompt", "sublabel": "section / variable / assemble" },
+    { "id": "render", "type": "backend", "label": "renderPrompt", "sublabel": "@deepseek-ai/dsh-system-prompt" }
+  ],
+  "segments": [
+    { "from": 155, "to": 430, "label": "三条扩展轴一起注册" },
+    { "from": 445, "to": 600, "label": "整体装配 waterfall" },
+    { "from": 615, "to": 720, "label": "渲染阶段插值与 fail loud" }
+  ],
+  "messages": [
+    {
+      "id": "harness",
+      "from": "script",
+      "to": "harness",
+      "y": 195,
+      "label": "createHarness()：按依赖序装真实 @deepseek-ai/* 服务",
+      "variant": "emphasis"
+    },
+    {
+      "id": "persona",
+      "from": "script",
+      "to": "prompt",
+      "y": 245,
+      "label": "section({ name:'persona', order:0 })"
+    },
+    {
+      "id": "load",
+      "from": "script",
+      "to": "harness",
+      "y": 295,
+      "label": "loadPlugin(本插件)"
+    },
+    {
+      "id": "apply",
+      "from": "harness",
+      "to": "plugin",
+      "y": 345,
+      "label": "apply(ctx) 运行"
+    },
+    {
+      "id": "register",
+      "from": "plugin",
+      "to": "prompt",
+      "y": 395,
+      "label": "variable('today') + section(date-aware) + on('system-prompt/assemble')",
+      "variant": "security",
+      "note": "变量名形如 [a-z][a-z0-9_]*；别和内建 {{provider}} / {{model}} 重名"
+    },
+    {
+      "id": "assemble",
+      "from": "script",
+      "to": "prompt",
+      "y": 465,
+      "label": "① assemble(assembleContext())：async，返回结构化 PromptAssembly",
+      "variant": "emphasis"
+    },
+    {
+      "id": "hook",
+      "from": "prompt",
+      "to": "plugin",
+      "y": 515,
+      "label": "system-prompt/assemble waterfall 交出 { sections, contexts, tools, variables }"
+    },
+    {
+      "id": "rewrite",
+      "from": "plugin",
+      "to": "prompt",
+      "y": 565,
+      "label": "往 sections 插一段运行时前言，仍返回 PromptAssembly",
+      "variant": "return",
+      "note": "拍平成 { text } 会丢掉别人在 tools / contexts / variables 上的既有贡献"
+    },
+    {
+      "id": "render",
+      "from": "script",
+      "to": "render",
+      "y": 635,
+      "label": "② renderPrompt(assembly)：按序拼段并把 {{today}} 插值",
+      "variant": "emphasis"
+    },
+    {
+      "id": "failloud",
+      "from": "render",
+      "to": "script",
+      "y": 685,
+      "label": "③④ 未注册变量、本次装配没有取到值：两种缺值都直接抛错",
+      "variant": "security"
+    }
+  ],
+  "activations": [
+    { "participant": "harness", "from": 190, "to": 350, "type": "backend" },
+    { "participant": "plugin", "from": 340, "to": 570, "type": "security" },
+    { "participant": "prompt", "from": 240, "to": 570, "type": "messagebus" },
+    { "participant": "render", "from": 630, "to": 690, "type": "backend" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "assemble 交出的是结构，不是字符串",
+      "items": [
+        "PromptAssembly = { sections, contexts, tools, variables }",
+        "监听者改写后必须仍返回 PromptAssembly",
+        "要加前言就往已排序的 sections 里插一段"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "插值发生在渲染阶段",
+      "items": [
+        "assemble() 的返回值里正文仍带 {{name}} 占位",
+        "renderPrompt(assembly) 才做拼接与插值",
+        "assemble() 本身是 async"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "缺值一律 fail loud",
+      "items": [
+        "引用未注册的变量：渲染阶段直接抛",
+        "provider 对本次装配没给值：同样抛错",
+        "既不静默清空，也不原样保留占位"
+      ]
+    }
+  ]
+}

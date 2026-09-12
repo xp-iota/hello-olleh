@@ -1,0 +1,33 @@
+=== baseline @ 0.1.1-rc.2 ===
+2026-09-12T11:37:29Z
+
+--- installed dsh-tools ---
+0.1.1-rc.2
+
+--- typecheck ---
+
+> @example/dsh-examples@0.0.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+typecheck_exit=0
+
+--- test ---
+
+> @example/dsh-examples@0.0.0 test
+> node --test runtime/*.test.ts
+
+✔ 真实 core 服务全部装配 (10.876ms)
+✔ 真实 agent-loop 跑完一个 turn 并按序落日志 (8.643375ms)
+✔ 会话日志不变量：seq 连续 + 深冻结 + surface 只投影消息事件 (5.096792ms)
+✔ 工具管线：注册 → 执行 → effect 反注册 (7.981708ms)
+✔ MiniMax 请求映射 tools、停止序列、温度和工具消息历史 (10.967333ms)
+✔ MiniMax tool_use/thinking SSE 映射为完整 dsh block 并保留 replay signature (0.4545ms)
+✔ MiniMax 对没有官方映射的 reasoningEffort fail loud (0.207583ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 182.607458

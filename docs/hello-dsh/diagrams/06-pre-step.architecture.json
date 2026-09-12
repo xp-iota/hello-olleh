@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "preStep 的 claim 与 waterfall",
+    "output": "06-pre-step.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "api",
+      "type": "frontend",
+      "label": "preStep(target, position)",
+      "sublabel": "AL/agent.ts:225-243",
+      "pos": [
+        70,
+        210
+      ],
+      "size": [
+        290,
+        130
+      ]
+    },
+    {
+      "id": "claim",
+      "type": "database",
+      "label": "从队列取消息",
+      "sublabel": "inbox.claim(target, position.turn)",
+      "tag": ":229，实现在 AG/inbox.ts:71",
+      "pos": [
+        410,
+        210
+      ],
+      "size": [
+        320,
+        130
+      ]
+    },
+    {
+      "id": "wf",
+      "type": "backend",
+      "label": "派发 waterfall",
+      "sublabel": "agent/pre-step，携带 messages 与 position 与 signal",
+      "tag": ":235",
+      "pos": [
+        780,
+        210
+      ],
+      "size": [
+        340,
+        130
+      ]
+    },
+    {
+      "id": "dflt",
+      "type": "cloud",
+      "label": "默认 next",
+      "sublabel": "返回 { kind: 'enter', messages: claimed }",
+      "tag": ":236-241",
+      "pos": [
+        1170,
+        90
+      ],
+      "size": [
+        260,
+        110
+      ]
+    },
+    {
+      "id": "rej",
+      "type": "security",
+      "label": "若 kind 为 reject",
+      "sublabel": "直接返回该 decision，turn 变 blocked",
+      "pos": [
+        1170,
+        320
+      ],
+      "size": [
+        260,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "api",
+      "to": "claim",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "claim",
+      "to": "wf",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "wf",
+      "to": "dflt"
+    },
+    {
+      "id": "d",
+      "from": "wf",
+      "to": "rej",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "这是最有用的扩展点",
+      "items": [
+        "监听 agent/pre-step 可以拒绝、改写或补充消息",
+        "它在模型调用之前，成本最低",
+        "审批与准入类插件都挂在这里"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "claim 是破坏性的",
+      "items": [
+        "消息一旦被 claim 就从队列移除",
+        "即使随后被 reject 也不会退回",
+        "因此拒绝时要自行决定是否重新入队"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "decision 的两种 kind",
+      "items": [
+        "enter 表示继续，携带最终的 messages",
+        "reject 表示阻塞，turn 记为 blocked",
+        "默认实现总是返回 enter"
+      ]
+    }
+  ]
+}

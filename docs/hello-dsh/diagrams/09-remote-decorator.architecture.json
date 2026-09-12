@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "@Remote 装饰器的三段链路",
+    "output": "09-remote-decorator.html",
+    "viewBox": [
+      1500,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "decl",
+      "type": "frontend",
+      "label": "① 声明",
+      "sublabel": "服务继承 TypertRemoteService，方法上标 @Remote()",
+      "tag": "TP/index.ts:147 与 :168",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "reg",
+      "type": "database",
+      "label": "② 注册",
+      "sublabel": "typert/registry 共 909 行，运行时收集类型信息",
+      "pos": [
+        490,
+        190
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "gw",
+      "type": "backend",
+      "label": "③a 暴露",
+      "sublabel": "api/gateway 1358 行，按注册信息生成端点",
+      "tag": "见 § 9.12",
+      "pos": [
+        890,
+        80
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "gen",
+      "type": "cloud",
+      "label": "③b 生成",
+      "sublabel": "typert/generator 6245 行，产出客户端存根与类型声明",
+      "pos": [
+        890,
+        300
+      ],
+      "size": [
+        380,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "decl",
+      "to": "reg",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "reg",
+      "to": "gw",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "reg",
+      "to": "gen",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "一次声明，两处消费",
+      "items": [
+        "同一份类型信息既生成端点也生成客户端",
+        "于是前后端类型天然一致",
+        "不需要手工同步接口定义"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "generator 是最大的一块",
+      "items": [
+        "6245 行，负责产出存根与 .d.ts",
+        "要处理泛型、联合类型与可选参数",
+        "因此体量远超 registry 与 gateway"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "装饰器有三个重载",
+      "items": [
+        "可以只标记，也可以指定导出名",
+        "导出名用于控制生成的客户端方法名",
+        "默认取方法自身名字"
+      ]
+    }
+  ]
+}

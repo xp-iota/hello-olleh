@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "设置命名空间：解析分层、两级写路径与整段重置",
+    "output": "12-example-23-settings-namespaces.html",
+    "viewBox": [1680, 800],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "script", "type": "external", "label": "run.ts", "sublabel": "示例入口脚本" },
+    { "id": "plugin", "type": "backend", "label": "demo 命名空间插件", "sublabel": "23-settings-namespaces/index.ts" },
+    { "id": "settings", "type": "messagebus", "label": "ctx.settings", "sublabel": "基座：注册 / 解析 / 修订 / 变化检测" },
+    { "id": "provider", "type": "database", "label": "SettingsProvider", "sublabel": "runtime/settings-memory.ts 内存子类" }
+  ],
+  "segments": [
+    { "from": 155, "to": 280, "label": "注册命名空间" },
+    { "from": 295, "to": 490, "label": "解析与合并写入" },
+    { "from": 505, "to": 720, "label": "并发、路径编辑与重置" }
+  ],
+  "messages": [
+    {
+      "id": "load",
+      "from": "script",
+      "to": "plugin",
+      "y": 195,
+      "label": "createHarness() 后 loadPlugin(本插件)",
+      "variant": "emphasis"
+    },
+    {
+      "id": "register",
+      "from": "plugin",
+      "to": "settings",
+      "y": 245,
+      "label": "register(settingsNamespace('demo'), schema) + watch((next, prev) => …)",
+      "variant": "security",
+      "note": "命名空间是 branded 值而非自由字符串；重复注册同一命名空间直接抛错"
+    },
+    {
+      "id": "get",
+      "from": "script",
+      "to": "settings",
+      "y": 315,
+      "label": "① get(DEMO_NS)：解析值 = schema 默认值 + base 层 + user 层，revision=0"
+    },
+    {
+      "id": "update",
+      "from": "script",
+      "to": "settings",
+      "y": 365,
+      "label": "② update(ns, patch)：把补丁合并进 user 层",
+      "variant": "emphasis"
+    },
+    {
+      "id": "persist",
+      "from": "settings",
+      "to": "provider",
+      "y": 415,
+      "label": "写回原始文档，revision+1"
+    },
+    {
+      "id": "watch",
+      "from": "provider",
+      "to": "plugin",
+      "y": 465,
+      "label": "settings/updated 位置式广播 (ns, next, prev, source)",
+      "variant": "return",
+      "note": "值深度相等就不广播；监听者失败被隔离，不会卡住提交路径"
+    },
+    {
+      "id": "conflict",
+      "from": "script",
+      "to": "settings",
+      "y": 535,
+      "label": "③④ 过期 expectedRevision → SettingsConflictError；带对的则放行",
+      "variant": "security"
+    },
+    {
+      "id": "mutate",
+      "from": "script",
+      "to": "settings",
+      "y": 585,
+      "label": "⑤ mutate(ns, ops)：路径级编辑，op 是 set 或 unset"
+    },
+    {
+      "id": "replace",
+      "from": "script",
+      "to": "settings",
+      "y": 635,
+      "label": "⑥ replace(ns, {})：清空 user 层，全部回落默认值",
+      "variant": "emphasis"
+    },
+    {
+      "id": "dup",
+      "from": "settings",
+      "to": "script",
+      "y": 685,
+      "label": "⑦ 再注册一次 demo 命名空间 → 抛错"
+    }
+  ],
+  "activations": [
+    { "participant": "plugin", "from": 190, "to": 470, "type": "backend" },
+    { "participant": "settings", "from": 240, "to": 690, "type": "messagebus" },
+    { "participant": "provider", "from": 410, "to": 470, "type": "database" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "provider 存文档，基座管语义",
+      "items": [
+        "provider 只负责原始文档存取，本工程用内存子类",
+        "基座负责注册、解析、修订号与变化检测",
+        "抽象 seam 必须由子类落地，直接装抽象类会抛错"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "两级写路径的 CAS 不同",
+      "items": [
+        "scope 级 update / replace 不带 CAS",
+        "provider 级三个写方法都收 expectedRevision",
+        "修订号不匹配抛 SettingsConflictError"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "replace({}) 是 merge 表达不了的重置",
+      "items": [
+        "整段清空 user 层，全部回落默认值",
+        "mutate 的 ops 只有 set 与 unset 两种",
+        "提交事件等值不广播，这就是 change detection"
+      ]
+    }
+  ]
+}

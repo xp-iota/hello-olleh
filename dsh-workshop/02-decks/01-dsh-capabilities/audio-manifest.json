@@ -1,0 +1,146 @@
+{
+  "audio/dsh-opening.mp3": {
+    "path": "audio/dsh-opening.mp3",
+    "durationSec": 51.936,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -3.4,
+    "meanDb": -19.8,
+    "sha256": "05c21c5beff9834ed90cb875d3b14f80a9e5de447977ed1e67ebe3c500d154c0"
+  },
+  "audio/dsh-four-paths.mp3": {
+    "path": "audio/dsh-four-paths.mp3",
+    "durationSec": 54.456,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -3.5,
+    "meanDb": -19.9,
+    "sha256": "1a305539e42ee9665e35afd0925b5410c2035420a1bd975c98005d38b0790426"
+  },
+  "audio/dsh-m01.mp3": {
+    "path": "audio/dsh-m01.mp3",
+    "durationSec": 49.704,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -3.6,
+    "meanDb": -19.7,
+    "sha256": "4d67e12f9f0b226c520061cc5c58025898b14ecaba7e4b059f574e1662ee7b22"
+  },
+  "audio/dsh-m02.mp3": {
+    "path": "audio/dsh-m02.mp3",
+    "durationSec": 44.688,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -2.6,
+    "meanDb": -20.2,
+    "sha256": "5f5ff2fdc4da58f3394715e9a6729a8f3f4bc797e3c3311fa6a85b7b45e355d1"
+  },
+  "audio/dsh-m03.mp3": {
+    "path": "audio/dsh-m03.mp3",
+    "durationSec": 41.328,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -0.5,
+    "meanDb": -19.5,
+    "sha256": "cea151e07bb7d8106f05efac2524f0c77f36c710114c445aab9af214eff32db1"
+  },
+  "audio/dsh-m04.mp3": {
+    "path": "audio/dsh-m04.mp3",
+    "durationSec": 45.216,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -1.7,
+    "meanDb": -20,
+    "sha256": "5c27f93cc6fd5693f04df4a3c945b2d97dd89e17371455b5176220744c2fdc2f"
+  },
+  "audio/dsh-m05.mp3": {
+    "path": "audio/dsh-m05.mp3",
+    "durationSec": 42.144,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -4,
+    "meanDb": -20,
+    "sha256": "3bc09af0445326fb326980471c14348786f7bc67da72deb449b4950ca6bfc3cc"
+  },
+  "audio/dsh-m06.mp3": {
+    "path": "audio/dsh-m06.mp3",
+    "durationSec": 46.44,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -2.1,
+    "meanDb": -19.7,
+    "sha256": "c930e17d64b525333253a49b6deeb470cf2a2c635fb910e3713b85ad231612c3"
+  },
+  "audio/dsh-m07.mp3": {
+    "path": "audio/dsh-m07.mp3",
+    "durationSec": 42.168,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -2.2,
+    "meanDb": -19.7,
+    "sha256": "a481d2cef082f94c290247d5b149c0f08dc7975ae1a7c3ec949a0c80d5666172"
+  },
+  "audio/dsh-m08.mp3": {
+    "path": "audio/dsh-m08.mp3",
+    "durationSec": 40.968,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -1.7,
+    "meanDb": -19.8,
+    "sha256": "d0f97ecfe6a16691bb0e804eabf1020b04a5dcd42e6f2b0424bcb682511685f3"
+  },
+  "audio/dsh-m09.mp3": {
+    "path": "audio/dsh-m09.mp3",
+    "durationSec": 44.088,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -0.9,
+    "meanDb": -19.7,
+    "sha256": "000c5f24aab9b68da3716e2276ac228b62e348daa49f7f7b43867e5e0d9e58a6"
+  },
+  "audio/dsh-m10.mp3": {
+    "path": "audio/dsh-m10.mp3",
+    "durationSec": 40.656,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -3.4,
+    "meanDb": -19.8,
+    "sha256": "917e70d9e1d98a373fbf1c886a90de4f99dd9ce0717eea223db77ba7872477af"
+  },
+  "audio/dsh-m11.mp3": {
+    "path": "audio/dsh-m11.mp3",
+    "durationSec": 41.472,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -2.4,
+    "meanDb": -19.2,
+    "sha256": "e5ed92ff9ed130488a988bd4d44dc262c57ae828cd8c29e2130ce68f8a5ae141"
+  },
+  "audio/dsh-m12.mp3": {
+    "path": "audio/dsh-m12.mp3",
+    "durationSec": 43.248,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -3.2,
+    "meanDb": -20.1,
+    "sha256": "6d9c740e924f91c2674540154890741155b1baa1c775372b8b98e2961bdf434d"
+  },
+  "audio/dsh-topology.mp3": {
+    "path": "audio/dsh-topology.mp3",
+    "durationSec": 37.32,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -2.5,
+    "meanDb": -19.6,
+    "sha256": "d3967aaa7b6a1e279d25a10a23bd29cbfbb8edc5a69f5146f2b4c8fe83dc864b"
+  },
+  "audio/dsh-closing.mp3": {
+    "path": "audio/dsh-closing.mp3",
+    "durationSec": 40.008,
+    "sampleRate": 24000,
+    "channels": 1,
+    "maxDb": -3.8,
+    "meanDb": -20,
+    "sha256": "4a8d11c635cc8f64d767edb04d16a0e50d8159db36d34f16f3507c786f05ea82"
+  }
+}

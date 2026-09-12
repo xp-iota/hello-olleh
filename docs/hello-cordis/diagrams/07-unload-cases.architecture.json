@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "internal/plugin 的五道排除条件",
+    "output": "07-unload-cases.html",
+    "viewBox": [
+      1540,
+      660
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "ev",
+      "type": "frontend",
+      "label": "internal/plugin 触发",
+      "sublabel": "L/index.ts:98-122",
+      "pos": [
+        60,
+        270
+      ],
+      "size": [
+        250,
+        120
+      ]
+    },
+    {
+      "id": "c1",
+      "type": "security",
+      "label": "case 1",
+      "sublabel": "fiber.uid 存在则是创建事件，返回",
+      "tag": ":100",
+      "pos": [
+        360,
+        90
+      ],
+      "size": [
+        300,
+        105
+      ]
+    },
+    {
+      "id": "c2",
+      "type": "security",
+      "label": "case 2",
+      "sublabel": "fiber.entry 不存在则不受 loader 管，返回",
+      "tag": ":103",
+      "pos": [
+        360,
+        230
+      ],
+      "size": [
+        300,
+        105
+      ]
+    },
+    {
+      "id": "c3",
+      "type": "security",
+      "label": "case 3",
+      "sublabel": "父 fiber 的 entry 相同则是 entry 内部子插件，返回",
+      "tag": ":106",
+      "pos": [
+        360,
+        370
+      ],
+      "size": [
+        300,
+        105
+      ]
+    },
+    {
+      "id": "c4",
+      "type": "cloud",
+      "label": "case 4",
+      "sublabel": "registry 里已无此 callback，是 HMR 触发，返回",
+      "tag": ":111 先 delete(plugin) 再 dispose",
+      "pos": [
+        760,
+        230
+      ],
+      "size": [
+        330,
+        105
+      ]
+    },
+    {
+      "id": "c5",
+      "type": "security",
+      "label": "case 5",
+      "sublabel": "整棵树的 fiber 已无 uid，是全树卸载，返回",
+      "tag": ":114",
+      "pos": [
+        760,
+        370
+      ],
+      "size": [
+        330,
+        105
+      ]
+    },
+    {
+      "id": "real",
+      "type": "messagebus",
+      "label": "都不命中才是真卸载",
+      "sublabel": "showLog(entry, 'unload') 并写回配置",
+      "tag": "这时才把 disabled 落到 yml",
+      "pos": [
+        1160,
+        270
+      ],
+      "size": [
+        320,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "ev",
+      "to": "c1"
+    },
+    {
+      "id": "b",
+      "from": "ev",
+      "to": "c2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "ev",
+      "to": "c3"
+    },
+    {
+      "id": "d",
+      "from": "c2",
+      "to": "c4"
+    },
+    {
+      "id": "e",
+      "from": "c3",
+      "to": "c5"
+    },
+    {
+      "id": "f",
+      "from": "c4",
+      "to": "real",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "为什么需要五道排除",
+      "items": [
+        "loader 要区分「用户主动禁用」与其余情形",
+        "只有前者该把 disabled 写回配置文件",
+        "误判会导致配置被意外改写"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "case 4 是 HMR 的关键",
+      "items": [
+        "HMR 的顺序是先 registry.delete 再 dispose",
+        "于是此刻 registry 里已查不到该 callback",
+        "靠这个特征把热重载与真卸载区分开"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "事件本身一体两用",
+      "items": [
+        "internal/plugin 在创建与卸载时各发一次",
+        "case 1 用 fiber.uid 把创建事件先滤掉",
+        "其余四道逐层排除非用户意图的卸载"
+      ]
+    }
+  ]
+}

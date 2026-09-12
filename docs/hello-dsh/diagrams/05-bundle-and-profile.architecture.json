@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Bundle 与 Profile 的关系",
+    "output": "05-bundle-and-profile.html",
+    "viewBox": [
+      1480,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "decl",
+      "type": "frontend",
+      "label": "在 package.json 声明",
+      "sublabel": "dsh.bundle.patch 指向 cordis.patch.yml",
+      "tag": "例：P/bundle/base/package.json",
+      "pos": [
+        70,
+        140
+      ],
+      "size": [
+        380,
+        130
+      ]
+    },
+    {
+      "id": "three",
+      "type": "database",
+      "label": "三个内置 bundle",
+      "sublabel": "dsh-base 451 行、dsh-web-app 424 行、dsh-headless 35 行",
+      "tag": "base 是每个 profile 的第一层",
+      "pos": [
+        70,
+        330
+      ],
+      "size": [
+        380,
+        130
+      ]
+    },
+    {
+      "id": "prof",
+      "type": "backend",
+      "label": "Profile",
+      "sublabel": "Harness home 里的命名组合",
+      "tag": "dsh.profile.bundles 列出要叠的 bundle",
+      "pos": [
+        540,
+        140
+      ],
+      "size": [
+        380,
+        130
+      ]
+    },
+    {
+      "id": "own",
+      "type": "cloud",
+      "label": "profile 自己的 patch",
+      "sublabel": "cordis.patch.yml，用户对该 profile 的定制",
+      "pos": [
+        540,
+        330
+      ],
+      "size": [
+        380,
+        130
+      ]
+    },
+    {
+      "id": "out",
+      "type": "messagebus",
+      "label": "最终插件树",
+      "sublabel": "叠加结果交给 cordis Loader",
+      "pos": [
+        1010,
+        235
+      ],
+      "size": [
+        400,
+        130
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Bundle：配置行加代码的分发格式",
+      "wraps": [
+        "decl",
+        "three"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "Profile：命名组合",
+      "wraps": [
+        "prof",
+        "own"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "decl",
+      "to": "three",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 48
+    },
+    {
+      "id": "b",
+      "from": "prof",
+      "to": "own",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 48
+    },
+    {
+      "id": "c",
+      "from": "own",
+      "to": "out",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Bundle 是可分发的",
+      "items": [
+        "它是 npm 包，同时带配置行与实现代码",
+        "一个 bundle 可被任意 profile 引用",
+        "版本随包管理器解析"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Profile 是本机的组合",
+      "items": [
+        "住在 Harness home 的 profiles 目录下",
+        "只声明要叠哪些 bundle 加自己的定制",
+        "因此切 profile 就切整套能力"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "每行都是普通配置行",
+      "items": [
+        "形如 id / name / config 三要素",
+        "任何一行都可被上层按 id 覆盖",
+        "这正是没有特权内核的落地方式"
+      ]
+    }
+  ]
+}

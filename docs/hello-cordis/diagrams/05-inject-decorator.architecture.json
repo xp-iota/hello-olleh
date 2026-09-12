@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "@Inject 装饰器的两种目标",
+    "output": "05-inject-decorator.html",
+    "viewBox": [
+      1520,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "c1",
+      "type": "database",
+      "label": "类装饰器：准备容器",
+      "sublabel": "自身无 own inject 时新建继承父类的对象",
+      "tag": "registry.ts:19-24，并打上 checkProto 标记",
+      "pos": [
+        70,
+        120
+      ],
+      "size": [
+        330,
+        120
+      ]
+    },
+    {
+      "id": "c2",
+      "type": "database",
+      "label": "类装饰器：写入",
+      "sublabel": "value.inject[name] = config",
+      "pos": [
+        460,
+        120
+      ],
+      "size": [
+        280,
+        120
+      ]
+    },
+    {
+      "id": "m1",
+      "type": "frontend",
+      "label": "方法装饰器：记元数据",
+      "sublabel": "记到 value[symbols.metadata].inject",
+      "tag": "registry.ts:25-35",
+      "pos": [
+        70,
+        360
+      ],
+      "size": [
+        330,
+        120
+      ]
+    },
+    {
+      "id": "m2",
+      "type": "backend",
+      "label": "方法装饰器：加 initializer",
+      "sublabel": "实例化时往 this[symbols.initHooks] push 钩子",
+      "pos": [
+        460,
+        360
+      ],
+      "size": [
+        330,
+        120
+      ]
+    },
+    {
+      "id": "m3",
+      "type": "cloud",
+      "label": "钩子把方法体变子插件",
+      "sublabel": "ctx.inject(inject, (ctx) => 调用该方法)",
+      "tag": "依赖满足才运行，不满足则整段跳过",
+      "pos": [
+        860,
+        360
+      ],
+      "size": [
+        330,
+        120
+      ]
+    },
+    {
+      "id": "err",
+      "type": "security",
+      "label": "其它 kind 直接报错",
+      "sublabel": "Inject() can only be used on class or class methods",
+      "tag": "registry.ts:37",
+      "pos": [
+        860,
+        120
+      ],
+      "size": [
+        330,
+        120
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "① 类装饰器",
+      "wraps": [
+        "c1",
+        "c2"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "② 方法装饰器",
+      "wraps": [
+        "m1",
+        "m2",
+        "m3"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "c1",
+      "to": "c2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "m1",
+      "to": "m2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "m2",
+      "to": "m3",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "类装饰器影响整个插件",
+      "items": [
+        "写进类的 inject 静态属性",
+        "参与 Fiber 的 epoch 计算",
+        "因此依赖不满足时整个插件不激活"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "方法装饰器粒度更细",
+      "items": [
+        "只有那个方法体变成子插件",
+        "其余方法照常可用",
+        "依赖不满足时仅该方法不执行"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "继承靠原型链累加",
+      "items": [
+        "子类的 inject 以父类 inject 为原型",
+        "checkProto 标记提示 resolve 需要递归",
+        "于是父子声明的依赖自动合并"
+      ]
+    }
+  ]
+}

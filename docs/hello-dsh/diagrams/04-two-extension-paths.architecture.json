@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "两条扩展路径：插件与 Skill",
+    "output": "04-two-extension-paths.html",
+    "viewBox": [
+      1440,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "plug",
+      "type": "security",
+      "label": "路径一：写 cordis 插件",
+      "sublabel": "新建 npm 包并注册到 ctx.tools 或 ctx.fs 等",
+      "tag": "要写 TypeScript、进构建、进 profile 配置；能力上限最高",
+      "pos": [
+        70,
+        180
+      ],
+      "size": [
+        420,
+        150
+      ]
+    },
+    {
+      "id": "doc",
+      "type": "external",
+      "label": "配套指南",
+      "sublabel": "docs/cookbook/ 下 16 篇，含 adding-a-package.md",
+      "pos": [
+        560,
+        180
+      ],
+      "size": [
+        320,
+        150
+      ]
+    },
+    {
+      "id": "skill",
+      "type": "database",
+      "label": "路径二：Skill",
+      "sublabel": "packages/skill/ 共 4 个包、2520 行源码",
+      "tag": "数据驱动，通常是文件系统上一组文件，不写代码不重启",
+      "pos": [
+        950,
+        180
+      ],
+      "size": [
+        420,
+        150
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "plug",
+      "to": "doc",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "doc",
+      "to": "skill",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "怎么选",
+      "items": [
+        "要新增一种能力接缝就写插件",
+        "只是给模型加一份可发现的操作说明就用 Skill",
+        "Skill 改完立即生效，插件需要重启"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Skill 的三个组成",
+      "items": [
+        "skill 定义能力与渲染规则",
+        "skill-filesystem 从文件系统发现 skill",
+        "tool-skill 让模型能列出并调用"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "类比",
+      "items": [
+        "Skill 相当于 Claude Code 的 skills 与 slash commands",
+        "插件相当于扩展宿主本身",
+        "前者是内容，后者是机制"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "内建事件的三类用途",
+    "output": "06-internal-events.html",
+    "viewBox": [
+      1520,
+      640
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "l1",
+      "type": "security",
+      "label": "internal/plugin(fiber)",
+      "sublabel": "Fiber 创建与卸载时各发一次",
+      "tag": "loader 用它设置 fiber.entry 并判定自卸载（L/index.ts:88-125）",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        400,
+        115
+      ]
+    },
+    {
+      "id": "l2",
+      "type": "security",
+      "label": "internal/status(fiber, oldValue)",
+      "sublabel": "状态机每次转移都发",
+      "tag": "C/fiber.ts:360 发出，调试与可视化的主要信号",
+      "pos": [
+        70,
+        275
+      ],
+      "size": [
+        400,
+        115
+      ]
+    },
+    {
+      "id": "s1",
+      "type": "database",
+      "label": "internal/service(name, value)",
+      "sublabel": "服务上线与下线通知",
+      "tag": "C/reflect.ts:224 发出，this 是带 filter 的 Context",
+      "pos": [
+        70,
+        425
+      ],
+      "size": [
+        400,
+        115
+      ]
+    },
+    {
+      "id": "h1",
+      "type": "backend",
+      "label": "internal/get",
+      "sublabel": "拦截服务解析",
+      "tag": "C/reflect.ts:80",
+      "pos": [
+        600,
+        130
+      ],
+      "size": [
+        330,
+        115
+      ]
+    },
+    {
+      "id": "h2",
+      "type": "backend",
+      "label": "internal/set",
+      "sublabel": "拦截服务赋值",
+      "tag": "C/reflect.ts:118",
+      "pos": [
+        600,
+        275
+      ],
+      "size": [
+        330,
+        115
+      ]
+    },
+    {
+      "id": "h3",
+      "type": "backend",
+      "label": "internal/update",
+      "sublabel": "拦截配置更新，this 是 Fiber",
+      "tag": "C/fiber.ts:480，loader 借它写回 yml",
+      "pos": [
+        600,
+        425
+      ],
+      "size": [
+        330,
+        115
+      ]
+    },
+    {
+      "id": "audit",
+      "type": "messagebus",
+      "label": "internal/dispatch",
+      "sublabel": "除 internal 事件外的全部派发都会通知",
+      "tag": "审计与观测的统一入口",
+      "pos": [
+        1060,
+        275
+      ],
+      "size": [
+        380,
+        115
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "生命周期类",
+      "wraps": [
+        "l1",
+        "l2"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "可拦截类（全部是 waterfall）",
+      "wraps": [
+        "h1",
+        "h2",
+        "h3"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "s1",
+      "to": "h3",
+      "variant": "dashed"
+    },
+    {
+      "id": "b",
+      "from": "h2",
+      "to": "audit",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "三类的派发模式不同",
+      "items": [
+        "生命周期类与服务类是通知，用 emit",
+        "可拦截类全部是 waterfall，带 next",
+        "因此只有后者能改写框架行为"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "loader 依赖两个事件落地",
+      "items": [
+        "internal/plugin 用来绑定 Entry 与 Fiber",
+        "internal/update 用来把配置变更写回 yml",
+        "这是配置树与运行时之间的唯一接缝"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "internal 事件不递归上报",
+      "items": [
+        "internal/dispatch 只通知非 internal 事件",
+        "否则会形成无限自我通知",
+        "定义见 interface Events（events.ts:169-178）"
+      ]
+    }
+  ]
+}

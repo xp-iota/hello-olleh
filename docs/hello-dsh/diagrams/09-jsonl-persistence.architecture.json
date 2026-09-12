@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "JSONL 为何契合又为何有 1939 行",
+    "output": "09-jsonl-persistence.html",
+    "viewBox": [
+      1500,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "log",
+      "type": "frontend",
+      "label": "append-only 日志",
+      "sublabel": "每个事件不可变，只追加",
+      "tag": "见 06 篇",
+      "pos": [
+        70,
+        200
+      ],
+      "size": [
+        300,
+        140
+      ]
+    },
+    {
+      "id": "fit",
+      "type": "database",
+      "label": "JSONL 天然匹配",
+      "sublabel": "一行一个 JSON 对象",
+      "tag": "追加即写一行，永不重写；崩溃恢复即丢弃最后不完整的一行",
+      "pos": [
+        410,
+        200
+      ],
+      "size": [
+        400,
+        140
+      ]
+    },
+    {
+      "id": "more",
+      "type": "security",
+      "label": "那为什么还有 1939 行",
+      "sublabel": "文件轮转、损坏修复、索引与原子写",
+      "tag": "修复配合 S/repair.ts 的 133 行，原子写用 util/atomic-write",
+      "pos": [
+        850,
+        200
+      ],
+      "size": [
+        400,
+        140
+      ]
+    },
+    {
+      "id": "ck",
+      "type": "cloud",
+      "label": "落盘时机另有策略",
+      "sublabel": "session-checkpoint-policy 决定何时写",
+      "pos": [
+        1290,
+        200
+      ],
+      "size": [
+        140,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "log",
+      "to": "fit",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "fit",
+      "to": "more",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "more",
+      "to": "ck",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "格式选择的匹配度",
+      "items": [
+        "append-only 语义与 JSONL 完全一致",
+        "不需要事务也不需要重写",
+        "崩溃恢复只需处理尾部一行"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "复杂度不在写，在读与运维",
+      "items": [
+        "长会话需要按文件轮转",
+        "要能快速定位某个 seq，因此需要索引",
+        "损坏文件要能尽量修复而不是整份作废"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "原子写是必要的",
+      "items": [
+        "索引与元数据不能写坏",
+        "用 util/atomic-write 保证替换的原子性",
+        "否则崩溃会留下半个索引"
+      ]
+    }
+  ]
+}

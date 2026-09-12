@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "llm/stream 是一条可插拔的流水线",
+    "output": "07-llm-stream-waterfall.html",
+    "viewBox": [
+      1600,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "loop",
+      "type": "frontend",
+      "label": "agent-loop 调用",
+      "sublabel": "llm.stream(request)",
+      "tag": "AL/agent.ts:345",
+      "pos": [
+        60,
+        190
+      ],
+      "size": [
+        250,
+        120
+      ]
+    },
+    {
+      "id": "rt",
+      "type": "database",
+      "label": "LlmRuntime.stream",
+      "sublabel": "L/index.ts:913",
+      "pos": [
+        350,
+        190
+      ],
+      "size": [
+        250,
+        120
+      ]
+    },
+    {
+      "id": "wf",
+      "type": "backend",
+      "label": "派发 waterfall",
+      "sublabel": "waterfall('llm/stream', options, next)",
+      "tag": "L/index.ts:923",
+      "pos": [
+        640,
+        190
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "l1",
+      "type": "messagebus",
+      "label": "监听器链",
+      "sublabel": "如 token-meter 做计量，其余做拦截",
+      "pos": [
+        980,
+        190
+      ],
+      "size": [
+        290,
+        120
+      ]
+    },
+    {
+      "id": "fin",
+      "type": "cloud",
+      "label": "兜底 next()",
+      "sublabel": "真正调适配器的 stream() 并返回 AsyncIterable",
+      "pos": [
+        1310,
+        190
+      ],
+      "size": [
+        230,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "loop",
+      "to": "rt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "rt",
+      "to": "wf",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "wf",
+      "to": "l1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "l1",
+      "to": "fin",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "waterfall 的 this 是 LlmRuntime",
+      "items": [
+        "不是 Scope，因此拿不到 agent 级作用域",
+        "需要 agent 上下文的逻辑要从 options 里取",
+        "这是与 tools 三段 waterfall 的重要差异"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "能做什么",
+      "items": [
+        "计量 token 与延迟",
+        "替换或录制整个流",
+        "按条件改写 request 后再放行"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "兜底是最内层",
+      "items": [
+        "所有监听器都不短路时才真正调适配器",
+        "于是 mock 与回放不需要改适配器",
+        "这与 cordis waterfall 的语义一致"
+      ]
+    }
+  ]
+}

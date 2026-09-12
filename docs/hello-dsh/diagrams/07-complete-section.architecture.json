@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "complete 让某个分节独占提示词",
+    "output": "07-complete-section.html",
+    "viewBox": [
+      1480,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "decl",
+      "type": "security",
+      "label": "某分节声明 complete",
+      "sublabel": "SP/index.ts:74",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        300,
+        120
+      ]
+    },
+    {
+      "id": "ask",
+      "type": "frontend",
+      "label": "assemble 时统计活跃的 complete",
+      "sublabel": "数量决定后续行为",
+      "pos": [
+        410,
+        190
+      ],
+      "size": [
+        320,
+        120
+      ]
+    },
+    {
+      "id": "many",
+      "type": "cloud",
+      "label": "超过一个则抛错",
+      "sublabel": "错误信息列出全部冲突的分节名",
+      "tag": "SP/index.ts:507",
+      "pos": [
+        790,
+        60
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "one",
+      "type": "database",
+      "label": "恰好一个则只保留它",
+      "sublabel": "其余 sections 全部丢弃",
+      "tag": "SP/index.ts:539",
+      "pos": [
+        790,
+        200
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "zero",
+      "type": "backend",
+      "label": "没有则正常拼装",
+      "sublabel": "按 order 拼全部 sections",
+      "pos": [
+        790,
+        340
+      ],
+      "size": [
+        320,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "decl",
+      "to": "ask",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "ask",
+      "to": "many"
+    },
+    {
+      "id": "c",
+      "from": "ask",
+      "to": "one",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "ask",
+      "to": "zero"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "slate",
+      "title": "三条分支的判定",
+      "items": [
+        "活跃的 complete 多于一个：抛错并列出冲突分节名",
+        "恰好一个：只保留它，其余 sections 全部丢弃",
+        "没有：按 order 正常拼装全部 sections"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "典型用途",
+      "items": [
+        "plan-mode 需要完全专用的提示词",
+        "某些 subagent driver 要精确控制提示",
+        "这些场景不适合与其它分节共存"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "冲突直接报错",
+      "items": [
+        "两个 complete 同时活跃时语义不明",
+        "因此不做优先级裁决，直接抛错",
+        "错误信息里点名冲突的分节"
+      ]
+    }
+  ]
+}

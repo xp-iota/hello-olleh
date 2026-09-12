@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Entry.update 的决策分支",
+    "output": "07-entry-update.html",
+    "viewBox": [
+      1540,
+      640
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "api",
+      "type": "frontend",
+      "label": "update(options, create, force)",
+      "sublabel": "L/config/entry.ts:100-133",
+      "pos": [
+        60,
+        120
+      ],
+      "size": [
+        290,
+        110
+      ]
+    },
+    {
+      "id": "snap",
+      "type": "database",
+      "label": "存旧值",
+      "sublabel": "legacy = { ...this.options }",
+      "tag": ":101",
+      "pos": [
+        400,
+        120
+      ],
+      "size": [
+        260,
+        110
+      ]
+    },
+    {
+      "id": "merge",
+      "type": "database",
+      "label": "整体替换或逐字段合并",
+      "sublabel": "create 为真则整体替换，否则 nullish 字段删除",
+      "tag": ":107-113，随后 sortKeys",
+      "pos": [
+        710,
+        120
+      ],
+      "size": [
+        330,
+        110
+      ]
+    },
+    {
+      "id": "dis",
+      "type": "security",
+      "label": "检查 disabled",
+      "sublabel": "沿父链向上检查（:64）",
+      "pos": [
+        1090,
+        120
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "kill",
+      "type": "cloud",
+      "label": "已禁用",
+      "sublabel": "this.fiber?.dispose() 后返回",
+      "tag": ":119",
+      "pos": [
+        1090,
+        290
+      ],
+      "size": [
+        280,
+        105
+      ]
+    },
+    {
+      "id": "first",
+      "type": "backend",
+      "label": "尚未运行",
+      "sublabel": "await this.init() 首次启动",
+      "tag": ":132",
+      "pos": [
+        400,
+        420
+      ],
+      "size": [
+        300,
+        105
+      ]
+    },
+    {
+      "id": "diff",
+      "type": "messagebus",
+      "label": "已在运行则算 diff",
+      "sublabel": "对新旧键取并集后逐个 deepEqual 比较",
+      "tag": ":125-127，据 diff 决定重载还是就地 patch",
+      "pos": [
+        760,
+        420
+      ],
+      "size": [
+        380,
+        105
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "api",
+      "to": "snap"
+    },
+    {
+      "id": "b",
+      "from": "snap",
+      "to": "merge"
+    },
+    {
+      "id": "c",
+      "from": "merge",
+      "to": "dis"
+    },
+    {
+      "id": "d",
+      "from": "dis",
+      "to": "kill",
+      "label": "是",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 46,
+      "route": "straight"
+    },
+    {
+      "id": "e",
+      "from": "api",
+      "to": "first",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "f",
+      "from": "first",
+      "to": "diff",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "create 决定合并语义",
+      "items": [
+        "create 为真表示新建，整份 options 直接替换",
+        "否则是增量更新，逐字段合并",
+        "值为空的字段按删除处理，而不是写入空值"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "三条出路互斥",
+      "items": [
+        "禁用则销毁 Fiber 并结束",
+        "未运行则走首次 init",
+        "已运行则算 diff 再决定动作"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "diff 决定重载还是 patch",
+      "items": [
+        "只有配置真的变化才动 Fiber",
+        "仅 Config 字段变化可以就地 patch",
+        "涉及 name 或 inject 变化则必须重载"
+      ]
+    }
+  ]
+}

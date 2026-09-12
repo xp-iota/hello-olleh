@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "AgentRegistry 的四组职责",
+    "output": "06-agent-registry.html",
+    "viewBox": [
+      1500,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "init",
+      "type": "database",
+      "label": "发起者追踪",
+      "sublabel": "currentInitiator() 与 requireInitiator()",
+      "tag": "AG/index.ts:309 与 :322，subagent 委派需要它",
+      "pos": [
+        70,
+        130
+      ],
+      "size": [
+        400,
+        115
+      ]
+    },
+    {
+      "id": "fac",
+      "type": "security",
+      "label": "工厂注册",
+      "sublabel": "setFactory(factory)",
+      "tag": "AG/index.ts:372，换掉它就换掉整个 Agent 实现",
+      "pos": [
+        70,
+        275
+      ],
+      "size": [
+        400,
+        115
+      ]
+    },
+    {
+      "id": "life",
+      "type": "backend",
+      "label": "生命周期",
+      "sublabel": "register / enter / announce",
+      "tag": "AG/index.ts:450 / :474 / :549",
+      "pos": [
+        540,
+        130
+      ],
+      "size": [
+        400,
+        115
+      ]
+    },
+    {
+      "id": "query",
+      "type": "cloud",
+      "label": "查询",
+      "sublabel": "按 id 或按 owner 检索活跃 agent",
+      "pos": [
+        540,
+        275
+      ],
+      "size": [
+        400,
+        115
+      ]
+    },
+    {
+      "id": "svc",
+      "type": "frontend",
+      "label": "AgentRegistry extends Service",
+      "sublabel": "提供 ctx.agents，整文件 706 行",
+      "tag": "AG/index.ts:256",
+      "pos": [
+        1010,
+        200
+      ],
+      "size": [
+        400,
+        115
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "四组职责",
+      "wraps": [
+        "init",
+        "fac",
+        "life",
+        "query"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "life",
+      "to": "svc",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "query",
+      "to": "svc",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "setFactory 是最大的扩展点",
+      "items": [
+        "Agent 的构造完全由注册的工厂决定",
+        "换工厂即换掉 Agent 的全部行为",
+        "比替换 agentLoop 更彻底"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "enter 建立父子关系",
+      "items": [
+        "enter(agent, owner) 声明谁拥有这个 agent",
+        "subagent 就靠它挂到父 agent 下",
+        "announce 用于向外广播新 agent"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "发起者追踪的用途",
+      "items": [
+        "记录当前操作是谁触发的",
+        "委派给 subagent 时要带上发起者身份",
+        "requireInitiator 在缺失时直接报错"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "landlock-run 的自限后执行模式",
+    "output": "08-landlock-run.html",
+    "viewBox": [
+      1480,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "bin",
+      "type": "security",
+      "label": "landlock-run",
+      "sublabel": "约 300 行 C11，直接对 Linux 内核 UAPI",
+      "tag": "静态链接 musl，体积约 288K",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        380,
+        140
+      ]
+    },
+    {
+      "id": "mode",
+      "type": "database",
+      "label": "self-restrict-then-exec",
+      "sublabel": "先给自己装 Landlock ruleset，再 exec 目标命令",
+      "tag": "ruleset 跨 execve 继承，因此子进程全部受约束",
+      "pos": [
+        490,
+        80
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "scope",
+      "type": "backend",
+      "label": "约束范围",
+      "sublabel": "命令及其所有子进程受限，调用方进程不受影响",
+      "pos": [
+        490,
+        300
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "fc",
+      "type": "cloud",
+      "label": "fail-closed",
+      "sublabel": "内核无法强制时直接退出，不运行命令",
+      "pos": [
+        940,
+        190
+      ],
+      "size": [
+        350,
+        140
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "bin",
+      "to": "mode",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "bin",
+      "to": "scope",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "mode",
+      "to": "fc",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么用独立可执行文件",
+      "items": [
+        "Landlock 是进程自限的，必须在目标进程内施加",
+        "于是用一个小包装程序先自限再 exec",
+        "这样调用方自己不受影响"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "发布形态是 node addon 包",
+      "items": [
+        "入口包是纯 JS，按平台选择二进制",
+        "静态链接 musl 以免依赖宿主 libc",
+        "体积小便于随包分发"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "不做降级",
+      "items": [
+        "内核不支持或规则装载失败即退出",
+        "不会退回到无约束执行",
+        "这是全仓 fail-closed 的典型样例"
+      ]
+    }
+  ]
+}

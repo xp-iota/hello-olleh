@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "shell 把解析与执行分开",
+    "output": "08-shell-resolve-run.html",
+    "viewBox": [
+      1480,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "req",
+      "type": "frontend",
+      "label": "ShellExecRequest",
+      "sublabel": "模型给出的命令",
+      "pos": [
+        70,
+        200
+      ],
+      "size": [
+        280,
+        130
+      ]
+    },
+    {
+      "id": "res",
+      "type": "security",
+      "label": "resolve(request)",
+      "sublabel": "同步且无副作用，产出 ShellExecSpec",
+      "tag": "决定用哪个 shell、argv 怎么拼、环境变量如何",
+      "pos": [
+        390,
+        200
+      ],
+      "size": [
+        380,
+        130
+      ]
+    },
+    {
+      "id": "run",
+      "type": "database",
+      "label": "run(spec)",
+      "sublabel": "一次性执行，返回 Promise",
+      "pos": [
+        810,
+        80
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "start",
+      "type": "backend",
+      "label": "start(spec)",
+      "sublabel": "返回 ShellProcess，可逐步读输出",
+      "pos": [
+        810,
+        320
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "why",
+      "type": "cloud",
+      "label": "分离的意义",
+      "sublabel": "沙箱 provider 可在 resolve 之后再包一层约束",
+      "pos": [
+        1160,
+        200
+      ],
+      "size": [
+        260,
+        130
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "req",
+      "to": "res",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "res",
+      "to": "run"
+    },
+    {
+      "id": "c",
+      "from": "res",
+      "to": "start",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "res",
+      "to": "why",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "resolve 必须无副作用",
+      "items": [
+        "它只做决策，不启动任何进程",
+        "因此可以被反复调用与检查",
+        "审批逻辑可以先看 spec 再决定放行"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "两种执行形态",
+      "items": [
+        "run 适合短命令，直接拿完整结果",
+        "start 适合长命令，可流式读输出",
+        "两者共用同一个 spec"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "沙箱在中间插入",
+      "items": [
+        "拿到 spec 后可调 sandbox.confine 改写 argv",
+        "改写后再交给 subprocess 执行",
+        "于是沙箱不需要理解 shell 语法"
+      ]
+    }
+  ]
+}

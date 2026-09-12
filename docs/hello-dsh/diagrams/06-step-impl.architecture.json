@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "step() 的请求构建与重试",
+    "output": "06-step-impl.html",
+    "viewBox": [
+      1520,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "enter",
+      "type": "frontend",
+      "label": "step(assembly)",
+      "sublabel": "先 renderPrompt(assembly) 得到 system",
+      "tag": "AL/agent.ts:332 与 :337",
+      "pos": [
+        70,
+        210
+      ],
+      "size": [
+        280,
+        130
+      ]
+    },
+    {
+      "id": "build",
+      "type": "database",
+      "label": "构建请求",
+      "sublabel": "buildRequest 带上 tools、system 与投影出的历史消息",
+      "tag": ":340-342，历史来自 session.deriveMessages()",
+      "pos": [
+        390,
+        210
+      ],
+      "size": [
+        380,
+        130
+      ]
+    },
+    {
+      "id": "asm",
+      "type": "backend",
+      "label": "准备装配器",
+      "sublabel": "new BlockAssembler() 并初始化 chunkSeqs",
+      "pos": [
+        810,
+        90
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "stream",
+      "type": "cloud",
+      "label": "取流",
+      "sublabel": "优先用 preparedCall.stream，否则 loopCtx.llm.stream",
+      "pos": [
+        810,
+        320
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "retry",
+      "type": "security",
+      "label": "retry 循环",
+      "sublabel": "整段包在 while 里，可重试整次请求",
+      "tag": "全文 74 行，AL/agent.ts:332-405",
+      "pos": [
+        1180,
+        210
+      ],
+      "size": [
+        250,
+        130
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "enter",
+      "to": "build",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "build",
+      "to": "asm"
+    },
+    {
+      "id": "c",
+      "from": "build",
+      "to": "stream",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "stream",
+      "to": "retry",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "历史永远从日志投影",
+      "items": [
+        "不维护内存里的消息数组",
+        "每个 step 都调一次 deriveMessages()",
+        "因此压缩与 fork 立即生效"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "preparedCall 的作用",
+      "items": [
+        "允许上游预先准备好一个流",
+        "用于 mock、录制回放或自定义传输",
+        "没有则回落到 ctx.llm.stream"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "chunkSeqs 记录来源",
+      "items": [
+        "每个流式 chunk 落日志后记下 seq",
+        "最终 assistant/message 带上 sourceEventSeqs",
+        "于是消息可追溯到原始分片"
+      ]
+    }
+  ]
+}

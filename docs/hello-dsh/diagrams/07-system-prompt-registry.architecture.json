@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SystemPrompt 的四类注册",
+    "output": "07-system-prompt-registry.html",
+    "viewBox": [
+      1500,
+      580
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "sec",
+      "type": "frontend",
+      "label": "section",
+      "sublabel": "静态提示分节，有序",
+      "tag": "SP/index.ts:381，结构见 :53，含 name、order、text、complete",
+      "pos": [
+        70,
+        140
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "ctxs",
+      "type": "database",
+      "label": "context",
+      "sublabel": "动态运行时上下文，有序",
+      "tag": "SP/index.ts:398，结构见 :78",
+      "pos": [
+        70,
+        300
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "tp",
+      "type": "backend",
+      "label": "toolProvider",
+      "sublabel": "提供工具 schema 的函数",
+      "tag": "返回 ToolProviderResult（:104），含 schemas 与 knownNames",
+      "pos": [
+        540,
+        140
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "var",
+      "type": "security",
+      "label": "variable",
+      "sublabel": "VariableProvider，供模板占位求值",
+      "pos": [
+        540,
+        300
+      ],
+      "size": [
+        400,
+        120
+      ]
+    },
+    {
+      "id": "cls",
+      "type": "cloud",
+      "label": "SystemPrompt",
+      "sublabel": "SP/index.ts:338",
+      "pos": [
+        1010,
+        220
+      ],
+      "size": [
+        420,
+        120
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "sec",
+      "to": "tp",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "ctxs",
+      "to": "var",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "tp",
+      "to": "cls",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "四类的差异",
+      "items": [
+        "section 是静态文本，context 是每次求值的动态文本",
+        "toolProvider 决定模型看到哪些工具",
+        "variable 供模板里的占位使用"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "order 决定拼装顺序",
+      "items": [
+        "section 与 context 都带 order",
+        "负数排在前面，用于身份类前置说明",
+        "同 order 时按注册顺序"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "注册都是可逆的",
+      "items": [
+        "每次注册返回 disposer",
+        "插件卸载时对应分节自动消失",
+        "于是提示词随插件树变化"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+FRAME 01-dsh-capabilities-dsh-opening.png
+LUSINE / META BUILDER
+01116—开场
+从一个删文件的工具说起
+一个需求牵出十二个方向，最后都回到同一个装配点
+先跑，再讲；先弄清归谁，再决定往哪加。
+第一讲：一个工具要走完的十二道关
+dsh-opening
+FRAME 02-iota-alignment-iota-boundary.png
+LUSINE / META BUILDER
+02114根因
+边界画在哪儿，取决于谁在执行
+宿主
+接住输入
+编排层
+顺序与进度
+内核
+一轮轮地跑
+模型与工具
+真正执行
+某一层没有的东西，它就不能承诺。
+第二讲：同样十二个方向，换一层来做
+iota-boundary
+FRAME 03-boundaries-selection-choice-closing.png
+LUSINE / META BUILDER
+10110—收束
+别用长得像，去替代说得清谁拥有它
+别用长得像，去替代说得清谁拥有它。
+第三讲：缝开在哪一层，就选哪一个
+choice-ciosing

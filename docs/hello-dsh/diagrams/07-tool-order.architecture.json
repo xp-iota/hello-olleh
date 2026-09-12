@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "toolOrder 与 rest 锚点",
+    "output": "07-tool-order.html",
+    "viewBox": [
+      1480,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "cfg",
+      "type": "frontend",
+      "label": "toolOrder 配置项",
+      "sublabel": "字符串数组，可含一个 rest 锚点",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        320,
+        130
+      ]
+    },
+    {
+      "id": "val",
+      "type": "security",
+      "label": "validateToolOrder",
+      "sublabel": "定义在 :146，构造时于 :355 调用",
+      "pos": [
+        430,
+        190
+      ],
+      "size": [
+        320,
+        130
+      ]
+    },
+    {
+      "id": "ord",
+      "type": "backend",
+      "label": "orderTools",
+      "sublabel": "按 toolOrder 排列，rest 位置插入未列出的工具",
+      "pos": [
+        790,
+        190
+      ],
+      "size": [
+        340,
+        130
+      ]
+    },
+    {
+      "id": "why",
+      "type": "cloud",
+      "label": "为什么需要 rest",
+      "sublabel": "工具由插件动态注册，配置方无法穷举",
+      "pos": [
+        1170,
+        190
+      ],
+      "size": [
+        240,
+        130
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "cfg",
+      "to": "val",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "val",
+      "to": "ord",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "ord",
+      "to": "why",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "rest 是必需的锚点",
+      "items": [
+        "它标记「其余工具放这里」",
+        "缺了它未列出的工具就没有位置",
+        "因此校验会要求它存在"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "空数组与未设置不等价",
+      "items": [
+        "未设置表示使用默认顺序",
+        "空数组缺少 rest 锚点，所有工具都没位置",
+        "所以默认值必须区分这两种情况"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "顺序会影响模型行为",
+      "items": [
+        "靠前的工具更容易被选用",
+        "把高频工具放前面通常更稳",
+        "但不应依赖顺序来表达约束"
+      ]
+    }
+  ]
+}

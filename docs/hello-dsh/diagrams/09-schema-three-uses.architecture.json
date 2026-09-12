@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "一份 schema 的三种用途",
+    "output": "09-schema-three-uses.html",
+    "viewBox": [
+      1480,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "sch",
+      "type": "frontend",
+      "label": "一份 schemastery schema",
+      "sublabel": "例如 SystemPrompt.Config",
+      "tag": "vendor/schemastery 3.18.1，见 07 篇 § 7.20",
+      "pos": [
+        70,
+        190
+      ],
+      "size": [
+        340,
+        140
+      ]
+    },
+    {
+      "id": "u1",
+      "type": "database",
+      "label": "① 运行时校验",
+      "sublabel": "cordis 的 resolveConfig 直接调它",
+      "pos": [
+        450,
+        80
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "u2",
+      "type": "backend",
+      "label": "② 类型推导",
+      "sublabel": "从 schema 推出 TypeScript 配置类型",
+      "pos": [
+        450,
+        240
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "u3",
+      "type": "cloud",
+      "label": "③ 界面生成",
+      "sublabel": "配置面板按 schema 自动渲染表单",
+      "pos": [
+        450,
+        400
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "one",
+      "type": "messagebus",
+      "label": "单一事实来源",
+      "sublabel": "改 schema 即同时改校验、类型与界面",
+      "pos": [
+        850,
+        240
+      ],
+      "size": [
+        340,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "sch",
+      "to": "u1",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b",
+      "from": "sch",
+      "to": "u2",
+      "variant": "emphasis"
+    },
+    {
+      "id": "c",
+      "from": "sch",
+      "to": "u3",
+      "variant": "emphasis"
+    },
+    {
+      "id": "d",
+      "from": "u2",
+      "to": "one",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么用 schemastery",
+      "items": [
+        "它同时提供运行时校验与类型推导",
+        "cordis 的配置校验原生支持它",
+        "默认值也由 schema 声明"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "默认值的坑",
+      "items": [
+        "某些字段需要区分未设置与空值",
+        "例如 toolOrder 的空数组缺少 rest 锚点",
+        "因此默认值要显式写成未定义态"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "界面自动生成的边界",
+      "items": [
+        "简单标量与数组可以直接渲染",
+        "复杂联合类型仍需手写控件",
+        "这时用 schema 只做校验"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+# Jekyll
+_site/
+.jekyll-cache/
+.jekyll-metadata
+.sass-cache/
+
+# Ruby
+Gemfile.lock
+.bundle/
+vendor/bundle/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Upstream source code (external repos; cloned by sync_repos.sh)
+sources/codex/
+sources/gemini-cli/
+sources/opencode/
+sources/hermes-agent/
+sources/nanobot/
+sources/cordis/
+sources/deepseek-harness/
+# sources/claude-code/ is committed (decompiled snapshot); do not ignore
+
+# Build output
+dist/
+*.log
+node_modules/
+
+# Sensitive
+.env
+.env.*
+!.env.example
+
+# Scripts
+*.ps1
+!scripts/*.ps1
+!scripts/*.js
+
+# Backup
+*.drawio.bkp
+*.pdf
+*.epub
+
+# Claude/Kiro
+.claude/
+.kiro/
+
+# graphify 运行时（按需 pip install --target 安装，不入库）
+.tools/
+graphify-out/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Video renderer scratch file (written next to the deck output, then removed)
+.render-props.json

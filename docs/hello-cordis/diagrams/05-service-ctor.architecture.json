@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Service 构造函数做的六件事",
+    "output": "05-service-ctor.html",
+    "viewBox": [
+      1520,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "n1",
+      "type": "frontend",
+      "label": "① 确定名字",
+      "sublabel": "name 缺省取 this.constructor['provide']",
+      "tag": "C/service.ts:19",
+      "pos": [
+        60,
+        120
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "n2",
+      "type": "database",
+      "label": "② 准备 tracker",
+      "sublabel": "{ associate: name, property: 'ctx' }",
+      "tag": ":22-25",
+      "pos": [
+        380,
+        120
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "n3",
+      "type": "security",
+      "label": "③ 判断是否可调用",
+      "sublabel": "看 this[symbols.invoke] 是否存在",
+      "pos": [
+        700,
+        120
+      ],
+      "size": [
+        280,
+        110
+      ]
+    },
+    {
+      "id": "n4",
+      "type": "cloud",
+      "label": "④ 变成函数或保持原样",
+      "sublabel": "createCallable 把服务变成可调用对象",
+      "tag": ":27 否则 self 就是 this",
+      "pos": [
+        1020,
+        120
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "n5",
+      "type": "backend",
+      "label": "⑤ 挂字段",
+      "sublabel": "写 self.ctx / self.name 并 defineProperty tracker",
+      "pos": [
+        380,
+        400
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "n6",
+      "type": "messagebus",
+      "label": "⑥ 自我注册",
+      "sublabel": "self.ctx.reflect.provide(name, self, check)",
+      "tag": ":33",
+      "pos": [
+        780,
+        400
+      ],
+      "size": [
+        340,
+        110
+      ]
+    },
+    {
+      "id": "ret",
+      "type": "frontend",
+      "label": "return self",
+      "sublabel": "构造函数返回替换后的对象",
+      "tag": ":34",
+      "pos": [
+        1180,
+        400
+      ],
+      "size": [
+        240,
+        110
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a",
+      "from": "n1",
+      "to": "n2"
+    },
+    {
+      "id": "b",
+      "from": "n2",
+      "to": "n3"
+    },
+    {
+      "id": "c",
+      "from": "n3",
+      "to": "n4"
+    },
+    {
+      "id": "d",
+      "from": "n4",
+      "to": "n5",
+      "label": "合流",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "e",
+      "from": "n5",
+      "to": "n6",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f",
+      "from": "n6",
+      "to": "ret"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "构造函数返回值被替换",
+      "items": [
+        "第三步判定 symbols.invoke，存在则走 createCallable，否则 self 即 this",
+        "JavaScript 允许构造函数返回另一个对象",
+        "Service 借此把自己换成可调用版本",
+        "调用方拿到的不是 this 而是 self"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "tracker 决定 this.ctx 的含义",
+      "items": [
+        "property 为 ctx 表示拦截 this.ctx",
+        "associate 为服务名，用于转发 db.xxx 形式的属性",
+        "详见 04 篇 § 4.6"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "注册发生在构造末尾",
+      "items": [
+        "此时字段都已挂好，实现是完整的",
+        "provide 走的仍是 fiber.effect，因此可逆",
+        "check 由子类通过 symbols.check 提供"
+      ]
+    }
+  ]
+}
