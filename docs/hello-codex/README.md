@@ -65,6 +65,5 @@ Codex 应按“Rust runtime 为中心、TypeScript 只做分发和协议消费�
 
 ## 维护注意
 
-- 新增章节时同步更新本 README 和 [index.md](./index.md)。
 - 新增源码锚点后运行 `powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/check_doc_refs.ps1 -DocDirs hello-codex`。
 - 若行号来自旧快照或反编译结果，应在正文中标注版本来源，避免和 `rust-v0.141.0` 混淆。

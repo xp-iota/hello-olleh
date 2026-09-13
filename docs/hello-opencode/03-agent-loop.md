@@ -461,19 +461,6 @@ if (part.state.status === "completed") {
 - **Effect-ts 学习曲线高**：整个 loop 依赖 Effect fiber + Layer 的依赖注入体系，新贡献者上手成本较高，错误栈的可读性也比 Promise 链差。
 - **SQLite 写入为关键路径**：流事件实时写库增加了 I/O 延迟；在写密集场景（高频 token 流）下，若磁盘 I/O 成为瓶颈，会直接影响 LLM 响应呈现速度。
 
-## 横向对齐补强：本章定位为总览，深挖分流到 27-29
-
-为避免 OpenCode 文档和其他项目横向阅读时篇幅失衡，`03-agent-loop.md` 只保留主链路总览：`SessionPrompt.prompt()`、`SessionPrompt.loop()`、`SessionProcessor.process()`、`LLM.stream()`、durable part 写回。
-
-| 深挖主题 | 迁移/保留位置 |
-| --- | --- |
-| loop 状态机、历史回放、并发闸门 | `27-session-loop.md` |
-| AI SDK fullStream、part 状态机、doom loop | `28-stream-processor.md` |
-| provider、system prompt、工具集、模型参数晚绑定 | `29-llm-request.md` |
-| 对象模型、SQLite、Storage、Bus | `30-model.md`、`31-infra.md` |
-
-横向比较时，本章对应其他项目的 `03-agent-loop.md`；OpenCode 特有的 `27-31` 是附录深挖，不应再被视为额外主干章节。
-
 ## 源码锚点补强
 
 | 阶段 | 源码锚点 | 说明 |

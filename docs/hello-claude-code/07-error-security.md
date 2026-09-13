@@ -443,7 +443,7 @@ flowchart LR
 - **`fastModeFailureCooldown` 缺乏配置化**：fast mode 失败后的 cooldown 时间硬编码在函数内，云端速率限制严格时无法外部调整，运维灵活性差。
 - **context overflow 修正逻辑与重试逻辑耦合**：`withRetry()` 同时承担了"重试"和"修正上下文"两种职责，若 context overflow 修正失败，错误路径与网络错误重试路径重叠，难以区分。
 
-## 横向对齐补强：Claude 的安全边界分散在请求层、权限层和配置层
+## Claude 的安全边界分散在请求层、权限层和配置层
 
 Claude Code 的错误与安全机制不应只看 provider retry。一次高风险动作会穿过 request 参数、permission context、tool execution、MCP policy 和 UI confirmation 多个边界。
 

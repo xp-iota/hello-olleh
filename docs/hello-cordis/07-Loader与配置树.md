@@ -11,11 +11,10 @@ parent_url: /docs/hello-cordis/
 >
 > 🧭 **本篇导览**：7.1–7.2 从配置到运行与 `EntryOptions` → 7.3–7.4 `update()` 决策树与 `init()` → 7.5–7.6 `include` / `applyPatches` 与 id 解析 → 7.7–7.9 isolate realm 7 步、Loader 三钩子与 `EntryGroup`。
 >
-> 📎 **来源**：本篇为本系列原始篇目，基于 cordiverse/cordis 快照 `8cc9e33f`。
 
 ## 7.1 从配置到运行
 
-> 📐 **配套对照与可跑入口**：[`cordis.yml`](../../dsh-example/cordis.yml) 用 `id` / `name` / `config` 展示 DSH 插件配置行的形态；[`runtime/harness.ts`](../../dsh-example/runtime/harness.ts) 则用真实 npm 包完成等价的服务与插件装配。`cordis.yml` 是配置示范，**不是本工程的直接执行入口**；要观察插件挂载与卸载，请在 `dsh-example/` 运行 `npm run 26`，并把 [`26/run.ts`](../../dsh-example/26-cordis-timer/run.ts) 的 `loadPlugin()` / `fiber.dispose()` 与本篇 `Entry.init()` / Fiber 回收链对照阅读。
+> 📐 **配套对照与可跑入口**：[`cordis.yml`](../../dsh-example/cordis.yml) 用 `id` / `name` / `config` 展示 DSH 插件配置行的形态；[`runtime/harness.ts`](../../dsh-example/runtime/harness.ts) 则用真实 npm 包完成等价的服务与插件装配。`cordis.yml` 是配置示范，**不是本工程的直接执行入口**；要观察插件挂载与卸载，请在 `dsh-example/` 运行 `npm run M12`，并把 [`M12 timer phase`](../../dsh-example/M12-framework-mechanisms/phases/02-cordis-timer.ts) 的 `loadPlugin()` / `fiber.dispose()` 与本篇 `Entry.init()` / Fiber 回收链对照阅读。
 
 一个典型配置文件：
 

@@ -1,6 +1,10 @@
 # M08 · 委派与预设
 
-本模块整合原 15，强调一个容易被误解的边界：装载 `ctx.subagents` **不会自动让模型委派**。它只是具名 Provider 注册表。
+装载 `ctx.subagents` 不会自动让模型委派；它只提供具名 Provider，模型入口仍须显式暴露。
+
+## 学习目标
+
+分清 Provider、preset、permission 与 model selection 四层职责。
 
 ## 运行
 
@@ -8,18 +12,21 @@
 npm run M08
 ```
 
-`steps/01-subagent-delegation.ts` 同时展示两层：
+## 阶段与观察点
 
-1. 注册 `local-reviewer` Provider，声明 capabilities（含 `agentOptions`）并实现子任务 start/run 生命周期。
-2. 注册模型可见的 `review_with_subagent` 工具，由工具 execute 显式调用 `ctx.subagents.start()`。
+| 阶段 | 类型 | 实现 | 观察什么 |
+|---|---|---|---|
+| 1 子代理委派 | 教学主线 | `steps/01-subagent-delegation.ts` | Provider 生命周期与模型可见工具如何解耦 |
+| 2 Agent preset | 扩展面 | `steps/02-agent-presets.ts` | 一次 Session 的插件组合来源 |
+| 3 Permission preset | 扩展面 | `steps/03-permission-presets.ts` | sandbox/approval 组合与未隔离 shell 的拒绝 |
+| 4 模型选择 | 扩展面 | `steps/04-subagent-model-selection.ts` | 精确 provider/model 路由授权 |
 
-运行阶段先检查模型可见工具，再模拟模型调用，输出子任务结果的 canonical value 和模型可见 content。这样 Provider 的资源管理与模型的决策接口保持解耦，也可由 preset 选择暴露哪些委派方式。
+## 完整链路
 
-**结论：**委派必须是显式、可审计的能力；Provider 是执行机制，工具/策略才是模型入口。
+注册 `local-reviewer` Provider 后，再注册模型可见的 `review_with_subagent` 工具；工具显式调用 `ctx.subagents.start()`。Preset 决定装载组合，权限决定允许的副作用，模型选择限制子任务路由。
 
+## 边界
 
-## A4 · 三层委派策略
+`start()` 返回运行句柄而不是最终结果，因此开始、结束、取消和资源回收都可独立审计。
 
-- `agentPresets` 管一次 Session 的插件组合来源。
-- `permissionPresets` 组合 sandbox/approval，但拒绝未实现 confinement 的 shell。
-- `subagentModelSelection` 只授权精确 provider/model 路由。
+**结论：**Provider 决定怎么跑，preset 决定装什么，permission 决定能做什么，model selection 决定走哪条模型路由。

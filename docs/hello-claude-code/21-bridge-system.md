@@ -536,7 +536,7 @@ WebSocket 重连使用指数退避：1 秒起步，最大 30 秒，每次失败�
 - **BridgeProtocol schema 无版本控制**：协议格式变更时，旧版 IDE 插件与新版 Claude Code 可能不兼容，无协议版本协商机制。
 - **`VSCodeExtensionAdapter` IDE 耦合深**：适配器直接依赖 VS Code API 类型，移植到其他 IDE（如 JetBrains）需要重写适配层。
 
-## 横向对齐补强：Claude Bridge 是远程会话控制面
+## Claude Bridge 是远程会话控制面
 
 Claude Bridge 章节应和 SDK/Transport 区分：它关注远程 REPL、多 session、IDE/daemon 同步，而不是单次模型请求。
 
@@ -560,7 +560,7 @@ Claude Bridge 章节应和 SDK/Transport 区分：它关注远程 REPL、多 ses
 
 安全评估时要分清两条链：身份验证链决定能否连接远端 session；permission bridge 链决定远端 agent 请求本地危险操作时如何让用户确认。二者缺一不可。
 
-## 源码锚点补强：Bridge 是独立远程控制面
+## 源码锚点：Bridge 是独立远程控制面
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |

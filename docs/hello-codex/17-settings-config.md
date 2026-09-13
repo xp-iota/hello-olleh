@@ -174,7 +174,7 @@ mode = "full-auto"  # 在 CI 中使用全自动模式
 - **env override 键名无前缀规范**：环境变量名不够 namespaced（如 `MODEL` 可能与其他工具冲突），建议统一 `CODEX_` 前缀。
 - **CLI flag 与配置字段无双向映射文档**：用户难以知道哪些 CLI flag 对应哪个 config.toml 键，缺少自动生成的对照表。
 
-## 横向对齐补强：配置是 Rust runtime 的策略输入
+## 配置是 Rust runtime 的策略输入
 
 Codex 配置不只是 CLI 参数集合，而是影响 turn loop、approval、sandbox、AGENTS.md、compact prompt、transport 和工具集的策略输入。
 

@@ -1,5 +1,5 @@
 /**
- * 24 · shell seam（ctx.shell）：resolve → run / start。
+ * M07.2 · shell seam（ctx.shell）：resolve → run / start。
  *
  * 对照真实 `@deepseek-ai/dsh-shell`（抽象 `ShellExecutor`，本地后端是
  * `@deepseek-ai/dsh-bash-local` 的 `LocalBashExecutor`，它建在 `ctx.subprocess` seam 之上）：

@@ -67,7 +67,7 @@ title: "OpenCode 源码分析 README"
 | [34-design-philosophy.md](./34-design-philosophy.md) | 设计哲学 | 固定骨架与晚绑定策略 |
 | [35-prompt-diff.md](./35-prompt-diff.md) | Prompt 对比 | Anthropic/Codex/default prompt 差异 |
 | [36-mainline-index.md](./36-mainline-index.md) | 主线索引 | OpenCode 运行主线深度导航 |
-| [37-durable-state-comparison.md](./37-durable-state-comparison.md) | 迁移说明 | 跨工具 Durable State 对比已迁移到 Harness |
+| [37-durable-state-comparison.md](./37-durable-state-comparison.md) | Durable State 对比 | 跨工具 state / session / memory 对比 |
 | [38-effect-ts.md](./38-effect-ts.md) | Effect-ts | Service/Layer/Effect 依赖注入骨架 |
 
 ## 核心心智模型
@@ -76,6 +76,4 @@ OpenCode 应按“输入先落 durable history，loop 每轮从 durable history 
 
 ## 维护注意
 
-- 新增正文专题时同步更新本 README 和 [index.md](./index.md)。
-- `37-durable-state-comparison.md` 是迁移占位页，跨工具状态/记忆对比维护在 [../hello-harness/06-context-and-memory.md](../hello-harness/06-context-and-memory.md)。
 - OpenCode 文档里短路径较多；新增源码锚点建议写成 `sources/opencode/packages/opencode/src/...:line`。

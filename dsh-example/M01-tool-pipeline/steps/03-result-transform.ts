@@ -1,7 +1,7 @@
 /**
- * 07 · 转换 / 审计工具返回结果。
+ * M01.3 · 转换 / 审计工具返回结果。
  *
- * 工具管线里三个"结果侧"扩展点（见 [08] 三段 waterfall）：
+ * 工具管线里三个"结果侧"扩展点（见 M01.2–M01.3 的执行前后 waterfall）：
  *   - tools/execute      包裹真实派发（超时/重试/指标）——拿到的是可变的 mutableExec
  *   - tools/post-execute 显式转换结果或附加上下文——返回 PostToolDecision
  *   - tools/result       对最终不可变结果做"受 containment 的"观测（审计/度量）

@@ -18,7 +18,7 @@ def main() -> int:
     env.pop("PYTHONPATH", None)
     for module in modules:
         completed = subprocess.run(
-            [sys.executable, str(module / "run.py")],
+            [sys.executable, "-m", "runtime.runner", module.name],
             cwd=root,
             env=env,
             check=False,

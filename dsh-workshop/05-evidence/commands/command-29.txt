@@ -1,7 +1,7 @@
 $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/ruff check . && env -u PYTHONHOME -u PYTHONPATH .venv/bin/mypy && env -u PYTHONHOME -u PYTHONPATH .venv/bin/pytest -q
 
 All checks passed!
-Success: no issues found in 10 source files
+Success: no issues found in 23 source files
 ....................                                                     [100%]
-20 passed in 5.33s
+20 passed in 4.98s
 [exit 0]

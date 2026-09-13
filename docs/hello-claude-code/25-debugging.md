@@ -147,7 +147,7 @@ DEBUG=1 claude --debug
 - **日志无结构化查询支持**：日志为纯文本，大量调试输出中定位特定问题依赖手动 grep，缺少如 jq 可查询的结构化格式。
 - **`SessionDumper` 访问权限无控制**：任何能执行命令的用户都可 dump session，完整历史包含可能敏感的对话内容。
 
-## 横向对齐补强：Claude 调试要覆盖反编译、TUI、MCP、Bridge
+## Claude 调试要覆盖反编译、TUI、MCP、Bridge
 
 Claude Code 的调试文档应特别标注反编译快照风险：源码路径和运行链路可能存在 stub、镜像和行号漂移。
 
@@ -172,7 +172,7 @@ Claude Code 的调试文档应特别标注反编译快照风险：源码路径�
 
 调试输出的原则：优先记录事件类型、session id、tool name、状态码和脱敏后的路径；不要直接贴 API key、OAuth token、完整 transcript、`.claude/settings.local.json` 或项目私有路径树。
 
-## 源码锚点补强
+## 源码锚点
 
 | 调试目标 | 源码锚点 | 说明 |
 | --- | --- | --- |

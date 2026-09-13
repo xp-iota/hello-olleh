@@ -7,7 +7,7 @@ import * as subagentPlugin from '../steps/01-subagent-delegation.ts'
 
 const harness = await createHarness()
 
-// 像 [06] 那样观测子代理生命周期（真实 payload：SubagentRunInfo / SubagentRunEndInfo）。
+// 像 M04.1 那样观测子代理生命周期（真实 payload：SubagentRunInfo / SubagentRunEndInfo）。
 harness.ctx.on('subagent/start', (info) => console.log('[event] subagent/start → provider=%s child=%s local=%s', info.provider, info.id, info.local))
 harness.ctx.on('subagent/end', (info) => console.log('[event] subagent/end   → runId=%s stopReason=%s', info.runId, info.stopReason))
 

@@ -620,7 +620,7 @@ A4 从 A3 提交 `f84f1568` 开始，只纳入 §3.2 批准的服务/能力缝�
 
 ### 15.3 覆盖与边界
 
-`runtime/a4-coverage.ts` 固化 PLAN §3.2 的公开扩展面口径：基线 25 + A4 新增 34 = **59**，门槛 ≥50。新增项同时覆盖 Service、函数式 capability seam 和 M12 Cordis 机制，符合 §3.2 表格本身的混合口径。
+`runtime/surface-coverage.ts` 固化 PLAN §3.2 的公开扩展面口径：基线 25 + A4 新增 34 = **59**，门槛 ≥50。新增项同时覆盖 Service、函数式 capability seam 和 M12 Cordis 机制，符合 §3.2 表格本身的混合口径。
 
 - `webhookRuntime`：输出完整 static inject 和缺失 Host 依赖，不伪造半套宿主。
 - `permissionPresets`：当前 LocalBashExecutor 不具 confinement，真实拒绝并解释原因。
@@ -632,7 +632,7 @@ A4 从 A3 提交 `f84f1568` 开始，只纳入 §3.2 批准的服务/能力缝�
 
 | 判据 | 结果 |
 |---|---|
-| `npm run coverage:a4` | **baseline=25 / added=34 / covered=59 / required=50** |
+| `npm run coverage:surfaces` | **baseline=25 / added=34 / covered=59 / required=50** |
 | `npm run typecheck` | **exit 0，0 错误** |
 | `npm test` | **7 passed / 0 failed** |
 | `npm run all` | **M01–M12 共 12 个 marker，exit 0** |
@@ -712,7 +712,7 @@ visual-check 的截图/contact sheet/JSON 仅作临时验收证据，验证后�
 
 | 判据 | 结果 |
 |---|---|
-| `npm run coverage:a4` | **25 + 34 = 59 ≥ 50** |
+| `npm run coverage:surfaces` | **25 + 34 = 59 ≥ 50** |
 | `npm run typecheck` | **exit 0，0 错误** |
 | `npm test` | **7 passed / 0 failed** |
 | `npm run all` | **M01–M12 全部 exit 0** |
@@ -759,7 +759,7 @@ A6 从 A5 提交 `335473e8` 的干净工作区开始，只做冷启动重装与 
 
 | 判据 | 冷装后结果 |
 |---|---|
-| `npm run coverage:a4` | **25 + 34 = 59 ≥ 50** |
+| `npm run coverage:surfaces` | **25 + 34 = 59 ≥ 50** |
 | `npm run typecheck` | **exit 0，0 错误** |
 | `npm test` | **7 passed / 0 failed** |
 | `npm run all` | **exit 0；12 个 module marker + 1 个 final marker** |

@@ -97,17 +97,17 @@ def build_choice() -> None:
     records = [json.loads(line) for line in raw if line.startswith("{")]
     by_module = {record["module"]: record for record in records}
     lines = [
-        "$ python M03-inference-service-access/run.py",
+        "$ python -m runtime.runner M03",
         f"M03  replaceable_unit = {by_module['M03']['replaceable_unit']}",
         "M03  ACP + llm_execution = compile-time refusal",
         "IOTA_MODULE_OK M03-inference-service-access",
         "",
-        "$ python M07-execution-backends/run.py",
+        "$ python -m runtime.runner M07",
         f"M07  route = {by_module['M07']['route']}",
         f"M07  orchestrator_shell_registry = {by_module['M07']['orchestrator_shell_registry']}",
         "IOTA_MODULE_OK M07-execution-backends",
         "",
-        "$ python M12-framework-mechanisms/run.py",
+        "$ python -m runtime.runner M12",
         f"M12  lifo = {by_module['M12']['lifo']}",
         f"M12  architecture_not_imported = {by_module['M12']['architecture_not_imported']}",
         "IOTA_MODULE_OK M12-framework-mechanisms",

@@ -1,6 +1,10 @@
 # M07 · 执行侧后端
 
-本模块把原 16、24、25 合为一条真实副作用链：**工具提出 I/O 意图，执行 seam 选择后端，沙箱把策略落实到进程边界**。
+真实副作用应分成三层：工具表达 I/O 意图，执行 seam 选择后端，沙箱把策略落实到进程边界。
+
+## 学习目标
+
+理解 fs、subprocess、shell、terminal 与 sandbox policy 如何共同形成可替换、可取消、可约束的执行面。
 
 ## 运行
 
@@ -8,21 +12,22 @@
 npm run M07
 ```
 
-## 阶段
+## 阶段与观察点
 
-| 阶段 | 独立插件 | 关键观察 |
-|---|---|---|
-| fs/subprocess | `steps/01-fs-shell-side-effects.ts` | 文件写读、命令执行、发前/发后取消与临时文件清理 |
-| shell service | `steps/02-shell-service.ts` | resolve、前台 run、后台 start、增量输出与幂等 kill |
-| sandbox seam | `steps/03-sandbox-seam.ts` | provider 栈、read-only/workspace-write、缺 provider 时 fail closed |
+| 阶段 | 类型 | 实现 | 观察什么 |
+|---|---|---|---|
+| 1 fs/subprocess | 教学主线 | `steps/01-fs-shell-side-effects.ts` | 文件读写、命令执行、取消与临时文件清理 |
+| 2 shell service | 教学主线 | `steps/02-shell-service.ts` | resolve、run、start、增量输出与幂等 kill |
+| 3 sandbox seam | 教学主线 | `steps/03-sandbox-seam.ts` | Provider 栈、策略模式与缺 Provider 时 fail closed |
+| 4 Terminal | 扩展面 | `steps/04-terminal-sessions.ts` | owner-scoped PTY registry 与稳定 `NO_BACKEND` |
+| 5 共享策略 | 扩展面 | `steps/05-sandbox-policy.ts` | 默认策略与会话日志覆盖如何合并 |
 
-工具不直接调用 Node API，而是消费 Context 上的能力缝，因此测试可替换后端、宿主可统一观测，生产环境也能在同一入口施加沙箱。`exec.signal` 同时覆盖尚未派发与已经派发的取消语义。
+## 完整链路
 
-**结论：**副作用能力应分成“做什么”“由谁执行”“在哪些约束下执行”三层，避免工具代码绕过宿主策略。
+工具调用 Context 能力；执行后端解析路径或命令；sandbox 在派发前把策略转换成可强制执行的 argv；`exec.signal` 同时覆盖派发前和派发后的取消。
 
+## 边界
 
-## A4 · 终端与共享策略
+默认教学路径不启动需要原生安装脚本的 PTY；无法强制执行的沙箱模式必须拒绝，不能静默降级。
 
-- `terminals` 是 owner-scoped PTY registry；未注册 backend 返回稳定 `NO_BACKEND`。
-- `sandboxPolicy` 将默认策略和 `sandbox/mode` 日志覆盖解析成每次执行的边界。
-- npm 拦截的 `node-pty` 原生安装脚本未被擅自批准，因此默认教学路径不启动 bash PTY。
+**结论：**工具不应直接绕过宿主调用 Node API，副作用必须经过统一执行与安全边界。

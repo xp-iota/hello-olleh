@@ -66,7 +66,7 @@ sessionProjectionCache: {
 }
 
 ════════ M05.5 · 把标题写成 latest-wins 日志事件 ════════
-sessionTitle: { title: 'A4 会话服务链', source: 'user', foldedAgain: 'A4 会话服务链' }
+sessionTitle: { title: '会话服务链', source: 'user', foldedAgain: '会话服务链' }
 
 结论：事件日志是事实源；persistence 保存事实，query 读取语料，projection cache 加速重放，title 仍以日志投影表达。
 [exit 0]

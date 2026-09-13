@@ -1,4 +1,4 @@
-"""Every aligned module must be independently executable and offline."""
+"""Every teaching module must be independently executable and offline."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def test_module_exits_zero(module: Path) -> None:
     env.pop("PYTHONHOME", None)
     env.pop("PYTHONPATH", None)
     completed = subprocess.run(
-        [sys.executable, str(module / "run.py")],
+        [sys.executable, "-m", "runtime.runner", module.name],
         cwd=ROOT,
         env=env,
         check=False,
@@ -30,6 +30,9 @@ def test_module_exits_zero(module: Path) -> None:
     assert completed.returncode == 0, completed.stderr
     assert f"IOTA_MODULE_OK {module.name}" in completed.stdout
     assert '"status": "ok"' in completed.stdout
+    assert "学习目标：" in completed.stdout
+    assert "运行时观察：" in completed.stdout
+    assert "结论：" in completed.stdout
 
 
 def test_exactly_twelve_modules_match_dsh_names() -> None:

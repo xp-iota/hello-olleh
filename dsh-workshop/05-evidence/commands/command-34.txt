@@ -1,5 +1,17 @@
-$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M07-execution-backends/run.py
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M07
 
-{"alignment": "C", "module": "M07", "orchestrator_shell_registry": [], "route": "prompt -> KernelAdapter -> kernel.shell event", "status": "ok"}
+
+████ M07 · 执行侧后端 ████
+学习目标：确认 shell 副作用由 KernelAdapter 执行，而非编排层工具注册表。
+运行时观察：
+  1. kernel.shell 事件
+  2. 工具结果事件
+  3. 编排层 shell registry 是否为空
+验证结果：
+  - route: "prompt -> KernelAdapter -> kernel.shell event"
+  - orchestrator_shell_registry: []
+对照关系：结构性边界
+结论：iota 转发执行事件，但不重写内核的 fs/shell/sandbox 执行栈。
+{"module": "M07", "orchestrator_shell_registry": [], "relationship": "结构性边界", "route": "prompt -> KernelAdapter -> kernel.shell event", "status": "ok"}
 IOTA_MODULE_OK M07-execution-backends
 [exit 0]

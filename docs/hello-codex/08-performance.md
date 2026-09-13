@@ -266,7 +266,7 @@ PRAGMA auto_vacuum = INCREMENTAL;  -- 增量空间回收
 
 **生产就绪度**：高。Codex 在流式传输、沙箱安全、状态持久化方面都有精心的工程设计，适合作为本地代理系统的参考架构。
 
-## 横向对齐补强：Codex 性能瓶颈主要在 Rust runtime 内部
+## Codex 性能瓶颈主要在 Rust runtime 内部
 
 Codex 的性能分析应围绕四个关键路径展开：prompt/history 构造、模型流消费、工具并发、TUI/event 投影。
 

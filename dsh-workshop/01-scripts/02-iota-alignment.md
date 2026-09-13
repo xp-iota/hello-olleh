@@ -36,7 +36,7 @@ cd iota-example && grep -n '执行栈' docs/dsh-vs-iota.md
 **复现命令**
 
 ```bash
-cd iota-example && grep -R '^async def create_harness' . --include='*.py' && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M04-agent-loop-intervention/run.py
+cd iota-example && grep -R '^async def create_harness' . --include='*.py' && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M04
 ```
 
 ## 04. 补在自己的通道上，不去接管内核
@@ -48,7 +48,7 @@ cd iota-example && grep -R '^async def create_harness' . --include='*.py' && env
 **复现命令**
 
 ```bash
-cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M01-tool-pipeline/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M02-context-assembly-economics/run.py
+cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M01 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M02
 ```
 
 ## 05. 换的不是模型，是整个内核
@@ -60,7 +60,7 @@ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M01-tool-pip
 **复现命令**
 
 ```bash
-cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M03-inference-service-access/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M04-agent-loop-intervention/run.py
+cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M03 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M04
 ```
 
 ## 06. 没有序号这件事，得说出来
@@ -72,7 +72,7 @@ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M03-inferenc
 **复现命令**
 
 ```bash
-cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M05-session-surface/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M06-human-in-the-loop/run.py
+cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M05 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M06
 ```
 
 ## 07. 空的注册表，是一条证据
@@ -84,7 +84,7 @@ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M05-session-
 **复现命令**
 
 ```bash
-cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M07-execution-backends/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M08-delegation-presets/run.py
+cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M07 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M08
 ```
 
 ## 08. 这一节反过来，编排层更强
@@ -96,7 +96,7 @@ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M07-executio
 **复现命令**
 
 ```bash
-cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M09-long-running-orchestration/run.py
+cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M09
 ```
 
 ## 09. 真通道，不是画在图上的方框
@@ -108,7 +108,7 @@ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M09-long-run
 **复现命令**
 
 ```bash
-cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M10-external-capabilities/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M11-config-data-infrastructure/run.py
+cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M10 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M11
 ```
 
 ## 10. 借语义，不搬架构
@@ -120,7 +120,7 @@ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M10-external
 **复现命令**
 
 ```bash
-cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M12-framework-mechanisms/run.py
+cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M12
 ```
 
 ## 11. 讲到这儿都是话，接下来看能不能跑

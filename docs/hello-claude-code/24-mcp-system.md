@@ -514,7 +514,7 @@ JSON Schema → Zod schema 的转换不是通用的。它处理常见的 JSON Sc
 - **callTool 无超时参数**：工具调用无调用级超时设置，全局超时无法适应不同工具时延差异。
 - **Resource/Prompt 功能利用率低**：MCP 协议的 Resource 和 Prompt 特性在 Claude Code 中未充分暴露给 LLM，仅 Tool 被主动使用。
 
-## 横向对齐补强：Claude MCP 与 Plugin/Settings 强耦合
+## Claude MCP 与 Plugin/Settings 强耦合
 
 Claude Code 的 MCP 章节应比普通 MCP client 分析更宽：MCP server 可以来自用户配置、项目配置、plugin、SDK control message，并受企业策略和 permission rule 影响。
 
@@ -553,7 +553,7 @@ sequenceDiagram
 | Permission | `sources/claude-code/src/utils/settings/permissionValidation.ts:102`, `sources/claude-code/src/utils/permissions/permissions.ts:236` | MCP 工具仍受权限规则约束 |
 | Tool result | `queryLoop()` 的普通 tool result 路径 | MCP result 不应被视为 bridge 事件或 prompt 资源旁路 |
 
-## 源码锚点补强
+## 源码锚点
 
 | MCP 子系统 | 源码锚点 | 说明 |
 | --- | --- | --- |

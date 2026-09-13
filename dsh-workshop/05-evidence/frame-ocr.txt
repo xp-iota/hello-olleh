@@ -1,14 +1,18 @@
-FRAME 01-dsh-capabilities-dsh-opening.png
-LUSINE / META BUILDER
-01116—开场
+FRAME harness-course-dsh-opening.png
+第一章•一个工具要走完的十二道关
+第一章•开场
 从一个删文件的工具说起
 一个需求牵出十二个方向，最后都回到同一个装配点
 先跑，再讲；先弄清归谁，再决定往哪加。
-第一讲：一个工具要走完的十二道关
-dsh-opening
-FRAME 02-iota-alignment-iota-boundary.png
-LUSINE / META BUILDER
-02114根因
+• 十二个方向
+• 都能单独跑
+• 默认不联网
+• 出错要出声
+一堂 Harness 教学课•从一个删文件的工具，到该在哪一层扩展
+01/40
+FRAME harness-course-iota-boundary.png
+1第二章•同样十二个方向，换一层来做
+根因
 边界画在哪儿，取决于谁在执行
 宿主
 接住输入
@@ -16,15 +20,22 @@ LUSINE / META BUILDER
 顺序与进度
 内核
 一轮轮地跑
+某一层没有的东西，它就不能承诺。
+一堂 Harness 教学课•从一个删文件的工具，到该在哪一层扩展
+18/40
 模型与工具
 真正执行
-某一层没有的东西，它就不能承诺。
-第二讲：同样十二个方向，换一层来做
-iota-boundary
-FRAME 03-boundaries-selection-choice-closing.png
-LUSINE / META BUILDER
-10110—收束
+◎
+•
+◎
+FRAME harness-course-choice-closing.png
+1第三章 •缝开在哪一层，就选哪一个
+40 /40
+第三章•收束
 别用长得像，去替代说得清谁拥有它
+“
 别用长得像，去替代说得清谁拥有它。
-第三讲：缝开在哪一层，就选哪一个
-choice-ciosing
+一堂 Harness 教学课•从一个删文件的工具，到该在哪一层扩展
+◎
+•
+•

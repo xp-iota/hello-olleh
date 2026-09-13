@@ -33,9 +33,9 @@
     "//typecheck": "把所有 steps/phases/real/support 直接编译到真实包自带的 .d.ts 上。",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "all": "bash ./runtime/run-all.sh",
-    "coverage:a4": "node runtime/a4-coverage.ts"
+    "coverage:surfaces": "node runtime/surface-coverage.ts"
   },
-  "//dependencies": "All @deepseek-ai/dsh-* packages are pinned exactly to 0.1.5-rc.2. Cordis/runtime peers are also exact; see A4-SERVICE-MATRIX.md for the explicit closure.",
+  "//dependencies": "All @deepseek-ai/dsh-* packages are pinned exactly to 0.1.5-rc.2. Cordis/runtime peers are also exact; the module READMEs document the explicit closure and boundaries.",
   "dependencies": {
     "@deepseek-ai/cordis": "4.0.2",
     "@deepseek-ai/cordis-plugin-include": "1.0.7",

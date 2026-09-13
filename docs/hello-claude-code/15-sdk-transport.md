@@ -833,7 +833,7 @@ flowchart LR
 - **重试逻辑依赖 SDK 内置策略**：SDK 内置重试参数（maxRetries）固定，高延迟/高波动环境可能需要更激进的退避策略，但无法从外部覆盖。
 - **stream 取消信号不统一**：ApiStream 的取消机制（AbortController）与 SDK 内部重试的取消时机存在竞态，可能导致取消后仍有 event 流出。
 
-## 横向对齐补强：Claude SDK/Transport 要区分模型 SDK 和 Agent SDK
+## Claude SDK/Transport 要区分模型 SDK 和 Agent SDK
 
 Claude Code 有模型请求层 transport，也有 headless/Agent SDK/bridge 等外部控制面。横向阅读时要分清“调用 LLM”与“外部宿主驱动 Claude Code”。
 
@@ -860,7 +860,7 @@ flowchart TD
 
 分层阅读时，provider stream 只负责模型事件；Agent SDK/headless 负责把外部请求转换成 Claude Code 会话；bridge/remote session 负责长连接宿主和认证；MCP transport 负责工具发现与调用。源码锚点上，模型请求层看 `sources/claude-code/src/services/api/claude.ts:753`、`sources/claude-code/src/services/api/claude.ts:1018`、`sources/claude-code/src/services/api/claude.ts:1869` 到 `sources/claude-code/src/services/api/claude.ts:1875`；headless/SDK 控制面看 `sources/claude-code/src/cli/print.ts:1251`、`sources/claude-code/src/cli/print.ts:1535`、`sources/claude-code/src/cli/print.ts:2868`；远程会话看 `sources/claude-code/src/remote/SessionsWebSocket.ts:50`、`sources/claude-code/src/remote/SessionsWebSocket.ts:214`、`sources/claude-code/src/remote/SessionsWebSocket.ts:326`、`sources/claude-code/src/remote/SessionsWebSocket.ts:341`。
 
-## 源码锚点补强
+## 源码锚点
 
 | 传输面 | 源码锚点 | 说明 |
 | --- | --- | --- |

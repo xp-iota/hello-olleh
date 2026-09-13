@@ -1,5 +1,5 @@
 /**
- * 20 · llm/stream waterfall：拦截一次模型调用的 chunk 流。
+ * M03.2 · llm/stream waterfall：拦截一次模型调用的 chunk 流。
  *
  * `ctx.llm.stream()` 不是直透适配器：它经 `llm/stream` waterfall 派发。
  * 监听者拿到 `(options, next)`：

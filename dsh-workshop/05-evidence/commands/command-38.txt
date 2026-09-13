@@ -1,5 +1,5 @@
 $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/pytest -q tests/test_harness.py tests/test_offline.py
 
 ...                                                                      [100%]
-3 passed in 0.40s
+3 passed in 0.36s
 [exit 0]

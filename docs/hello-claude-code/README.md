@@ -64,6 +64,5 @@ Claude Code 可以按“React TUI + `query()` 主循环 + prompt/cache/memory �
 
 ## 维护注意
 
-- 新增文档时同步更新本 README 和 [index.md](./index.md)。
 - 涉及反编译推断时在正文中显式标注“推断”或“反编译残留”。
 - 源码锚点应尽量使用 repo-root 路径；若校验脚本无法覆盖反编译短路径，要在正文解释来源。

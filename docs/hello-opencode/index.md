@@ -24,7 +24,7 @@ title: "OpenCode 源码分析"
       <strong>32-38 — 专题与对比</strong>：围绕 Worktree、MCP、设计哲学、提示词差异、主线索引、Effect-ts 等子系统展开，解释"为什么这样设计"
     </div>
     <div style="background:#f8f8f8;padding:12px;border-radius:6px;margin-bottom:8px;">
-      <strong>25 与 37 — 操作 / 归档</strong>：25 是断点调试指南；37 是迁移占位页，详细内容已收敛到 Harness 第 06 章
+      <strong>25 与 37 — 操作 / 对比</strong>：25 是断点调试指南；37 汇总跨工具 Durable State 对比
     </div>
     <div style="background:#fff8f0;padding:10px;border-radius:6px;">
       <strong>无前缀</strong>：01-08 为核心总览，10/21/22/24 为独立专题，37/38 为索引与对比文档
@@ -76,7 +76,7 @@ title: "OpenCode 源码分析"
 
   <h2>归档与迁移页</h2>
   <div class="chapter-grid">
-    <a class="chapter-card" href="37-durable-state-comparison"><div class="chapter-number">37</div><div class="chapter-title">Durable State 跨工具对比迁移说明</div><span class="chapter-arrow">&#8599;</span></a>
+    <a class="chapter-card" href="37-durable-state-comparison"><div class="chapter-number">37</div><div class="chapter-title">Durable State 跨工具对比</div><span class="chapter-arrow">&#8599;</span></a>
   </div>
 </div>
 

@@ -1,9 +1,25 @@
-# M02 上下文装配与经济学
+# M02 · 上下文装配与经济学
 
-> **对齐：部分等价（类 A 记忆上下文；类 C 提示压缩）**
+> **对照关系：语义等价 + 结构性边界**
 
-类 A 路径用真实 `MemoryContextService`/`MemoryGateway` 按 user/project/session 三重 scope 召回并渲染记忆，同时验证 `enable_memory_prompt` 默认关闭。类 C 边界是提示装配和压缩：iota 把配置及记忆前缀交给整个内核，不在编排层增加 LLM prompt compressor。
+观察作用域记忆如何进入 Prompt，并识别仍由内核拥有的压缩边界。
+
+## 运行
 
 ```bash
-env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M02-context-assembly-economics/run.py
+env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M02
 ```
+
+## 观察点
+
+1. user/project/session scope 是否传递
+2. 记忆 Prompt 默认是否关闭
+3. AgentConfig 是否声明 compression seam
+
+运行器会先打印学习目标与观察点，再输出逐项事实、机器可读 JSON 和 `IOTA_MODULE_OK`。任何事实不符都会抛出带“期望/实际”的 `TeachingCheckError`。
+
+## 边界
+
+`MemoryContextService` 负责作用域召回；模型请求的完整装配和压缩属于内核执行栈。
+
+**结论：**iota 能组织作用域记忆，但不在编排层伪造内核内部的 Prompt compressor。

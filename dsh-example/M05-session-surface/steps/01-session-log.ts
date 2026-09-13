@@ -1,5 +1,5 @@
 /**
- * 18 · 追加式会话日志（ctx.sessions）：一切模型可见内容的唯一本体。
+ * M05.1 · 追加式会话日志（ctx.sessions）：一切模型可见内容的唯一本体。
  *
  * 对照 packages/core/session 的不变量：
  *   - append 分配 seq = log.length（连续性契约），事件接受即深冻结；

@@ -1,7 +1,33 @@
-$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M10-external-capabilities/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M11-config-data-infrastructure/run.py
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M10 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M11
 
-{"alignment": "A", "mcp": "hello iota", "module": "M10", "skill": "offline-greeter", "status": "ok"}
+
+████ M10 · 外部能力接入 ████
+学习目标：验证文件系统 Skill 与进程内 MCP 的真实发现和调用路径。
+运行时观察：
+  1. SKILL.md 同步结果
+  2. MCP tools/list
+  3. MCP tools/call
+验证结果：
+  - skill: "offline-greeter"
+  - mcp: "hello iota"
+对照关系：语义等价
+结论：知识资产与外部工具协议都能通过明确边界接入，默认示例无需网络。
+{"mcp": "hello iota", "module": "M10", "relationship": "语义等价", "skill": "offline-greeter", "status": "ok"}
 IOTA_MODULE_OK M10-external-capabilities
-{"alignment": "A+C", "credentials_attachments": "host-owned", "dsh_profile_refusal": "config_profile is not supported for adapter 'dsh': it has no iota-managed config home to project into. Adapters that do: ['claude', 'hermes', 'hermes_direct']. Point the kernel at its own config file via 'command' instead (dsh: --config <cordis.yml>), and use 'env' for anything else it needs.", "module": "M11", "profile": "projected", "status": "ok", "storage": "memory"}
+
+████ M11 · 配置与数据设施 ████
+学习目标：区分 profile 投影、可换存储协议与宿主持有的凭证/附件。
+运行时观察：
+  1. profile 文件是否真实生成
+  2. 不支持的布局是否拒绝
+  3. ConversationStore 是否可替换
+验证结果：
+  - profile: "projected"
+  - storage: "memory"
+  - dsh_profile_refusal: "config_profile is not supported for adapter 'dsh': it has no iota-managed config home to project into. Adapters that do: ['claude', 'hermes', 'hermes_direct']. Point the kernel at its own config file via 'command' instead (dsh: --config <cordis.yml>), and use 'env' for anything else it needs."
+  - credentials_attachments: "host-owned"
+对照关系：语义等价 + 结构性边界
+结论：配置和会话存储可治理；凭证与附件不应被硬塞进 AgentConfig。
+{"credentials_attachments": "host-owned", "dsh_profile_refusal": "config_profile is not supported for adapter 'dsh': it has no iota-managed config home to project into. Adapters that do: ['claude', 'hermes', 'hermes_direct']. Point the kernel at its own config file via 'command' instead (dsh: --config <cordis.yml>), and use 'env' for anything else it needs.", "module": "M11", "profile": "projected", "relationship": "语义等价 + 结构性边界", "status": "ok", "storage": "memory"}
 IOTA_MODULE_OK M11-config-data-infrastructure
 [exit 0]

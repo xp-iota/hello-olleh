@@ -11,7 +11,6 @@ parent_url: /docs/hello-cordis/
 >
 > 🧭 **本篇导览**：3.1–3.3 Fiber 与 `effect()` 的返回形态 → 3.4 epoch 依赖追踪 → 3.5–3.6 6 态状态机与父子挂载 → 3.7–3.8 公开 API 与长堆栈。
 >
-> 📎 **来源**：本篇为本系列原始篇目，基于 cordiverse/cordis 快照 `8cc9e33f`。
 
 ## 3.1 Fiber 是什么
 
@@ -29,7 +28,7 @@ parent_url: /docs/hello-cordis/
 
 ## 3.2 `effect()`：唯一的副作用入口
 
-> 📐 **配套可跑示例**：[`26-cordis-timer`](../../dsh-example/26-cordis-timer/README.md) 把 timeout、interval、throttle、debounce 都挂到真实 cordis Fiber 的 effect 上。在 `dsh-example/` 运行 `npm run 26`，最后一步会卸载插件 Fiber，并验证挂起的 timeout Promise 以 `Context has been disposed` 拒绝。重点对照 [`run.ts`](../../dsh-example/26-cordis-timer/run.ts) 的第 ⑥ 步。
+> 📐 **配套可跑示例**：[`M12 cordis-timer`](../../dsh-example/M12-framework-mechanisms/README.md) 把 timeout、interval、throttle、debounce 都挂到真实 cordis Fiber 的 effect 上。在 `dsh-example/` 运行 `npm run M12`，最后一步会卸载插件 Fiber，并验证挂起的 timeout Promise 以 `Context has been disposed` 拒绝。重点对照 [`run.ts`](../../dsh-example/M12-framework-mechanisms/phases/02-cordis-timer.ts) 的第 ⑥ 步。
 
 这是 cordis 的核心契约：**插件做的任何有副作用的事，都必须通过 `ctx.effect()` 登记，并返回撤销它的函数。**
 

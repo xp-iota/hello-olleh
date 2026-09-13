@@ -144,7 +144,7 @@ Codex 的设计已经从“配置即代码”前进到“Skill 是可发现的�
 - **依赖链路跨层**：MCP dependency 分散在 metadata、session、config 和 tool registry，排障时需要跨多个章节阅读。
 - **repo skill 的信任边界敏感**：本地仓库可提供 skill 说明，恶意仓库仍可能通过 prompt injection 改写行为，应和 approval/sandbox 一起治理。
 
-## 横向对齐补强：Codex Skill 更接近“运行时依赖声明”
+## Codex Skill 更接近“运行时依赖声明”
 
 Codex 的 skill 不应按 `AGENTS.md` 文本注入理解。它同时影响 prompt、MCP dependency、tool availability 和 turn 前置准备。
 

@@ -182,7 +182,7 @@ Skills 是 Claude Code 扩展体系中门槛最低的一层：不需要编写代
 - **多层合并策略不透明**：用户难以知道最终 system prompt 中 skill 内容的精确顺序和覆盖规则，调试时需打印完整 prompt。
 - **`@import` 循环引用无检测**：CLAUDE.md A import B，B import A 时可能导致无限循环或堆栈溢出，缺少循环检测。
 
-## 横向对齐补强：Claude Skill 是 prompt 能力层
+## Claude Skill 是 prompt 能力层
 
 Claude 的 Skill 更接近可复用 prompt/command 能力包，而不是 Codex 那种 runtime dependency graph。
 

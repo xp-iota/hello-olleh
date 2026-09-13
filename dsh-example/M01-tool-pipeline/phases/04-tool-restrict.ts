@@ -9,8 +9,7 @@
 import { createHarness, demoTool } from '../../runtime/harness.ts'
 import * as restrictPlugin from '../steps/04-tool-restrict.ts'
 
-// 先起一个空 harness 只为拿到 ctx？不行——restrict 依赖 agent/session-start。
-// 正确顺序：把"注册 4 个工具"做成一个内联插件，和 11 一起在 agent 之前装载。
+// 顺序约束：工具必须先注册，restrict 才能引用名字；因此把注册做成前置内联插件。
 const seedTools = {
   name: 'seed-tools',
   inject: ['tools'],

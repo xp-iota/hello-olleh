@@ -151,7 +151,7 @@ Codex 的安全模型不是单一的 `sandbox=true/false`。
 - **Fork 独立快照内存占用双倍**：Fork 创建独立快照，内存中同时持有父线程和子线程的完整状态，内存压力随 Fork 数量线性增长。
 - **Resume 不恢复 pending approval**：从 rollout 恢复后，会话前一次中断时的 pending 工具调用和审批状态归零，需要模型重新推理，可能产生重复操作。
 
-## 横向对齐补强：Codex Resume 是 rollout/thread 重建
+## Codex Resume 是 rollout/thread 重建
 
 Codex 的会话恢复应按 rollout reconstruction 和 thread state 读，而不是简单“加载聊天记录”。
 

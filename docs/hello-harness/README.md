@@ -10,7 +10,6 @@
 - Agent Loop 对比：[13-agent-loop.md](./13-agent-loop.md)
 - 源码分析质量评估：[14-source-analysis-quality.md](./14-source-analysis-quality.md)
 - 篇章主题对齐矩阵：[15-topic-alignment-matrix.md](./15-topic-alignment-matrix.md)
-- 文档合并执行计划：[20-doc-merge-plan.md](./20-doc-merge-plan.md)
 - 最终验收与维护索引：[21-final-audit.md](./21-final-audit.md)
 - 可插拔模块设计：[40-pluggable-context-memory-module.md](./40-pluggable-context-memory-module.md)
 - Runtime 对比：[42-runtime-comparison.md](./42-runtime-comparison.md)
@@ -26,9 +25,8 @@
 7. [13-agent-loop.md](./13-agent-loop.md)：用闭环拓扑横向比较各工具的主循环。
 8. [14-source-analysis-quality.md](./14-source-analysis-quality.md) 和 [15-topic-alignment-matrix.md](./15-topic-alignment-matrix.md)：校准源码证据标准与 `01-25` 共享主干。
 9. [16-tool-governance-comparison.md](./16-tool-governance-comparison.md) 到 [19-runtime-surface-comparison.md](./19-runtime-surface-comparison.md)：阅读工具、Prompt、扩展和入口传输的横向合并结论。
-10. [20-doc-merge-plan.md](./20-doc-merge-plan.md)：按主题确认哪些内容留在项目章，哪些内容并入 Harness。
-11. [21-final-audit.md](./21-final-audit.md)：查看最终验收、证据密度、术语表和维护风险。
-12. [12-synthesis.md](./12-synthesis.md)：最后读综合结论。
+10. [21-final-audit.md](./21-final-audit.md)：查看证据密度、术语表和维护风险。
+11. [12-synthesis.md](./12-synthesis.md)：最后读综合结论。
 
 ## 章节索引
 
@@ -54,7 +52,6 @@
 | [17-prompt-systems-comparison.md](./17-prompt-systems-comparison.md) | Prompt 系统对比 | system prompt、项目指令、工具 prompt、skill 注入 |
 | [18-extension-mcp-comparison.md](./18-extension-mcp-comparison.md) | 扩展与 MCP 对比 | Skill、Plugin、MCP、Command、Hook 的分层关系 |
 | [19-runtime-surface-comparison.md](./19-runtime-surface-comparison.md) | 入口与传输对比 | CLI/TUI/SDK/Bridge/Input Queue 的横向合并视角 |
-| [20-doc-merge-plan.md](./20-doc-merge-plan.md) | 文档合并计划 | 把主题对齐原则落成逐主题合并动作 |
 | [21-final-audit.md](./21-final-audit.md) | 最终验收 | 五目录主题验收、证据等级、术语表和维护风险 |
 | [40-pluggable-context-memory-module.md](./40-pluggable-context-memory-module.md) | 可插拔模块 | 跨 OpenCode/Hermes 的 context/memory 抽象设计 |
 | [42-runtime-comparison.md](./42-runtime-comparison.md) | Runtime 对比 | OpenCode 与 Hermes Agent 的消息、上下文、存储对比 |
@@ -63,5 +60,3 @@
 
 - 本目录的判断必须回链到 `hello-*` 或上游源码证据，避免只写抽象结论。
 - 四个项目目录的 `01-25` 视为共享主干；项目特有深挖统一作为附录，并在 [15-topic-alignment-matrix.md](./15-topic-alignment-matrix.md) 登记。
-- `37-durable-state-comparison.md` 的旧 OpenCode 对比内容已迁移到 [06-context-and-memory.md](./06-context-and-memory.md)。
-- 新增跨工具对比章节时同步更新本 README 和 [index.md](./index.md)。

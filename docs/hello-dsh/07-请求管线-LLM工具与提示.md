@@ -11,7 +11,6 @@ parent_url: /docs/hello-deepseek-harness/
 >
 > 🧭 **本篇导览**：7.1–7.8 LLM 适配与流式接缝 → 7.9–7.17 工具契约与执行管线 → 7.18–7.27 SystemPrompt 与运行时上下文。
 >
-> 📎 **来源**：本篇合并自原 07 / 08 / 09 篇，章节已重新连续编号为 7.x。
 
 ## 7.1 `llm` 组的 5 个包
 
@@ -31,9 +30,9 @@ parent_url: /docs/hello-deepseek-harness/
 
 ## 7.2 `LlmAdapter`：只有一个必需方法
 
-> 📐 **配套可跑示例**：[`05-llm-adapter`](../../dsh-example/05-llm-adapter/index.ts) 只实现这一个方法就接上了整条链；
+> 📐 **配套可跑示例**：[`M03.1 · llm-adapter`](../../dsh-example/M03-inference-service-access/steps/01-llm-adapter.ts) 只实现这一个方法就接上了整条链；
 > [`runtime/llm-minimax.ts`](../../dsh-example/runtime/llm-minimax.ts) 是同一个抽象类的真实 HTTP/SSE 实现
-> （MiniMax 的 Anthropic 兼容端点 → 同一份 StreamChunk 协议）；`npm run 05:minimax`
+> （MiniMax 的 Anthropic 兼容端点 → 同一份 StreamChunk 协议）；`npm run M03:real`
 > 用同一个消费循环消费真实 `minimax-m3` 路由。
 
 
@@ -55,7 +54,7 @@ parent_url: /docs/hello-deepseek-harness/
 
 ## 7.3 `llm/stream`：waterfall 接缝
 
-> 📐 **配套可跑示例**：[`20-llm-stream`](../../dsh-example/20-llm-stream/index.ts) 注册两个监听器包在真实适配器外层 ——
+> 📐 **配套可跑示例**：[`M03.2 · llm-stream`](../../dsh-example/M03-inference-service-access/steps/02-llm-stream.ts) 注册两个监听器包在真实适配器外层 ——
 > 外层改写 `text-delta`、内层统计 chunk 与 usage：
 >
 > ```ts
@@ -210,7 +209,7 @@ const replayState = assembler.replayState // → 可选的回放状态
 
 ## 7.10 `ToolDefinition`：工具的契约
 
-> 📐 **配套可跑示例**：[`01-tool-wordcount`](../../dsh-example/01-tool-wordcount/index.ts) 是这份契约的最小实现。
+> 📐 **配套可跑示例**：[`M01.1 · tool-wordcount`](../../dsh-example/M01-tool-pipeline/steps/01-word-count.ts) 是这份契约的最小实现。
 > 两个真实 DSL 硬要求容易踩：object 型 `output.schema` **必须**显式写 `additionalProperties`，
 > 必填字段写在**每个 property 上**（`required: true`），不是 JSON Schema 的 `required` 数组 ——
 > 写错在 `defineTool` 就抛 `JsonSchemaError`。
@@ -248,9 +247,9 @@ context => this.inbox.splice('next-step', this.inbox.nextStep.length, 0, [contex
 ## 7.11 三段 waterfall
 
 > 📐 **配套可跑示例**：三段各有一个示例 ——
-> pre-execute → [03 权限门](../../dsh-example/03-permission-gate/index.ts)（返回 `deny` / `ask`）、
-> post-execute + result → [07 结果转换与审计](../../dsh-example/07-tool-result-transform/index.ts)、
-> 以及 pre-execute **之后**仍无法翻案的 [12 单调守卫](../../dsh-example/12-tool-guard/index.ts)。
+> pre-execute → [M01.2 · 权限门](../../dsh-example/M01-tool-pipeline/steps/02-permission-gate.ts)（返回 `deny` / `ask`）、
+> post-execute + result → [M01.3 · 结果转换与审计](../../dsh-example/M01-tool-pipeline/steps/03-result-transform.ts)、
+> 以及 pre-execute **之后**仍无法翻案的 [M01.5 · 单调守卫](../../dsh-example/M01-tool-pipeline/steps/05-tool-guard.ts)。
 
 
 `T/index.ts:152` / `:163` / `:175`，`this` 类型统一是 `Scoped<ToolRuntime>`。
@@ -332,7 +331,7 @@ JSON 解析失败**不抛错，而是把原始字符串当作参数传下去**�
 
 ## 7.14 `ToolRuntime`：注册表
 
-> 📐 **配套可跑示例**：[`11-tool-restrict`](../../dsh-example/11-tool-restrict/run.ts) 验证"展示 / 查找 / 执行三者对齐"——
+> 📐 **配套可跑示例**：[`M01.4 · tool-restrict`](../../dsh-example/M01-tool-pipeline/phases/04-tool-restrict.ts) 验证"展示 / 查找 / 执行三者对齐"——
 > 被收紧掉的工具在 `schemas(scope)` 里消失，调用它直接得到 `unknown tool "write"`。
 
 
@@ -412,8 +411,8 @@ JSON 解析失败**不抛错，而是把原始字符串当作参数传下去**�
 
 ## 7.18 四种可注册的东西
 
-> 📐 **配套可跑示例**：section → [02 提示段](../../dsh-example/02-prompt-section/index.ts)，
-> variable + 整段 assemble → [10 提示变量与装配](../../dsh-example/10-prompt-variable-assemble/index.ts)。
+> 📐 **配套可跑示例**：section → [M02.1 · 提示段](../../dsh-example/M02-context-assembly-economics/steps/01-prompt-section.ts)，
+> variable + 整段 assemble → [M02.2 · 提示变量与装配](../../dsh-example/M02-context-assembly-economics/steps/02-prompt-variable-assemble.ts)。
 > 注意真实占位语法是 `{% raw %}{{name}}{% endraw %}`，插值发生在 `renderPrompt(assembly)` 而不是 `assemble()`；
 > 引用未注册的变量、或 provider 返回 `undefined`，都会让 `renderPrompt` **抛错**。
 
@@ -574,7 +573,7 @@ return this.layers.effect(
 
 ## 7.26 `system-prompt/assemble` waterfall
 
-> 📐 **配套可跑示例**：[`10-prompt-variable-assemble`](../../dsh-example/10-prompt-variable-assemble/index.ts) 的钩子演示了正确的包装写法 ——
+> 📐 **配套可跑示例**：[`M02.2 · prompt-variable-assemble`](../../dsh-example/M02-context-assembly-economics/steps/02-prompt-variable-assemble.ts) 的钩子演示了正确的包装写法 ——
 > 先 `await next()` 拿到下游装配体，再往 `sections` 里插一段，**不要**把装配体拍平成字符串：
 >
 > ```ts

@@ -171,7 +171,7 @@ Codex 可以使用所有标准 MCP 服务器（与语言/框架无关），包�
 - **子进程 MCP server 生命周期不托管**：codex 退出时子进程 MCP server 未被显式终止，可能留下孤儿进程。
 - **MCP 工具 schema 无版本管理**：server 更新工具 schema 后 codex 无通知机制，cached schema 与实际实现可能不一致。
 
-## 横向对齐补强：Codex Plugin 主体是 MCP，而不是 JS 插件市场
+## Codex Plugin 主体是 MCP，而不是 JS 插件市场
 
 Codex 当前应按“外部能力通过 MCP 进入 Rust runtime”来理解 plugin 系统。和 Claude Code/OpenCode 的 plugin 生命周期不同，Codex 的插件性主要体现在 MCP server、tool spec、approval/sandbox 统一治理。
 

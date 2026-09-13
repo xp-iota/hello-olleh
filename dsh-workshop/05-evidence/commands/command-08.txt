@@ -15,16 +15,16 @@ $ cd dsh-example && npm run M06
 会话日志里的命令事件: [ 'command/run', 'command/done', 'command/run', 'command/done' ]
 
 ════════ M06.2 · 工具 ask 请求进入审批 seam ════════
-== A: 无应答器 → fail closed ==
+== 场景：无应答器 → fail closed ==
   approval/decided → outcome: unavailable
   tool/result      → isError: true | Error: tool "deploy" requires approval, but no approval channel is available
 
-== B: 应答器把 deploy 列入白名单 → allowed-once ==
+== 场景：应答器把 deploy 列入白名单 → allowed-once ==
 [approval] 自动放行(allowed-once)：deploy
   approval/decided → outcome: allowed-once
   tool/result      → isError: false | deploy 已执行: env=prod
 
-== C: 应答器不在白名单 → rejected ==
+== 场景：应答器不在白名单 → rejected ==
 [approval] 拒绝(rejected)：deploy —— 部署需人工确认
   approval/decided → outcome: rejected
   tool/result      → isError: true | Error: the user rejected tool "deploy"

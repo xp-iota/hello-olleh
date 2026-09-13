@@ -150,7 +150,7 @@ codex sandbox linux -- your command
 - **`DebugDump` 包含敏感信息**：dump 输出包含完整的对话历史和 API key（若通过 env），无脱敏处理，不宜直接分享。
 - **`--replay` 依赖历史文件格式稳定**：histor 文件格式变更会导致旧 `--replay` 文件失效，影响历史 bug 复现能力。
 
-## 横向对齐补强：Codex 调试应围绕 thread event 和 Rust tracing
+## Codex 调试应围绕 thread event 和 Rust tracing
 
 Codex 调试路径要把 Rust tracing、thread/turn events、tool approval、sandbox failure 和 SDK JSON protocol 串起来。
 
@@ -175,7 +175,7 @@ Codex 调试路径要把 Rust tracing、thread/turn events、tool approval、san
 
 最小复现路径优先使用 `RUST_LOG` 缩小模块，再配合 debug 子命令或 replay/rollout 文件固定输入。不要先修改工具代码；先确认问题发生在 provider、orchestrator、sandbox、protocol 还是 UI 消费层。
 
-## 源码锚点补强：调试应从 tracing、debug 子命令和 app-server 事件开始
+## 源码锚点：调试应从 tracing、debug 子命令和 app-server 事件开始
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |

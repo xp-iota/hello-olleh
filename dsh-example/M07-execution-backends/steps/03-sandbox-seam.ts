@@ -1,5 +1,5 @@
 /**
- * 25 · 进程沙箱 seam（ctx.sandbox）。
+ * M07.3 · 进程沙箱 seam（ctx.sandbox）。
  *
  * 对照真实 `@deepseek-ai/dsh-sandbox`（官方后端是 `@deepseek-ai/dsh-sandbox-local`）：
  *   - `SandboxProvider` 是**抽象 cordis Service**（构造里 `super(ctx)` 把服务名钉成 `sandbox`）。

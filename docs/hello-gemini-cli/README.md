@@ -62,6 +62,5 @@ title: "Gemini CLI 源码分析 README"
 
 ## 维护注意
 
-- 新增章节时同步更新本 README 和 [index.md](./index.md)。
 - 源码引用统一写成 repo-root 路径，例如 `sources/gemini-cli/packages/core/src/core/client.ts:883`。
 - 修改源码锚点后运行 `powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/check_doc_refs.ps1 -DocDirs hello-gemini-cli`。

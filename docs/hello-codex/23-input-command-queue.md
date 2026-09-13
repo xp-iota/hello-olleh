@@ -403,7 +403,7 @@ Codex 的输入层特点：
 - **无 shell-style tab 补全**：斜杠命令无 Tab 补全，命令名需要完整输入，不如 fish/zsh 交互友好。
 - **PromptInput 附件无大小限制**：内联文件引用时未限制文件大小，大文件注入可能超出 LLM context window。
 
-## 横向对齐补强：Codex 输入队列要包含 Mailbox 和多代理消息
+## Codex 输入队列要包含 Mailbox 和多代理消息
 
 Codex 的输入队列复杂度高于其他项目，因为普通用户 prompt、slash command、child-agent mailbox、approval response 都可能进入同一 session/turn 调度面。
 
@@ -427,7 +427,7 @@ Codex 的输入队列复杂度高于其他项目，因为普通用户 prompt、s
 
 因此 Codex 的“输入队列”至少有两层：UI/Protocol submission 队列，以及工具/多代理运行时等待点。横向比较时，不能只把 slash command 当作命令解析问题，还要看 approval、cancel 和 mailbox 这些运行中控制消息。
 
-## 源码锚点补强：输入命令队列从 TUI 进入 Protocol，再进 core
+## 源码锚点：输入命令队列从 TUI 进入 Protocol，再进 core
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |

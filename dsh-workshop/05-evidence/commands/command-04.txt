@@ -21,7 +21,7 @@ You are an AI agent powered by DeepSeek Harness.
 ════════ M02.2 · 变量解析与 assembly waterfall ════════
 ===== ① assemble() 的返回值是结构化 PromptAssembly，不是字符串 =====
    sections : runtime-preamble → harness:identity → deployment:persona-prefix → persona → date-aware → deployment:persona-suffix
-   variables: {"provider":"mock","model":"mock-1","today":"2026-09-12"}
+   variables: {"provider":"mock","model":"mock-1","today":"2026-09-13"}
    contexts : 1 | tools: 0
 
 ===== ② 渲染成最终提示词（拼 section + 插值 {{today}}）=====
@@ -31,7 +31,7 @@ You are an AI agent powered by DeepSeek Harness.
 
 你是一个乐于助人的编码助手。
 
-当前日期是 2026-09-12。请在涉及"今天/昨天"的回答里以该日期为准。
+当前日期是 2026-09-13。请在涉及"今天/昨天"的回答里以该日期为准。
 
 ===== ③ 未注册的变量是**硬错误**：渲染阶段直接抛，不静默清空也不原样保留 =====
    renderPrompt 抛错: unknown prompt variable "{{nope}}" in section "x"; registered variables: (none)

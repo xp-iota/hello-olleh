@@ -1,5 +1,5 @@
 /**
- * 11 · 收紧模型可见工具集（ctx.tools.restrict / 渐进式披露）。
+ * M01.4 · 收紧模型可见工具集（ctx.tools.restrict / 渐进式披露）。
  *
  * 注册表保持"展示 / 查找 / 执行"三者对齐：被 restrict 收紧掉的全局工具，模型看不见、
  * 也调不动（读作 absent / UNKNOWN_TOOL）。ToolSearch、按阶段放权、精简上下文窗口都用它。
@@ -13,7 +13,7 @@
  *     每一个 agent，那不是收紧而是误伤；要拒某个 agent 的工具就用它自己的 agent.ctx。
  *   - 空 filter（既没 allow 也没 deny）抛错：它几乎总是 config 物化成空导致的 bug。
  *   - 名字必须是**已注册的全局工具**；写错名字抛错，而不是静默无效。
- *   - 与 [12] 的 `guard()` 不同：restrict 改的是"可见集"，guard 改的是"放行判定"；
+ *   - 与 M01.5 的 `guard()` 不同：restrict 改的是"可见集"，guard 改的是"放行判定"；
  *     且 guard 在 plain context 上注册是合法的（全局生效）。
  */
 import type { Context } from '@deepseek-ai/cordis'

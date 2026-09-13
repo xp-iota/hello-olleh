@@ -1,5 +1,5 @@
 /**
- * 02 · 往 System Prompt 注入一段指令。
+ * M02.1 · 往 System Prompt 注入一段指令。
  *
  * `ctx.systemPrompt.section(...)` 注册一个"有序片段"。所有片段按 `order` 升序拼接。
  * 约定：-100 = harness 身份，0 = 部署 persona，100~199 = 工具指引。

@@ -1,5 +1,5 @@
 /**
- * 17 · cordis 的五种事件派发模式（DispatchMode）。
+ * M12.1 · cordis 的五种事件派发模式（DispatchMode）。
  *
  * 同一个 `ctx.on(name, fn)` 注册的监听器，被五种派发方式消费：
  *   - ctx.emit(name, ...args)      同步即发即忘：返回值与 Promise 都被忽略——session/event 就是这种

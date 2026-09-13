@@ -1,7 +1,31 @@
-$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M07-execution-backends/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M08-delegation-presets/run.py
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M07 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M08
 
-{"alignment": "C", "module": "M07", "orchestrator_shell_registry": [], "route": "prompt -> KernelAdapter -> kernel.shell event", "status": "ok"}
+
+████ M07 · 执行侧后端 ████
+学习目标：确认 shell 副作用由 KernelAdapter 执行，而非编排层工具注册表。
+运行时观察：
+  1. kernel.shell 事件
+  2. 工具结果事件
+  3. 编排层 shell registry 是否为空
+验证结果：
+  - route: "prompt -> KernelAdapter -> kernel.shell event"
+  - orchestrator_shell_registry: []
+对照关系：结构性边界
+结论：iota 转发执行事件，但不重写内核的 fs/shell/sandbox 执行栈。
+{"module": "M07", "orchestrator_shell_registry": [], "relationship": "结构性边界", "route": "prompt -> KernelAdapter -> kernel.shell event", "status": "ok"}
 IOTA_MODULE_OK M07-execution-backends
-{"alignment": "A", "module": "M08", "order": ["research", "review"], "output": {"approved": "research:iota"}, "status": "ok"}
+
+████ M08 · 委派与预设 ████
+学习目标：用 GraphSpec 的依赖与绑定表达可验证的节点委派。
+运行时观察：
+  1. 拓扑顺序
+  2. 上游输出绑定
+  3. 图运行结果
+验证结果：
+  - order: ["research", "review"]
+  - output: {"approved": "research:iota"}
+对照关系：语义等价
+结论：显式 DAG 依赖为委派提供确定的顺序、数据流和失败边界。
+{"module": "M08", "order": ["research", "review"], "output": {"approved": "research:iota"}, "relationship": "语义等价", "status": "ok"}
 IOTA_MODULE_OK M08-delegation-presets
 [exit 0]

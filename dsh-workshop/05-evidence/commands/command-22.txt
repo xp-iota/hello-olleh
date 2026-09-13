@@ -1,7 +1,33 @@
-$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M05-session-surface/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M06-human-in-the-loop/run.py
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M05 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M06
 
-{"alignment": "A+C", "messages": 2, "module": "M05", "run_status": "succeeded", "sequence_contract": "not added under D7", "status": "ok"}
+
+████ M05 · 会话面 ████
+学习目标：读取真实 ConversationStore 与 RunStore，并对比 DSH 日志投影契约。
+运行时观察：
+  1. 持久化消息顺序
+  2. run 状态与事件顺序
+  3. 事件是否承诺 sequence 字段
+验证结果：
+  - messages: 2
+  - run_status: "succeeded"
+  - sequence_contract: "not part of the iota event schema"
+对照关系：语义等价 + 结构性边界
+结论：iota 保存会话和运行事实，但不声称拥有 DSH 的 seq/surface 不变量。
+{"messages": 2, "module": "M05", "relationship": "语义等价 + 结构性边界", "run_status": "succeeded", "sequence_contract": "not part of the iota event schema", "status": "ok"}
 IOTA_MODULE_OK M05-session-surface
-{"alignment": "A+C", "hang_prevention": "request answered", "module": "M06", "permission": "no", "plan_mode": "kernel/harness-owned", "status": "ok"}
+
+████ M06 · 人在环路 ████
+学习目标：验证 ACP permission 必定得到答复，并识别计划模式的宿主边界。
+运行时观察：
+  1. 无匹配策略时是否 fail closed
+  2. permission 是否及时答复
+  3. plan mode 位于哪一层
+验证结果：
+  - permission: "no"
+  - hang_prevention: "request answered"
+  - plan_mode: "kernel/harness-owned"
+对照关系：语义等价 + 结构性边界
+结论：权限请求由适配器可靠闭合；计划模式由具体内核或宿主管理。
+{"hang_prevention": "request answered", "module": "M06", "permission": "no", "plan_mode": "kernel/harness-owned", "relationship": "语义等价 + 结构性边界", "status": "ok"}
 IOTA_MODULE_OK M06-human-in-the-loop
 [exit 0]

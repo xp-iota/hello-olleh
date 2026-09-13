@@ -25,7 +25,7 @@ def strip_fences(text):
 
 
 TARGETS = []
-for pattern in ('README.md', 'docs/**/*.md', 'dsh-example/**/*.md', 'pages/*.md'):
+for pattern in ('README.md', 'docs/**/*.md', 'dsh-example/**/*.md', 'iota-example/**/*.md', 'pages/*.md'):
     TARGETS += glob.glob(os.path.join(ROOT, pattern), recursive=True)
 TARGETS = sorted({os.path.normpath(t) for t in TARGETS if 'node_modules' not in t})
 

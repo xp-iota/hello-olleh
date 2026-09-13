@@ -396,7 +396,7 @@ flowchart LR
 - **钩子无沙盒隔离**：钩子以宿主进程权限执行外部命令，恶意项目 settings.json 注入的钩子可执行任意本地命令。
 - **生命周期事件无顺序保证文档化**：多个钩子注册同一事件时，执行顺序依赖注册顺序，但顺序规则未公开文档化。
 
-## 横向对齐补强：Claude Hooks 是权限和工作流之间的拦截层
+## Claude Hooks 是权限和工作流之间的拦截层
 
 Claude Code 的 hooks 既可影响工具调用，也可影响 stop/continuation、plugin lifecycle 和 skill/command 工作流。
 
@@ -419,7 +419,7 @@ Claude Code 的 hooks 既可影响工具调用，也可影响 stop/continuation�
 
 阅读本章时要把“配置 schema 能表达什么”和“query loop 实际如何消费 hook 输出”分开。前者在 settings/schema，后者在 `stopHooks.ts` 和 `query.ts`。
 
-## 源码锚点补强：Hooks 要同时看配置、快照和执行器
+## 源码锚点：Hooks 要同时看配置、快照和执行器
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |

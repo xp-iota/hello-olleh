@@ -1,7 +1,32 @@
-$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M08-delegation-presets/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M09-long-running-orchestration/run.py
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M08 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M09
 
-{"alignment": "A", "module": "M08", "order": ["research", "review"], "output": {"approved": "research:iota"}, "status": "ok"}
+
+████ M08 · 委派与预设 ████
+学习目标：用 GraphSpec 的依赖与绑定表达可验证的节点委派。
+运行时观察：
+  1. 拓扑顺序
+  2. 上游输出绑定
+  3. 图运行结果
+验证结果：
+  - order: ["research", "review"]
+  - output: {"approved": "research:iota"}
+对照关系：语义等价
+结论：显式 DAG 依赖为委派提供确定的顺序、数据流和失败边界。
+{"module": "M08", "order": ["research", "review"], "output": {"approved": "research:iota"}, "relationship": "语义等价", "status": "ok"}
 IOTA_MODULE_OK M08-delegation-presets
-{"alignment": "A-reverse", "checkpoint_sequence": 1, "idempotent_task_id": "m09-task", "module": "M09", "queue": "succeeded", "status": "ok"}
+
+████ M09 · 长任务与编排 ████
+学习目标：观察队列租约、幂等入队与 checkpoint 恢复语义。
+运行时观察：
+  1. 重复 task id 是否幂等
+  2. claim/ack 状态
+  3. checkpoint sequence
+验证结果：
+  - queue: "succeeded"
+  - checkpoint_sequence: 1
+  - idempotent_task_id: "m09-task"
+对照关系：语义等价（iota 提供更多耐久语义）
+结论：队列与 checkpoint 让长任务可租约、可恢复，而不只是一段后台进程。
+{"checkpoint_sequence": 1, "idempotent_task_id": "m09-task", "module": "M09", "queue": "succeeded", "relationship": "语义等价（iota 提供更多耐久语义）", "status": "ok"}
 IOTA_MODULE_OK M09-long-running-orchestration
 [exit 0]

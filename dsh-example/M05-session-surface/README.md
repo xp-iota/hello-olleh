@@ -1,6 +1,10 @@
 # M05 · 会话面
 
-本模块整合原 18，集中解释 DSH 的会话双视图：**追加式事件日志是事实来源，surface 是模型可见投影**。
+DSH 同时维护两种视图：**追加式事件日志是事实来源，surface 是模型可见投影**。
+
+## 学习目标
+
+理解事实保存、语料读取、投影加速与标题派生为何必须分层。
 
 ## 运行
 
@@ -8,24 +12,22 @@
 npm run M05
 ```
 
-## 完整过程
+## 阶段与观察点
 
-`steps/01-session-log.ts` 注册会话事件观察器；运行阶段创建会话、追加用户/助手/工具事件，并验证：
+| 阶段 | 类型 | 实现 | 观察什么 |
+|---|---|---|---|
+| 1 日志与 surface | 教学主线 | `steps/01-session-log.ts` | seq 连续、深冻结、replace、fork 与 flush 不变量 |
+| 2 持久化 | 扩展面 | `steps/02-session-persistence.ts` | 临时根目录上的追加式 JSONL Provider |
+| 3 查询 | 扩展面 | `steps/03-session-query.ts` | live-preferred 精确读取；未实现搜索明确拒绝 |
+| 4 投影缓存 | 扩展面 | `steps/04-session-projection-cache.ts` | storage domain 上的可恢复 checkpoint |
+| 5 标题 | 扩展面 | `steps/05-session-title.ts` | `session/title` 事件的 latest-wins 投影 |
 
-1. `snapshotEvents()` 返回稳定快照，seq 连续且事件深冻结。
-2. surface 包含 system/user/assistant/tool 四类模型可见节点，而非全部生命周期事件。
-3. replace 通过 `startSeq/endSeq` 遮蔽一个可见区间，不删除底层日志。
-4. fork 只允许基于已闭合 turn 的稳定前缀，并用 `SessionSeq()` 明确边界类型。
-5. flush 是并行持久化检查点，不改变日志语义。
+## 完整链路
 
-**结论：**日志与上下文不可混为一个数组；前者服务审计和重放，后者服务模型请求与上下文经济学。
+事件先追加到日志；persistence 保存事实；query 读取语料；projection cache 缩短重放路径；title 由最新日志事件折叠得到。surface replace 只遮蔽模型可见区间，不删除原始事件。
 
+## 边界
 
-## A4 · 会话服务链
+快照可读但不可变；fork 只能基于已闭合 turn 的稳定前缀；缓存丢失时仍可从事实日志恢复。
 
-| 步骤 | 服务 | 离线验证 |
-|---|---|---|
-| 02 | `sessionPersistence` | 临时根目录上的 JSONL backend |
-| 03 | `sessionQuery` | live-preferred 精确语料读取；未实现搜索明确拒绝 |
-| 04 | `sessionProjectionCache` | JSON storage domain 上的 checkpoint |
-| 05 | `sessionTitle` | `session/title` latest-wins 投影 |
+**结论：**日志服务审计与重放，surface 服务模型上下文；两者不能混成一个可变数组。

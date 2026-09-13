@@ -216,7 +216,7 @@ Claude Code **当前没有原生 LSP 集成**，主要通过：
 - **LSP server 崩溃无自动重启**：LSP server 子进程崩溃后 LspManager 无自动重启机制，后续文件操作将失去诊断反馈。
 - **多 workspace 下 LSP 作用域混乱**：monorepo 中多子项目各有 LSP root，LspManager 的 root 解析如果出错会导致补全/诊断范围不正确。
 
-## 横向对齐补强：Claude LSP 是代码理解侧通道
+## Claude LSP 是代码理解侧通道
 
 Claude Code 的 LSP 能力应理解为工具和上下文增强侧通道，而不是 agent loop 的主状态源。
 
@@ -238,7 +238,7 @@ Claude Code 的 LSP 能力应理解为工具和上下文增强侧通道，而不
 
 因此 Claude 的 LSP 结果不是 durable conversation 的主数据源，而是通过诊断跟踪、工具反馈和 UI 状态给模型/用户提供侧通道信号。`sources/claude-code/src/services/diagnosticTracking.ts:188` 和 `sources/claude-code/src/services/diagnosticTracking.ts:352` 体现诊断聚合，`sources/claude-code/src/services/lsp/manager.ts:143`、`sources/claude-code/src/services/lsp/LSPServerInstance.ts:343`、`sources/claude-code/src/services/lsp/LSPServerInstance.ts:393` 体现 LSP 请求生命周期。
 
-## 源码锚点补强：Claude 的代码理解要从诊断和 LSP 管理器看
+## 源码锚点：Claude 的代码理解要从诊断和 LSP 管理器看
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |

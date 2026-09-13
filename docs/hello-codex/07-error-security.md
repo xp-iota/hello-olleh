@@ -441,7 +441,7 @@ Codex 的敏感文件保护不是靠单点过滤，而是**多层约束**：
 - **`merge_permission_profiles()` 冲突语义不透明**：多个 profile 合并时，哪种策略优先、冲突如何解决，文档和代码注释都不充分，维护者难以自信地添加新 profile。
 - **`backoff()` 硬编码策略**：退避逻辑（等待时间、最大次数）写在函数体内，调整需要改代码，无法通过配置覆盖，对网络环境差或速率限制严格的场景不够灵活。
 
-## 横向对齐补强：Codex 的安全优势来自统一 runtime 闸门
+## Codex 的安全优势来自统一 runtime 闸门
 
 Codex 的错误与安全章节应突出“Rust runtime 统一治理”：shell、apply_patch、network、MCP 和 agent 工具都要回到 approval/sandbox/orchestrator。
 

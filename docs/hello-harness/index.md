@@ -31,7 +31,6 @@ title: "Harness Engineering Framework 源码分析"
     <a class="chapter-card" href="17-prompt-systems-comparison"><div class="chapter-number">17</div><div class="chapter-title">Prompt 系统横向对比</div><span class="chapter-arrow">&#8599;</span></a>
     <a class="chapter-card" href="18-extension-mcp-comparison"><div class="chapter-number">18</div><div class="chapter-title">扩展与 MCP 横向对比</div><span class="chapter-arrow">&#8599;</span></a>
     <a class="chapter-card" href="19-runtime-surface-comparison"><div class="chapter-number">19</div><div class="chapter-title">入口、传输与 UI 状态横向对比</div><span class="chapter-arrow">&#8599;</span></a>
-    <a class="chapter-card" href="20-doc-merge-plan"><div class="chapter-number">20</div><div class="chapter-title">文档合并执行计划</div><span class="chapter-arrow">&#8599;</span></a>
     <a class="chapter-card" href="21-final-audit"><div class="chapter-number">21</div><div class="chapter-title">最终验收与维护索引</div><span class="chapter-arrow">&#8599;</span></a>
     <a class="chapter-card" href="40-pluggable-context-memory-module"><div class="chapter-number">40</div><div class="chapter-title">可插拔 Context / Memory 模块设计</div><span class="chapter-arrow">&#8599;</span></a>
     <a class="chapter-card" href="42-runtime-comparison"><div class="chapter-number">42</div><div class="chapter-title">OpenCode 与 Hermes Runtime 对比</div><span class="chapter-arrow">&#8599;</span></a>

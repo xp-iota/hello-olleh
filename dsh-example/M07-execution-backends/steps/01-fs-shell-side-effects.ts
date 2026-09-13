@@ -1,5 +1,5 @@
 /**
- * 16 · 真实副作用工具：写文件（ctx.fs）+ 跑子进程（ctx.subprocess），尊重 exec.signal 取消。
+ * M07.1 · 真实副作用工具：写文件（ctx.fs）+ 跑子进程（ctx.subprocess），尊重 exec.signal 取消。
  *
  * 01 的 word_count 是纯计算工具；本例演示"会改外部世界"的工具——它们不自己碰 node:fs /
  * node:child_process，而是**消费 seam**：`ctx.fs`（`FileSystem`）、`ctx.subprocess`

@@ -1,4 +1,4 @@
-"""B1/B2 assembly and deterministic kernel acceptance tests."""
+"""Assembly and deterministic kernel acceptance tests."""
 
 from __future__ import annotations
 

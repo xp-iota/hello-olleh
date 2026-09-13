@@ -1,5 +1,5 @@
 /**
- * 26 · cordis 可处置定时器（ctx.timer / ctx.timeout / ctx.interval / ctx.throttle / ctx.debounce）。
+ * M12.2 · cordis 可处置定时器（ctx.timer / ctx.timeout / ctx.interval / ctx.throttle / ctx.debounce）。
  *
  * 对照 vendor/timer 的 TimerService：所有定时器都挂在当前 fiber 的 effect 上——
  * fiber 卸载时统一清理，挂起的 Promise 以 'Context has been disposed' 拒绝。

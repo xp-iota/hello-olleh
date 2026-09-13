@@ -453,7 +453,7 @@ flowchart LR
 - **工具并发结果无顺序保证**：若工具间有隐式执行依赖（如先写文件再读），并发执行可能导致竞态。
 - **`ToolUseContext` 字段过多**：随着 Claude 功能迭代，`ToolUseContext` 持续添加新字段（cache/thinking/betas），成为了变相的"上帝对象"。
 
-## 横向对齐补强：Claude 工具系统要区分协议、权限和执行器
+## Claude 工具系统要区分协议、权限和执行器
 
 Claude Code 的工具系统比“工具列表”更复杂：`Tool` 协议定义模型可见形态，permission hook 决定是否执行，`runTools()`/`StreamingToolExecutor` 决定批处理或流式执行。
 
@@ -467,7 +467,7 @@ Claude Code 的工具系统比“工具列表”更复杂：`Tool` 协议定义�
 
 横向读本章时，重点是“工具执行可以和模型流交错”。这和 Gemini 的流后调度、OpenCode 的 durable part 写回、Codex 的 Rust turn loop 编排都不同。
 
-## 源码锚点补强
+## 源码锚点
 
 | 主题 | 源码锚点 | 说明 |
 | --- | --- | --- |

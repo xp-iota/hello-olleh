@@ -1,5 +1,5 @@
 /**
- * 14 · 上下文压缩 seam（提供 ctx.compaction 的实现）。
+ * M02.3 · 上下文压缩 seam（提供 ctx.compaction 的实现）。
  *
  * `CompactionEngine` 是一个**抽象 cordis Service**（构造里 `super(ctx)` 把服务名钉死成
  * `compaction`）。所以"提供一个 seam 实现"的形状不是调什么注册函数，而是：

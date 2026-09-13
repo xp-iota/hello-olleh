@@ -12,7 +12,6 @@ permalink: /docs/hello-cordis/
 >
 > 它最重要的下游是 **[DeepSeek Harness](../hello-dsh/README.md)**（`dsh`，52912 stars）——DSH 的"Everything is a Plugin"架构完全建立在 cordis 之上。**想读懂 DSH，必须先读懂 cordis 的 Fiber 与 Service 模型。**
 >
-> 本仓库内两套文档集的关系见[仓库根 README](../../README.md)。
 
 ## 一、快照与版本
 
@@ -116,15 +115,15 @@ permalink: /docs/hello-cordis/
 
 ## 五、配套示例工程
 
-本仓库的 [`dsh-example/`](../../dsh-example/README.md) 虽以 DSH 为主，也包含直接验证 cordis 原语的最小程序。示例精确锁定 `@deepseek-ai/*@0.1.1-rc.2`；因此它们验证的是 DSH 发布包所携带的 cordis 契约，与本文分析的 cordiverse 上游快照 `8cc9e33f` 需按“双版本口径”对照阅读。
+本仓库的 [`dsh-example/`](../../dsh-example/README.md) 虽以 DSH 为主，也包含直接验证 cordis 原语的最小程序。示例精确锁定 `@deepseek-ai/*@0.1.5-rc.2`；因此它们验证的是 DSH 发布包所携带的 cordis 契约，与本文分析的 cordiverse 上游快照 `8cc9e33f` 需按“双版本口径”对照阅读。
 
 | Cordis 主题 | 配套示例 | 观察点 |
 |---|---|---|
-| Context / 插件装配 | [`cordis.yml`](../../dsh-example/cordis.yml)、[`26-cordis-timer`](../../dsh-example/26-cordis-timer/README.md) | 配置树如何挂插件、插件卸载时如何回收 effect |
-| Fiber / 可逆副作用 | [`26-cordis-timer`](../../dsh-example/26-cordis-timer/README.md) | 定时器作为 effect 注册，Fiber 卸载后不再继续触发 |
-| Service / 依赖与作用域 | [`05-llm-adapter`](../../dsh-example/05-llm-adapter/README.md)、[`11-tool-restrict`](../../dsh-example/11-tool-restrict/README.md) | Provider 注入、Consumer 解析、scope 限制 |
-| Events / waterfall | [`17-dispatch-modes`](../../dsh-example/17-dispatch-modes/README.md)、[`20-llm-stream`](../../dsh-example/20-llm-stream/README.md) | 五种派发模式与 waterfall 包装链 |
-| 生命周期 / 清理 | [`09-hooks-lifecycle-steering`](../../dsh-example/09-hooks-lifecycle-steering/README.md)、[`26-cordis-timer`](../../dsh-example/26-cordis-timer/README.md) | 监听器与定时器随插件生命周期撤销 |
+| Context / 插件装配 | [`cordis.yml`](../../dsh-example/cordis.yml)、[`M12 · cordis-timer`](../../dsh-example/M12-framework-mechanisms/README.md) | 配置树如何挂插件、插件卸载时如何回收 effect |
+| Fiber / 可逆副作用 | [`M12 · cordis-timer`](../../dsh-example/M12-framework-mechanisms/README.md) | 定时器作为 effect 注册，Fiber 卸载后不再继续触发 |
+| Service / 依赖与作用域 | [`M03 · llm-adapter`](../../dsh-example/M03-inference-service-access/README.md)、[`M01 · tool-restrict`](../../dsh-example/M01-tool-pipeline/README.md) | Provider 注入、Consumer 解析、scope 限制 |
+| Events / waterfall | [`M12 · dispatch-modes`](../../dsh-example/M12-framework-mechanisms/README.md)、[`M03 · llm-stream`](../../dsh-example/M03-inference-service-access/README.md) | 五种派发模式与 waterfall 包装链 |
+| 生命周期 / 清理 | [`M04 · hooks-lifecycle-steering`](../../dsh-example/M04-agent-loop-intervention/README.md)、[`M12 · cordis-timer`](../../dsh-example/M12-framework-mechanisms/README.md) | 监听器与定时器随插件生命周期撤销 |
 
 > 📐 各章的对应示例也会直接放在相关小节；运行环境、命令与预期输出以[示例工程 README](../../dsh-example/README.md)为准。
 
@@ -133,10 +132,10 @@ permalink: /docs/hello-cordis/
 | 统一主题 | Cordis | DeepSeek Harness | 可跑示例 |
 |---|---|---|---|
 | 定位与代码地图 | [01](01-项目概览与设计哲学.md) · [02](02-代码结构与包边界.md) | [DSH 01](../hello-dsh/01-项目概览.md) · [02](../hello-dsh/02-代码结构地图.md) | [`cordis.yml`](../../dsh-example/cordis.yml) |
-| 生命周期与服务 | [03 Fiber](03-Fiber模型.md) · [04 Context](04-Context与Reflect代理.md) · [05 Service](05-服务注册与依赖解析.md) | [DSH 03 Seam](../hello-dsh/03-能力缝与服务全景.md) · [05 启动](../hello-dsh/05-启动与Cordis落地.md) | [05 adapter](../../dsh-example/05-llm-adapter/README.md) · [26 timer](../../dsh-example/26-cordis-timer/README.md) |
-| 事件与扩展 | [06 Events](06-事件系统与Waterfall.md) | [DSH 04 扩展](../hello-dsh/04-扩展与生态.md) · [06 Agent](../hello-dsh/06-Agent循环与会话日志.md) · [07 请求管线](../hello-dsh/07-请求管线-LLM工具与提示.md) | [09 lifecycle](../../dsh-example/09-hooks-lifecycle-steering/README.md) · [17 dispatch](../../dsh-example/17-dispatch-modes/README.md) · [20 stream](../../dsh-example/20-llm-stream/README.md) |
-| 配置、装配与热更新 | [07 Loader](07-Loader与配置树.md) · [08 HMR](08-HMR热重载.md) | [DSH 05 启动与 Cordis](../hello-dsh/05-启动与Cordis落地.md) | [`cordis.yml`](../../dsh-example/cordis.yml) · [26 timer](../../dsh-example/26-cordis-timer/README.md) |
-| 执行与安全边界 | [03](03-Fiber模型.md) · [05](05-服务注册与依赖解析.md) · [06](06-事件系统与Waterfall.md) | [DSH 08 执行侧服务](../hello-dsh/08-执行侧服务-文件Shell沙箱子代理压缩.md) | [13 approval](../../dsh-example/13-approval-answerer/README.md) · [16 side-effects](../../dsh-example/16-fs-shell-side-effects/README.md) · [25 sandbox](../../dsh-example/25-sandbox-seam/README.md) |
+| 生命周期与服务 | [03 Fiber](03-Fiber模型.md) · [04 Context](04-Context与Reflect代理.md) · [05 Service](05-服务注册与依赖解析.md) | [DSH 03 Seam](../hello-dsh/03-能力缝与服务全景.md) · [05 启动](../hello-dsh/05-启动与Cordis落地.md) | [M03 · adapter](../../dsh-example/M03-inference-service-access/README.md) · [M12 · timer](../../dsh-example/M12-framework-mechanisms/README.md) |
+| 事件与扩展 | [06 Events](06-事件系统与Waterfall.md) | [DSH 04 扩展](../hello-dsh/04-扩展与生态.md) · [06 Agent](../hello-dsh/06-Agent循环与会话日志.md) · [07 请求管线](../hello-dsh/07-请求管线-LLM工具与提示.md) | [M04 · lifecycle](../../dsh-example/M04-agent-loop-intervention/README.md) · [M12 · dispatch](../../dsh-example/M12-framework-mechanisms/README.md) · [M03 · stream](../../dsh-example/M03-inference-service-access/README.md) |
+| 配置、装配与热更新 | [07 Loader](07-Loader与配置树.md) · [08 HMR](08-HMR热重载.md) | [DSH 05 启动与 Cordis](../hello-dsh/05-启动与Cordis落地.md) | [`cordis.yml`](../../dsh-example/cordis.yml) · [M12 · timer](../../dsh-example/M12-framework-mechanisms/README.md) |
+| 执行与安全边界 | [03](03-Fiber模型.md) · [05](05-服务注册与依赖解析.md) · [06](06-事件系统与Waterfall.md) | [DSH 08 执行侧服务](../hello-dsh/08-执行侧服务-文件Shell沙箱子代理压缩.md) | [M06 · approval](../../dsh-example/M06-human-in-the-loop/README.md) · [M07 · side-effects](../../dsh-example/M07-execution-backends/README.md) · [M07 · sandbox](../../dsh-example/M07-execution-backends/README.md) |
 | 测试、速查与排障 | [09 速查](09-关键调用链速查.md) | [DSH 10 测试](../hello-dsh/10-测试与工程实践.md) · [11 速查](../hello-dsh/11-关键调用链速查.md) | [示例索引与批量运行](../../dsh-example/README.md) |
 
 ## 七、Mermaid 配色图例

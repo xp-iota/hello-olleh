@@ -1,5 +1,5 @@
 /**
- * 01 · 给模型注册一个可见工具（word_count）。
+ * M01.1 · 给模型注册一个可见工具（word_count）。
  *
  * 这是 dsh 最常见的扩展：模型在 System Prompt 里看到这个工具的 schema，
  * 就能自主决定何时调用它。`defineTool` 会从 `parameters` 推断出 `execute(args)`

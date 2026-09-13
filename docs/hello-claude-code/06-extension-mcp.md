@@ -415,7 +415,7 @@ flowchart TB
 - **MCP server 连接无全局超时限制**：`connectMcpServer()` 等待外部进程 stdio 握手，若 server 启动慢，启动时会无限等待，影响整体启动延迟。
 - **`processSkillPrompt()` 无 token 预算**：skill 注入到 system prompt 不检查 total token，大量 skill 激活时可能超出 context 限制，导致静默截断。
 
-## 横向对齐补强：Claude 扩展面最宽，必须分层阅读
+## Claude 扩展面最宽，必须分层阅读
 
 Claude Code 的扩展面同时包含 Skill、Plugin、MCP、Hooks、slash command 和配置策略。横向比较时，`06` 应只做总览，细节分流到 `13`、`14`、`24`。
 
@@ -428,7 +428,7 @@ Claude Code 的扩展面同时包含 Skill、Plugin、MCP、Hooks、slash comman
 
 横向看，Claude 的优势是扩展能力丰富；风险是扩展路径多，文档必须避免把 MCP、Plugin、Skill 混成同一层。
 
-## 源码锚点补强
+## 源码锚点
 
 | 主题 | 源码锚点 | 说明 |
 | --- | --- | --- |

@@ -25,7 +25,7 @@ A5 按 12 个方向模块重建结构证据；本节**取代** 2026-09-07 条目
 建包。四个概念条目与一份 reference 首次写入：
 
 - 用 graphify 0.9.53 对 `dsh-example/` 自有源码（87 个文件，排除 `node_modules`）建有向图，
-  得到 488 节点 / 537 边 / 57 社区；`createHarness` 以度数 32 成为唯一枢纽。
+  得到 584 节点 / 744 边 / 45 社区；`createHarness` 以度数 66 成为唯一枢纽。
   这组数字是 [装配枢纽](concepts/assembly-hub.md) 与
   [graphify reference](references/graphify-dsh-example.md) 的事实来源。
 - 用 archify 补齐示例工程此前缺失的两张图（拓扑与工具调用回路），

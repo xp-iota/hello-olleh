@@ -1,5 +1,5 @@
 /**
- * 23 · 设置命名空间（ctx.settings）：schema 注册 + 分层解析 + 乐观并发。
+ * M11.1 · 设置命名空间（ctx.settings）：schema 注册 + 分层解析 + 乐观并发。
  *
  * 对照真实 `@deepseek-ai/dsh-settings`（`SettingsProvider` / `SettingsScope`）：
  *   - provider 负责原始文档存取（本示例用 runtime/settings-memory.ts 的内存子类），

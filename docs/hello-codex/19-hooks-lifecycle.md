@@ -135,7 +135,7 @@ Codex 的生命周期拦截是代码层面的扩展点，适合二次开发；Cl
 - **钩子失败策略不明确**：前置钩子失败时是继续执行还是中止工具调用，策略未文档化，用户需测试才知道行为。
 - **无钩子间通信机制**：多个钩子按顺序执行，后置钩子无法获取前置钩子的输出，限制了复杂钩子链的实现。
 
-## 横向对齐补强：Codex Hooks 是 turn 控制面，不是 plugin runtime
+## Codex Hooks 是 turn 控制面，不是 plugin runtime
 
 Codex hooks 的核心价值是插入 session/turn/tool 生命周期，而不是提供 OpenCode 那种任意 runtime hook。
 

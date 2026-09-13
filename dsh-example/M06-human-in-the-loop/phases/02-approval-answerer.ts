@@ -44,6 +44,6 @@ async function scenario(label: string, plugins: Array<[unknown, unknown?]>): Pro
   await harness.dispose()
 }
 
-await scenario('== A: 无应答器 → fail closed ==', [])
-await scenario('\n== B: 应答器把 deploy 列入白名单 → allowed-once ==', [[answererPlugin, { autoApprove: ['deploy'] }]])
-await scenario('\n== C: 应答器不在白名单 → rejected ==', [[answererPlugin, { autoApprove: [] }]])
+await scenario('== 场景：无应答器 → fail closed ==', [])
+await scenario('\n== 场景：应答器把 deploy 列入白名单 → allowed-once ==', [[answererPlugin, { autoApprove: ['deploy'] }]])
+await scenario('\n== 场景：应答器不在白名单 → rejected ==', [[answererPlugin, { autoApprove: [] }]])

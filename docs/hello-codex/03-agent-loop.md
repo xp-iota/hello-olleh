@@ -915,7 +915,7 @@ if retries >= max_retries && client_session.try_switch_fallback_transport(...) {
 - **ghost snapshot 与 cancel token 生命周期耦合**：`maybe_start_ghost_snapshot` 接收的 `child_token` 生命周期与 turn 挂钩，若 turn 异常提前终止，snapshot 清理依赖 cancel 传播的正确性，存在遗漏风险。
 - **并发工具结果缺乏超时保护**：`FuturesOrdered` 会一直等待最慢的工具，如果某个工具挂起，整个 turn 会阻塞直到外层 cancel 触发。
 
-## 源码锚点补强：Codex Loop 是 core submission 到 sampling 的四层闭环
+## 源码锚点：Codex Loop 是 core submission 到 sampling 的四层闭环
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
-# DeepSeek Harness：12 个方向模块的可运行教学工程
+# DeepSeek Harness 调研
 
-本工程直接使用发布版 `@deepseek-ai/dsh-*` **0.1.5-rc.2** 与真实 Cordis 运行时。原先 26 个单点示例已经按能力方向整合为 12 个模块：目录层减少碎片，文件层仍保留可复制的独立插件。
+本工程直接使用发布版 `@deepseek-ai/dsh-*` **0.1.5-rc.2** 与真实 Cordis 运行时，包含 12 个能力方向模块。
 
 ![12 个方向模块的真实拓扑](../docs/hello-dsh/diagrams/12-example-topology.svg)
 
@@ -14,9 +14,9 @@
 |---|---|
 | 13 个扫描根、169 文件、584 节点、744 边、45 社区 | `/cards/0/items/0`、`/cards/0/items/1` |
 | 739 条 `EXTRACTED`、5 条 `INFERRED` | `/cards/0/items/2` |
-| 26 个旧示例 → 12 个模块；58 steps + 58 phases | `/cards/1/items/0` |
+| 12 个模块；58 steps + 58 phases | `/cards/1/items/0` |
 | 3 条真实 Provider 路径；默认 12 个模块全部离线 | `/cards/1/items/1` |
-| A3 基线 25 + A4 新增 34 = 覆盖 59，门槛 ≥ 50 | `/cards/1/items/2` |
+| 覆盖 59，门槛 ≥ 50 | `/cards/1/items/2` |
 | `createHarness` 匹配 1 个；度数 66 = 入 62 + 出 4 | `/cards/2/items/0` |
 | 4 条扩展路径：按注册、按事件、按服务、按数据 | `/cards/2/items/1` |
 | Node ≥ 22.18；DSH 精确锁定 `0.1.5-rc.2` | `/cards/2/items/2` |
@@ -30,7 +30,7 @@ IR 的四个左侧组件分别承载四条扩展路径；`hub`、`runtime`、`pr
 ```bash
 npm install
 npm run typecheck
-npm run coverage:a4
+npm run coverage:surfaces
 npm test
 npm run M01       # 运行一个方向模块
 npm run all       # 顺序运行全部 12 个离线模块
@@ -42,7 +42,7 @@ npm run learn -- --list
 ```bash
 npm run M01:real  # 模型自主调用 word_count
 npm run M03:real  # 真实 LLM Adapter / StreamChunk 协议
-npm run M10:real  # 注入 SKILL.md 前后 A/B 对照
+npm run M10:real  # 注入 SKILL.md 前后对照
 ```
 
 三条真实路径都需要 `MINIMAX_API_KEY`，会向外部服务发送教学请求；不要把内部地址、分支名或敏感数据放入请求。
@@ -121,9 +121,9 @@ MXX-name/
 
 ```bash
 npm run typecheck          # 所有 steps/phases/real/support 对真实 .d.ts 编译
-npm run coverage:a4        # 25 + 34 = 59，门槛 ≥50
+npm run coverage:surfaces # 核心 25 + 扩展面 34 = 59，门槛 ≥50
 npm test                   # runtime 离线回归
 npm run all                # 12 个模块逐个 exit 0
 ```
 
-A4 已把 PLAN §3.2 批准的服务/能力缝接入对应模块；覆盖口径、Provider 选择、拒绝路径和显式排除见 `../dsh-workshop/00-baseline/A4-SERVICE-MATRIX.md`。默认 `all` 保持离线，复杂 Host plane 不进入核心 harness。
+服务与能力缝统一按公开扩展面计数；Provider 选择、拒绝路径和显式排除均在各模块 README 的“边界”中说明。默认 `all` 保持离线，复杂 Host plane 不进入核心 harness。

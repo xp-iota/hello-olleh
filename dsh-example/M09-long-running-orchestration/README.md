@@ -1,6 +1,10 @@
 # M09 · 长任务与编排
 
-本模块合并原 21、22，把长时间工作拆成两个正交对象：**Job 是可取消的运行句柄，Goal 是可回放的目标状态机**。
+长时间工作至少包含两个正交对象：**Job 是可取消的运行句柄，Goal 是可回放的目标状态机**。
+
+## 学习目标
+
+理解运行状态、任务意图、工作流隔离与耐久调度为何不能塞进一个“任务对象”。
 
 ## 运行
 
@@ -8,19 +12,21 @@
 npm run M09
 ```
 
-## 两个控制面
+## 阶段与观察点
 
-| 控制面 | 独立插件 | 能力 |
-|---|---|---|
-| Job registry | `steps/01-jobs-background.ts` | controller 准入、start/read/kill/wait、增量输出、属主隔离 |
-| Goal lifecycle | `steps/02-goal-lifecycle.ts` | create/arm/update/complete/clear、revision CAS、goal/change 日志折叠 |
+| 阶段 | 类型 | 实现 | 观察什么 |
+|---|---|---|---|
+| 1 Job registry | 教学主线 | `steps/01-jobs-background.ts` | controller 准入、start/read/kill/wait 与属主隔离 |
+| 2 Goal lifecycle | 教学主线 | `steps/02-goal-lifecycle.ts` | 状态推进、revision CAS 与日志折叠 |
+| 3 Workflow engine | 扩展面 | `steps/03-workflow-engine.ts` | worker thread 隔离阻塞，但不提供安全沙箱 |
+| 4 Schedule | 扩展面 | `steps/04-schedule.ts` | 耐久会话如何承载计划和模型工具 |
 
-Job 解决进程或异步任务当前是否还在跑、怎样终止和读取结果；Goal 解决任务意图、阶段、激活状态和并发更新。运行器分别验证无 controller 时拒绝启动、取消后的结算，以及旧 revision 更新被拒、墓碑清除后回放为空。
+## 完整链路
 
-**结论：**不要用一个“任务对象”混装意图和进程状态；分离后，恢复、并发控制和故障处置都更清晰。
+Job 管理当前执行及其输出；Goal 用追加日志表达目的和阶段；workflow engine 提供运行容器；schedule 将计划注册到耐久 Session。属主和 revision 阻止隐式全局写入与并发覆盖。
 
+## 边界
 
-## A4 · 编排服务
+线程隔离只保护事件循环，不等于安全隔离；没有 controller 时 Job 必须拒绝启动。
 
-- `workflowEngine` 由 worker-thread Provider 实现；线程隔离阻塞，但不是安全沙箱。
-- `schedule` 消费耐久 session 日志并为每个 root Agent 注册计划工具。
+**结论：**运行句柄与目标状态分离后，恢复、并发控制和故障处置都有明确责任人。

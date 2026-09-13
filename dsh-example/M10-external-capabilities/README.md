@@ -1,30 +1,35 @@
 # M10 · 外部能力接入
 
-本模块整合原 08，展示与 Cordis 代码插件互补的扩展方式：一份 `SKILL.md` 就能提供可发现、可注入的流程知识。
+外部能力既可以是可发现的知识资产，也可以是 MCP、Webhook 或动态 Cordis 扩展等宿主协议。
+
+## 学习目标
+
+判断什么时候应使用数据化 Skill，什么时候需要带生命周期与故障边界的运行时能力。
 
 ## 运行
 
 ```bash
-npm run M10          # 离线：验证注册、发现、注入与 step 认领
-npm run M10:real     # 真实 MiniMax A/B 对照；需要 MINIMAX_API_KEY
+npm run M10          # 离线：验证注册、发现、注入与 Host 边界
+npm run M10:real     # 真实 MiniMax 对照；需要 MINIMAX_API_KEY
 ```
 
-## 文件职责
+## 阶段与观察点
 
-- `assets/SKILL.md`：带 frontmatter 的代码审查知识资产，不包含可执行代码。
-- `steps/01-skill-code-review.ts`：解析资产，调用 `ctx.skills` 注册，并把渲染内容注入 inbox。
-- `phases/01-skill-code-review.ts`：离线确认正文进入模型可见投影且在 step 边界被认领。
-- `real/skill-code-review-minimax.ts`：同一 diff 分别在未注入/已注入时跑真实 turn，检查结论优先、问题清单和严重性顺序。
+| 阶段 | 类型 | 实现 | 观察什么 |
+|---|---|---|---|
+| 1 Skill | 教学主线 | `steps/01-skill-code-review.ts` | frontmatter 发现、渲染、inbox 注入与 step 认领 |
+| 2 MCP | 扩展面 | `steps/02-mcp-client.ts` | 本地进程启动失败的稳定契约 |
+| 3 Webhook | 扩展面 | `steps/03-webhook-runtime.ts` | Host-plane 完整依赖边界 |
+| 4 Cordis extensions | 扩展面 | `steps/04-cordis-extensions.ts` | dynamic runner 与 inspect registry |
+| 5 默认模型 | 扩展面 | `steps/05-agent-default-model.ts` | Webhook 创建 Agent 所需的 mock 路由 |
+| 真实对照 | 可选真实路径 | `real/skill-code-review-minimax.ts` | 同一输入在 Skill 注入前后的行为差异 |
 
-这里的 step 是能力接入 helper，而不是伪装成 `ctx.plugin()` 的数据文件；这正是该模块要保留的结构差异。
+## 完整链路
 
-**结论：**做法、规范、工作流优先数据化；执行副作用、监听事件或提供服务时再写插件。
+`assets/SKILL.md` 被解析和注册，渲染内容经 inbox 进入下一 step；MCP、Webhook 与动态扩展则由宿主管理进程、依赖和失败。默认路径全部离线。
 
+## 边界
 
-## A4 · 外部运行面
+Skill 只提供流程知识，不执行副作用；Webhook 不完整时只展示依赖边界，不在核心 harness 里伪造宿主。
 
-- MCP 阶段只启动一个必然不存在的本地命令，验证失败契约，不发网络。
-- Webhook 仅展示完整 Host-plane 依赖边界，不把复杂宿主服务塞入核心 harness。
-- Cordis extensions 使用真实 dynamic runner 与 inspect registry，离线注册模型工具。
-
-- `agentDefaultModel` 是 Webhook 创建 Agent 的必需支持服务；示例只保存 mock 路由，不读取凭证。
+**结论：**做法、规范和工作流优先数据化；需要执行、监听或提供服务时再升级为插件或 Host 能力。

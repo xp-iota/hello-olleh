@@ -29,10 +29,10 @@ $ cd dsh-example && npm run M07
 
 ----- ⑤b 派发后取消：主体已启动，被中止并收敛（code 不同） -----
     isError=true, code=ABORTED
-    耗时: 312 ms（子进程本身要跑 5000ms）
+    耗时: 309 ms（子进程本身要跑 5000ms）
     子进程被提前掐掉了，而不是等它自然跑完。
 
-⑥ 清理：演示文件已删除 = /var/folders/tr/zqmjm0dn6_nfthzqnztrd1gw0000gn/T/dsh-example-16-1789222122454.txt
+⑥ 清理：演示文件已删除 = /var/folders/tr/zqmjm0dn6_nfthzqnztrd1gw0000gn/T/dsh-example-16-1789286225106.txt
 
 ════════ M07.2 · 消费 shell 的 run/start 双形态 ════════
 [shell-service] shell seam 可用: LocalBashExecutor | sandboxMode = (未装沙箱)

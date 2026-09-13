@@ -6,7 +6,7 @@
 
 - 官方 `tool-cordis/src/api-catalog.ts` 在上述 DSH revision 中给出 **71 个 Service API key**、68 个 Event API。
 - PLAN §3.2 的“服务覆盖”是教学工程的**公开扩展面覆盖**：既含 Cordis `Service` key，也含函数式 capability seam（如 `todo`、`schedule`、`mcp`）和 M12 框架机制。原因是 §3.2 本身把这三类放在同一“新纳入的缝”列。
-- 可执行门禁 `npm run coverage:a4` 固化口径：A3 基线 25 个 + A4 新增 34 个 = **59 个**，要求 ≥50；不把明确排除的 `fileUploads` 算入 59。
+- 可执行门禁 `npm run coverage:surfaces` 固化口径：A3 基线 25 个 + A4 新增 34 个 = **59 个**，要求 ≥50；不把明确排除的 `fileUploads` 算入 59。
 - 状态分四类：**运行**（离线实际激活/调用）、**拒绝**（真实 fail-loud 路径）、**边界**（列出完整组合依赖但不装复杂 Host plane）、**排除**（PLAN §3.4 明确不做）。
 
 ## A4 新增矩阵

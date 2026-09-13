@@ -196,7 +196,7 @@ async function executeWithTimeout(tool: Tool, input: unknown): Promise<unknown> 
 - **重试窗口无全局协调**：多个 session 并发重试 429 时，各 session 的退避时钟独立，无法基于共享 rate limit 信息协调重试时机。
 - **Ctrl-C 中断无状态保存**：用户中断时正在执行的工具调用结果丢失，下次恢复后可能重复执行某些操作。
 
-## 横向对齐补强：Claude 韧性主要靠 retry、compact 和 fallback
+## Claude 韧性主要靠 retry、compact 和 fallback
 
 Claude Code 的韧性来自 provider retry、streaming fallback、context overflow 修正、compact 和 stop hook。
 
@@ -207,7 +207,7 @@ Claude Code 的韧性来自 provider retry、streaming fallback、context overfl
 | stop hook | Claude 特有的人类/插件干预路径 |
 | tool failure isolation | 对应 Codex/Gemini/OpenCode 工具结果归一 |
 
-## 恢复边界补强
+## 恢复边界
 
 | 错误/中断类型 | 自动恢复能力 | 需要用户动作 | 源码锚点 |
 | --- | --- | --- | --- |
@@ -219,7 +219,7 @@ Claude Code 的韧性来自 provider retry、streaming fallback、context overfl
 
 因此，本章的结论应区分“模型请求可继续”和“本地动作可回滚”。Claude Code 韧性强在请求/上下文恢复，不等于所有工具副作用都有事务回滚。
 
-## 源码锚点补强：Claude 韧性分散在 API、query 和 streaming tool
+## 源码锚点：Claude 韧性分散在 API、query 和 streaming tool
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |

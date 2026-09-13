@@ -40,7 +40,7 @@ $ cd dsh-example && npm run M09
    → paused disarmed rev=2
 
 ③ CAS 冲突：用旧 ref 操作被拒
-   stale goal ref "goal-36134dca-dab0-413f-8389-d806c6f62937" revision 1; current is "goal-36134dca-dab0-413f-8389-d806c6f62937" revision 2
+   stale goal ref "goal-1a915b15-c703-41bf-9e8e-6f5e75fff1c3" revision 1; current is "goal-1a915b15-c703-41bf-9e8e-6f5e75fff1c3" revision 2
 
 ④ resume：paused → active（重新 arm）
   [goal/change] seq=2 → rev=3 phase=active "重构支付模块"

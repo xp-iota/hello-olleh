@@ -13,7 +13,7 @@ $ cd dsh-example && npm run M08
 
 ----- 模型调用 review_with_subagent（触发一次委派）-----
 [event] subagent/start → provider=local-reviewer child=local-reviewer-1 local=false
-[event] subagent/end   → runId=d43cfa79-d7ae-41f4-a6a7-26edee4a03f4 stopReason=completed
+[event] subagent/end   → runId=52ab7af1-afe5-411d-93f4-dadb76bf927a stopReason=completed
 ③ canonical value: {
   text: '【子代理·local-reviewer】已评审：「检查这个支付模块 diff」 → 结论：可合并，建议补边界测试。',
   childId: 'local-reviewer-1',

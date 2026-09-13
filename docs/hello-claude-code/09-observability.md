@@ -201,7 +201,7 @@ Claude Code 将完整会话 Transcript 持久化到本地：
 - **`Logger` 无日志文件轮转**：debug 日志输出到文件时，无自动轮转和清理机制，长期运行的 Claude Code Server 模式下日志文件会无限增长。
 - **`SessionStatus` 枚举粒度粗**：当前状态只区分 4 种大状态，无法区分"等待工具审批"、"等待 MCP 响应"、"暂停等待人工干预"等细粒度状态，监控报警精度受限。
 
-## 横向对齐补强：Claude 可观测性要补事件关联
+## Claude 可观测性要补事件关联
 
 Claude Code 有 stream event、telemetry、debug log、MCP debug 和 TUI 状态，但缺少贯穿一次 turn 的统一 trace id。
 
@@ -214,7 +214,7 @@ Claude Code 有 stream event、telemetry、debug log、MCP debug 和 TUI 状态�
 
 后续应增加“单次 prompt trace”视角，串起输入、模型请求、工具调用、权限、MCP 和最终渲染。
 
-## 源码锚点补强：把日志、诊断和 query 事件串起来
+## 源码锚点：把日志、诊断和 query 事件串起来
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |

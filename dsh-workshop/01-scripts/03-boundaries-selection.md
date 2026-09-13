@@ -12,7 +12,7 @@
 **复现命令**
 
 ```bash
-cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M03-inference-service-access/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M07-execution-backends/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M12-framework-mechanisms/run.py
+cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M03 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M07 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M12
 ```
 
 ## 02. 先把执行栈画出来，再逐个填名字
@@ -36,7 +36,7 @@ cd iota-example && grep -n '执行栈' docs/dsh-vs-iota.md
 **复现命令**
 
 ```bash
-cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M03-inference-service-access/run.py
+cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M03
 ```
 
 ## 04. 执行：出事的时候，谁说了算
@@ -48,7 +48,7 @@ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M03-inferenc
 **复现命令**
 
 ```bash
-cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M07-execution-backends/run.py
+cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M07
 ```
 
 ## 05. 借机制：语义好，不代表整套都要搬
@@ -60,7 +60,7 @@ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M07-executio
 **复现命令**
 
 ```bash
-cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M12-framework-mechanisms/run.py
+cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M12
 ```
 
 ## 06. 把需求写成动词，答案就出来了
@@ -84,7 +84,7 @@ cd iota-example && grep -nE 'M03|M07|M12' docs/dsh-vs-iota.md
 **复现命令**
 
 ```bash
-cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M08-delegation-presets/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M09-long-running-orchestration/run.py
+cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M08 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M09
 ```
 
 ## 08. 三种看着挺统一、其实挺危险的做法
@@ -108,7 +108,7 @@ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/pytest -q tests/tes
 **复现命令**
 
 ```bash
-cd iota-example && for m in M03-inference-service-access M07-execution-backends M12-framework-mechanisms; do env -u PYTHONHOME -u PYTHONPATH .venv/bin/python $m/run.py; done
+cd iota-example && for m in M03 M07 M12; do env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner $m; done
 ```
 
 ## 10. 别用长得像，去替代说得清谁拥有它

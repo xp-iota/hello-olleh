@@ -1,5 +1,5 @@
 /**
- * 15 · 子代理委派（ctx.subagents 具名 provider 注册表 + 把委派暴露成模型工具）。
+ * M08.1 · 子代理委派（ctx.subagents 具名 provider 注册表 + 把委派暴露成模型工具）。
  *
  * 先厘清默认行为：**不写本插件的任何代码，模型与子代理毫无关系** ——
  * `ctx.subagents` 只是一个服务缝（具名 provider 注册表），对模型完全不可见；
@@ -25,7 +25,7 @@
  *   `{ id: SessionId, localAgent, result: Promise<SubagentResult>, dispose() }`
  * —— start() 立刻兑现一个句柄，真正的输出在 `result` 上等。这样"运行已建立"和
  * "运行已结束"才能分成 `subagent/start` / `subagent/end` 两个事件。
- * start() 抛错 = 没有 published child = 两个事件都不发（见 [06] 的观测方式）。
+ * start() 抛错 = 没有 published child = 两个事件都不发（见 M04.1 的观测方式）。
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { ResolvedSubagentStartRequest, SubagentCapabilities, SubagentProvider, SubagentRun } from '@deepseek-ai/dsh-subagent'

@@ -1,5 +1,5 @@
 /**
- * 13 · 人工审批应答器（ctx.approval / approval/request）。
+ * M06.2 · 人工审批应答器（ctx.approval / approval/request）。
  *
  * 03 演示从 `tools/pre-execute` 返回 `{ kind:'ask' }`；被 ask 的调用会流向 **审批 seam**：
  * `ctx.approval.request(req)` 把请求交给监听 `approval/request` 的应答器（answerer）裁决。

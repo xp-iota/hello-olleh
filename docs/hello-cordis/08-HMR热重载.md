@@ -11,7 +11,6 @@ parent_url: /docs/hello-cordis/
 >
 > 🧭 **本篇导览**：8.1–8.2 三条变更路径与传播算法 → 8.3–8.4 五阶段 `partialReload()` 与 Node 缓存差异 → 8.5–8.6 回滚与 `[Service.init]` → 8.7–8.8 声明的事件与 Fiber 机制的配合。
 >
-> 📎 **来源**：本篇为本系列原始篇目，基于 cordiverse/cordis 快照 `8cc9e33f`。
 >
 > 💡 **先说清楚：HMR 是什么**——**HMR** 是 **Hot Module Replacement**（模块热替换）的缩写。"热"指进程尽量不退出，"替换"指把已经加载的旧模块或插件换成新版本；它不是简单地重新执行一个文件，也不是每次改代码都重启整个 Node 进程。
 > cordis 的 HMR 由开发期插件 `@cordisjs/plugin-hmr` 提供：监听文件变化 → 分析 Node 模块依赖图 → 把变化尽可能收敛到**插件入口** → 通过 cordis 的卸载/重载机制替换对应 Fiber。插件注册的事件、定时器等副作用随旧 Fiber 一起清理，再由新插件重新建立。

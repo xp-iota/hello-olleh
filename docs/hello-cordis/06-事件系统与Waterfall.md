@@ -11,11 +11,10 @@ parent_url: /docs/hello-cordis/
 >
 > 🧭 **本篇导览**：6.1–6.2 五种派发模式与 `_resolve()` → 6.3 waterfall 原理（两侧契约 / 逐行解剖 / 执行语义 / 轨迹 / Koa 与责任链对照） → 6.4–6.5 `on()` 与 `EventOptions` → 6.6–6.7 8 个 internal 事件与监听器的 traceable 包装。
 >
-> 📎 **来源**：本篇为本系列原始篇目，基于 cordiverse/cordis 快照 `8cc9e33f`。
 
 ## 6.1 五种派发模式
 
-> 📐 **配套可跑示例**：[`17-dispatch-modes`](../../dsh-example/17-dispatch-modes/README.md) 在真实 `@deepseek-ai/cordis` 上依次运行 `emit`、`parallel`、`serial`、`bail`、`waterfall`。在 `dsh-example/` 执行 `npm run 17`，可直接观察 AggregateError、bail 截链与 waterfall 外层包装内建默认值；实现与断言见 [`index.ts`](../../dsh-example/17-dispatch-modes/index.ts) / [`run.ts`](../../dsh-example/17-dispatch-modes/run.ts)。
+> 📐 **配套可跑示例**：[`M12 dispatch-modes`](../../dsh-example/M12-framework-mechanisms/README.md) 在真实 `@deepseek-ai/cordis` 上依次运行 `emit`、`parallel`、`serial`、`bail`、`waterfall`。在 `dsh-example/` 执行 `npm run M12`，可直接观察 AggregateError、bail 截链与 waterfall 外层包装内建默认值；实现与断言见 [`index.ts`](../../dsh-example/M12-framework-mechanisms/steps/01-dispatch-modes.ts) / [`run.ts`](../../dsh-example/M12-framework-mechanisms/phases/01-dispatch-modes.ts)。
 
 `DispatchMode`（`C/events.ts:14`）：
 
@@ -162,7 +161,7 @@ waterfall → A('原始文本', next)
 
 若 B 不调 `next()` 直接 `return '【B】接管'`，则 inner 不会执行，最终为 `'【A】【B】接管'`——A 的外层包装仍在，但默认行为已被替换。
 
-> 📐 **配套可跑示例**：这段轨迹就是 [`17-dispatch-modes`](../../dsh-example/17-dispatch-modes/README.md) ⑥ 的真实输出（`npm run 17`）。
+> 📐 **配套可跑示例**：这段轨迹就是 [`M12 dispatch-modes`](../../dsh-example/M12-framework-mechanisms/README.md) ⑥ 的真实输出（`npm run M12`）。
 
 ### 6.3.5 与 Koa 中间件的对照
 
@@ -190,7 +189,7 @@ waterfall 常被误认为责任链（Chain of Responsibility）。其实 cordis 
 
 判别准则只有一条：**转发之后还能不能拿回控制权、加工下游结果？** 能，就是中间件语义，与名字无关——Servlet 的 `FilterChain.doFilter()` 名叫“链”，结构上与 `next()` 同构，实为中间件。
 
-💡 **DSH 的 `tools/pre-execute` 是“以责任链方式使用 waterfall”的实例**（[`03-permission-gate`](../../dsh-example/03-permission-gate/index.ts)）：权限门命中黑名单就返回 `{ kind: 'deny' }` 截链（=接盘），否则 `return next()`（=转发）。但底层是 waterfall，下游决定在返回途中仍可被外层加工——这就是“翻案”可能的根源，也是 DSH 要另设不可翻案的 `ctx.tools.guard()` 的原因（[`12-tool-guard`](../../dsh-example/12-tool-guard/README.md)）。
+💡 **DSH 的 `tools/pre-execute` 是“以责任链方式使用 waterfall”的实例**（[`M01.2 · permission-gate`](../../dsh-example/M01-tool-pipeline/steps/02-permission-gate.ts)）：权限门命中黑名单就返回 `{ kind: 'deny' }` 截链（=接盘），否则 `return next()`（=转发）。但底层是 waterfall，下游决定在返回途中仍可被外层加工——这就是“翻案”可能的根源，也是 DSH 要另设不可翻案的 `ctx.tools.guard()` 的原因（[`M01 · tool-guard`](../../dsh-example/M01-tool-pipeline/README.md)）。
 
 💡 **cordis 内部大量用 waterfall**：`internal/get`、`internal/set`、`internal/update` 三个 internal 事件都是 waterfall（见 § 6.6）。DSH 更是把它当作核心扩展机制——`tools/pre-execute`、`tools/execute`、`tools/post-execute`、`agent/pre-step`、`agent/request-error`、`llm/stream` 全是 waterfall（见 [DSH 07 篇](../hello-dsh/07-请求管线-LLM工具与提示.md)）。**本节（§ 6.3）是本仓库唯一展开 waterfall 原理的位置，其余文档一律引用此处。**
 

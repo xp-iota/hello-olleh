@@ -1,5 +1,5 @@
 /**
- * 03 · 权限门（hook 插件）。
+ * M01.2 · 权限门（hook 插件）。
  *
  * dsh 的"原生 hook"就是一个监听拦截点的普通 cordis 插件，不需要外部协议。
  * `tools/pre-execute` 是可重排的策略 waterfall：每个监听者返回一个类型化决定

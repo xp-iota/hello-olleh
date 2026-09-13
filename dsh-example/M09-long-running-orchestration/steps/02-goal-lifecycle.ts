@@ -1,5 +1,5 @@
 /**
- * 22 · 目标生命周期（ctx.goals）：状态只由所属会话日志折叠而来。
+ * M09.2 · 目标生命周期（ctx.goals）：状态只由所属会话日志折叠而来。
  *
  * 对照 packages/goal/goal：
  *   - 每次变更 append 一条携带完整变更后状态的 `goal/change` 事件（whole-value rule）——

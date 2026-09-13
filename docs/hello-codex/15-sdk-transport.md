@@ -153,7 +153,7 @@ TypeScript SDK 也是类似思路。`sdk/typescript/src/codex.ts` 的 `Codex` �
 - **`reqwest` 无连接池复用配置**：未暴露连接池参数，高频会话切换时 TLS 握手开销累积。
 - **仅支持 HTTPS/SSE**：不支持 WebSocket，某些本地 provider（如 Ollama）可能仅支持 WebSocket 流，需要额外适配。
 
-## 横向对齐补强：SDK/Transport 是 runtime 复用边界
+## SDK/Transport 是 runtime 复用边界
 
 Codex 的关键点是 TypeScript SDK 不直接嵌入 Rust runtime，而是通过进程、stdio/JSON event、HTTP/WebSocket 或 app-server 协议消费 Rust 侧事件。
 
@@ -166,7 +166,7 @@ Codex 的关键点是 TypeScript SDK 不直接嵌入 Rust runtime，而是通过
 
 这使 Codex 与 OpenCode 的 server-first 设计不同：OpenCode 用 Hono server 作为中心，Codex 用 Rust core 作为中心，transport 是 runtime 的外壳。
 
-## 源码锚点补强：Transport 分成 app-server 协议和模型传输两层
+## 源码锚点：Transport 分成 app-server 协议和模型传输两层
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |

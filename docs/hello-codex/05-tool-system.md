@@ -442,7 +442,7 @@ ResponseInputItem (回传给模型)
 - **工具输出 token 无上限**：文档未明确工具输出的 token 预算上限，超大输出可能撑爆上下文窗口。
 - **Dynamic tools 延迟加载**：`DynamicTool` 在工具调用时才解析 schema，若远程 MCP server 不可用，错误只在运行时暴露而非启动时。
 
-## 横向对齐补强：Codex 工具治理以 approval/sandbox 为中心
+## Codex 工具治理以 approval/sandbox 为中心
 
 Codex 工具系统的横向价值在于把 built-in、MCP、dynamic tools、network 和 patch 操作收束到同一套 Rust orchestration。
 
@@ -465,7 +465,7 @@ Codex 工具系统的横向价值在于把 built-in、MCP、dynamic tools、netw
 
 源码锚点上，`sources/codex/codex-rs/core/src/tools/orchestrator.rs:111` 接收 approval 与 sandbox policy，`sources/codex/codex-rs/core/src/tools/orchestrator.rs:122` 在执行前处理 approval，`sources/codex/codex-rs/core/src/exec_policy.rs:234` 判断命令审批需求，`sources/codex/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs:184` 连接 shell 执行与 sandbox。这个矩阵是横向比较的最小口径：声明、审批、隔离、输出四步必须同时看。
 
-## 源码锚点补强：工具治理要同时看 Router、Orchestrator、Approval
+## 源码锚点：工具治理要同时看 Router、Orchestrator、Approval
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |

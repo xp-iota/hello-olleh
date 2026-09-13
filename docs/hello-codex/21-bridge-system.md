@@ -141,7 +141,7 @@ core.on_event(|event| {
 - **EventChannel 背压处理缺失**：消费端（TUI）渲染慢时通道可能积压大量事件，内存占用无上限。
 - **中断信号仅支持 Ctrl-C**：不支持 SIGTERM 等系统信号优雅退出，在容器环境中 pod 终止时可能丢失状态。
 
-## 横向对齐补强：Bridge 应归入 app-server/protocol 复用
+## Bridge 应归入 app-server/protocol 复用
 
 Codex 的 bridge 能力不应按“远程 UI 功能”单独理解，而应归入 app-server 和 JSON event protocol：外部宿主通过协议复用 Rust core，而不是复制 agent loop。
 
@@ -154,7 +154,7 @@ Codex 的 bridge 能力不应按“远程 UI 功能”单独理解，而应归�
 
 横向看，Claude Code 的 bridge 更像 REPL/远程会话能力，OpenCode 的 bridge 更像 server contract，Gemini 的 bridge 更偏 IDE/headless 集成；Codex 的核心则是 Rust session protocol 的复用。
 
-## Bridge 补强：app-server 是统一宿主边界
+## Bridge ：app-server 是统一宿主边界
 
 Codex 的 bridge 不应理解为“额外的远程功能”，而应理解为 runtime 对外的宿主协议层。TUI 默认也会经过 app-server 抽象，因此 bridge 章节要和 `15-sdk-transport.md`、`20-repl-and-state.md` 联读。
 

@@ -43,8 +43,8 @@ storage: {
 ════════ M11.3 · 保存 content-addressed 本地附件 ════════
 attachments: {
   backend: 'LocalAttachmentStore',
-  attachmentId: 'sha256:4e808094851fc2eac7a386fc7d64677b34bda5e41d366ec4943233f9e6f2cd63',
-  name: 'a4.bin'
+  attachmentId: 'sha256:565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3',
+  name: 'sample.bin'
 }
 
 ════════ M11.4 · 按 Agent workspace 搜索文件引用 ════════

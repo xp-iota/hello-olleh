@@ -445,7 +445,7 @@ slash command 是前置控制层，而不是单纯的文本宏。
 - **CommandParser 与 InputQueue 耦合**：斜杠命令检测嵌入输入处理流程，难以在单元测试中独立测试命令解析逻辑。
 - **命令无 Tab 补全**：内置命令需完整输入，无像 fish shell 的模糊补全，命令拼写错误时静默或提示不友好。
 
-## 横向对齐补强：Claude 输入队列要覆盖自然语言、Slash、附件和 MCP 控制
+## Claude 输入队列要覆盖自然语言、Slash、附件和 MCP 控制
 
 Claude Code 的输入不只是文本框提交。Slash command、`@file` 附件、MCP control message、permission prompt 和 queued command 都会影响下一轮 `queryLoop()`。
 
@@ -456,7 +456,7 @@ Claude Code 的输入不只是文本框提交。Slash command、`@file` 附件�
 | permission response | 对应 Codex/Gemini/OpenCode tool approval |
 | MCP dynamic server update | Claude 特色控制面 |
 
-## 输入分类补强
+## 输入分类
 
 | 输入类型 | 是否立即进入模型 | 是否先变成 command | 是否改变工具池 | 源码锚点 |
 | --- | --- | --- | --- | --- |
@@ -468,7 +468,7 @@ Claude Code 的输入不只是文本框提交。Slash command、`@file` 附件�
 
 这张表能避免把所有用户输入都写成“追加一条 user message”。Claude Code 的输入队列会先经过 slash command、skill hook、MCP settle、permission context 等分支，只有部分输入最终进入模型。
 
-## 源码锚点补强：输入层要从解析、队列和 UI 三处核验
+## 源码锚点：输入层要从解析、队列和 UI 三处核验
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |

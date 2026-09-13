@@ -256,7 +256,7 @@ LECTURE_2 = [
     slide(
         "iota-harness", "diagram", "装配", "不接在线模型，也能跑完一整轮",
         "这边也只有一个装配的地方。注册表、可逆的副作用栈、离线内核、会话和运行的存储、还有运行时，都在同一处创建，启动的时候再核对宿主要什么、适配器能给什么。这一步很值钱：对不上就当场报错，而不是等第一次调用才炸。这个离线内核不是随手打的假货，它完整实现了启动、能力声明、建会话、出流、关闭，确定性地吐出初始化、文字增量、工具事件和最终结果。所以不接在线模型，也能把一整轮生命周期跑完。教学工程最怕的就是示例只在联网、有密钥、有额度的时候才跑得通，那样人家第一步就卡住了。",
-        "cd iota-example && grep -R '^async def create_harness' . --include='*.py' && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M04-agent-loop-intervention/run.py",
+        "cd iota-example && grep -R '^async def create_harness' . --include='*.py' && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M04",
         nodes=[
             {"label": "注册表", "sub": "有名字的东西"},
             {"label": "副作用栈", "sub": "装了能拆"},
@@ -269,7 +269,7 @@ LECTURE_2 = [
     slide(
         "iota-m01-m02", "text", "工具与上下文", "补在自己的通道上，不去接管内核",
         "从工具开始。这次补的，是它自己那条工具通道上的一条管线：阶段有名字，重复安装不出岔子，缺了什么会报出来，名字写错直接拒绝，拆的时候按相反顺序收干净。这几条听着琐碎，可缺一条，重装一次就多一份残留。它没去接管内核内部的工具，也没假装能按节点收窄可见性，那是内核里面的事。上下文这边，记忆服务是真的：按用户、项目、会话三种范围拼前缀，而且默认不注入。但把提示词装配起来、把历史压下去，仍然在内核里整块发生。编排层看不见那个过程，也就不该声称自己管得了。",
-        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M01-tool-pipeline/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M02-context-assembly-economics/run.py",
+        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M01 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M02",
         body="工具管线补在自己这侧；提示词装配和压缩留在内核里。",
         bullets=["阶段有名字", "重复装不出错", "记忆分范围", "默认不注入"],
         min_duration=52,
@@ -277,7 +277,7 @@ LECTURE_2 = [
     slide(
         "iota-m03-m04", "text", "模型与循环", "换的不是模型，是整个内核",
         "接下来是第一个硬骨头。上一讲那边换的是模型适配器，这边换的是整个内核，因为模型调用发生在内核里面。同一个进程里的那种内核，确实能把模型调用的边界包住；跨进程的那种只负责传输，子进程到底有没有理这个中间件，我们没验证过，那能力就得声明成不支持，编译的时候直接拦掉。宁可现在报错，也别让人以为已经配好了。循环这边，事件流、跨度钩子、节点成功之后、节点出错时，这些都落在自己的节点边界上，能用。中途插话没做，免得两边各维护一套正在跑的循环，最后谁也说不清该听谁的。",
-        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M03-inference-service-access/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M04-agent-loop-intervention/run.py",
+        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M03 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M04",
         body="模型调用在内核内部；节点提交在编排层内部。",
         bullets=["替换单位是内核", "没验证就说不支持", "节点边界能观察", "不做两套循环"],
         min_duration=52,
@@ -285,7 +285,7 @@ LECTURE_2 = [
     slide(
         "iota-m05-m06", "overview", "会话与人", "没有序号这件事，得说出来",
         "会话这块是真往存储里写，再读回来：两条消息、一次运行的状态、还有事件流。协议稳定，但它没有上一讲那种连号、冻结、换视图的契约。这次也没补，所以示例干脆把话说明白：当前事件里就是没有序号这个字段。缺什么就写进示例输出里，比写在文档角落靠得住。你要做严格审计，得先知道这条。人在环路那边，示例直接驱动真实的反向请求，默认策略按选项类型选择拒绝。有一点要强调：每条请求都必须回。静默丢掉不会安全降级，只会让整轮挂在那儿等超时。这种毛病最难查，因为日志上什么都看不见。",
-        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M05-session-surface/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M06-human-in-the-loop/run.py",
+        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M05 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M06",
         stats=[
             {"value": "2", "label": "会话消息", "detail": "写进去再读回来"},
             {"value": "3", "label": "运行事件", "detail": "初始 · 增量 · 结束"},
@@ -297,7 +297,7 @@ LECTURE_2 = [
     slide(
         "iota-m07-m08", "diagram", "执行与委派", "空的注册表，是一条证据",
         "再来一个对不上的地方。示例里那条命令意图进了内核，工具事件是内核发出来的，而编排层自己的注册表是空的。这不是漏做：文件、命令、沙箱这一整套执行栈，本来就不归它。越界去管，只会让出错的时候多一个嫌疑人。反过来，委派是这一层的主场。它把委派写成显式的图节点，依赖关系、输入输出绑定、编译指纹凑在一起，让这件事变得可审计。示例真的跑了调研到复核两个节点。上一讲那边靠一个模型可见的工具去触发子代理，目的一样，形状差得远。",
-        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M07-execution-backends/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M08-delegation-presets/run.py",
+        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M07 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M08",
         nodes=[
             {"label": "提示词", "sub": "带着命令意图"},
             {"label": "内核", "sub": "执行归它"},
@@ -309,7 +309,7 @@ LECTURE_2 = [
     slide(
         "iota-m09", "overview", "长任务", "这一节反过来，编排层更强",
         "这一节反过来了。上一讲那边给你一个长命令的句柄，够用，但也就到这儿。这边除了目标和看板，还有图调度、任务队列、检查点和恢复。示例里能看到任务编号幂等、租约认领、确认完成，检查点里存着计划指纹、节点状态、尝试次数和序号。生产上把后端换成别的存储就行，协议不变。这一点决定了长流程能不能真的放到生产里。我不想说它全面更强，只想指出一件事：跨节点的调度和恢复状态，天生长在编排这一层。你要做断了能接着跑的长流程，这一层是躲不开的。",
-        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M09-long-running-orchestration/run.py",
+        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M09",
         stats=[
             {"value": "编号", "label": "重复提交不翻倍", "detail": "撞了就出声"},
             {"value": "租约", "label": "这活儿归谁", "detail": "认领加心跳"},
@@ -321,7 +321,7 @@ LECTURE_2 = [
     slide(
         "iota-m10-m11", "text", "外部与配置", "真通道，不是画在图上的方框",
         "外部能力这边，示例在临时目录里同步一份技能文档，再用内存里的远程调用走一遍工具列举和调用，说明外部知识和跨进程工具都有真通道，不是画在图上的方框。教学工程最容易在这两块掺假，所以都留了真实往返。配置这边投影一份画像，往内存存储里写点东西，然后故意撞一次错：某个内核没有由这一层托管的配置目录，于是错误信息直接告诉你该改用它自己的命令行参数。凭证和附件仍然归宿主，不往配置对象上硬加字段。能换的地方换掉，该守的边界守住。",
-        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M10-external-capabilities/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M11-config-data-infrastructure/run.py",
+        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M10 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M11",
         body="文档能同步，跨进程工具能往返，配置投影不到的地方直接报错。",
         bullets=["技能文档可复现", "调用出错有结构", "投影不了就拒绝", "凭证归宿主"],
         min_duration=52,
@@ -329,7 +329,7 @@ LECTURE_2 = [
     slide(
         "iota-m12", "overview", "底座", "借语义，不搬架构",
         "底座这块借了一部分：按相反顺序拆除，重复释放不出事，栈失效之后再往里塞就报错，注册表删之前先比对身份、别把后来者删掉，能力名字写错在类定义的时候就拒绝，外部实现靠标准入口点被发现。这些都是装和拆两端的事，跟运行期没关系。但它明确没有引入事件总线、代理式上下文、运行期热替换和拦截叠加。原因是它选的路子是启动时装好、跑起来就冻住。可逆性是给装配失败回滚和测试隔离用的，不是为了半路换实现。借哪些、不借哪些，是想清楚了才动手的。",
-        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M12-framework-mechanisms/run.py",
+        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M12",
         stats=[
             {"value": "倒序", "label": "怎么装怎么拆", "detail": "外层先走"},
             {"value": "一次", "label": "重复释放没事", "detail": "第二次什么都不做"},
@@ -383,7 +383,7 @@ LECTURE_3 = [
     slide(
         "choice-opening", "title", "开场", "你手上这个项目，该用哪一个",
         "前两讲把事实摆完了，这一讲只回答一个问题：你手上这个项目该用哪一个。我不打算给你一张打分表，那种表通常是拿来说服人的，不是拿来做决定的。真做决定的时候，你要的是几条一眼能判断的界线。我们换个办法，挑三个地方看。第一个是换模型：想接自己的推理服务，缝该开在哪儿。第二个是执行：文件、命令、沙箱这些真副作用，谁说了算。第三个是框架机制：那些可逆、可插拔的漂亮语义，借到什么程度才划算。这三个地方，恰好就是上一讲里两边对不上的地方。对不上不是缺陷清单，它其实在提醒你一件事：别让两层同时声称拥有同一件事实。听完这三段，再看选型，你会发现答案基本已经写在需求里了，只是之前没人把它翻译成架构语言。",
-        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M03-inference-service-access/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M07-execution-backends/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M12-framework-mechanisms/run.py",
+        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M03 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M07 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M12",
         subtitle="三个地方看清边界，然后照着需求里的动词选",
         body="换模型、管执行、借机制——三个地方问同一个问题：这归谁。",
         bullets=["换模型", "管执行", "借机制", "组合起来用"],
@@ -405,7 +405,7 @@ LECTURE_3 = [
     slide(
         "choice-m03", "text", "第一个地方", "换模型：不支持很好办，静默无效才要命",
         "第一个地方，换模型。上一讲那个外壳，模型适配器就在它里面，你可以按提供方和模型去路由，还能把每一块流式数据包起来处理。编排层换的单位不是模型，是整个内核，因为模型调用在内核内部发生。这个区别在同进程的时候还不明显，那种内核确实能把模型调用的边界包住。可跨进程的那种只负责把请求传过去，子进程有没有理你那个中间件，没人验证过。这时候有两个选择：声明支持，让它看起来能用；或者声明不支持，编译的时候就拦下来。前一种好看，后一种诚实，我们选了后一种。好看那种的代价，通常要等半年才浮出来。这里最危险的错误从来不是不支持——不支持很好办，写清楚就行。危险的是字段传过去了，看着像生效了，其实什么也没发生，等你在生产里发现，中间已经跑过几万次请求。",
-        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M03-inference-service-access/run.py",
+        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M03",
         body="同进程能兑现的才声明；跨进程没验证过的，编译期就拦下来。",
         bullets=["换的单位不同", "只声明验证过的", "拦在跑之前", "不要静默降级"],
         min_duration=72,
@@ -413,7 +413,7 @@ LECTURE_3 = [
     slide(
         "choice-m07", "text", "第二个地方", "执行：出事的时候，谁说了算",
         "第二个地方，执行。文件系统、命令、沙箱，直接决定副作用怎么落地，也直接决定出事以后能不能兜住。上一讲那边把它们放在上下文的服务上，工具只能提交意图，由宿主统一挑后端、统一落策略。编排层把这些留在内核里面，外面只看到工具事件和最后的结果。有人会问，编排层也做一套不就更灵活吗？想想会发生什么：同一次工具调用，内核有自己的沙箱策略，外层也有一套，取消信号两边都在发，审计记两份。到这一步，两边都能自证清白，却没人说得清那次到底发生了什么。真出事的时候，你会面对一个很尴尬的问题——这次到底谁说了算。所以示例里那个空的注册表不是没写完，它是一条能跑出来的边界证据：这一层不管执行，就明明白白地不管。你要是想在编排层加审计，正确的做法是订阅内核发出来的事件，而不是自己再执行一遍。",
-        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M07-execution-backends/run.py",
+        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M07",
         body="副作用只能有一个主人；两层都管，终态就没人说得清。",
         bullets=["意图与执行分开", "策略只有一处", "取消信号不打架", "空注册表是证据"],
         min_duration=72,
@@ -421,7 +421,7 @@ LECTURE_3 = [
     slide(
         "choice-m12", "overview", "第三个地方", "借机制：语义好，不代表整套都要搬",
         "第三个地方，框架机制。编排层从上游借了几样东西：可逆的副作用、释放器、能力声明、注册发现。为什么偏偏借这几样？因为它们正好修掉了真问题——重复安装，和回收不干净。这两个毛病在测试里最先冒头，也最容易被当成偶发。但它没有搬事件总线、代理式上下文、运行期热替换和拦截叠加。原因不是嫌麻烦，是它的图在启动时编译完就冻住了。运行中换实现，会让同一次运行前后依赖不一致，指纹、恢复、审计全都乱掉。可逆性在这里是给装配失败回滚和测试隔离用的，不等于线上能随时改。这一节我真正想说的不是某个接口，而是一种态度：一个框架的语义漂亮，不代表你要整套搬过来。先看清自己的运行模型，挑那几样真能修问题的借走，剩下的放着。哪天运行模型变了，再回来取，也来得及。",
-        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M12-framework-mechanisms/run.py",
+        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M12",
         stats=[
             {"value": "借", "label": "可逆副作用", "detail": "修掉了真问题"},
             {"value": "借", "label": "释放与身份", "detail": "拆得干净"},
@@ -445,7 +445,7 @@ LECTURE_3 = [
     slide(
         "choice-tree", "diagram", "选型", "四个问题，基本能定下来",
         "如果你想要一个更快的判断，就问四个问题。第一，你必须替换或者包住单次模型调用吗？要，那缝就得开在内核或者外壳这一层。第二，你必须统一管文件、命令、沙箱，还有工具在每一步的可见性吗？要，那执行侧必须归外壳。第三，你要编排多个 Agent 或者多个节点，还得跨进程保存状态吗？要，那编排层是主角。第四，你要检查点、租约、重试、恢复吗？要，那就用带耐久图运行时的那一层。如果四个都答不是，那你可能还不需要框架，写脚本更省事。四个都答是也很正常，认真做的系统最后大多是这样。那就是组合，不是在两层各写一遍一样的接口。顺序也别搞反：先定执行归谁，再定编排怎么组织，最后才挑框架。反过来先挑框架，通常会变成拿需求去迁就它的形状，最后那些迁就都会以补丁的方式留在代码里。",
-        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M08-delegation-presets/run.py && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python M09-long-running-orchestration/run.py",
+        "cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M08 && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M09",
         nodes=[
             {"label": "换模型？", "sub": "内核或外壳"},
             {"label": "管执行？", "sub": "外壳"},
@@ -465,7 +465,7 @@ LECTURE_3 = [
     slide(
         "choice-terminal", "image", "证据", "这三条命令，你现在暂停也能自己敲",
         "这一段屏幕上只跑三条命令，全都离线，你现在暂停也能自己敲一遍。第一条告诉你可替换的单位是整个内核，然后把跨进程加模型中间件这件事在编译期拒掉，错误信息里还写了该怎么改。我很在意这一点：拒绝必须附带出路，不然就是把人堵在门口。第二条显示这条路是提示词进内核、内核发出命令事件，而外层注册表是空的。第三条是相反顺序回收、失效之后拒绝、能力名字写错拒绝，还有那个标准入口点的名字。三段输出正好对上刚才那三件事：缝开在哪一层、执行归谁、机制借到哪儿。我讲的这些你不用信我，跑一遍就有答案。三条命令都不到一秒，也不需要密钥和额度。这也是这套教学工程唯一想坚持的东西：讲稿里的每一句话，都得有一条命令能把它顶起来。",
-        "cd iota-example && for m in M03-inference-service-access M07-execution-backends M12-framework-mechanisms; do env -u PYTHONHOME -u PYTHONPATH .venv/bin/python $m/run.py; done",
+        "cd iota-example && for m in M03 M07 M12; do env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner $m; done",
         image={
             "src": "images/choice-terminal.png",
             "alt": "三个离线模块分别输出可替换单位、执行归属与回收机制的真实终端画面",

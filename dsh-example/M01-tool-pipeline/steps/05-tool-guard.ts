@@ -1,7 +1,7 @@
 /**
- * 12 · 单调拒绝守卫（ctx.tools.guard）。
+ * M01.5 · 单调拒绝守卫（ctx.tools.guard）。
  *
- * 与 [03] 的 `tools/pre-execute` 相比：pre-execute 是"可重排策略链"，后面的监听者
+ * 与 M01.2 的 `tools/pre-execute` 相比：pre-execute 是"可重排策略链"，后面的监听者
  * 可以翻案放行；而 `guard()` 注册的是 **pre-execute 之后的单调最终拒绝**——
  * 任一命中的 guard 可以拒绝，但**没有任何 guard / 监听者能强制放行**另一个 guard 已拒的调用。
  * 适合放"绝不逾越"的硬红线（危险命令、越权路径），换 provider / 换主循环都照旧生效。

@@ -144,7 +144,7 @@ async fn execute_tool_calls(
 - **Fork 后无合并原语**：Fork 用于创建并行分支，但 fork thread 的结果如何合并回主线程无显式机制，需要手动在工具结果层面处理。
 - **无动态代理创建**：Child-Agent 类型在编译时确定，运行时无法动态注册新的 agent 类型，限制了 plugin 扩展多代理能力。
 
-## 横向对齐补强：Codex 多代理不是 UI 级任务列表
+## Codex 多代理不是 UI 级任务列表
 
 Codex 的多代理能力应放在工具系统和 session runtime 之间理解：子代理通过工具 handler 创建或驱动新的 agent thread，结果再以事件和 thread item 的方式回到父会话。
 
@@ -158,7 +158,7 @@ Codex 的多代理能力应放在工具系统和 session runtime 之间理解：
 
 横向看，Codex 比 Gemini 的 A2A/agent manager 更靠近核心 runtime，比 Claude 的 `AgentTool` 更强调 typed thread/session 边界，比 OpenCode 的 `task` 工具更依赖 Rust 侧工具 handler 的状态复制。
 
-## 源码补强：`spawn_agent` 的真实闭环
+## 源码：`spawn_agent` 的真实闭环
 
 Codex 的多代理不是 UI 旁路功能，而是工具 handler 驱动的新 thread 生命周期。
 

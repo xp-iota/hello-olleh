@@ -11,7 +11,6 @@ parent_url: /docs/hello-deepseek-harness/
 >
 > 🧭 **本篇导览**：6.1–6.11 turn / step 主循环与 Inbox → 6.12–6.22 append-only Session 日志、surface、投影与 fork。
 >
-> 📎 **来源**：本篇合并自原 05 / 06 篇，章节已重新连续编号为 6.x。
 
 ## 6.1 turn 与 step 的定义
 
@@ -86,7 +85,7 @@ const lastTurn = session.events.findLast(event => event.type === 'turn/start')?.
 
 ## 6.4 `turn()`：主循环
 
-> 📐 **配套可跑示例**：[`06-agent-events-telemetry`](../../dsh-example/06-agent-events-telemetry/run.ts) 用真实 agent-loop 跑一个 turn，
+> 📐 **配套可跑示例**：[`M04.1 · agent-events-telemetry`](../../dsh-example/M04-agent-loop-intervention/phases/01-agent-events-telemetry.ts) 用真实 agent-loop 跑一个 turn，
 > 把这里描述的边界事件逐条打印出来；实测序列是
 > `turn/start → step/start → user/message → request/header → request/context → assistant/chunk* → assistant/message → step/end → turn/end`。
 
@@ -195,7 +194,7 @@ phase.wakeRequested = false
 
 ## 6.8 9 个 `agent/*` 事件
 
-> 📐 **配套可跑示例**：[`09-hooks-lifecycle-steering`](../../dsh-example/09-hooks-lifecycle-steering/index.ts) 在这 9 个事件里挑了 4 个挂监听器，
+> 📐 **配套可跑示例**：[`M04.2 · hooks-lifecycle-steering`](../../dsh-example/M04-agent-loop-intervention/steps/02-lifecycle-steering.ts) 在这 9 个事件里挑了 4 个挂监听器，
 > 并验证 `agent/turn-stopping` 的 serial 语义：监听者调 `agent.steer(...)` 后主循环**重读 inbox**，真的多跑了一个 step。
 
 
@@ -221,7 +220,7 @@ phase.wakeRequested = false
 
 ## 6.9 `Inbox`：两条有序队列
 
-> 📐 **配套可跑示例**：[`19-agent-inbox`](../../dsh-example/19-agent-inbox/run.ts) 把四个入口各调一遍，
+> 📐 **配套可跑示例**：[`M04.3 · agent-inbox`](../../dsh-example/M04-agent-loop-intervention/phases/03-agent-inbox.ts) 把四个入口各调一遍，
 > 并把会话日志里的 `agent/inbox/spliced` 流水打出来 —— "谁在什么时候塞了什么"是可回放的。
 
 
@@ -298,7 +297,7 @@ phase.wakeRequested = false
 
 ## 6.12 核心不变量：Model-visible means logged
 
-> 📐 **配套可跑示例**：[`18-session-log`](../../dsh-example/18-session-log/run.ts) 逐条验证本节的不变量：
+> 📐 **配套可跑示例**：[`M05.1 · session-log`](../../dsh-example/M05-session-surface/phases/01-session-log.ts) 逐条验证本节的不变量：
 > seq 连续、事件深冻结（改写抛 `TypeError`）、`deriveMessages()` 只投影三类消息事件。
 
 
@@ -370,7 +369,7 @@ phase.wakeRequested = false
 
 ## 6.15 `surfaceOp`：有序表面
 
-> 📐 **配套可跑示例**：[`18-session-log`](../../dsh-example/18-session-log/run.ts) 用真实 `replace` 折叠了两个节点并打印
+> 📐 **配套可跑示例**：[`M05.1 · session-log`](../../dsh-example/M05-session-surface/phases/01-session-log.ts) 用真实 `replace` 折叠了两个节点并打印
 > "模型现在看到的第一条"；两条 fail-closed 校验的抛错原文也在输出里：
 >
 > ```text
@@ -478,7 +477,7 @@ phase.wakeRequested = false
 
 ## 6.19 `fork()`：分叉会话
 
-> 📐 **配套可跑示例**：[`18-session-log`](../../dsh-example/18-session-log/run.ts) 第 ⑥ 节演示 fork 的稳定前缀要求 ——
+> 📐 **配套可跑示例**：[`M05.1 · session-log`](../../dsh-example/M05-session-surface/phases/01-session-log.ts) 第 ⑥ 节演示 fork 的稳定前缀要求 ——
 > 边界落在未闭合的 turn 里会抛 `SessionForkError { code: 'OPEN_TURN' }`。
 
 

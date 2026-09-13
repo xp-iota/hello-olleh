@@ -488,7 +488,7 @@ Codex 的 MCP 系统特点：
 - **stdio 传输无消息边界处理**：依赖 newline 分隔 JSON-RPC 消息，server 输出截断时解析器行为未定义。
 - **多 MCP server 并发调用无隔离**：不同 server 的工具调用共享同一 tokio runtime，一个 server 阻塞可能影响其他 server 的响应。
 
-## 横向对齐补强：MCP 必须和 approval/sandbox 一起读
+## MCP 必须和 approval/sandbox 一起读
 
 Codex 的 MCP 不只是“连接外部 server 并发现工具”。真正的横向差异在于 MCP 工具进入同一套 Rust tool orchestration 后，会被 approval policy、sandbox、network approval 和 output truncation 统一治理。
 
@@ -526,7 +526,7 @@ sequenceDiagram
 
 这个链路说明 MCP 在 Codex 中不是旁路：tool spec 暴露、模型调用、审批沙箱、结果回注都进入同一套 turn/tool runtime。
 
-## 源码锚点补强：MCP 必须串起配置、连接、工具调用和审批
+## 源码锚点：MCP 必须串起配置、连接、工具调用和审批
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |

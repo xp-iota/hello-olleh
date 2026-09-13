@@ -180,7 +180,7 @@ Codex 的可观测性相比 OpenCode 较为基础，但不是“没有结构”�
 - **`tracing` 输出默认不暴露给用户**：开发者需主动配置 subscriber 才能看到 trace 输出，默认 release 构建中 trace 信息被编译优化掉，生产调试能力弱。
 - **无全局 Trace ID**：单次请求跨越 JS→Rust 边界、submission_loop、多工具并发时，没有统一的 trace_id 关联所有事件，多层调试需手动对齐时间戳。
 
-## 横向对齐补强：Codex 需要统一 Rust event 与外部 SDK 日志
+## Codex 需要统一 Rust event 与外部 SDK 日志
 
 Codex 的可观测性强在 runtime event 结构，弱在跨边界关联。横向分析应围绕 trace id 串起 CLI/TUI/app-server/SDK。
 

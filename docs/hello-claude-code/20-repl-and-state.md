@@ -585,7 +585,7 @@ REPL 最外层会包 `MailboxProvider`。这里的 `Mailbox` 是一个进程内�
 - **React 重渲染影响 TUI 性能**：高频 token 流输入时 React reconcile 开销累积，在低性能终端上可能出现输入延迟。
 - **InkRenderer 无 headless 降级**：`--no-color` / `--quiet` 模式下仍走 Ink 渲染路径，而非纯文本 stdout，pipe 场景行为不可预期。
 
-## 横向对齐补强：Claude REPL 是 React 状态中心
+## Claude REPL 是 React 状态中心
 
 Claude Code 的 REPL/TUI 与 agent runtime 耦合更深，React state、hooks、tool permission UI 和 stream event 共同组成交互状态。
 
@@ -596,7 +596,7 @@ Claude Code 的 REPL/TUI 与 agent runtime 耦合更深，React state、hooks、
 | permission UI | 与工具执行路径交织 |
 | headless print | 与 TUI 是不同表面 |
 
-## 状态归属补强
+## 状态归属
 
 | 状态类型 | 归属 | 是否写 transcript | 源码锚点 |
 | --- | --- | --- | --- |

@@ -76,7 +76,7 @@ You are an AI agent powered by DeepSeek Harness.
 ════════ M02.2 · 变量解析与 assembly waterfall ════════
 ===== ① assemble() 的返回值是结构化 PromptAssembly，不是字符串 =====
    sections : runtime-preamble → harness:identity → deployment:persona-prefix → persona → date-aware → deployment:persona-suffix
-   variables: {"provider":"mock","model":"mock-1","today":"2026-09-12"}
+   variables: {"provider":"mock","model":"mock-1","today":"2026-09-13"}
    contexts : 1 | tools: 0
 
 ===== ② 渲染成最终提示词（拼 section + 插值 {{today}}）=====
@@ -86,7 +86,7 @@ You are an AI agent powered by DeepSeek Harness.
 
 你是一个乐于助人的编码助手。
 
-当前日期是 2026-09-12。请在涉及"今天/昨天"的回答里以该日期为准。
+当前日期是 2026-09-13。请在涉及"今天/昨天"的回答里以该日期为准。
 
 ===== ③ 未注册的变量是**硬错误**：渲染阶段直接抛，不静默清空也不原样保留 =====
    renderPrompt 抛错: unknown prompt variable "{{nope}}" in section "x"; registered variables: (none)
@@ -363,7 +363,7 @@ sessionProjectionCache: {
 }
 
 ════════ M05.5 · 把标题写成 latest-wins 日志事件 ════════
-sessionTitle: { title: 'A4 会话服务链', source: 'user', foldedAgain: 'A4 会话服务链' }
+sessionTitle: { title: '会话服务链', source: 'user', foldedAgain: '会话服务链' }
 
 结论：事件日志是事实源；persistence 保存事实，query 读取语料，projection cache 加速重放，title 仍以日志投影表达。
 
@@ -381,16 +381,16 @@ sessionTitle: { title: 'A4 会话服务链', source: 'user', foldedAgain: 'A4 �
 会话日志里的命令事件: [ 'command/run', 'command/done', 'command/run', 'command/done' ]
 
 ════════ M06.2 · 工具 ask 请求进入审批 seam ════════
-== A: 无应答器 → fail closed ==
+== 场景：无应答器 → fail closed ==
   approval/decided → outcome: unavailable
   tool/result      → isError: true | Error: tool "deploy" requires approval, but no approval channel is available
 
-== B: 应答器把 deploy 列入白名单 → allowed-once ==
+== 场景：应答器把 deploy 列入白名单 → allowed-once ==
 [approval] 自动放行(allowed-once)：deploy
   approval/decided → outcome: allowed-once
   tool/result      → isError: false | deploy 已执行: env=prod
 
-== C: 应答器不在白名单 → rejected ==
+== 场景：应答器不在白名单 → rejected ==
 [approval] 拒绝(rejected)：deploy —— 部署需人工确认
   approval/decided → outcome: rejected
   tool/result      → isError: true | Error: the user rejected tool "deploy"
@@ -451,10 +451,10 @@ messageFeedback: {
 
 ----- ⑤b 派发后取消：主体已启动，被中止并收敛（code 不同） -----
     isError=true, code=ABORTED
-    耗时: 313 ms（子进程本身要跑 5000ms）
+    耗时: 309 ms（子进程本身要跑 5000ms）
     子进程被提前掐掉了，而不是等它自然跑完。
 
-⑥ 清理：演示文件已删除 = /var/folders/tr/zqmjm0dn6_nfthzqnztrd1gw0000gn/T/dsh-example-16-1789222118421.txt
+⑥ 清理：演示文件已删除 = /var/folders/tr/zqmjm0dn6_nfthzqnztrd1gw0000gn/T/dsh-example-16-1789286221290.txt
 
 ════════ M07.2 · 消费 shell 的 run/start 双形态 ════════
 [shell-service] shell seam 可用: LocalBashExecutor | sandboxMode = (未装沙箱)
@@ -531,7 +531,7 @@ sandboxPolicy: {
 
 ----- 模型调用 review_with_subagent（触发一次委派）-----
 [event] subagent/start → provider=local-reviewer child=local-reviewer-1 local=false
-[event] subagent/end   → runId=9c540391-482b-48ea-9bea-a5a182289169 stopReason=completed
+[event] subagent/end   → runId=73613abc-1fa5-4597-a521-24c73f36ee2f stopReason=completed
 ③ canonical value: {
   text: '【子代理·local-reviewer】已评审：「检查这个支付模块 diff」 → 结论：可合并，建议补边界测试。',
   childId: 'local-reviewer-1',
@@ -595,7 +595,7 @@ subagentModelSelection: {
    → paused disarmed rev=2
 
 ③ CAS 冲突：用旧 ref 操作被拒
-   stale goal ref "goal-624457b0-d580-451e-8653-49aa00087073" revision 1; current is "goal-624457b0-d580-451e-8653-49aa00087073" revision 2
+   stale goal ref "goal-2c131a1c-9f76-467c-81ea-b2c8d0e58fc1" revision 1; current is "goal-2c131a1c-9f76-467c-81ea-b2c8d0e58fc1" revision 2
 
 ④ resume：paused → active（重新 arm）
   [goal/change] seq=2 → rev=3 phase=active "重构支付模块"
@@ -741,8 +741,8 @@ storage: {
 ════════ M11.3 · 保存 content-addressed 本地附件 ════════
 attachments: {
   backend: 'LocalAttachmentStore',
-  attachmentId: 'sha256:4e808094851fc2eac7a386fc7d64677b34bda5e41d366ec4943233f9e6f2cd63',
-  name: 'a4.bin'
+  attachmentId: 'sha256:565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3',
+  name: 'sample.bin'
 }
 
 ════════ M11.4 · 按 Agent workspace 搜索文件引用 ════════

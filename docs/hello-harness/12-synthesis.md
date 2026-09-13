@@ -138,5 +138,3 @@ Approval policy 四种模式强制团队明确"什么操作需要人工审批"�
 | **OpenCode** | Effect-ts 架构提供理论上强大的可组合性，Permission Schema 的机械化审批是最无歧义的 harness 形式；当前阶段的主要限制是单代理、无熵管理、Skill 库孤岛化，工程成熟度仍在建设中。 |
 
 ---
-
-*本文档由源码驱动分析生成，所有评分和结论基于 `sources/claude-code/src/`、`sources/codex/codex-rs/`、`sources/gemini-cli/packages/core/src/`、`sources/opencode/packages/opencode/src/` 的可观察实现。分析时间：2026 年，各工程版本分别为 Claude Code 2.1.87、Codex rust-v0.141.0、Gemini CLI v0.47.0、OpenCode v1.4.14。*

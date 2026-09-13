@@ -40,12 +40,13 @@ https://feuyeux.github.io/hello-olleh/
 | `docs/hello-claude-code/`, `docs/hello-codex/`, `docs/hello-gemini-cli/`, `docs/hello-opencode/`, `docs/hello-cordis/`, `docs/hello-dsh/` | 按主题拆分的 Markdown 分析文档 |
 | `docs/hello-harness/` | Harness Engineering 框架分析 |
 | `docs/okf/` | OKF v0.2 知识包：`dsh-example` 的可复用结论，带来源、验证方式与过期时间 |
-| `dsh-example/` | DeepSeek Harness 的 26 个可跑最小示例（装在真实发布的 `@deepseek-ai/*` npm 包上，`0.1.1-rc.2`） |
+| `dsh-example/` | DeepSeek Harness 的 12 个方向模块（58 个可跑阶段）（装在真实发布的 `@deepseek-ai/*` npm 包上，`0.1.5-rc.2`） |
+| `iota-example/` | 与 DSH 同编号的 Python 对照教材；集中运行器输出学习目标、观察事实与结构性边界 |
 | `docs/streaming-agent-resilience-analysis.md` | 六个源码快照的流式 Agent 韧性横向分析 |
 | `scripts/check_doc_refs.ps1` | 校验 Markdown 中的 `path:line` 源码锚点是否能解析到本地快照 |
 | `scripts/check_markdown_links.ps1` | 校验 README、docs、pages 中的本地 Markdown 链接是否存在 |
 | `scripts/check_doc_links.py` | 校验全仓 Markdown 的本地链接与 DSH 文档的 `§ N.M` 章节引用（跨平台，跳过代码围栏） |
-| `scripts/merge_dsh_docs.py`, `scripts/rewrite_dsh_refs.py`, `scripts/link_examples_into_docs.py` | DSH 一次性迁移与示例挂接脚本；前两者会识别最终 11 篇布局并安全退出，示例挂接脚本按 marker 幂等 |
+| `scripts/merge_dsh_docs.py`, `scripts/rewrite_dsh_refs.py`, `scripts/link_examples_into_docs.py` | DSH 文档与示例链接维护脚本 |
 
 ## 附录
 

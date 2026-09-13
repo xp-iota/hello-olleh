@@ -1,5 +1,5 @@
 /**
- * 10 · 提示变量与整体装配（systemPrompt.variable + system-prompt/assemble）。
+ * M02.2 · 提示变量与整体装配（systemPrompt.variable + system-prompt/assemble）。
  *
  * 02 演示"加一段 section"；本例演示另外两个轴：
  *   - `ctx.systemPrompt.variable(name, provider)`：注册一个提示变量，渲染时把正文里的

@@ -349,7 +349,7 @@ flowchart LR
 - **`progress` 事件排除在持久化之外**：进度指示器状态不持久化，Session resume 后 UI 中的"已完成步骤"视觉反馈丢失，用户体验断层。
 - **文件延迟 materialize 引发"假空"**：transcript 文件在第一条消息写入前不存在，`--resume` 指定未写入的 session ID 时会静默失败，错误提示不够明确。
 
-## 横向对齐补强：Claude Resume 是 transcript 链恢复
+## Claude Resume 是 transcript 链恢复
 
 Claude Code 的会话恢复核心是 transcript 和 `parentUuid` 链，而不是数据库对象重建。
 
@@ -375,7 +375,7 @@ Claude Code 的会话恢复核心是 transcript 和 `parentUuid` 链，而不是
 
 因此 Claude resume 的强项是恢复“消息拓扑”，弱项是恢复“运行中控制流”。这和 OpenCode durable part 恢复、Codex rollout reconstruction、Gemini chat recording 都不同。
 
-## 源码锚点补强：恢复不是读文件，而是重建链
+## 源码锚点：恢复不是读文件，而是重建链
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |

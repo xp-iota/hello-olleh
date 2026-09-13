@@ -1,25 +1,32 @@
 # M03 · 推理服务接入
 
-本模块合并原 05 与 20，回答两个不同问题：**怎样替换模型后端**，以及**怎样在不替换后端时包装流**。
+推理接入包含两个正交问题：**由哪个 Provider 产生流**，以及**流在途中如何被观察或改写**。
+
+## 学习目标
+
+掌握 Adapter、统一 `StreamChunk` Consumer 与 `llm/stream` waterfall 的责任边界。
 
 ## 运行
 
 ```bash
-npm run M03          # 离线 mock provider
+npm run M03          # 离线 mock Provider
 npm run M03:real     # 真实 MiniMax；需要 MINIMAX_API_KEY，会发起网络请求
 ```
 
-## 组成
+## 阶段与观察点
 
-| 能力 | 文件 | 责任边界 |
-|---|---|---|
-| Provider | `steps/01-llm-adapter.ts` | 实现 `LlmAdapter.stream()` 并注册具名路由 |
-| Consumer | `support/consume-stream.ts` | 聚合文本、finish、usage，检查 block index 与孤儿 delta |
-| 中间件 | `steps/02-llm-stream.ts` | 通过 `llm/stream` waterfall 统计和改写 chunk |
-| 真实路径 | `real/llm-adapter-minimax.ts` | 用相同 Consumer 验证真实 provider 契约 |
+| 阶段 | 类型 | 实现 | 观察什么 |
+|---|---|---|---|
+| 1 Adapter 路由 | 教学主线 | `steps/01-llm-adapter.ts` | 实现 `LlmAdapter.stream()` 并注册具名路由 |
+| 2 流中间件 | 教学主线 | `steps/02-llm-stream.ts` | waterfall 如何统计和改写 chunk 而不替换后端 |
+| 真实 Provider | 可选真实路径 | `real/llm-adapter-minimax.ts` | 同一个 Consumer 验证真实 Provider 契约 |
 
-## 数据流
+## 完整链路
 
-Consumer 按 provider/model 选择 Adapter，获得统一 `AsyncIterable<StreamChunk>`；waterfall 可以在流经 Context 时包裹它，但不改变上层消费协议。协议检查要求 block-start 先于对应 delta，并且流最终提供 finish、usage 与有效文本。
+Consumer 按 provider/model 选择 Adapter，获得统一的 `AsyncIterable<StreamChunk>`；waterfall 在 Context 中包裹该流。`support/consume-stream.ts` 聚合文本、finish 与 usage，并验证 block-start 必须先于 delta。
 
-**结论：**替换后端属于 seam provider，观测/改写属于流中间件；把两者分开后，业务 Consumer 无需知道具体供应商。
+## 边界
+
+默认阶段完全离线；真实路径显式分离，不会被 `npm run all` 隐式触发。
+
+**结论：**替换后端属于 Provider seam，观测和改写属于流中间件；上层 Consumer 不应知道具体供应商。

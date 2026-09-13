@@ -638,7 +638,7 @@ flowchart TB
 - **多代理无全局 context 共享**：子代理独立启动，主代理已知的工作区信息（如已读文件、已做分析）不自动共享给子代理，导致子代理可能重复探索。
 - **后台 agent 完成时无通知机制**：`registerAsyncAgent()` 注册的后台任务结束后，无 push 事件通知主会话，用户需要主动询问或轮询结果。
 
-## 横向对齐补强：Claude 多代理以 AgentTool 为核心
+## Claude 多代理以 AgentTool 为核心
 
 Claude Code 的多代理是工具系统的一部分：主 agent 通过 `AgentTool` 生成子代理任务，子代理有自己的 prompt、工具上下文和执行路径。
 

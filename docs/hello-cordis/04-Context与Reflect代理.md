@@ -11,7 +11,6 @@ parent_url: /docs/hello-cordis/
 >
 > 🧭 **本篇导览**：4.1–4.2 Proxy 本体与三种派生 → 4.3–4.5 服务解析、`store` 与 isolate realm → 4.6–4.7 traceable 与 mixin → 4.8–4.9 `set` / `has` trap 与 `Context.is`。
 >
-> 📎 **来源**：本篇为本系列原始篇目，基于 cordiverse/cordis 快照 `8cc9e33f`。
 >
 > 💡 **术语**：`trap` 指 JavaScript `Proxy` 的拦截器——`Proxy handler` 上响应对象操作的方法，例如 `get` trap 处理属性读取、`set` trap 处理属性写入、`has` trap 处理 `in` 判断。中文资料有时译作"代理陷阱"，本系列统一保留英文并写作 `get` / `set` / `has` trap。
 > 💡 **示例服务名**：本篇的 `db`（如 `ctx.db`）是全系列统一的**示例服务名**（虚构的数据库服务）——cordis 源码中并不存在名为 `db` 的服务，其测试用的是 `foo` / `bar` / `logger` 等占位名；文中所有 `db` 均可替换为任意服务名理解，见[索引术语约定](README.md)。
@@ -59,7 +58,7 @@ function isSpecialProperty(prop: string | symbol): prop is symbol {
 
 ## 4.2 三种派生：extend / isolate / intercept
 
-> 📐 **配套可跑示例**：[`11-tool-restrict`](../../dsh-example/11-tool-restrict/README.md) 的 `npm run 11` 展示“在哪个 context 上调用，effect 就归哪个 Fiber”——`agent.ctx.tools.restrict()` 的 disposer 随 agent context 回收，而不是随注册监听器的插件 Fiber 回收。它使用的是 DSH 的 scoped context，**不等同于**本节的 cordis isolate realm；适合用来观察 Context 派生之后的 effect 归属边界，见 [`run.ts` 第 ⑥ 步](../../dsh-example/11-tool-restrict/run.ts)。
+> 📐 **配套可跑示例**：[`M01 tool-restrict`](../../dsh-example/M01-tool-pipeline/README.md) 的 `npm run M01` 展示“在哪个 context 上调用，effect 就归哪个 Fiber”——`agent.ctx.tools.restrict()` 的 disposer 随 agent context 回收，而不是随注册监听器的插件 Fiber 回收。它使用的是 DSH 的 scoped context，**不等同于**本节的 cordis isolate realm；适合用来观察 Context 派生之后的 effect 归属边界，见 [`run.ts` 第 ⑥ 步](../../dsh-example/M01-tool-pipeline/phases/04-tool-restrict.ts)。
 
 `Context` 只有三个公开方法，全部返回**新的 Context 视图**（不改原对象）：
 

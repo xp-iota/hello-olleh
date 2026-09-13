@@ -1,5 +1,5 @@
 /**
- * 19 · Agent inbox：四通道输入模型（对照 core/agent runtime-types.ts 的 Agent 接口）。
+ * M04.3 · Agent inbox：四通道输入模型（对照 core/agent runtime-types.ts 的 Agent 接口）。
  *
  * Agent 对外的所有输入都路由进 inbox 的两个边界：
  *   - nextStep：下一个 step 边界认领（当前轮内继续）

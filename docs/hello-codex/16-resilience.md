@@ -228,7 +228,7 @@ Codex 的韧性机制并不只停留在“重试 + 沙箱”：
 - **checkpoint 恢复路径未充分测试**：崩溃恢复逻辑分支在正常运行路径外，测试覆盖率低，实际崩溃时行为不可预期。
 - **rate limit 状态无跨进程共享**：`RateLimitState` 存在内存中，多个 codex 实例共享同一 API key 时无法协调限流窗口。
 
-## 横向对齐补强：Codex 韧性覆盖 client、turn 和 filesystem 三层
+## Codex 韧性覆盖 client、turn 和 filesystem 三层
 
 Codex 韧性不只包括 LLM retry，也包括 sandbox fallback、ghost snapshot、compact 和 rollout reconstruction。
 

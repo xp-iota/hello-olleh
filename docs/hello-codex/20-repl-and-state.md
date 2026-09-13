@@ -157,7 +157,7 @@ pub async fn run_headless(prompt: String, config: Config) -> ExitCode {
 - **多行输入体验弱**：复杂代码块输入在 TUI 中体验不佳，不如外部编辑器（未集成 `$EDITOR` 回退）。
 - **终端兼容性依赖 Ratatui**：某些老旧终端（如 xterm-256color 降级场景）可能出现渲染异常，缺少 fallback plain 模式。
 
-## 横向对齐补强：REPL 状态不是 agent 状态本身
+## REPL 状态不是 agent 状态本身
 
 Codex 的 TUI/REPL 层主要消费和投影 Rust core 产生的 thread/session events。用户看到的“状态”不是单独的前端真相，而是 runtime event log 的 UI 视图。
 
@@ -170,7 +170,7 @@ Codex 的 TUI/REPL 层主要消费和投影 Rust core 产生的 thread/session e
 
 这和 Claude Code 的 React state 深耦合不同，也和 OpenCode 的 durable state + Bus/SSE 投影不同。Codex 更接近“runtime event 是真相，TUI 是订阅者”。
 
-## 状态同步补强：TUI 到 core 的最短路径
+## 状态同步：TUI 到 core 的最短路径
 
 Codex 的 REPL/TUI 状态不能只看 Ratatui widget。用户动作进入 core 的主链路是：
 

@@ -1,5 +1,5 @@
 /**
- * 21 · 后台任务注册表（ctx.jobs）。
+ * M09.1 · 后台任务注册表（ctx.jobs）。
  *
  * 对照真实 `@deepseek-ai/dsh-jobs`（抽象 `JobRegistry`，本地后端是 `dsh-jobs-local`）：
  *   - start(spec) 有准入：没有挂接的 job controller 时**拒绝启动**（生产者的活必须有人收/有人停）；

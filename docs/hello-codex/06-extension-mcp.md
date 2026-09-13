@@ -468,7 +468,7 @@ pub async fn list_accessible_connectors_from_mcp_tools(
 - **Skill 文件信任边界模糊**：Skill 是 `.md` + prompt 注入，文件内容直接注入 system prompt，若 skill 文件被篡改，后果等价于 prompt injection。
 - **动态工具 schema 无版本校验**：远程 MCP 工具升级 schema 后，客户端无感知更新，可能在工具调用时才发生参数类型不兼容。
 
-## 横向对齐补强：Codex 扩展入口最终回到工具和 prompt
+## Codex 扩展入口最终回到工具和 prompt
 
 Codex 的扩展体系要按三条线阅读：AGENTS/skill 改变 prompt，MCP 改变工具集合，hooks 改变 turn 前后控制流。
 
