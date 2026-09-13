@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 2,
+  "kind": "episode",
+  "id": "E01",
+  "module": "M01",
+  "number": 1,
+  "title": "第 1 集 · 工具管线",
+  "subtitle": "给 Agent 加一个 word_count 工具，让真实模型自己决定调用它；再在编排层给自有工具槽装一条可回收的处理阶段",
+  "course": "DSH 与 iota 实操课",
+  "courseSubtitle": "十二集，每集一个能自己跑完的任务",
+  "task": "给 Agent 加一个 word_count 工具，让真实模型自己决定调用它；再在编排层给自有工具槽装一条可回收的处理阶段",
+  "command": "cd dsh-example && npm run M01:real",
+  "expect": "模型自己发出 word_count 调用，工具结果回灌成「7 词 / 49 字符」，然后模型用一句中文收尾",
+  "fps": 15,
+  "width": 1280,
+  "height": 720,
+  "tailFrames": 8,
+  "theme": {
+    "paper": "#08111f",
+    "panel": "#122238",
+    "panel2": "#0d1b2d",
+    "ink": "#e6edf3",
+    "muted": "#8da2b8",
+    "line": "#26415f",
+    "accent": "#2dd4bf",
+    "accent2": "#60a5fa",
+    "accent3": "#fbbf24",
+    "shell": "#050d18"
+  },
+  "style": {
+    "mood": "engineering-evidence",
+    "density": "balanced",
+    "motion": "restrained",
+    "headingFont": "PingFang SC",
+    "bodyFont": "PingFang SC",
+    "cornerRadius": 14,
+    "backgroundPattern": "grid"
+  },
+  "slides": [
+    {
+      "id": "e01-task",
+      "type": "task",
+      "eyebrow": "第 1 集 · 本集任务",
+      "title": "给 Agent 加一个 word_count 工具，让真实模型自己决定调用它",
+      "task": "给 Agent 加一个 word_count 工具，让真实模型自己决定调用它；再在编排层给自有工具槽装一条可回收的处理阶段",
+      "command": "cd dsh-example && npm run M01:real",
+      "expect": "模型自己发出 word_count 调用，工具结果回灌成「7 词 / 49 字符」，然后模型用一句中文收尾",
+      "narration": "这一集你要做的事很具体：给 Agent 加一个数词数的工具，然后让真实模型自己决定要不要调它。命令就一条，npm run M01:real，现在就可以暂停敲进去。你会看到三段输出：模型发出的 word_count 调用、工具结果回灌成「7 词 / 49 字符」，最后模型用一句中文报结果。注意这里的模型是真的在跑，不是固定回复。看到这三段，说明工具从注册到回灌的整条链是通的。",
+      "minDurationSec": 12,
+      "audio": "audio/e01-task.mp3",
+      "frame": "frames/slide-01.png",
+      "slideIndex": 1
+    },
+    {
+      "id": "e01-terminal",
+      "type": "terminal",
+      "eyebrow": "真实输出",
+      "title": "这条命令的真实输出",
+      "command": "cd dsh-example && npm run M01:real",
+      "evidence": "E01-dsh-real.txt",
+      "evidenceLines": 8,
+      "narration": "屏幕上是刚才那条命令的真实输出。第一行告诉你推理服务是 MiniMax，走的是真实 HTTP 加 SSE。第二行是模型可见工具，只有 word_count 一个。往下，模型发起的调用带着它自己填的参数，工具结果那一行的 isError 是 false，渲染后的内容是七词四十九字符。最后 step 数是二，因为工具调用会多出一步：一步调用，一步收尾。这个 step 数很有用，它是判断模型到底调了工具还是自己编了答案最快的办法。",
+      "minDurationSec": 20,
+      "audio": "audio/e01-terminal.mp3",
+      "frame": "frames/slide-02.png",
+      "slideIndex": 2,
+      "evidenceText": [
+        "$ cd dsh-example && npm run M01:real",
+        "  ↳ 入口 probe 真实回复: \"装配链已连通 M01.5\"",
+        "ls -la    → isError: false | bash 已执行: cmd=ls -la",
+        "rm -rf /  → isError: true | Error: 命令命中危险模式 \"rm -rf\"，被单调守卫拒绝",
+        "（pre-execute 明明 allow 了，但 guard 是单调最终拒绝，翻不了案）",
+        "REAL_STAGE_OK M01.5 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=889 in=0 out=9 finish=stop tools=- text=\"装配链已连通 M01.5\"",
+        "REAL_MODULE_OK M01 stages=5 calls=5 failed=0",
+        "[exit 0]"
+      ]
+    },
+    {
+      "id": "e01-dsh",
+      "type": "diagram",
+      "eyebrow": "运行外壳",
+      "title": "看得见、能调用、结果能用，是三件事",
+      "narration": "工具不是一个函数，是一条链。注册那一步定下名字、参数格式和实现；restrict 决定这个 Agent 能看见哪些，看不见的工具在模型眼里根本不存在。模型真的调了，才轮到执行前的判断：放行、问人、还是拒绝。守卫在这层守底线，前面拒过的，后面不许翻案。结果出来之后还能改一遍模型看到的内容，同时把原值留在审计里。这三件事分开写，权限才说得清；写在一起，你就只能靠读代码猜某次调用为什么成功。",
+      "minDurationSec": 20,
+      "nodes": [
+        {
+          "label": "注册",
+          "sub": "名字 + 参数格式"
+        },
+        {
+          "label": "收窄",
+          "sub": "这个 Agent 看得见谁"
+        },
+        {
+          "label": "执行前",
+          "sub": "放行 / 问人 / 拒绝"
+        },
+        {
+          "label": "守底线",
+          "sub": "拒了不许翻案"
+        },
+        {
+          "label": "执行后",
+          "sub": "改视图 + 留审计"
+        }
+      ],
+      "audio": "audio/e01-dsh.mp3",
+      "frame": "frames/slide-03.png",
+      "slideIndex": 3
+    },
+    {
+      "id": "e01-iota",
+      "type": "text",
+      "eyebrow": "编排层",
+      "title": "同一件事，换一层：阶段有名字，拆得干净",
+      "narration": "换到编排层，命令是 runner M01。它补的是自己那条工具通道上的一条管线：阶段有名字，重复安装不出岔子，缺的工具会报出来，名字写错当场拒绝，拆的时候按相反顺序收干净。输出里那句 unknown stage 就是拒绝的原文。它没有去接管内核内部的工具可见性，因为那件事发生在内核里面，外面看不见也保证不了。两边的差别不是谁功能多，而是缝开在哪一层：外壳能管一次调用的内部，编排层只能管自己注册的那些槽。",
+      "minDurationSec": 20,
+      "bullets": [
+        "阶段有名字",
+        "重复装不出错",
+        "错名当场拒绝",
+        "回收按相反顺序"
+      ],
+      "callout": "python -m runtime.runner M01",
+      "audio": "audio/e01-iota.mp3",
+      "frame": "frames/slide-04.png",
+      "slideIndex": 4
+    },
+    {
+      "id": "e01-debug",
+      "type": "debug",
+      "eyebrow": "错误定位",
+      "title": "最常见的一个坑：工具注册了，模型却看不见",
+      "symptom": "模型答得头头是道，但输出里「模型发起的工具调用」是空的，step 数只有 1。",
+      "locate": "先看第二行的模型可见工具列表里有没有它；再看这个插件是不是在 agent 建立之后才装的。",
+      "fix": "把插件放进 createHarness 的 plugins 里，让它在 agent 之前就位；会话开始事件只派发一次，晚一步就收不到。",
+      "narration": "说一个真会遇到的问题。你把工具注册了，模型却完全不提它，step 数停在一。这时候别急着改提示词，先看输出第二行的可见工具列表。如果列表是空的，问题在装配顺序：插件比 Agent 晚到，而会话开始那个事件只派发一次，晚一步就永远收不到。修法是把插件放进 createHarness 的 plugins 参数里，让它在 Agent 之前就位。这个坑的特征很明显——程序不报错，只是安静地少了一样东西。",
+      "minDurationSec": 20,
+      "audio": "audio/e01-debug.mp3",
+      "frame": "frames/slide-05.png",
+      "slideIndex": 5
+    },
+    {
+      "id": "e01-code",
+      "type": "code",
+      "eyebrow": "代码在哪",
+      "title": "word_count 的三件套写在同一个文件里",
+      "locate": "sed -n '20,60p' dsh-example/M01-tool-pipeline/steps/01-word-count.ts",
+      "look": "parameters 是模型看到的参数格式，output.schema 是规范返回值，output.render 决定回灌成什么文本",
+      "narration": "代码在哪：打开 M01 的 steps 目录里那个 word-count 文件，从第二十行往下看。三件套挤在一起，正好方便对照：parameters 是模型看到的参数格式，写错了模型就传不对；output 的 schema 是规范返回值，它进审计；render 决定这个结果回灌成什么文本，那才是模型真正读到的东西。很多人只改 execute 就以为改完了，其实模型看到的是 render 的输出。iota 那边对应的是 lesson 里的 ToolPipeline 那几行。",
+      "minDurationSec": 20,
+      "audio": "audio/e01-code.mp3",
+      "frame": "frames/slide-06.png",
+      "slideIndex": 6
+    },
+    {
+      "id": "e01-exercise",
+      "type": "exercise",
+      "eyebrow": "动手练习",
+      "title": "把 word_count 改成拒绝空文本，并让模型看到拒绝原因",
+      "change": "在 steps/01-word-count.ts 的 execute 里，text 去空白后为空就抛错。",
+      "verify": "cd dsh-example && npm run M01 && npm run M01:real",
+      "answer": "离线阶段的 isError 变成 true，渲染内容以 Error: 开头；真实模式下模型会重新组织一句话解释失败原因。",
+      "narration": "留一个练习。打开 steps 里的 word-count，在 execute 开头加一句：文本去掉空白后为空就抛错。然后先跑离线的 M01，再跑真实的 M01:real。可验证的答案是这样的：离线那次工具结果的 isError 变成 true，渲染内容以 Error 开头；真实那次模型会拿着这个错误重新组织一句话。两次都对，说明你已经能控制「工具失败以什么形态回到模型面前」这件事了。",
+      "minDurationSec": 20,
+      "audio": "audio/e01-exercise.mp3",
+      "frame": "frames/slide-07.png",
+      "slideIndex": 7
+    }
+  ]
+}

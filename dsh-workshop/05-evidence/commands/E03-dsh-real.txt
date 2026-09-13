@@ -1,0 +1,49 @@
+$ cd dsh-example && npm run M03:real
+
+
+> @example/dsh-examples@0.0.0 M03:real
+> DSH_REAL=1 node M03-inference-service-access/run-real.ts
+
+
+████ M03 · 推理服务接入：Provider 路由与流协议 —— 真实 MiniMax 模式 ████
+provider=minimax-m3 model=MiniMax-M3 endpoint=<minimax-anthropic-compat> timeout=120000ms
+
+════════ M03.1 · 注册并消费离线 LLM Adapter（kind=mechanism）════════
+  ↳ 入口 probe 真实回复: "装配链已连通 M03.1"
+已注册的 provider 路由: [ 'minimax-m3', 'mock' ]
+逐 chunk 流出：
+  - block-start
+  - text-delta "你好，我是示例 mock 模型。"
+  - block-end
+  - usage
+  - finish {"kind":"stop"}
+
+聚合 assistant 文本: 你好，我是示例 mock 模型。
+协议检查: usage 在 finish 之前 = true
+协议检查: finish 是最后一个 = true
+协议检查: delta 的 index 都有 block-start = true
+协议检查: 有 usage 载荷 = true
+
+chunk 类型统计: {"block-start":1,"text-delta":1,"block-end":1,"usage":1,"finish":1}
+block-start 的 blockType 序列: ["text"]
+finish.reason: {"kind":"stop"}
+usage: {"inputTokens":0,"outputTokens":16}
+REAL_STAGE_OK M03.1 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=1536 in=0 out=9 finish=stop tools=- text="装配链已连通 M03.1"
+
+════════ M03.2 · 用 llm/stream waterfall 包装 chunk 流（kind=mechanism）════════
+  ↳ 入口 probe 真实回复: "装配链已连通 M03.2"
+① 消费经 llm/stream waterfall 包装后的 chunk 流:
+  [内层·统计] 请求 model=mock-1，透传并计数
+  [外层·改写] 包装下游流：text-delta → 大写
+  - block-start
+  - text-delta "HELLO HARNESS"
+  - block-end
+  - usage
+  - finish
+
+② 外层改写生效（应为全大写）: "HELLO HARNESS"
+③ 内层统计生效: chunks=5（应为 5）, outputTokens=13（应为 13）
+REAL_STAGE_OK M03.2 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=12948 in=0 out=9 finish=stop tools=- text="装配链已连通 M03.2"
+
+REAL_MODULE_OK M03 stages=2 calls=2 failed=0
+[exit 0]

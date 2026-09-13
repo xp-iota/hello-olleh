@@ -1,0 +1,37 @@
+{
+  "audio/e02-task.mp3": {
+    "path": "audio/e02-task.mp3",
+    "durationSec": 32.64,
+    "chars": 150
+  },
+  "audio/e02-terminal.mp3": {
+    "path": "audio/e02-terminal.mp3",
+    "durationSec": 53.112,
+    "chars": 252
+  },
+  "audio/e02-dsh.mp3": {
+    "path": "audio/e02-dsh.mp3",
+    "durationSec": 36.744,
+    "chars": 162
+  },
+  "audio/e02-iota.mp3": {
+    "path": "audio/e02-iota.mp3",
+    "durationSec": 53.592,
+    "chars": 256
+  },
+  "audio/e02-debug.mp3": {
+    "path": "audio/e02-debug.mp3",
+    "durationSec": 34.08,
+    "chars": 147
+  },
+  "audio/e02-code.mp3": {
+    "path": "audio/e02-code.mp3",
+    "durationSec": 30.288,
+    "chars": 157
+  },
+  "audio/e02-exercise.mp3": {
+    "path": "audio/e02-exercise.mp3",
+    "durationSec": 26.232,
+    "chars": 134
+  }
+}

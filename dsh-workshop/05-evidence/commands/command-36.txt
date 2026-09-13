@@ -1,7 +1,0 @@
-$ cd iota-example && grep -nE 'M03|M07|M12' docs/dsh-vs-iota.md
-
-1:# DSH 与 iota：M01–M12 逐模块证据表
-16:| **M03 推理服务接入** | Adapter 与流中间件正交：`dsh-example/M03-inference-service-access/README.md::完整链路` | **结构性边界**：iota 的替换单元是整个 `KernelAdapter`：`iota-core/src/iota_core/adapters/base.py::class KernelAdapter` | `iota-example/M03-inference-service-access/lesson_m03.py::async def run` | ACP 不支持的 middleware 在编译期拒绝：`iota-core/docs/architecture/node-hooks.md::引用语法与校验` |
-20:| **M07 执行侧后端** | fs、shell、sandbox 形成执行链：`dsh-example/M07-execution-backends/README.md::完整链路` | **结构性边界**：iota 只消费内核返回的工具事件：`iota-core/src/iota_core/types.py::class ToolCallStartEvent` | `iota-example/M07-execution-backends/lesson_m07.py::async def run` | 不在编排层重写 cordis 执行栈：`iota-core/docs/architecture/kernel-replacement.md::cordis 路线` |
-25:| **M12 框架机制本体** | dispatch 与 Fiber 定义组合纪律：`dsh-example/M12-framework-mechanisms/README.md::完整链路` | **语义等价 + 结构性边界**：`EffectStack` 提供 LIFO 可逆回收：`iota-core/src/iota_core/effects.py::class EffectStack` | `iota-example/M12-framework-mechanisms/lesson_m12.py::async def run` | 借机制但不复制 Proxy/Fiber 架构：`iota-core/docs/architecture/pluggability-cordis-alignment.md::借机制，不搬架构` |
-[exit 0]

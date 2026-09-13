@@ -37,12 +37,32 @@ npm run all       # 顺序运行全部 12 个离线模块
 npm run learn -- --list
 ```
 
-真实推理路径不会被 `npm run all` 隐式触发：
+### 三种运行模式
+
+| 模式 | 命令 | 是什么 |
+|---|---|---|
+| **offline** | `npm run all` / `npm run MXX` | 确定性机制测试。全部走 `runtime/llm-mock.ts`，不联网、不需要密钥。 |
+| **real** | `npm run MXX:real` | 单模块真实 MiniMax 请求。`DSH_REAL=1` 固定 `provider=minimax-m3`。 |
+| **all:real** | `npm run real:all`（同 `npm run all:real`） | 完整真实验收：12 个模块、58 个阶段全部输出 `REAL_STAGE_OK`。 |
+
+`npm run all` 不会隐式发起真实请求，真实模式也不会静默退回 mock —— 缺 `MINIMAX_API_KEY`
+时立即失败并说明配置来源（工程根 `.env`，模板见 `.env.example`）。
 
 ```bash
-npm run M01:real  # 模型自主调用 word_count
-npm run M03:real  # 真实 LLM Adapter / StreamChunk 协议
-npm run M10:real  # 注入 SKILL.md 前后对照
+npm run M01:real   # M01 的 5 个阶段，逐阶段 REAL_STAGE_OK
+npm run real:all   # 58 个阶段 + 3 个专项演示，末行 REAL_ALL_OK
+```
+
+真实模式下每个阶段都必须留下真实调用证据：模型-facing 阶段由 MiniMax 驱动；纯注册、回收、
+队列、状态机阶段保留本地机制断言，并在**阶段入口**用完整装配链打一次真实 probe，证明这条链
+真的能把模型响应送回会话日志。阶段结束时若没有成功调用，进程非零退出。
+
+三个专项真实演示（模型自主调用工具 / 真实流消费 / 清单注入对照）：
+
+```bash
+npm run M01:real-demo  # 模型自主调用 word_count
+npm run M03:real-demo  # 同一 StreamChunk 消费循环接真实 SSE
+npm run M10:real-demo  # 注入 SKILL.md 前后的真实作答对照
 ```
 
 三条真实路径都需要 `MINIMAX_API_KEY`，会向外部服务发送教学请求；不要把内部地址、分支名或敏感数据放入请求。
@@ -123,7 +143,9 @@ MXX-name/
 npm run typecheck          # 所有 steps/phases/real/support 对真实 .d.ts 编译
 npm run coverage:surfaces # 核心 25 + 扩展面 34 = 59，门槛 ≥50
 npm test                   # runtime 离线回归
-npm run all                # 12 个模块逐个 exit 0
+npm run all                # 12 个模块逐个 exit 0（离线 mock）
+npm run test               # 离线单测，含 MiniMax wire 协议与真实模式纪律
+npm run real:all           # 58 个阶段真实 MiniMax 验收，末行 REAL_ALL_OK
 ```
 
 服务与能力缝统一按公开扩展面计数；Provider 选择、拒绝路径和显式排除均在各模块 README 的“边界”中说明。默认 `all` 保持离线，复杂 Host plane 不进入核心 harness。

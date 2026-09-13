@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   ToolCallId,
   createAssistantMessage,
+  createSystemMessage,
   createToolResultMessage,
   createUserMessage,
 } from '@deepseek-ai/dsh-llm'
@@ -144,4 +145,33 @@ test('MiniMax 对没有官方映射的 reasoningEffort fail loud', async () => {
     }),
     /不支持 reasoningEffort/,
   )
+})
+
+test('MiniMax 把 agent-loop 放在 messages 里的 system 消息提升到顶层 system 字段', async () => {
+  // 真实 agent-loop 把 System Prompt 当成一条 role=system 消息随 messages 一起送来。
+  // 若适配器直接拒绝，真实链路会在第一个 step 就 finish 成 error，会话里只留一条空 assistant。
+  const messages = [
+    createSystemMessage(
+      'You are an AI agent powered by DeepSeek Harness.',
+      '@deepseek-ai/dsh-system-prompt',
+    ),
+    createUserMessage({ content: [{ type: 'text', text: '你好' }], source: { kind: 'user' } }),
+  ]
+  let requestBody: any
+  const fakeFetch = (async (_input: string | URL | Request, init?: RequestInit) => {
+    requestBody = JSON.parse(String(init?.body))
+    return terminalSse()
+  }) as typeof fetch
+
+  await withFetch(fakeFetch, async () => {
+    const adapter = new MinimaxAnthropicAdapter({ apiKey: 'redacted', baseUrl: 'https://fixture.invalid' })
+    await collect(adapter, { provider: 'minimax-m3', model: 'MiniMax-M3', messages, system: '调用方显式 system' })
+  })
+
+  assert.deepEqual(requestBody.system, [
+    { type: 'text', text: '调用方显式 system' },
+    { type: 'text', text: 'You are an AI agent powered by DeepSeek Harness.' },
+  ])
+  assert.equal(requestBody.messages.length, 1)
+  assert.equal(requestBody.messages[0].role, 'user')
 })

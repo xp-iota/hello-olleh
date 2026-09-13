@@ -1,0 +1,27 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M01 --real
+
+[claude-code:unrecognized_model] {"model":"MiniMax-M3","query_source":"sdk"}
+
+████ M01 · 工具管线 ████
+学习目标：理解 iota 自有工具槽如何获得具名、可逆的处理阶段。
+运行时观察：
+  1. stage 安装顺序与幂等行为
+  2. 错名 stage 是否明确拒绝
+  3. effect 回收后 handler 是否恢复
+真实内核证据：
+  - 真实模型: MiniMax-M3
+  - 真实内核: claude（claude-agent-sdk + claude）
+  - 真实响应: 为每个工具槽注册具名、可逆的处理阶段即可实现。
+  - 事件序列: step_start, system_init, thinking, text_delta, final, step_end
+三类边界：
+  - MiniMax-backed kernel 行为: 内核按自己的工具可见性规则作答，编排层不干预它内部的工具选择。
+  - iota 编排层本地机制断言 : stage 安装、幂等、错名拒绝与 effect 回收都在本地断言，不依赖模型。
+  - 明确不属于 iota 的能力  : 内核内部工具的可见性收窄与执行前策略不属于 iota。
+验证结果：
+  - pipeline: "audit(guard(raw:x))"
+  - refusal: "unknown stage 'typo' on pipeline 'iota-tools'; declared stages: audit, guard"
+对照关系：教学补齐 + 结构性边界
+结论：ToolPipeline 可治理 iota 自有工具槽，但不冒充内核内部工具可见性控制。
+{"module": "M01", "pipeline": "audit(guard(raw:x))", "refusal": "unknown stage 'typo' on pipeline 'iota-tools'; declared stages: audit, guard", "relationship": "教学补齐 + 结构性边界", "status": "ok"}
+IOTA_REAL_MODULE_OK M01-tool-pipeline kernel=claude model=MiniMax-M3 chars=23 events=6
+[exit 0]

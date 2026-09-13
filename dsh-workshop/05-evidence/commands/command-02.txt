@@ -1,4 +1,0 @@
-$ cd dsh-example && grep -n '四条扩展路径怎么选' README.md
-
-67:### 四条扩展路径怎么选
-[exit 0]

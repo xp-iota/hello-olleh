@@ -1,0 +1,78 @@
+$ cd dsh-example && npm run M10:real-demo
+
+
+> @example/dsh-examples@0.0.0 M10:real-demo
+> DSH_REAL=1 node M10-external-capabilities/run-real-demo.ts
+
+
+████ M10 · 专项真实演示：注入清单前后的真实作答对照 ████
+目标模型: minimax-m3 / MiniMax-M3 （真实 HTTP + SSE）
+
+① A 组：不注入 skill
+   我来 review 一下这两处改动。
+
+   ## 改动 1：`total` 函数
+
+   **问题：off-by-one 错误（严重 bug）**
+
+   ```ts
+   // 改前
+   return items.reduce((sum, it) => sum + it.price * it.qty, 0)
+
+   // 改后
+   let sum = 0
+   for (let i = 1; i <= items.length; i++) sum += items[i].price * items[i].qty
+   ```
+
+   两个明显的 bug：
+
+   1. **越界访问**：`i <= items.length` 会在 `items[items.length]` 时访问 `undefined`，访问 `.price` 会抛 `TypeError: Cannot read properties of undefined`。如果数组为空，倒是不会进循环，但如果有任何元素，最后一轮就炸了。
+   2. **`i = 1` 跳过了第一个元素**：当 `i === 1` 时访问的是数组的第 2 个元素，第一个元素（`items[0]`）永远没被加进去，结果少算一项。
+
+   应该用经典的 `for (let i = 0; i < items.length; i++)`。
+
+   另外，改成手写 for 循环本身是没必要的，`reduce` 版本更简洁、更函数式，也没性能问题（V8 优化得很好）。如果是为了某个 lint 规则禁用 `reduce`，至少手写循环要写对。
+
+   ---
+
+   ## 改动 2：`applyCoupon` 函数
+
+   **问题：`eval` 注入漏洞（严重安全问题）**
+
+   ```ts
+   // 改前
+   return COUPONS[code] ?? 0
+
+   // 改后
+   return eval('COUPONS.' + code) ?? 0
+   ```
+
+   `COUPONS` 是普通的对象，`COUPONS[code]` 完全够用，而且安全。换成 `eval` 后：
+
+   1. **任意代码执行**：如果 `code` 来自用户输入，攻击者可以传 `"x); process.exit(); (COUPONS.x"` 之类的东西直接执行任意 JS。
+   2. **即便 `code` 是内部来源**，`eval` 也是反模式：慢、难优化、难审计。
+
+   `?? 0` 还有个坑：`eval(...)` 返回值可能是 `undefined`、也可能是某个属性值，`??` 只防 `null/undefined`，不会防返回 `0` 时被原样保留——这点和原来行为倒是基本一致，但意图不清晰。
+
+   如果原来 `COUPONS[code] ?? 0` 是有问题的（比如 ts 类型报错、或者有原型链查找顾虑），正确的替代是 `Object.hasOwn(COUPONS, code) ? COUPONS[code] : 0`，而不是 `eval`。
+
+   ---
+
+   ## 总结
+
+   | 改动 | 严重度 | 问题 |
+   |---|---|---|
+   | `total` 用手写 for | 🔴 高 | off-by-one 导致结果错误 + 空数组边界可能未崩但有元素时必崩 |
+   | `applyCoupon` 用 `eval` | 🔴 高 | 代码注入风险，无任何收益 |
+
+   **建议：两个改动都 revert。** 如果有具体动机（比如性能、规避 lint、绕过类型错误），说一下，可以给出更针对性的正确写法。
+   → 第一行是结论 = false | 清单条目数 = 0
+
+② B 组：注入 SKILL.md 正文（同一段 diff、同一句请求）
+   结论：阻断
+   [正确性] src/cart.ts:3 — 循环从 `i = 1` 开始到 `i <= items.length`，最后一次访问 `items[items.length]` 为 `undefined`，且完全跳过了 `items[0]`，结果始终少算第一项且最后一项为 NaN — 改为 `for (let i = 0; i < items.length; i++)`，或直接用原来的 `reduce`
+   [安全] src/cart.ts:7 — `eval('COUPONS.' + code)` 存在代码注入风险，攻击者可通过传入 `'x; process.exit(1)'` 等恶意 code 执行任意代码 — 用 `COUPONS[code] ?? 0`（已存在于旧实现），或在白名单中查找
+   [风格] src/cart.ts:3 — 用命令式累加重写原本简洁的 `reduce`，可读性与可维护性下降 — 保留 `reduce` 实现
+   → 第一行是结论 = true | 清单条目数 = 3
+   → 严重性顺序 = ["正确性","安全","风格"]
+[exit 0]

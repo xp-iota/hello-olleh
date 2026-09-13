@@ -55,18 +55,16 @@ import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
 import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
 import LocalBashExecutor from '@deepseek-ai/dsh-bash-local'
 import LocalJobRegistry from '@deepseek-ai/dsh-jobs-local'
+import './env.ts'
 import { MemorySettingsProvider } from './settings-memory.ts'
 import { MockAdapter, ToolCallingMockAdapter } from './llm-mock.ts'
 import { MinimaxAnthropicAdapter } from './llm-minimax.ts'
+import { CountingMinimaxAdapter, REAL_MODE, REAL_PROVIDER, realConfig } from './real.ts'
 
 /** 每个示例默认拿到的 agent 会话 id。 */
 export const DEMO_SESSION = 'demo-session' as SessionId
 
-// 自动加载工程根的 .env（MINIMAX_API_KEY 等真实 provider 配置；已在环境里的变量优先）。
-// 文件不存在则静默跳过 —— 保持纯 mock/离线。
-try {
-  process.loadEnvFile(new URL('../.env', import.meta.url))
-} catch { /* 没有 .env：一切照旧 */ }
+// 工程根 .env 的加载集中在 runtime/env.ts（import 即生效）。
 
 export interface HarnessOptions {
   /** 默认 mock 适配器的固定回复；示例可自己注册适配器覆盖 `mock` 路由前先传 `mock: false`。 */
@@ -164,8 +162,13 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
     await (config === undefined ? ctx.plugin(plugin as any) : ctx.plugin(plugin as any, config)).await()
   }
 
-  // 环境驱动的真实 provider：设了 MINIMAX_API_KEY 就多注册一条 `minimax-m3` 路由。
-  if (process.env.MINIMAX_API_KEY) {
+  // 真实模式（DSH_REAL=1）：密钥缺失当场失败，绝不静默退回 mock。
+  // 计数适配器把真实 chunk 一条不改地透传给 agent-loop，同时留下调用证据。
+  const real = REAL_MODE ? realConfig() : undefined
+  if (real) {
+    ctx.llm.registerAdapter([REAL_PROVIDER], new CountingMinimaxAdapter(real))
+  } else if (process.env.MINIMAX_API_KEY) {
+    // 离线模式下也注册这条路由，方便 `DSH_PROVIDER=minimax-m3` 单点试跑。
     ctx.llm.registerAdapter(['minimax-m3'], new MinimaxAnthropicAdapter({
       apiKey: process.env.MINIMAX_API_KEY,
       baseUrl: process.env.MINIMAX_BASE_URL,
@@ -173,11 +176,15 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
     }))
   }
   if (options.mock !== false) {
-    ctx.llm.registerAdapter(['mock'], options.adapter ?? new MockAdapter(options.reply ?? '好的，我已经看过了。'))
+    // 真实模式忽略示例传入的 mock 适配器：模型该做的决定必须由真实模型做。
+    // `mock` 路由仍然在场，因为 M01/M03 有几个阶段就是在演示"路由与适配器协议"本身。
+    const fallback = new MockAdapter(options.reply ?? '好的，我已经看过了。')
+    ctx.llm.registerAdapter(['mock'], real ? fallback : (options.adapter ?? fallback))
   }
 
-  const provider = options.provider ?? process.env.DSH_PROVIDER ?? 'mock'
-  const model = options.model ?? process.env.DSH_MODEL ?? (provider === 'minimax-m3' ? 'MiniMax-M3' : 'mock-1')
+  const provider = options.provider ?? (real ? REAL_PROVIDER : process.env.DSH_PROVIDER ?? 'mock')
+  const model = options.model
+    ?? (real ? real.model : process.env.DSH_MODEL ?? (provider === 'minimax-m3' ? 'MiniMax-M3' : 'mock-1'))
 
   const plugins: Fiber[] = []
   const loadPlugin = async (plugin: unknown, config?: unknown): Promise<Fiber> => {

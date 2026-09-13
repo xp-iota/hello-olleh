@@ -18,7 +18,7 @@ npm run M10:real     # 真实 MiniMax 对照；需要 MINIMAX_API_KEY
 | 阶段 | 类型 | 实现 | 观察什么 |
 |---|---|---|---|
 | 1 Skill | 教学主线 | `steps/01-skill-code-review.ts` | frontmatter 发现、渲染、inbox 注入与 step 认领 |
-| 2 MCP | 扩展面 | `steps/02-mcp-client.ts` | 本地进程启动失败的稳定契约 |
+| 2 MCP | 扩展面 | `steps/02-mcp-client.ts` | 真实 stdio server 的成功往返 + 启动失败的稳定契约 |
 | 3 Webhook | 扩展面 | `steps/03-webhook-runtime.ts` | Host-plane 完整依赖边界 |
 | 4 Cordis extensions | 扩展面 | `steps/04-cordis-extensions.ts` | dynamic runner 与 inspect registry |
 | 5 默认模型 | 扩展面 | `steps/05-agent-default-model.ts` | Webhook 创建 Agent 所需的 mock 路由 |
@@ -26,7 +26,7 @@ npm run M10:real     # 真实 MiniMax 对照；需要 MINIMAX_API_KEY
 
 ## 完整链路
 
-`assets/SKILL.md` 被解析和注册，渲染内容经 inbox 进入下一 step；MCP、Webhook 与动态扩展则由宿主管理进程、依赖和失败。默认路径全部离线。
+`assets/SKILL.md` 被解析和注册，渲染内容经 inbox 进入下一 step；MCP 阶段两种结果都会跑出来：先拉起 `assets/mcp-word-count-server.mjs`（官方 SDK 实现的真实 stdio server）完成一次跨进程 `tools/call`，再换成不存在的可执行文件演示启动失败 fail loud。Webhook 与动态扩展由宿主管理进程、依赖和失败。默认路径全部离线，不需要密钥。
 
 ## 边界
 

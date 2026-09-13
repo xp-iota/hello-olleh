@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 2,
+  "kind": "episode",
+  "id": "E07",
+  "module": "M07",
+  "number": 7,
+  "title": "第 7 集 · 执行侧后端",
+  "subtitle": "让工具只提意图，由服务决定谁执行、在哪执行，沙箱把策略落到进程边界上",
+  "course": "DSH 与 iota 实操课",
+  "courseSubtitle": "十二集，每集一个能自己跑完的任务",
+  "task": "让工具只提意图，由服务决定谁执行、在哪执行，沙箱把策略落到进程边界上",
+  "command": "cd dsh-example && npm run M07:real",
+  "expect": "同一个意图经过文件和命令服务派发，沙箱把只读工作区里的写入挡在进程边界上，被挡住的那次有明确的拒绝原因",
+  "fps": 15,
+  "width": 1280,
+  "height": 720,
+  "tailFrames": 8,
+  "theme": {
+    "paper": "#08111f",
+    "panel": "#122238",
+    "panel2": "#0d1b2d",
+    "ink": "#e6edf3",
+    "muted": "#8da2b8",
+    "line": "#26415f",
+    "accent": "#2dd4bf",
+    "accent2": "#60a5fa",
+    "accent3": "#fbbf24",
+    "shell": "#050d18"
+  },
+  "style": {
+    "mood": "engineering-evidence",
+    "density": "balanced",
+    "motion": "restrained",
+    "headingFont": "PingFang SC",
+    "bodyFont": "PingFang SC",
+    "cornerRadius": 14,
+    "backgroundPattern": "grid"
+  },
+  "slides": [
+    {
+      "id": "e07-task",
+      "type": "task",
+      "eyebrow": "第 7 集 · 本集任务",
+      "title": "让工具只提意图，由服务决定谁执行、在哪执行，沙箱把策略落到进程边界上",
+      "task": "让工具只提意图，由服务决定谁执行、在哪执行，沙箱把策略落到进程边界上",
+      "command": "cd dsh-example && npm run M07:real",
+      "expect": "同一个意图经过文件和命令服务派发，沙箱把只读工作区里的写入挡在进程边界上，被挡住的那次有明确的拒绝原因",
+      "narration": "这一集处理真副作用：文件和命令。任务是让工具只提意图，由服务决定谁执行、在哪执行。命令是 npm run M07:real。你会看到同一个意图经过文件和命令服务派发，沙箱把只读工作区里的写入挡在进程边界上，被挡住的那次有明确的拒绝原因。这一集的判断标准是：工具代码里没有任何一处直接碰系统接口。",
+      "minDurationSec": 12,
+      "audio": "audio/e07-task.mp3",
+      "frame": "frames/slide-01.png",
+      "slideIndex": 1
+    },
+    {
+      "id": "e07-terminal",
+      "type": "terminal",
+      "eyebrow": "真实输出",
+      "title": "意图、后端与沙箱边界",
+      "command": "cd dsh-example && npm run M07:real",
+      "evidence": "E07-dsh-real.txt",
+      "evidenceLines": 8,
+      "narration": "输出按四步看。第一步工具提交意图，参数里是要读的路径或要跑的命令。第二步服务选后端：前台、后台还是终端，取消信号在派发前后都算。第三步沙箱把策略变成真正的进程参数，只读工作区里的写入拿到拒绝。第四步是没有实现方的情况——稳稳地拒绝，而不是退化成本地直接执行。最后这条很重要：一旦允许绕过服务，沙箱策略就整个漏掉了。输出里那条被拒绝的写入值得多看两秒：拒绝原因里带着策略名，这样你才知道是哪条策略拦的。没有这个信息，排查就只能靠试。",
+      "minDurationSec": 20,
+      "audio": "audio/e07-terminal.mp3",
+      "frame": "frames/slide-02.png",
+      "slideIndex": 2,
+      "evidenceText": [
+        "$ cd dsh-example && npm run M07:real",
+        "  default: 'read-only',",
+        "  sessionOverride: 'workspace-write',",
+        "  workspaceRoot: '<repo>/dsh-example'",
+        "}",
+        "REAL_STAGE_OK M07.5 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=2115 in=0 out=9 finish=stop tools=- text=\"装配链已连通 M07.5\"",
+        "REAL_MODULE_OK M07 stages=5 calls=5 failed=0",
+        "[exit 0]"
+      ]
+    },
+    {
+      "id": "e07-dsh",
+      "type": "diagram",
+      "eyebrow": "运行外壳",
+      "title": "做什么、谁来做、在哪做，得分开",
+      "narration": "三件事分开写，好处很实在：测试能换后端，宿主能统一看到发生了什么，线上也不会因为某个工具走了捷径而让策略失效。这也是为什么工具里不该出现直接调用系统接口的代码——不是风格问题，是它会绕过策略。你自己加执行类工具的时候，先问一句：这次执行谁能看到、谁能拦。再补一个实践建议：给执行类工具写单元测试时，把后端换成一个记录调用的假实现，就能验证意图对不对，而不需要真的动文件。这也是把意图和执行分开带来的第二个好处。",
+      "minDurationSec": 20,
+      "nodes": [
+        {
+          "label": "提意图",
+          "sub": "要读 / 要跑"
+        },
+        {
+          "label": "选后端",
+          "sub": "前台 / 后台 / 终端"
+        },
+        {
+          "label": "落策略",
+          "sub": "只读 / 可写"
+        },
+        {
+          "label": "进程",
+          "sub": "派发与取消"
+        }
+      ],
+      "audio": "audio/e07-dsh.mp3",
+      "frame": "frames/slide-03.png",
+      "slideIndex": 3
+    },
+    {
+      "id": "e07-iota",
+      "type": "text",
+      "eyebrow": "编排层",
+      "title": "空的注册表，就是一条边界证据",
+      "narration": "编排层跑 runner M07 --real。真实模式下它请内核用自己的工具执行一条命令，工具事件是内核发出来的，而编排层自己的工具注册表是空的。这不是漏做：文件、命令、沙箱这一整套执行栈本来就不归它。越界去管，只会让出错时多一个嫌疑人：两边都有沙箱策略、两边都发取消信号、审计记两份，最后谁也说不清那次到底发生了什么。要在编排层加审计，正确做法是订阅内核事件，而不是自己再执行一遍。真实模式下这一集还有个细节：内核用的是它自己的工具，权限模式也归它管。所以你要限制它能跑什么命令，得在内核那一侧配，而不是在编排层加拦截——这正是「一个主人」的意思。",
+      "minDurationSec": 20,
+      "bullets": [
+        "执行归内核",
+        "注册表为空",
+        "副作用一个主人",
+        "审计靠订阅"
+      ],
+      "callout": "python -m runtime.runner M07 --real",
+      "audio": "audio/e07-iota.mp3",
+      "frame": "frames/slide-04.png",
+      "slideIndex": 4
+    },
+    {
+      "id": "e07-debug",
+      "type": "debug",
+      "eyebrow": "错误定位",
+      "title": "沙箱明明配了，写入还是成功了",
+      "symptom": "只读工作区里的写入居然成功，日志里也没有拒绝记录。",
+      "locate": "看这次写入是走了文件服务，还是工具自己直接调了系统接口。",
+      "fix": "把直接调用改成走服务；没有实现方时让它拒绝，而不是退回本地执行。",
+      "narration": "这个问题的危险之处在于它看起来是「策略没生效」，实际是「策略被绕过了」。定位很简单：看这次写入有没有经过文件服务。如果工具里直接调了系统接口，那沙箱当然管不着。修法是把直接调用改成走服务，并且在没有实现方的时候拒绝，而不是悄悄退回本地执行。顺带记住：沙箱只能拦它看得见的动作。",
+      "minDurationSec": 20,
+      "audio": "audio/e07-debug.mp3",
+      "frame": "frames/slide-05.png",
+      "slideIndex": 5
+    },
+    {
+      "id": "e07-code",
+      "type": "code",
+      "eyebrow": "代码在哪",
+      "title": "沙箱把策略变成进程参数的那一步",
+      "locate": "sed -n '1,40p' dsh-example/M07-execution-backends/phases/03-sandbox-seam.ts",
+      "look": "策略在派发前变成真正的进程参数，越界的写入在这一步被拒绝",
+      "narration": "代码在哪：M07 的 phases 里那个 sandbox seam 文件。重点是它在派发之前就把策略变成真正的进程参数，而不是执行完再检查。顺序反了，检查就成了事后审计，副作用已经发生了。读完这一段你会明白为什么工具里不能直接调系统接口：直接调就跳过了这一步，沙箱连拦的机会都没有。",
+      "minDurationSec": 20,
+      "audio": "audio/e07-code.mp3",
+      "frame": "frames/slide-06.png",
+      "slideIndex": 6
+    },
+    {
+      "id": "e07-exercise",
+      "type": "exercise",
+      "eyebrow": "动手练习",
+      "title": "把工作区改成只读，观察哪一步开始拒绝",
+      "change": "在沙箱策略里把可写工作区改成只读，再跑一次读写两种意图。",
+      "verify": "cd dsh-example && npm run M07",
+      "answer": "读取仍然成功，写入在派发前被拒绝并带上策略原因，工具代码一行未改。",
+      "narration": "练习：把沙箱策略里的可写工作区改成只读，再跑一次离线的 M07。可验证的答案是读取照旧成功，写入在派发前就被拒绝并带上策略原因，而工具代码一行没改。这个练习想让你亲手确认一件事：策略变化不需要改工具，这正是把意图和执行分开的收益。",
+      "minDurationSec": 20,
+      "audio": "audio/e07-exercise.mp3",
+      "frame": "frames/slide-07.png",
+      "slideIndex": 7
+    }
+  ]
+}

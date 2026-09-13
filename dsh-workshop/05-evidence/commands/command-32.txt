@@ -1,4 +1,0 @@
-$ cd iota-example && grep -n '执行栈' docs/dsh-vs-iota.md
-
-20:| **M07 执行侧后端** | fs、shell、sandbox 形成执行链：`dsh-example/M07-execution-backends/README.md::完整链路` | **结构性边界**：iota 只消费内核返回的工具事件：`iota-core/src/iota_core/types.py::class ToolCallStartEvent` | `iota-example/M07-execution-backends/lesson_m07.py::async def run` | 不在编排层重写 cordis 执行栈：`iota-core/docs/architecture/kernel-replacement.md::cordis 路线` |
-[exit 0]

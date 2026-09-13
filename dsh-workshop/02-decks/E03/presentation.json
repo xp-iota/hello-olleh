@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 2,
+  "kind": "episode",
+  "id": "E03",
+  "module": "M03",
+  "number": 3,
+  "title": "第 3 集 · 推理服务接入",
+  "subtitle": "把推理服务换成 MiniMax：注册一个适配器，让同一个消费循环拿到真实流",
+  "course": "DSH 与 iota 实操课",
+  "courseSubtitle": "十二集，每集一个能自己跑完的任务",
+  "task": "把推理服务换成 MiniMax：注册一个适配器，让同一个消费循环拿到真实流",
+  "command": "cd dsh-example && npm run M03:real",
+  "expect": "同一个循环消费真实 SSE：block 先开始再有增量，结束时给出 finish 原因，还有 usage 里的 token 数",
+  "fps": 15,
+  "width": 1280,
+  "height": 720,
+  "tailFrames": 8,
+  "theme": {
+    "paper": "#08111f",
+    "panel": "#122238",
+    "panel2": "#0d1b2d",
+    "ink": "#e6edf3",
+    "muted": "#8da2b8",
+    "line": "#26415f",
+    "accent": "#2dd4bf",
+    "accent2": "#60a5fa",
+    "accent3": "#fbbf24",
+    "shell": "#050d18"
+  },
+  "style": {
+    "mood": "engineering-evidence",
+    "density": "balanced",
+    "motion": "restrained",
+    "headingFont": "PingFang SC",
+    "bodyFont": "PingFang SC",
+    "cornerRadius": 14,
+    "backgroundPattern": "grid"
+  },
+  "slides": [
+    {
+      "id": "e03-task",
+      "type": "task",
+      "eyebrow": "第 3 集 · 本集任务",
+      "title": "把推理服务换成 MiniMax：注册一个适配器，让同一个消费循环拿到真实流",
+      "task": "把推理服务换成 MiniMax：注册一个适配器，让同一个消费循环拿到真实流",
+      "command": "cd dsh-example && npm run M03:real",
+      "expect": "同一个循环消费真实 SSE：block 先开始再有增量，结束时给出 finish 原因，还有 usage 里的 token 数",
+      "narration": "这一集换模型。任务是注册一个适配器，让上层那个消费循环完全不用改也能拿到真实流。命令是 npm run M03:real。你会看到同一个循环消费真实 SSE：block 先开始再有增量，结束时给出 finish 原因，还有 usage 里的 token 数。判断标准就一条——上层代码一行没动，只是换了一个有名字的适配器。做到这一点，换模型才是配置问题，而不是改造工程。",
+      "minDurationSec": 12,
+      "audio": "audio/e03-task.mp3",
+      "frame": "frames/slide-01.png",
+      "slideIndex": 1
+    },
+    {
+      "id": "e03-terminal",
+      "type": "terminal",
+      "eyebrow": "真实输出",
+      "title": "同一个循环消费真实 SSE",
+      "command": "cd dsh-example && npm run M03:real",
+      "evidence": "E03-dsh-real.txt",
+      "evidenceLines": 8,
+      "narration": "看输出里的几处检查。已注册的 provider 路由是一个列表，模型选路就靠这个名字。往下是 chunk 序列：每个 block 都是先 start 再 delta 再 end，没有没人认领的碎片。最后三行是聚合文本、finish 原因和 usage。这三样齐了，上层就可以完全不知道模型是哪一家的。反过来说，如果 finish 里出现 error，那说明适配器把请求翻译错了，得回去看消息映射，而不是怀疑模型。",
+      "minDurationSec": 20,
+      "audio": "audio/e03-terminal.mp3",
+      "frame": "frames/slide-02.png",
+      "slideIndex": 2,
+      "evidenceText": [
+        "$ cd dsh-example && npm run M03:real",
+        "  - usage",
+        "  - finish",
+        "② 外层改写生效（应为全大写）: \"HELLO HARNESS\"",
+        "③ 内层统计生效: chunks=5（应为 5）, outputTokens=13（应为 13）",
+        "REAL_STAGE_OK M03.2 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=12948 in=0 out=9 finish=stop tools=- text=\"装配链已连通 M03.2\"",
+        "REAL_MODULE_OK M03 stages=2 calls=2 failed=0",
+        "[exit 0]"
+      ]
+    },
+    {
+      "id": "e03-dsh",
+      "type": "diagram",
+      "eyebrow": "运行外壳",
+      "title": "换模型和改流，是两件事",
+      "narration": "这两件事经常被混在一起写。换模型是注册一个有名字的适配器，请求发到哪儿由它决定；改流是不换适配器，只在流经过的时候看一眼或者改一下。分开摆是因为责任真的不同：前者影响可替换性，后者影响可观测性。这一集里还有个真实的细节值得记住：真实主循环会把系统提示词当成一条消息塞进消息列表，而 Anthropic 兼容接口只认顶层的 system 字段。适配器不做这个搬运，第一步就会失败。",
+      "minDurationSec": 20,
+      "nodes": [
+        {
+          "label": "路由",
+          "sub": "按名字选"
+        },
+        {
+          "label": "适配器",
+          "sub": "把流吐出来"
+        },
+        {
+          "label": "中途处理",
+          "sub": "看一眼 / 改一下"
+        },
+        {
+          "label": "汇总",
+          "sub": "文本 + 结束 + 用量"
+        }
+      ],
+      "audio": "audio/e03-dsh.mp3",
+      "frame": "frames/slide-03.png",
+      "slideIndex": 3
+    },
+    {
+      "id": "e03-iota",
+      "type": "text",
+      "eyebrow": "编排层",
+      "title": "替换单位是整个内核，不是模型",
+      "narration": "编排层跑 runner M03 --real。它的替换单位是整个内核：模型调用发生在内核里面，所以要换就换一整块。这一集的真实运行就是把内核指向 MiniMax，编排层代码一行没改。同进程的内核确实能把模型调用包住；跨进程的那种只负责传输，子进程有没有理你的中间件没人验证过，于是它把这个能力声明成不支持，编译期直接拦掉。宁可现在报错，也别让人以为已经配好了。",
+      "minDurationSec": 20,
+      "bullets": [
+        "换整块内核",
+        "只声明验证过的",
+        "拦在跑之前",
+        "不静默降级"
+      ],
+      "callout": "python -m runtime.runner M03 --real",
+      "audio": "audio/e03-iota.mp3",
+      "frame": "frames/slide-04.png",
+      "slideIndex": 4
+    },
+    {
+      "id": "e03-debug",
+      "type": "debug",
+      "eyebrow": "错误定位",
+      "title": "真实模式跑通了，模型回复却是空的",
+      "symptom": "会话里只有一条空的 assistant 消息，step 数是 1，finish 的 kind 是 error。",
+      "locate": "把这一轮的会话事件按序打出来，看 assistant/attempt 里那条 chunk 的失败原因。",
+      "fix": "适配器把 role=system 的消息提升到 Anthropic 顶层 system 字段，其余消息原样映射。",
+      "narration": "这个坑值得单独讲，因为它的表现最像「链路通了」。命令退出码是零，日志也有，可模型回复是空字符串，step 数停在一。定位办法是把这一轮的会话事件逐条打出来，看 assistant attempt 里那条 chunk：失败原因就写在里面，说的是 system 消息必须走顶层字段。修好之后同一条命令立刻能拿到真实文本。空回复几乎总是翻译问题，不是模型问题。",
+      "minDurationSec": 20,
+      "audio": "audio/e03-debug.mp3",
+      "frame": "frames/slide-05.png",
+      "slideIndex": 5
+    },
+    {
+      "id": "e03-code",
+      "type": "code",
+      "eyebrow": "代码在哪",
+      "title": "适配器最容易写错的一段：system 消息的搬运",
+      "locate": "grep -n 'splitSystem' -A 12 dsh-example/runtime/llm-minimax.ts",
+      "look": "把 role=system 的消息提升到顶层 system 字段，其余消息按序映射",
+      "narration": "代码在哪：dsh-example 的 runtime 目录里那个 MiniMax 适配器，搜 splitSystem 就能定位。这一段做的事很朴素：把角色是 system 的消息挑出来，提升到顶层字段，其余消息按顺序映射。但它是整条真实链路的成败点——不搬，第一步就失败，而失败的表现是空回复而不是报错。你接任何一家兼容接口时，第一件事都该是核对消息映射，而不是先调提示词。",
+      "minDurationSec": 20,
+      "audio": "audio/e03-code.mp3",
+      "frame": "frames/slide-06.png",
+      "slideIndex": 6
+    },
+    {
+      "id": "e03-exercise",
+      "type": "exercise",
+      "eyebrow": "动手练习",
+      "title": "让适配器对不支持的选项显式报错",
+      "change": "给 stream 加一个检查：收到没有官方映射的选项就抛错，而不是忽略。",
+      "verify": "cd dsh-example && npm test",
+      "answer": "新增的用例断言这条路径抛出可读错误；忽略选项的实现会让这条用例失败。",
+      "narration": "练习是给适配器加一条 fail loud。找到 stream 里处理选项的地方，收到没有官方映射的选项就抛错，而不是默默忽略。然后跑 npm test。可验证的答案是那条断言拿到可读的错误信息。为什么值得练这个：忽略一个选项不会让程序崩，只会让你以为它生效了，而这种问题通常要到线上才暴露。",
+      "minDurationSec": 20,
+      "audio": "audio/e03-exercise.mp3",
+      "frame": "frames/slide-07.png",
+      "slideIndex": 7
+    }
+  ]
+}

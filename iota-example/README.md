@@ -6,7 +6,7 @@
 
 - Python `>=3.11,<3.14`
 - iota-core `2026.9.8`，本地 editable source：`../../../codingx/petite/sources/iota-core`
-- 默认全离线；模块进程安装 socket connect fail-closed guard
+- 默认全离线；离线模式的模块进程安装 socket connect fail-closed guard
 - 唯一装配枢纽：`runtime/harness.py`
 - 离线内核：`runtime/kernel_echo.py` 中真实 `KernelAdapter` 子类
 
@@ -33,6 +33,32 @@ env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.run_all
 | [M11 配置与数据设施](M11-config-data-infrastructure/) | 语义等价 + 结构性边界 | profile/store/gateway 等价；凭证附件属宿主 |
 | [M12 框架机制本体](M12-framework-mechanisms/) | 语义等价 + 结构性边界 | 可逆 effect 等价；不搬事件总线/HMR/intercept |
 
+## 三种运行模式
+
+| 模式 | 命令 | 是什么 |
+|---|---|---|
+| **offline** | `python -m runtime.run_all` | 确定性机制测试。`EchoKernelAdapter` + 进程内断网守卫，末行 `IOTA_ALL_OK`。 |
+| **real** | `python -m runtime.runner MXX --real` | 单模块真实 MiniMax 内核，末行 `IOTA_REAL_MODULE_OK`。 |
+| **all:real** | `python -m runtime.run_all --real` | 完整真实验收：12 个模块全部 `IOTA_REAL_MODULE_OK`，末行 `IOTA_REAL_ALL_OK`。 |
+
+真实模式的替换单位是**整个内核**：复用 `iota_core.adapters.claude.ClaudeAdapter`，把它驱动的
+Claude Code CLI 指向 MiniMax 的 Anthropic 兼容端点。编排层代码与模型无关，只有三个环境变量
+（`ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_BASE_URL` / `ANTHROPIC_MODEL`，见被忽略的 `.env`）进入内核子进程。
+
+```bash
+# 真实模式依赖（Claude Agent SDK + PATH 上的 claude CLI）
+env -u PYTHONHOME -u PYTHONPATH uv sync --extra dev --extra real
+
+env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M07 --real
+env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.run_all --real
+```
+
+启动前 `runtime/kernel_minimax.preflight()` 会检查凭证、SDK 与 CLI，缺任何一项立即失败：
+真实模式**不会**退回 `EchoKernelAdapter`，离线演示必须显式用 `IOTA_PROVIDER=echo`。
+
+每个真实模块先打印真实模型、真实内核、真实响应与事件序列，再打印三类边界：
+MiniMax-backed kernel 行为 / iota 编排层本地机制断言 / 明确不属于 iota 的内核能力。
+
 ## 单模块运行
 
 所有模块通过同一个教学运行器启动，例如：
@@ -42,12 +68,17 @@ env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M03
 env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M12
 ```
 
-运行时先输出学习目标、观察点和结论，随后输出结构化 JSON 与 `IOTA_MODULE_OK <目录名>`。任何出网尝试会抛出 `OfflineViolation`。
+运行时先输出学习目标、观察点和结论，随后输出结构化 JSON 与 `IOTA_MODULE_OK <目录名>`。离线模式下任何出网尝试会抛出 `OfflineViolation`。
 
 ## 质量闸门
 
 ```bash
 env -u PYTHONHOME -u PYTHONPATH .venv/bin/ruff check .
 env -u PYTHONHOME -u PYTHONPATH .venv/bin/mypy
-env -u PYTHONHOME -u PYTHONPATH .venv/bin/pytest -q
+env -u PYTHONHOME -u PYTHONPATH .venv/bin/pytest -q          # 含 tests/test_real.py：缺凭证必须 fail loud
+env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.run_all         # offline
+env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.run_all --real  # all:real
 ```
+
+`tests/test_real.py` 全程离线，它验证的是真实模式的纪律而不是模型输出：未知 provider 被拒绝、
+缺凭证时报错并指出配置来源、`minimax` 不会退化成 `echo`、只有三个变量进入内核、脱敏后不含密钥。

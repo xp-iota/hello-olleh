@@ -43,14 +43,15 @@ class Gateway:
         return []
 
 
-async def run(_harness: WorkshopHarness) -> dict[str, Any]:
+async def run(harness: WorkshopHarness) -> dict[str, Any]:
     gateway = Gateway()
     context = await MemoryContextService(memory_gateway=gateway).build_prompt_prefix(
         user_scope_id="user-a",
         project_scope_id="project-a",
         session_scope_id="session-a",
     )
-    default_policy = AgentConfig(name="m02", kernel="echo")
+    # kernel 名取自当前装配（echo 或真实内核），示例不硬编码某一个内核。
+    default_policy = AgentConfig(name="m02", kernel=harness.kernel)
     require(context.included_count == 1, "只注入一条匹配记忆", context.included_count)
     require("回答保持简洁" in context.text, "渲染召回的记忆正文", context.text)
     require(

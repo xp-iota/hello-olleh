@@ -1,0 +1,37 @@
+{
+  "audio/e11-task.mp3": {
+    "path": "audio/e11-task.mp3",
+    "durationSec": 28.56,
+    "chars": 129
+  },
+  "audio/e11-terminal.mp3": {
+    "path": "audio/e11-terminal.mp3",
+    "durationSec": 47.832,
+    "chars": 205
+  },
+  "audio/e11-dsh.mp3": {
+    "path": "audio/e11-dsh.mp3",
+    "durationSec": 48.552,
+    "chars": 210
+  },
+  "audio/e11-iota.mp3": {
+    "path": "audio/e11-iota.mp3",
+    "durationSec": 48.6,
+    "chars": 229
+  },
+  "audio/e11-debug.mp3": {
+    "path": "audio/e11-debug.mp3",
+    "durationSec": 32.832,
+    "chars": 147
+  },
+  "audio/e11-code.mp3": {
+    "path": "audio/e11-code.mp3",
+    "durationSec": 30.168,
+    "chars": 153
+  },
+  "audio/e11-exercise.mp3": {
+    "path": "audio/e11-exercise.mp3",
+    "durationSec": 22.224,
+    "chars": 96
+  }
+}

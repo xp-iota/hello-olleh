@@ -1,0 +1,29 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M04 --real
+
+[claude-code:unrecognized_model] {"model":"MiniMax-M3","query_source":"sdk"}
+[claude-code:unrecognized_model] {"model":"MiniMax-M3","query_source":"sdk"}
+
+████ M04 · Agent 循环与干预面 ████
+学习目标：区分标准事件流、节点 hook 与内核运行中的消息注入。
+运行时观察：
+  1. AgentEvent 顺序
+  2. after_node_result 的执行
+  3. mid-turn 注入是否属于编排契约
+真实内核证据：
+  - 真实模型: MiniMax-M3
+  - 真实内核: claude（claude-agent-sdk + claude）
+  - 真实响应: 标准事件流是节点上报、Hook 拦截回调、内核注入直接替换运行时消息。
+  - 事件序列: step_start, system_init, thinking, text_delta, final, step_end
+三类边界：
+  - MiniMax-backed kernel 行为: 内核在真实循环里产出标准事件流，节点边界之外的过程属于它。
+  - iota 编排层本地机制断言 : 节点 hook 与图运行状态在本地断言，与具体内核无关。
+  - 明确不属于 iota 的能力  : 进行中循环的 mid-turn 注入不属于编排契约。
+验证结果：
+  - events: ["step_start", "system_init", "thinking", "text_delta", "tool_call", "tool_result", "thinking", "tool_call", "tool_result", "tool_call", "tool_result", "thinking", "text_delta", "final", "step_end"]
+  - node_hook: [["observe", "succeeded"]]
+  - mid_turn_injection: "not an orchestrator contract"
+对照关系：语义等价 + 结构性边界
+结论：节点边界可观察、可扩展；进行中循环仍由具体内核拥有。
+{"events": ["step_start", "system_init", "thinking", "text_delta", "tool_call", "tool_result", "thinking", "tool_call", "tool_result", "tool_call", "tool_result", "thinking", "text_delta", "final", "step_end"], "mid_turn_injection": "not an orchestrator contract", "module": "M04", "node_hook": [["observe", "succeeded"]], "relationship": "语义等价 + 结构性边界", "status": "ok"}
+IOTA_REAL_MODULE_OK M04-agent-loop-intervention kernel=claude model=MiniMax-M3 chars=35 events=6
+[exit 0]

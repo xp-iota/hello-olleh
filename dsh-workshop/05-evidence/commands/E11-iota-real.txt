@@ -1,0 +1,29 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M11 --real
+
+[claude-code:unrecognized_model] {"model":"MiniMax-M3","query_source":"sdk"}
+
+████ M11 · 配置与数据设施 ████
+学习目标：区分 profile 投影、可换存储协议与宿主持有的凭证/附件。
+运行时观察：
+  1. profile 文件是否真实生成
+  2. 不支持的布局是否拒绝
+  3. ConversationStore 是否可替换
+真实内核证据：
+  - 真实模型: MiniMax-M3
+  - 真实内核: claude（claude-agent-sdk + claude）
+  - 真实响应: 投影是视图，存储协议管数据，宿主凭证是设备级密钥。
+  - 事件序列: step_start, system_init, thinking, text_delta, final, step_end
+三类边界：
+  - MiniMax-backed kernel 行为: 内核在本次配置投影下真实启动并作答。
+  - iota 编排层本地机制断言 : profile 投影、不支持布局的拒绝与可替换存储协议在本地断言。
+  - 明确不属于 iota 的能力  : 凭证与附件归宿主，不塞进 AgentConfig。
+验证结果：
+  - profile: "projected"
+  - storage: "memory"
+  - dsh_profile_refusal: "config_profile is not supported for adapter 'dsh': it has no iota-managed config home to project into. Adapters that do: ['claude', 'hermes', 'hermes_direct']. Point the kernel at its own config file via 'command' instead (dsh: --config <cordis.yml>), and use 'env' for anything else it needs."
+  - credentials_attachments: "host-owned"
+对照关系：语义等价 + 结构性边界
+结论：配置和会话存储可治理；凭证与附件不应被硬塞进 AgentConfig。
+{"credentials_attachments": "host-owned", "dsh_profile_refusal": "config_profile is not supported for adapter 'dsh': it has no iota-managed config home to project into. Adapters that do: ['claude', 'hermes', 'hermes_direct']. Point the kernel at its own config file via 'command' instead (dsh: --config <cordis.yml>), and use 'env' for anything else it needs.", "module": "M11", "profile": "projected", "relationship": "语义等价 + 结构性边界", "status": "ok", "storage": "memory"}
+IOTA_REAL_MODULE_OK M11-config-data-infrastructure kernel=claude model=MiniMax-M3 chars=25 events=6
+[exit 0]

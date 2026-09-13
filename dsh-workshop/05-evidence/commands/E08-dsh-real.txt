@@ -1,0 +1,49 @@
+$ cd dsh-example && npm run M08:real
+
+
+> @example/dsh-examples@0.0.0 M08:real
+> DSH_REAL=1 node M08-delegation-presets/run-real.ts
+
+
+████ M08 · 委派与预设：Provider、组合、权限与模型选择 —— 真实 MiniMax 模式 ████
+provider=minimax-m3 model=MiniMax-M3 endpoint=<minimax-anthropic-compat> timeout=120000ms
+
+════════ M08.1 · 注册子代理 Provider，并显式包装成工具（kind=mechanism）════════
+  ↳ 入口 probe 真实回复: "装配链已连通 M08.1"
+① 已注册子代理 provider: [ 'local-reviewer' ]
+② 已注册模型可见工具: [ 'review_with_subagent' ]
+
+----- 模型调用 review_with_subagent（触发一次委派）-----
+[event] subagent/start → provider=local-reviewer child=local-reviewer-1 local=false
+[event] subagent/end   → runId=31e3d3ff-9c9c-4923-8b06-f08bb68fb212 stopReason=completed
+③ canonical value: {
+  text: '【子代理·local-reviewer】已评审：「检查这个支付模块 diff」 → 结论：可合并，建议补边界测试。',
+  childId: 'local-reviewer-1',
+  stopReason: 'completed'
+}
+④ render 给模型看: 【子代理·local-reviewer】已评审：「检查这个支付模块 diff」 → 结论：可合并，建议补边界测试。
+REAL_STAGE_OK M08.1 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=1476 in=0 out=9 finish=stop tools=- text="装配链已连通 M08.1"
+
+════════ M08.2 · 装配不扫描用户目录的空 preset roster（kind=mechanism）════════
+  ↳ 入口 probe 真实回复: "装配链已连通 M08.2"
+agentPresets: { service: 'AgentPresets', configuredRoots: 0, discovered: 0 }
+REAL_STAGE_OK M08.2 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=1861 in=0 out=9 finish=stop tools=- text="装配链已连通 M08.2"
+
+════════ M08.3 · 拒绝未隔离 shell 的权限预设（kind=mechanism）════════
+  ↳ 入口 probe 真实回复: "装配链已连通 M08.3"
+permissionPresets: {
+  failLoud: true,
+  reason: 'permission: the mounted bash executor does not confine (no sandboxMode) — presets bundle a sandbox mode, so composing this plugin over an unconfined executor is a misconfiguration'
+}
+REAL_STAGE_OK M08.3 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=1121 in=0 out=9 finish=stop tools=- text="装配链已连通 M08.3"
+
+════════ M08.4 · 配置子代理精确模型路由（kind=mechanism）════════
+  ↳ 入口 probe 真实回复: "装配链已连通 M08.4"
+subagentModelSelection: {
+  enabled: true,
+  allowedModels: [ { provider: 'mock', model: 'mock-1' } ]
+}
+REAL_STAGE_OK M08.4 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=943 in=0 out=9 finish=stop tools=- text="装配链已连通 M08.4"
+
+REAL_MODULE_OK M08 stages=4 calls=4 failed=0
+[exit 0]

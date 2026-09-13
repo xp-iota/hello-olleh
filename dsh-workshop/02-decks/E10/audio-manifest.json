@@ -1,0 +1,37 @@
+{
+  "audio/e10-task.mp3": {
+    "path": "audio/e10-task.mp3",
+    "durationSec": 29.112,
+    "chars": 138
+  },
+  "audio/e10-terminal.mp3": {
+    "path": "audio/e10-terminal.mp3",
+    "durationSec": 47.016,
+    "chars": 203
+  },
+  "audio/e10-dsh.mp3": {
+    "path": "audio/e10-dsh.mp3",
+    "durationSec": 51.192,
+    "chars": 221
+  },
+  "audio/e10-iota.mp3": {
+    "path": "audio/e10-iota.mp3",
+    "durationSec": 50.16,
+    "chars": 236
+  },
+  "audio/e10-debug.mp3": {
+    "path": "audio/e10-debug.mp3",
+    "durationSec": 29.544,
+    "chars": 132
+  },
+  "audio/e10-code.mp3": {
+    "path": "audio/e10-code.mp3",
+    "durationSec": 30.168,
+    "chars": 144
+  },
+  "audio/e10-exercise.mp3": {
+    "path": "audio/e10-exercise.mp3",
+    "durationSec": 24.216,
+    "chars": 109
+  }
+}

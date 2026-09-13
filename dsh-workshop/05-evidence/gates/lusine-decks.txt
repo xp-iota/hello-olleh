@@ -1,6 +1,0 @@
-Deck valid: 01-dsh-capabilities (16 slides).
-Audio entries: 16.
-Deck valid: 02-iota-alignment (14 slides).
-Audio entries: 14.
-Deck valid: 03-boundaries-selection (10 slides).
-Audio entries: 10.

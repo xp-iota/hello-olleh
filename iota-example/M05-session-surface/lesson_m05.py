@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from runtime.harness import WorkshopHarness
-from runtime.teaching import require, require_not_none
+from runtime.teaching import require, require_event_order, require_not_none
 
 
 async def run(harness: WorkshopHarness) -> dict[str, Any]:
@@ -23,10 +23,8 @@ async def run(harness: WorkshopHarness) -> dict[str, Any]:
     )
     run_record = require_not_none(run_record, "RunStore 返回运行记录")
     require(run_record["status"] == "succeeded", "运行记录状态成功", run_record)
-    require(
-        [event.type for event in events] == ["system_init", "text_delta", "final"],
-        "RunStore 保持事件顺序",
-        [event.type for event in events],
+    require_event_order(
+        [event.type for event in events], ("system_init", "text_delta", "final")
     )
     require(
         "sequence" not in event_fields, "事件 schema 不承诺 DSH sequence 字段", list(event_fields)

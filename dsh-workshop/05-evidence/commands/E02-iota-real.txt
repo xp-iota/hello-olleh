@@ -1,0 +1,28 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M02 --real
+
+[claude-code:unrecognized_model] {"model":"MiniMax-M3","query_source":"sdk"}
+
+████ M02 · 上下文装配与经济学 ████
+学习目标：观察作用域记忆如何进入 Prompt，并识别仍由内核拥有的压缩边界。
+运行时观察：
+  1. user/project/session scope
+  2. 记忆注入的默认开关
+  3. 编排层是否声明 compression seam
+真实内核证据：
+  - 真实模型: MiniMax-M3
+  - 真实内核: claude（claude-agent-sdk + claude）
+  - 真实响应: 作用域记忆由内核序列化注入Prompt，压缩边界仍由内核在调用模型前截断摘要。
+  - 事件序列: step_start, system_init, thinking, text_delta, final, step_end
+三类边界：
+  - MiniMax-backed kernel 行为: 内核自己装配完整 Prompt 并决定历史怎么进上下文。
+  - iota 编排层本地机制断言 : 作用域记忆前缀的拼装、默认关闭开关与 AgentConfig 字段边界在本地断言。
+  - 明确不属于 iota 的能力  : Prompt 完整装配与历史压缩由内核拥有，AgentConfig 不伪造 compression seam。
+验证结果：
+  - scope: "session-a"
+  - default_injection: false
+  - compression_seam: "kernel-owned"
+对照关系：语义等价 + 结构性边界
+结论：iota 能组织作用域记忆；模型请求的完整装配与压缩仍属于内核。
+{"compression_seam": "kernel-owned", "default_injection": false, "module": "M02", "relationship": "语义等价 + 结构性边界", "scope": "session-a", "status": "ok"}
+IOTA_REAL_MODULE_OK M02-context-assembly-economics kernel=claude model=MiniMax-M3 chars=39 events=6
+[exit 0]

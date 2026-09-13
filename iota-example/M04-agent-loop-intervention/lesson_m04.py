@@ -7,7 +7,7 @@ from typing import Any
 from iota_core.graph import GraphSpec, NodeSpec
 
 from runtime.harness import WorkshopHarness
-from runtime.teaching import require
+from runtime.teaching import require, require_event_order
 
 
 async def run(harness: WorkshopHarness) -> dict[str, Any]:
@@ -37,10 +37,8 @@ async def run(harness: WorkshopHarness) -> dict[str, Any]:
         harness.agent(name="m04-graph"), harness.runtime.register_graph(graph), {"v": 7}
     )
     require(result.status == "succeeded", "图运行成功", result.status)
-    require(
-        [event.type for event in events] == ["system_init", "text_delta", "final"],
-        "事件顺序为 init/delta/final",
-        [event.type for event in events],
+    require_event_order(
+        [event.type for event in events], ("system_init", "text_delta", "final")
     )
     require(seen == [("observe", "succeeded")], "after_node_result 观察成功结果", seen)
     return {

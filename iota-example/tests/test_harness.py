@@ -5,10 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from runtime.harness import create_harness
+from runtime.kernel_echo import EchoKernelAdapter
 
 
 async def test_real_echo_adapter_round_trip() -> None:
-    harness = await create_harness()
+    # 显式选 echo：离线套件不受 IOTA_PROVIDER 影响，真实模式必须显式要求。
+    harness = await create_harness("echo")
     try:
         result = await harness.run("hello")
         assert result.final_text == "echo:hello"
@@ -17,7 +19,10 @@ async def test_real_echo_adapter_round_trip() -> None:
             "text_delta",
             "final",
         ]
+        # 离线内核的具体类型在这条测试里是重点：它必须是那个确定性适配器。
+        assert isinstance(harness.adapter, EchoKernelAdapter)
         assert harness.adapter.started
+        assert harness.kernel == "echo" and harness.real is False
         assert harness.capabilities is not None
         assert harness.capabilities.streaming
     finally:

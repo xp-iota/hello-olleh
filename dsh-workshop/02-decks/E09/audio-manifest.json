@@ -1,0 +1,37 @@
+{
+  "audio/e09-task.mp3": {
+    "path": "audio/e09-task.mp3",
+    "durationSec": 28.272,
+    "chars": 128
+  },
+  "audio/e09-terminal.mp3": {
+    "path": "audio/e09-terminal.mp3",
+    "durationSec": 55.848,
+    "chars": 256
+  },
+  "audio/e09-dsh.mp3": {
+    "path": "audio/e09-dsh.mp3",
+    "durationSec": 44.904,
+    "chars": 197
+  },
+  "audio/e09-iota.mp3": {
+    "path": "audio/e09-iota.mp3",
+    "durationSec": 50.256,
+    "chars": 237
+  },
+  "audio/e09-debug.mp3": {
+    "path": "audio/e09-debug.mp3",
+    "durationSec": 28.896,
+    "chars": 131
+  },
+  "audio/e09-code.mp3": {
+    "path": "audio/e09-code.mp3",
+    "durationSec": 29.592,
+    "chars": 158
+  },
+  "audio/e09-exercise.mp3": {
+    "path": "audio/e09-exercise.mp3",
+    "durationSec": 23.88,
+    "chars": 105
+  }
+}

@@ -132,9 +132,42 @@ function toAnthropicNestedBlock(block: ContentBlock): Record<string, unknown> {
   }
 }
 
+/**
+ * 真实 agent-loop 把 System Prompt 当成一条 `role: 'system'` 的消息放进
+ * `options.messages`，而 Anthropic Messages API 只接受顶层 `system`。这里把两个来源
+ * 按出现顺序合并成 text block 数组：
+ *   1. `GenerateOptions.system`（调用方显式传入的那一段）
+ *   2. `messages` 里所有 role=system 消息的 text block
+ *
+ * 不做这一步，真实链路会在第一个 step 就 finish 成 `{kind:'error'}`，会话日志里只剩
+ * 一条空 assistant —— 看起来"跑通了"，其实模型从未回答。
+ */
+function splitSystem(options: GenerateOptions): {
+  system: Array<{ type: 'text'; text: string }>
+  messages: readonly Message[]
+} {
+  const system: Array<{ type: 'text'; text: string }> = []
+  if (options.system) system.push({ type: 'text', text: options.system })
+  const messages: Message[] = []
+  for (const message of options.messages) {
+    if (message.role !== 'system') {
+      messages.push(message)
+      continue
+    }
+    for (const block of message.content) {
+      if (block.type !== 'text') {
+        throw new Error(`minimax: system 消息只支持 text block，收到 ${JSON.stringify(block.type)}`)
+      }
+      if (block.text) system.push({ type: 'text', text: block.text })
+    }
+  }
+  return { system, messages }
+}
+
 /** dsh provider-neutral message → Anthropic Messages API message。 */
 function toAnthropicMessage(message: Message): Record<string, unknown> {
   if (message.role === 'system') {
+    // splitSystem 已把 system 消息摘走；走到这里说明调用方绕过了它。
     throw new Error('minimax: system 消息必须通过 GenerateOptions.system 传入')
   }
   const replay = replayBlocks(message)
@@ -206,6 +239,7 @@ export class MinimaxAnthropicAdapter extends LlmAdapter {
     }
 
     const model = options.model ?? this.defaultModel
+    const { system, messages } = splitSystem(options)
     const response = await fetch(`${this.baseUrl}/v1/messages`, {
       method: 'POST',
       headers: {
@@ -217,11 +251,11 @@ export class MinimaxAnthropicAdapter extends LlmAdapter {
         model,
         max_tokens: options.maxTokens ?? 2048,
         stream: true,
-        ...(options.system ? { system: options.system } : {}),
+        ...(system.length ? { system } : {}),
         ...(options.tools?.length ? { tools: options.tools.map(toAnthropicTool) } : {}),
         ...(options.temperature === undefined ? {} : { temperature: options.temperature }),
         ...(options.stop?.length ? { stop_sequences: options.stop } : {}),
-        messages: options.messages.map(toAnthropicMessage),
+        messages: messages.map(toAnthropicMessage),
       }),
       signal: options.signal ?? null,
     })

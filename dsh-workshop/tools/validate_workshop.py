@@ -1,4 +1,18 @@
-"""Executable checks for the single Harness lecture bundle (deck, video, evidence)."""
+"""Executable acceptance checks for the twelve-episode course.
+
+The gate answers one question per check, and every answer comes from a file or a probe rather
+than from a claim in a document:
+
+* structure  — twelve episodes, nothing left over from any earlier shape of this course;
+* first ten seconds — the opening frame carries task, command and expected result, and the video
+  really starts on that frame instead of a static title card;
+* evidence   — each episode's terminal content comes from a captured real run that exited 0;
+* narration  — no build-process talk, no internal jargon, no assistant self-reference;
+* media      — per-episode runtime, resolution, codecs, speech ratio and terminal legibility;
+* redaction  — no credential, endpoint, request header or local path in any evidence file;
+* outputs    — 04-out holds exactly the twelve videos and twelve decks.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -12,38 +26,46 @@ import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-ROOT = Path(__file__).resolve().parents[2]
-WORKSHOP = ROOT / "dsh-workshop"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from build_course import terminal_rows  # noqa: E402
+
+WORKSHOP = Path(__file__).resolve().parents[1]
+ROOT = WORKSHOP.parent
 FFMPEG = "/opt/homebrew/bin/ffmpeg"
 FFPROBE = "/opt/homebrew/bin/ffprobe"
-COURSE = "harness-course"
-EXPECTED_SLIDES = 40
-# One continuous lecture: bounded, not exact, because narration length drives each page.
-MIN_RUNTIME_SEC = 1800.0
-MAX_RUNTIME_SEC = 2700.0
-# Long silent stretches read as filler, so they fail the gate instead of shipping.
+
+EPISODE_IDS = tuple(f"E{index:02d}" for index in range(1, 13))
+SLIDES_PER_EPISODE = 7
+MIN_EPISODE_SEC = 240.0
+MAX_EPISODE_SEC = 420.0
 MIN_SPEECH_RATIO = 0.90
-# The chapter decks stay the authoring source for narration and audio.
-CHAPTER_DECKS = ("01-dsh-capabilities", "02-iota-alignment", "03-boundaries-selection")
-# Working vocabulary that must never reach the audience.
-INTERNAL_TERMS = (
-    "A+C", "B+C", "A-reverse", "三分类", "判据", "类 A", "类 B", "类 C",
-    "D7", "徽标", "schemaVersion", "presentation.json",
+MIN_TASK_FRAME_SEC = 10.0
+# 与 build_course 的终端面板保持同一套度量：字号 16、面板宽度、可容纳行数。
+TERMINAL_SIZE = 16
+TERMINAL_LIMIT = 1280 - 144 - 40
+MAX_TERMINAL_ROWS = 17
+
+# Talking about how this course, its examples or its documents were produced is off-topic.
+BUILD_PROCESS = (
+    "本课程", "本教程", "这套教材", "我建设", "我搭建", "我整理", "我制作", "我编写了这份",
+    "示例工程是怎么", "教学工程", "讲稿", "旁白", "配音", "分镜", "第一批", "第二批", "批次",
+    "PPT", "幻灯片", "presentation.json", "schemaVersion", "deck", "验收器", "交付物",
+    "作为 AI", "作为人工智能", "我是一个语言模型", "作为助手",
 )
 AI_TONE = (
-    "关键结论是", "这个拆分很重要", "值得注意的是", "综上", "本讲将", "本节",
-    "旨在", "需要强调的是", "总而言之", "首先，", "其次，", "最后，",
+    "关键结论是", "这个拆分很重要", "值得注意的是", "综上", "旨在", "需要强调的是",
+    "总而言之", "首先，", "其次，", "最后，",
 )
 SENSITIVE = {
-    "git service": r"gitlab",
-    "package host": r"nexus",
+    "credential": r"sk-[A-Za-z0-9]{8,}",
+    "jwt": r"eyJ[A-Za-z0-9._-]{16,}",
     "URL": r"https?://",
-    "email": r"@[\w.-]+",
-    "password": r"password",
-    "token assignment": r"token\s*[:=]",
-    "credential assignment": r"credential\s*[:=]",
+    "request header": r"x-api-key:\s*[^<\s]",
     "macOS user path": r"/Users/",
     "Linux user path": r"/home/",
+    "package host": r"nexus",
+    "git service": r"gitlab",
 }
 
 
@@ -59,85 +81,127 @@ def probe(path: Path, *, audio_only: bool = False) -> dict:
     return json.loads(subprocess.check_output(command, text=True))
 
 
-def markdown_parts(path: Path) -> tuple[list[str], list[str]]:
-    value = path.read_text(encoding="utf-8")
-    narrations = re.findall(r"\*\*旁白\*\*\n\n(.*?)\n\n\*\*复现命令\*\*", value, re.S)
-    commands = re.findall(r"\*\*复现命令\*\*\n\n```bash\n(.*?)\n```", value, re.S)
-    return narrations, commands
+def psnr(first: Path, second: Path) -> float:
+    output = subprocess.run(
+        [FFMPEG, "-hide_banner", "-v", "error", "-i", str(first), "-i", str(second),
+         "-lavfi", "psnr=stats_file=-", "-f", "null", "-"],
+        text=True, capture_output=True, check=True).stdout
+    match = re.search(r"psnr_avg:([\d.]+|inf)", output)
+    assert match, f"psnr probe failed for {first.name}"
+    return math.inf if match.group(1) == "inf" else float(match.group(1))
 
 
 def check_brief() -> None:
     brief = json.loads((WORKSHOP / "00-brief" / "topic-brief.json").read_text(encoding="utf-8"))
-    assert brief["schemaVersion"] == 1
-    assert brief["kind"] == "topic-intent"
-    assert brief["status"] == "confirmed"
-    required_names = (
-        "topic", "objective", "audience", "scope", "entities", "angle", "tone", "language",
-        "slideCount", "durationMinutes", "outputs", "visualDirection",
-    )
-    assert len(required_names) == 12
-    assert all(brief.get(name) not in (None, "", []) for name in required_names)
-    print("BRIEF_OK brief=confirmed required=12")
+    assert brief["schemaVersion"] == 1 and brief["status"] == "confirmed"
+    required = ("topic", "objective", "audience", "scope", "entities", "angle", "tone",
+                "language", "slideCount", "durationMinutes", "outputs", "visualDirection")
+    assert all(brief.get(name) not in (None, "", []) for name in required)
+    print(f"BRIEF_OK required={len(required)}")
 
 
-def xml_text(payload: bytes) -> str:
-    root = ET.fromstring(payload)
-    return "".join(node.text or "" for node in root.iter() if node.tag.endswith("}t"))
+def check_structure() -> None:
+    decks = sorted(path.name for path in (WORKSHOP / "02-decks").iterdir() if path.is_dir())
+    assert decks == list(EPISODE_IDS), f"02-decks 只应有 12 集：{decks}"
+    scripts = sorted(path.stem for path in (WORKSHOP / "01-scripts").glob("*.md"))
+    assert scripts == list(EPISODE_IDS), f"01-scripts 只应有 12 份讲稿：{scripts}"
+    public = sorted(path.name for path in (WORKSHOP / "03-public").iterdir() if path.is_dir())
+    assert public == list(EPISODE_IDS), f"03-public 只应有 12 集资源：{public}"
+    videos = sorted(path.name for path in (WORKSHOP / "04-out").glob("*.mp4"))
+    decks_out = sorted(path.name for path in (WORKSHOP / "04-out").glob("*.pptx"))
+    assert videos == [f"{name}.mp4" for name in EPISODE_IDS], videos
+    assert decks_out == [f"{name}.pptx" for name in EPISODE_IDS], decks_out
+    extra = sorted(path.name for path in (WORKSHOP / "04-out").iterdir()
+                   if path.suffix not in {".mp4", ".pptx"} or path.is_dir())
+    assert not extra, f"04-out 只允许 12 个视频与 12 份 PPT：{extra}"
+    print("STRUCTURE_OK episodes=12 videos=12 decks=12 scripts=12")
 
 
-def check_chapter_sources(course_slides: list[dict]) -> None:
-    """The merged course must carry exactly the chapter narration, in order."""
-    chapter_narration: list[str] = []
-    for name in CHAPTER_DECKS:
-        deck = json.loads((WORKSHOP / "02-decks" / name / "presentation.json").read_text(encoding="utf-8"))
-        chapter_narration.extend(slide["narration"] for slide in deck["slides"])
-    assert [slide["narration"] for slide in course_slides] == chapter_narration
-    chapters = {slide["chapter"] for slide in course_slides}
-    assert chapters == {1, 2, 3}, chapters
-    print(f"SOURCE_OK chapters=3 narration_pages={len(chapter_narration)}")
+def markdown_narrations(path: Path) -> list[str]:
+    value = path.read_text(encoding="utf-8")
+    return re.findall(r"\*\*旁白\*\*\n\n(.*?)\n\n", value, re.S)
 
 
-def check_course() -> list[str]:
-    deck_dir = WORKSHOP / "02-decks" / COURSE
-    public_dir = WORKSHOP / "03-public" / COURSE
+def check_evidence_redaction() -> None:
+    directory = WORKSHOP / "05-evidence" / "commands"
+    files = sorted(directory.glob("*.txt"))
+    expected = {f"{name}-dsh-real.txt" for name in EPISODE_IDS}
+    expected |= {f"{name}-iota-real.txt" for name in EPISODE_IDS}
+    actual = {path.name for path in files}
+    assert actual == expected, f"证据文件应为 24 份真实运行日志：{sorted(actual ^ expected)}"
+    for path in files:
+        text = path.read_text(encoding="utf-8")
+        hits = [label for label, pattern in SENSITIVE.items() if re.search(pattern, text, re.I)]
+        assert not hits, f"{path.name} 含敏感内容：{hits}"
+        assert "[exit 0]" in text, f"{path.name} 不是一次成功的真实运行"
+    print(f"EVIDENCE_OK logs={len(files)} redaction=clean exit=0")
+
+
+def check_episode(episode_id: str) -> dict:
+    deck_dir = WORKSHOP / "02-decks" / episode_id
+    public = WORKSHOP / "03-public" / episode_id
     deck = json.loads((deck_dir / "presentation.json").read_text(encoding="utf-8"))
     manifest = json.loads((deck_dir / "audio-manifest.json").read_text(encoding="utf-8"))
     slides = deck["slides"]
-    assert deck["id"] == COURSE
-    assert len(slides) == EXPECTED_SLIDES and len(manifest) == EXPECTED_SLIDES
+    assert deck["id"] == episode_id and deck["kind"] == "episode"
+    assert len(slides) == SLIDES_PER_EPISODE, (episode_id, len(slides))
+    assert [slide["slideIndex"] for slide in slides] == list(range(1, SLIDES_PER_EPISODE + 1))
     assert all(re.fullmatch(r"[a-z0-9-]+", slide["id"]) for slide in slides)
-    assert all(len(slide.get("stats", [])) <= 4 for slide in slides)
-    assert all(len(slide.get("nodes", [])) <= 5 for slide in slides)
-    assert [slide["courseIndex"] for slide in slides] == list(range(1, EXPECTED_SLIDES + 1))
-    check_chapter_sources(slides)
 
-    script = WORKSHOP / "01-scripts" / f"{COURSE}.md"
-    narrations, commands = markdown_parts(script)
-    assert narrations == [slide["narration"] for slide in slides]
-    assert len(commands) == EXPECTED_SLIDES
+    # --- 前 10 秒：任务、命令、结果 --------------------------------------------
+    opening = slides[0]
+    assert opening["type"] == "task", f"{episode_id} 首页必须是任务页，而不是静态标题页"
+    for field in ("task", "command", "expect"):
+        assert str(opening.get(field, "")).strip(), f"{episode_id} 首页缺少 {field}"
+    assert float(opening["minDurationSec"]) >= MIN_TASK_FRAME_SEC
+    token = re.split(r"[ &|]", opening["command"].strip())[-1]
+    narration = opening["narration"]
+    assert token in narration or opening["command"].split()[-1] in narration, (
+        f"{episode_id} 首页旁白没有念出命令")
+    assert any(part and part in narration for part in re.split(r"[，、；：]", opening["expect"])[:3]), (
+        f"{episode_id} 首页旁白没有念出预期结果")
 
+    # --- 真实命令、真实输出、练习 --------------------------------------------
+    terminal = next(slide for slide in slides if slide["type"] == "terminal")
+    assert terminal["evidenceText"], f"{episode_id} 终端页没有真实输出"
+    log = (WORKSHOP / "05-evidence" / "commands" / terminal["evidence"]).read_text(encoding="utf-8")
+    for line in terminal["evidenceText"]:
+        assert line in log, f"{episode_id} 终端页有一行不来自真实日志：{line[:40]}"
+    # 可读性用渲染器同一套度量校验：折行后不能超过两行，整屏不能溢出面板。
+    rows = terminal_rows([f'$ {terminal["command"]}', *terminal["evidenceText"][1:]],
+                         TERMINAL_SIZE, TERMINAL_LIMIT)
+    assert len(rows) <= MAX_TERMINAL_ROWS, f"{episode_id} 终端页 {len(rows)} 行超出面板容量"
+    exercise = next(slide for slide in slides if slide["type"] == "exercise")
+    for field in ("change", "verify", "answer"):
+        assert str(exercise.get(field, "")).strip(), f"{episode_id} 练习页缺少 {field}"
+
+    # --- 讲稿与旁白逐字一致 --------------------------------------------------
+    script = WORKSHOP / "01-scripts" / f"{episode_id}.md"
+    assert markdown_narrations(script) == [slide["narration"] for slide in slides]
+
+    # --- 旁白用词纪律 --------------------------------------------------------
+    spoken = "\n".join(slide["narration"] for slide in slides)
+    leaked = [term for term in BUILD_PROCESS if term in spoken]
+    assert not leaked, f"{episode_id} 旁白出现建设过程/内部用语：{leaked}"
+    tone = [term for term in AI_TONE if term in spoken]
+    assert not tone, f"{episode_id} 旁白出现 AI 腔句式：{tone}"
+    hits = [label for label, pattern in SENSITIVE.items() if re.search(pattern, spoken, re.I)]
+    assert not hits, f"{episode_id} 旁白出现敏感信息：{hits}"
+
+    # --- 音频与画面 ----------------------------------------------------------
     frames = 0
+    speech = 0.0
     for slide in slides:
         for asset in (slide["audio"], slide["frame"]):
             assert not Path(asset).is_absolute() and ".." not in Path(asset).parts
-        frame_path = public_dir / slide["frame"]
-        frame_info = probe(frame_path)
+        frame_info = probe(public / slide["frame"])
         stream = next(item for item in frame_info["streams"] if item["codec_type"] == "video")
         assert (int(stream["width"]), int(stream["height"])) == (deck["width"], deck["height"])
-        picture = slide.get("image")
-        if picture:
-            assert picture["alt"].strip()
-            image_path = public_dir / picture["src"]
-            image_info = probe(image_path)
-            image_stream = next(item for item in image_info["streams"] if item["codec_type"] == "video")
-            assert int(image_stream["width"]) >= 1280 and int(image_stream["height"]) >= 468
         entry = manifest[slide["audio"]]
-        assert entry["path"] == slide["audio"]
-        audio_path = public_dir / slide["audio"]
+        audio_path = public / slide["audio"]
         info = probe(audio_path, audio_only=True)
-        audio_stream = info["streams"][0]
         duration = float(info["format"]["duration"])
-        assert audio_stream["codec_name"] == "mp3"
+        assert info["streams"][0]["codec_name"] == "mp3"
         assert abs(duration - float(entry["durationSec"])) < 0.05
         level = subprocess.run(
             [FFMPEG, "-hide_banner", "-nostats", "-i", str(audio_path), "-af", "volumedetect",
@@ -145,105 +209,95 @@ def check_course() -> list[str]:
             text=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True).stderr
         match = re.search(r"max_volume:\s*(-?(?:\d+(?:\.\d+)?|inf)) dB", level)
         assert match and match.group(1) != "-inf" and float(match.group(1)) > -50, audio_path
-        minimum = float(slide["minDurationSec"]) * int(deck["fps"])
+        speech += duration
+        floor = float(slide["minDurationSec"]) * int(deck["fps"])
         narrated = duration * int(deck["fps"]) + int(deck["tailFrames"])
-        frames += max(1, math.ceil(max(minimum, narrated)))
+        frames += max(1, math.ceil(max(floor, narrated)))
+    assert float(manifest[opening["audio"]]["durationSec"]) >= MIN_TASK_FRAME_SEC, (
+        f"{episode_id} 首页停留不足 10 秒")
 
-    pptx = WORKSHOP / "04-out" / f"{COURSE}.pptx"
-    assert pptx.stat().st_size > 100_000
-    with zipfile.ZipFile(pptx) as archive:
-        names = archive.namelist()
-        slide_xml = sorted(
-            (name for name in names if re.fullmatch(r"ppt/slides/slide\d+\.xml", name)),
-            key=lambda name: int(re.search(r"\d+", Path(name).name).group()))
-        assert len(slide_xml) == EXPECTED_SLIDES
-        for index, slide in enumerate(slides, start=1):
-            notes = archive.read(f"ppt/notesSlides/notesSlide{index}.xml")
-            body = xml_text(notes)
-            assert slide["title"] in body, (index, slide["title"])
-            assert slide["narration"] in body, index
-            assert f"ppt/media/slide-{index:02d}.png" in names, index
-        ET.fromstring(archive.read("ppt/presentation.xml"))
-
-    mp4 = WORKSHOP / "04-out" / f"{COURSE}.mp4"
+    # --- 视频 ----------------------------------------------------------------
+    mp4 = WORKSHOP / "04-out" / f"{episode_id}.mp4"
     movie = probe(mp4)
     duration = float(movie["format"]["duration"])
     video = next(item for item in movie["streams"] if item["codec_type"] == "video")
     audio = next(item for item in movie["streams"] if item["codec_type"] == "audio")
-    assert abs(duration - frames / int(deck["fps"])) < 1.0, (duration, frames / int(deck["fps"]))
-    assert MIN_RUNTIME_SEC <= duration <= MAX_RUNTIME_SEC, duration
-    speech = sum(entry["durationSec"] for entry in manifest.values())
-    ratio = speech / duration
-    assert ratio >= MIN_SPEECH_RATIO, round(ratio, 3)
+    assert abs(duration - frames / int(deck["fps"])) < 1.0, (episode_id, duration)
+    assert MIN_EPISODE_SEC <= duration <= MAX_EPISODE_SEC, f"{episode_id} 时长 {duration:.1f}s 超出 4~7 分钟"
     assert video["codec_name"] == "h264" and (int(video["width"]), int(video["height"])) == (1280, 720)
     assert audio["codec_name"] == "aac" and int(audio["sample_rate"]) == 48000
-    subprocess.run([FFMPEG, "-v", "error", "-sseof", "-1", "-i", str(mp4), "-frames:v", "1",
-                    "-f", "null", "-"], check=True)
-    assert len(list((WORKSHOP / "04-out").glob("*.mp4"))) == 1, "one lecture means one video"
+    ratio = speech / duration
+    assert ratio >= MIN_SPEECH_RATIO, f"{episode_id} 有声占比 {ratio:.2%} 偏低"
 
-    narration = "\n".join(slide["narration"] for slide in slides)
-    hits = [label for label, pattern in SENSITIVE.items() if re.search(pattern, narration, re.I)]
-    assert not hits, hits
-    on_screen: list[str] = [str(deck.get("title", "")), str(deck.get("subtitle", ""))]
-    for slide in slides:
-        on_screen.extend(str(slide.get(key, "")) for key in
-                         ("eyebrow", "title", "subtitle", "body", "quote", "callout", "chapterTitle"))
-        on_screen.extend(slide.get("bullets", []))
-        for card in slide.get("stats", []) + slide.get("nodes", []):
-            on_screen.extend(str(value) for value in card.values())
-        picture = slide.get("image")
-        if picture:
-            on_screen.extend(str(picture.get(key, "")) for key in ("alt", "caption"))
-    leaked = [term for term in INTERNAL_TERMS if term in "\n".join(on_screen)]
-    assert not leaked, leaked
-    tone = [phrase for phrase in AI_TONE if phrase in narration]
-    assert not tone, tone
-    assert "IOTA_ALL_OK modules=12 network=blocked" in (
-        WORKSHOP / "05-evidence" / "terminal" / "02-iota-run-all.txt").read_text(encoding="utf-8")
-    choice = (WORKSHOP / "05-evidence" / "terminal" / "03-choice-modules.txt").read_text(encoding="utf-8")
-    assert all(f"IOTA_MODULE_OK M{number}" in choice for number in ("03", "07", "12"))
-    print(f"COURSE_OK slides={EXPECTED_SLIDES} audio={EXPECTED_SLIDES} commands={len(commands)} "
-          f"runtime={duration:.1f}s speech={ratio * 100:.1f}% pptx=ok mp4=ok "
-          f"redaction=clean internal_terms=0 ai_tone=0")
-    return commands
+    # 视频真的从任务页开始：第 2 秒的画面必须与首帧一致。
+    grab = WORKSHOP / ".validate-tmp" / f"{episode_id}-t2.png"
+    grab.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run([FFMPEG, "-hide_banner", "-loglevel", "error", "-y", "-ss", "2",
+                    "-i", str(mp4), "-frames:v", "1", str(grab)], check=True)
+    assert psnr(grab, public / opening["frame"]) >= 30, f"{episode_id} 视频开头不是任务页"
+    grab.unlink(missing_ok=True)
+
+    # --- PPT ----------------------------------------------------------------
+    pptx = WORKSHOP / "04-out" / f"{episode_id}.pptx"
+    assert pptx.stat().st_size > 100_000
+    with zipfile.ZipFile(pptx) as archive:
+        names = archive.namelist()
+        slide_xml = [name for name in names if re.fullmatch(r"ppt/slides/slide\d+\.xml", name)]
+        assert len(slide_xml) == SLIDES_PER_EPISODE
+        for index, slide in enumerate(slides, start=1):
+            notes = archive.read(f"ppt/notesSlides/notesSlide{index}.xml")
+            body = "".join(node.text or "" for node in ET.fromstring(notes).iter()
+                           if node.tag.endswith("}t"))
+            assert slide["title"] in body, (episode_id, index)
+            assert slide["narration"] in body, (episode_id, index)
+            assert f"ppt/media/slide-{index:02d}.png" in names
+        ET.fromstring(archive.read("ppt/presentation.xml"))
+
+    print(f"EPISODE_OK {episode_id} module={deck['module']} slides={len(slides)} "
+          f"runtime={duration:.1f}s speech={ratio * 100:.1f}% first10s=task+command+result "
+          f"evidence={terminal['evidence']} exercise=ok")
+    return {"id": episode_id, "duration": duration, "speech": speech,
+            "command": opening["command"], "verify": exercise["verify"]}
 
 
-def run_commands(commands: list[str], start: int, end: int) -> None:
-    assert 0 <= start < end <= len(commands)
-    log_dir = WORKSHOP / "05-evidence" / "commands"
+def run_commands(commands: list[str]) -> None:
+    log_dir = WORKSHOP / "05-evidence" / "replay"
     log_dir.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy()
     env.pop("PYTHONHOME", None)
     env.pop("PYTHONPATH", None)
     env["PATH"] = f"/opt/homebrew/bin:{env.get('PATH', '')}"
-    for index in range(start, end):
-        command = commands[index]
-        completed = subprocess.run(
-            ["/bin/bash", "-c", f"set -euo pipefail\n{command}"],
-            cwd=ROOT, env=env, text=True, stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT, timeout=180)
-        log = log_dir / f"command-{index + 1:02d}.txt"
-        safe_output = completed.stdout.replace(str(ROOT), "<repo>")
-        safe_output = re.sub(r"/private/var/folders/[^\s\"']+", "<temp>", safe_output)
-        safe_output = "\n".join(line.rstrip() for line in safe_output.splitlines())
-        log.write_text(f"$ {command}\n\n{safe_output}\n[exit {completed.returncode}]\n", encoding="utf-8")
+    for index, command in enumerate(commands, start=1):
+        completed = subprocess.run(["/bin/bash", "-c", f"set -uo pipefail\n{command}"],
+                                   cwd=ROOT, env=env, text=True, stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT, timeout=900, check=False)
+        safe = completed.stdout.replace(str(ROOT), "<repo>")
+        (log_dir / f"replay-{index:02d}.txt").write_text(
+            f"$ {command}\n\n{safe}\n[exit {completed.returncode}]\n", encoding="utf-8")
         if completed.returncode != 0:
             print(completed.stdout[-2000:], file=sys.stderr)
-            raise SystemExit(f"command {index + 1} failed: {command}")
-        print(f"COMMAND_OK {index + 1:02d}/{len(commands)} {command[:88]}")
+            raise SystemExit(f"命令 {index} 失败：{command}")
+        print(f"COMMAND_OK {index:02d}/{len(commands)} {command[:80]}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--commands", action="store_true")
-    parser.add_argument("--start", type=int, default=0)
-    parser.add_argument("--end", type=int, default=EXPECTED_SLIDES)
+    parser.add_argument("--commands", action="store_true", help="重跑每集的运行命令")
     args = parser.parse_args()
     check_brief()
-    commands = check_course()
+    check_structure()
+    check_evidence_redaction()
+    results = [check_episode(episode_id) for episode_id in EPISODE_IDS]
+    total = sum(item["duration"] for item in results)
+    shortest = min(results, key=lambda item: item["duration"])
+    longest = max(results, key=lambda item: item["duration"])
+    print(f"COURSE_OK episodes={len(results)} total={total / 60:.1f}min "
+          f"shortest={shortest['id']}:{shortest['duration']:.0f}s "
+          f"longest={longest['id']}:{longest['duration']:.0f}s "
+          f"internal_terms=0 ai_tone=0 redaction=clean")
     if args.commands:
-        run_commands(commands, args.start, args.end)
-        print(f"COMMAND_BATCH_OK start={args.start + 1} end={args.end}")
+        run_commands([item["command"] for item in results])
+        print(f"COMMAND_BATCH_OK commands={len(results)}")
 
 
 if __name__ == "__main__":

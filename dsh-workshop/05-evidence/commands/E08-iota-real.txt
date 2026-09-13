@@ -1,0 +1,27 @@
+$ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M08 --real
+
+[claude-code:unrecognized_model] {"model":"MiniMax-M3","query_source":"sdk"}
+
+████ M08 · 委派与预设 ████
+学习目标：用 GraphSpec 的依赖与绑定表达可验证的节点委派。
+运行时观察：
+  1. 拓扑顺序
+  2. 上游输出绑定
+  3. 图运行结果
+真实内核证据：
+  - 真实模型: MiniMax-M3
+  - 真实内核: claude（claude-agent-sdk + claude）
+  - 真实响应: 用 GraphSpec 声明节点依赖与输出绑定，委派路径即可被校验。
+  - 事件序列: step_start, system_init, thinking, text_delta, final, step_end
+三类边界：
+  - MiniMax-backed kernel 行为: 内核按节点提示词分别作答，委派顺序由图决定而不是模型自由发挥。
+  - iota 编排层本地机制断言 : 拓扑顺序、上游输出绑定与图运行结果在本地断言。
+  - 明确不属于 iota 的能力  : 内核内部的子代理实现细节不属于 iota。
+验证结果：
+  - order: ["research", "review"]
+  - output: {"approved": "research:iota"}
+对照关系：语义等价
+结论：显式 DAG 依赖为委派提供确定的顺序、数据流和失败边界。
+{"module": "M08", "order": ["research", "review"], "output": {"approved": "research:iota"}, "relationship": "语义等价", "status": "ok"}
+IOTA_REAL_MODULE_OK M08-delegation-presets kernel=claude model=MiniMax-M3 chars=34 events=6
+[exit 0]

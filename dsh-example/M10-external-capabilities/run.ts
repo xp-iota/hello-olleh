@@ -1,6 +1,6 @@
 const phases = [
   ['注册、发现并注入代码审查 Skill', './phases/01-skill-code-review.ts'],
-  ['验证本地 MCP 启动失败边界', './phases/02-mcp-client.ts'],
+  ['跨进程 MCP：真实成功往返与明确拒绝', './phases/02-mcp-client.ts'],
   ['检查 Webhook Host-plane 组合边界', './phases/03-webhook-runtime.ts'],
   ['装配动态 Cordis 扩展工具', './phases/04-cordis-extensions.ts'],
   ['配置 Webhook 所需默认模型路由', './phases/05-agent-default-model.ts'],

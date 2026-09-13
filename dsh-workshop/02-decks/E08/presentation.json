@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 2,
+  "kind": "episode",
+  "id": "E08",
+  "module": "M08",
+  "number": 8,
+  "title": "第 8 集 · 委派与预设",
+  "subtitle": "把活儿分给子代理：注册能力之外，还要给模型一个看得见的工具，并用预设收紧权限",
+  "course": "DSH 与 iota 实操课",
+  "courseSubtitle": "十二集，每集一个能自己跑完的任务",
+  "task": "把活儿分给子代理：注册能力之外，还要给模型一个看得见的工具，并用预设收紧权限",
+  "command": "cd dsh-example && npm run M08:real",
+  "expect": "子代理提供方注册好了，模型还是不会自动委派；包装成模型看得见的工具才行，未隔离命令行的权限预设会被直接拒绝",
+  "fps": 15,
+  "width": 1280,
+  "height": 720,
+  "tailFrames": 8,
+  "theme": {
+    "paper": "#08111f",
+    "panel": "#122238",
+    "panel2": "#0d1b2d",
+    "ink": "#e6edf3",
+    "muted": "#8da2b8",
+    "line": "#26415f",
+    "accent": "#2dd4bf",
+    "accent2": "#60a5fa",
+    "accent3": "#fbbf24",
+    "shell": "#050d18"
+  },
+  "style": {
+    "mood": "engineering-evidence",
+    "density": "balanced",
+    "motion": "restrained",
+    "headingFont": "PingFang SC",
+    "bodyFont": "PingFang SC",
+    "cornerRadius": 14,
+    "backgroundPattern": "grid"
+  },
+  "slides": [
+    {
+      "id": "e08-task",
+      "type": "task",
+      "eyebrow": "第 8 集 · 本集任务",
+      "title": "把活儿分给子代理：注册能力之外，还要给模型一个看得见的工具，并用预设收紧权限",
+      "task": "把活儿分给子代理：注册能力之外，还要给模型一个看得见的工具，并用预设收紧权限",
+      "command": "cd dsh-example && npm run M08:real",
+      "expect": "子代理提供方注册好了，模型还是不会自动委派；包装成模型看得见的工具才行，未隔离命令行的权限预设会被直接拒绝",
+      "narration": "这一集讲委派。任务是把活儿分给子代理，同时把权限收紧。命令是 npm run M08:real。你会看到一个反直觉的结果：子代理提供方注册好了，模型还是不会自动委派——得把它包装成一个模型看得见的工具才行。另外那条未隔离命令行的权限预设会被直接拒绝。这两点合起来就是这一集的全部内容。",
+      "minDurationSec": 12,
+      "audio": "audio/e08-task.mp3",
+      "frame": "frames/slide-01.png",
+      "slideIndex": 1
+    },
+    {
+      "id": "e08-terminal",
+      "type": "terminal",
+      "eyebrow": "真实输出",
+      "title": "注册不等于模型会用",
+      "command": "cd dsh-example && npm run M08:real",
+      "evidence": "E08-dsh-real.txt",
+      "evidenceLines": 8,
+      "narration": "第一段先只注册提供方，模型可见工具里没有委派入口，模型自然不会委派。第二段包装成工具之后，委派入口出现在可见列表里，真实模型这才有机会显式调用它。第三段是权限预设：未隔离命令行的那一条被拒绝，错误信息里写了该怎么改。第四段是子代理的模型路由，指到确切的提供方和模型，而不是含糊地继承。看第二段的时候留意一下工具描述那一行，它就是模型判断要不要委派的依据；描述含糊，模型宁可自己干。",
+      "minDurationSec": 20,
+      "audio": "audio/e08-terminal.mp3",
+      "frame": "frames/slide-02.png",
+      "slideIndex": 2,
+      "evidenceText": [
+        "$ cd dsh-example && npm run M08:real",
+        "subagentModelSelection: {",
+        "  enabled: true,",
+        "  allowedModels: [ { provider: 'mock', model: 'mock-1' } ]",
+        "}",
+        "REAL_STAGE_OK M08.4 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=943 in=0 out=9 finish=stop tools=- text=\"装配链已连通 M08.4\"",
+        "REAL_MODULE_OK M08 stages=4 calls=4 failed=0",
+        "[exit 0]"
+      ]
+    },
+    {
+      "id": "e08-dsh",
+      "type": "overview",
+      "eyebrow": "运行外壳",
+      "title": "资源管理和决策入口，是分开的两件事",
+      "narration": "注册进去的东西只是声明能力：子任务怎么起、怎么跑、资源归谁。想让模型主动选择委派，还得给它一个看得见的工具，让它显式地调。这样做的好处是决策入口能单独收紧：预设决定对外露出哪几种委派方式，权限预设决定这些委派能做什么，模型路由决定它们走哪条模型。三层分开，才能既开放能力又不失控。顺带提醒一个常见误解：预设不是权限。预设决定露出哪几种委派方式，权限决定这些委派能做什么。两者写在一起，以后想收紧权限就只能改预设，很容易顺手把能力也砍掉。",
+      "minDurationSec": 20,
+      "stats": [
+        {
+          "value": "注册",
+          "label": "声明能力",
+          "detail": "资源与生命周期"
+        },
+        {
+          "value": "工具",
+          "label": "决策入口",
+          "detail": "模型看得见才会用"
+        },
+        {
+          "value": "预设",
+          "label": "露出哪几种",
+          "detail": "对外收口"
+        },
+        {
+          "value": "路由",
+          "label": "走哪条模型",
+          "detail": "指到确切提供方"
+        }
+      ],
+      "audio": "audio/e08-dsh.mp3",
+      "frame": "frames/slide-03.png",
+      "slideIndex": 3
+    },
+    {
+      "id": "e08-iota",
+      "type": "text",
+      "eyebrow": "编排层",
+      "title": "委派写成图节点，顺序和数据流都能审",
+      "narration": "编排层跑 runner M08 --real。它把委派写成显式的图节点：依赖关系、输入输出绑定、编译指纹凑在一起，让这件事变得可审计。真实模式下两个节点分别由内核作答，但顺序不是模型自由发挥的结果，是图定下来的。和运行外壳那种靠一个模型可见工具去触发子代理的做法比，目的一样，形状差得远：一个把决策权交给模型，一个把顺序写死在图里。你要可复现的流程，就选后者。还有一个实际差别：图里的委派可以在跑之前就编译校验，比如检查上游输出有没有人消费。模型驱动的委派做不到这一点，因为它到运行时才知道要不要委派。",
+      "minDurationSec": 20,
+      "bullets": [
+        "依赖显式",
+        "输出绑定",
+        "编译有指纹",
+        "顺序可审"
+      ],
+      "callout": "python -m runtime.runner M08 --real",
+      "audio": "audio/e08-iota.mp3",
+      "frame": "frames/slide-04.png",
+      "slideIndex": 4
+    },
+    {
+      "id": "e08-debug",
+      "type": "debug",
+      "eyebrow": "错误定位",
+      "title": "子代理注册了，模型从来不用它",
+      "symptom": "可见工具列表里没有委派入口，模型自己把活儿干完了。",
+      "locate": "先看可见工具列表，再看有没有把提供方包装成工具。",
+      "fix": "补一个显式的委派工具，并在描述里写清什么时候该用它。",
+      "narration": "这个坑几乎人人踩一次。你把子代理注册表装上了，以为模型就会委派，结果它自己硬着头皮把活儿干完。定位办法还是看可见工具列表——列表里没有的东西，模型不知道它存在。修法是补一个显式的委派工具，并且在描述里写清什么时候该用。描述是模型唯一的判断依据，写得含糊，它就不会用。",
+      "minDurationSec": 20,
+      "audio": "audio/e08-debug.mp3",
+      "frame": "frames/slide-05.png",
+      "slideIndex": 5
+    },
+    {
+      "id": "e08-code",
+      "type": "code",
+      "eyebrow": "代码在哪",
+      "title": "把子代理包装成工具的那几行",
+      "locate": "sed -n '1,45p' dsh-example/M08-delegation-presets/steps/01-subagent-delegation.ts",
+      "look": "先注册提供方，再显式注册一个模型可见的委派工具，两件事分开写",
+      "narration": "代码在哪：M08 的 steps 里那个 subagent delegation 文件。你会看到两段分开的注册：先是提供方，声明子任务怎么起怎么跑；然后是一个模型可见的工具，那才是决策入口。这两段之所以不合并，是为了让权限和露出面能单独收紧。写自己的委派时，注意工具描述要写清什么时候该用——那是模型唯一的判断依据。",
+      "minDurationSec": 20,
+      "audio": "audio/e08-code.mp3",
+      "frame": "frames/slide-06.png",
+      "slideIndex": 6
+    },
+    {
+      "id": "e08-exercise",
+      "type": "exercise",
+      "eyebrow": "动手练习",
+      "title": "给委派工具加一条只允许调研类子任务的约束",
+      "change": "在委派工具的执行里校验子任务类型，不是调研就返回拒绝。",
+      "verify": "cd dsh-example && npm run M08",
+      "answer": "调研类子任务照常委派，其他类型得到明确拒绝，而拒绝原因会回灌给模型。",
+      "narration": "练习：给委派工具加一条约束，只允许调研类子任务，其余返回拒绝。跑离线的 M08 验证。可验证的答案是调研类照常委派，别的类型拿到明确拒绝，并且拒绝原因会回灌给模型，让它有机会换个做法。这个练习的意义是：约束要写在决策入口上，而不是靠提示词劝模型别那么做。",
+      "minDurationSec": 20,
+      "audio": "audio/e08-exercise.mp3",
+      "frame": "frames/slide-07.png",
+      "slideIndex": 7
+    }
+  ]
+}
