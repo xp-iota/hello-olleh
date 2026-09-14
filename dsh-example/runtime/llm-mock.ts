@@ -8,7 +8,7 @@
  *   - 尊重 `options.signal`。
  *
  * 有它，26 个示例才能在**不联网、不要 API key** 的前提下跑通真实 agent 主循环。
- * 想换真实模型：设 `MINIMAX_API_KEY` 并 `DSH_PROVIDER=minimax-m3`（见 llm-minimax.ts）。
+ * 想换真实模型：设 `LLM_API_KEY` 并 `DSH_PROVIDER=anthropic-compat`（见 llm-minimax.ts）。
  */
 import { ToolCallId, LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'

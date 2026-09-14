@@ -6,7 +6,7 @@ $ cd dsh-example && npm run M10:real-demo
 
 
 ████ M10 · 专项真实演示：注入清单前后的真实作答对照 ████
-目标模型: minimax-m3 / MiniMax-M3 （真实 HTTP + SSE）
+目标模型: anthropic-compat / MiniMax-M3 （真实 HTTP + SSE）
 
 ① A 组：不注入 skill
    我来 review 一下这两处改动。

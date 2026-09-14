@@ -5,7 +5,7 @@
  * 把 provider-neutral 消息 / 工具 schema 翻译成 Anthropic Messages wire format，再把
  * SSE 的 text / thinking / tool_use 块翻译回 dsh 的 StreamChunk 协议。
  *
- * 认证走 `x-api-key` 头；密钥只从环境变量 MINIMAX_API_KEY 读，永不入库。
+ * 认证走 `x-api-key` 头；密钥只从环境变量 LLM_API_KEY 读，永不入库。
  */
 import { ToolCallId, LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type {
@@ -225,7 +225,7 @@ export class MinimaxAnthropicAdapter extends LlmAdapter {
 
   constructor({ apiKey, baseUrl, defaultModel }: MinimaxOptions) {
     super()
-    if (!apiKey) throw new Error('minimax: 缺少 apiKey（请设环境变量 MINIMAX_API_KEY）')
+    if (!apiKey) throw new Error('minimax: 缺少 apiKey（请设环境变量 LLM_API_KEY）')
     this.apiKey = apiKey
     this.baseUrl = (baseUrl ?? 'https://api.minimaxi.com/anthropic').replace(/\/$/, '')
     this.defaultModel = defaultModel ?? 'MiniMax-M3'

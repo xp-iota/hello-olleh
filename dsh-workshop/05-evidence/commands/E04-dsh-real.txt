@@ -6,7 +6,7 @@ $ cd dsh-example && npm run M04:real
 
 
 ████ M04 · Agent 循环与干预面：先观察，再引导 —— 真实 MiniMax 模式 ████
-provider=minimax-m3 model=MiniMax-M3 endpoint=<minimax-anthropic-compat> timeout=120000ms
+provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
 
 ════════ M04.1 · 观察 turn/step/session 事件（kind=model）════════
 ----- 开始 turn（下面应由遥测插件打印生命周期）-----
@@ -17,7 +17,7 @@ provider=minimax-m3 model=MiniMax-M3 endpoint=<minimax-anthropic-compat> timeout
 [telemetry] ■ turn 结束
 
 ----- 结束 turn；聚合文本 = "Pong! 🏓\n\nHow can I help you today?" | step 数 = 1 -----
-REAL_STAGE_OK M04.1 kind=model provider=minimax-m3 model=MiniMax-M3 calls=1 ms=1548 in=0 out=15 finish=stop tools=- text="Pong! 🏓 How can I help you today?"
+REAL_STAGE_OK M04.1 kind=model provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1548 in=0 out=15 finish=stop tools=- text="Pong! 🏓 How can I help you today?"
 
 ════════ M04.2 · 在生命周期边界请求 steering（kind=model）════════
 [hooks] session-start：agent=demo-session source=startup
@@ -32,7 +32,7 @@ REAL_STAGE_OK M04.1 kind=model provider=minimax-m3 model=MiniMax-M3 calls=1 ms=1
 本轮实际 step 数(应为 2): 2
 本轮是否被引导(steerRequested): true
 累计 steer 次数(应为 1): 1
-REAL_STAGE_OK M04.2 kind=model provider=minimax-m3 model=MiniMax-M3 calls=2 ms=2828 in=0 out=269 finish=stop tools=- text="请先给我一些上下文——我目前无法访问你的代码仓库或文件系统。上一轮我尝试运行 `pwd` 但没有…"
+REAL_STAGE_OK M04.2 kind=model provider=anthropic-compat model=MiniMax-M3 calls=2 ms=2828 in=0 out=269 finish=stop tools=- text="请先给我一些上下文——我目前无法访问你的代码仓库或文件系统。上一轮我尝试运行 `pwd` 但没有…"
 
 ════════ M04.3 · 比较 inbox 四种输入通道（kind=model）════════
 ① inject：排入 nextStep 但不唤醒（turn 开始前注入的上下文）
@@ -81,7 +81,7 @@ REAL_STAGE_OK M04.2 kind=model provider=minimax-m3 model=MiniMax-M3 calls=2 ms=2
 
 ⑧ clear：丢弃全部待认领消息
    inbox 状态: nextStep = 0 | nextTurn = 0
-REAL_STAGE_OK M04.3 kind=model provider=minimax-m3 model=MiniMax-M3 calls=5 ms=9228 in=0 out=380 finish=stop tools=- text="好，我假设有一个未完成的任务。我来挑一个最常见的演示场景——**写一个待办事项管理的小程序**，…"
+REAL_STAGE_OK M04.3 kind=model provider=anthropic-compat model=MiniMax-M3 calls=5 ms=9228 in=0 out=380 finish=stop tools=- text="好，我假设有一个未完成的任务。我来挑一个最常见的演示场景——**写一个待办事项管理的小程序**，…"
 
 ════════ M04.4 · 捕获会话遥测账本（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M04.4"
@@ -91,7 +91,7 @@ sessionTelemetry: {
   channels: [ 'ledger' ],
   eventTypes: [ 'user/message' ]
 }
-REAL_STAGE_OK M04.4 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=678 in=0 out=9 finish=stop tools=- text="装配链已连通 M04.4"
+REAL_STAGE_OK M04.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=678 in=0 out=9 finish=stop tools=- text="装配链已连通 M04.4"
 
 ════════ M04.5 · 注册包归属运行时不变量（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M04.5"
@@ -100,7 +100,7 @@ invariants: {
   selectedInstallerRan: true,
   duplicateNamesFailLoud: true
 }
-REAL_STAGE_OK M04.5 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=834 in=0 out=9 finish=stop tools=- text="装配链已连通 M04.5"
+REAL_STAGE_OK M04.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=834 in=0 out=9 finish=stop tools=- text="装配链已连通 M04.5"
 
 REAL_MODULE_OK M04 stages=5 calls=10 failed=0
 [exit 0]

@@ -2,7 +2,7 @@
  * real.ts —— 真实运行模式（`DSH_REAL=1`）的公共设施。
  *
  * 离线模式与真实模式的分界只有一条：**真实模式下每一个阶段都必须产生至少一次
- * MiniMax 调用证据**，否则阶段失败、进程非零退出。这条纪律避免把 mock 结果
+ * 推理服务调用证据**，否则阶段失败、进程非零退出。这条纪律避免把 mock 结果
  * 当成真实推理来验收。
  *
  * 本文件提供四样东西：
@@ -25,10 +25,10 @@ export const REAL_MODE = process.env.DSH_REAL === '1'
 export const REAL_TIMEOUT_MS = Number(process.env.DSH_REAL_TIMEOUT_MS ?? 120_000)
 
 /** 真实模式固定的 provider 路由名。 */
-export const REAL_PROVIDER = 'minimax-m3'
+export const REAL_PROVIDER = 'anthropic-compat'
 
 /** 证据里用来代替真实 endpoint 的稳定占位符。 */
-const ENDPOINT_LABEL = 'minimax-anthropic-compat'
+const ENDPOINT_LABEL = 'llm-anthropic-compat'
 
 export interface RealConfig {
   apiKey: string
@@ -44,19 +44,19 @@ let cached: RealConfig | undefined
  */
 export function realConfig(): RealConfig {
   if (cached) return cached
-  const apiKey = process.env.MINIMAX_API_KEY
+  const apiKey = process.env.LLM_API_KEY
   if (!apiKey) {
     throw new Error([
-      '真实模式缺少 MINIMAX_API_KEY。',
+      '真实模式缺少 LLM_API_KEY。',
       '配置来源：工程根 dsh-example/.env（模板见 .env.example，该文件已被 .gitignore 忽略）。',
-      '需要三项：MINIMAX_API_KEY / MINIMAX_BASE_URL / MINIMAX_MODEL。',
-      '也可临时注入：MINIMAX_API_KEY=<your-key> npm run real:all',
+      '需要三项：LLM_API_KEY / LLM_BASE_URL / LLM_MODEL。',
+      '也可临时注入：LLM_API_KEY=<your-key> npm run real:all',
     ].join('\n  '))
   }
   cached = {
     apiKey,
-    baseUrl: process.env.MINIMAX_BASE_URL ?? 'https://api.minimaxi.com/anthropic',
-    model: process.env.MINIMAX_MODEL ?? 'MiniMax-M3',
+    baseUrl: process.env.LLM_BASE_URL ?? 'https://api.minimaxi.com/anthropic',
+    model: process.env.LLM_MODEL ?? 'MiniMax-M3',
   }
   return cached
 }
@@ -64,7 +64,7 @@ export function realConfig(): RealConfig {
 /** 输出脱敏：密钥、endpoint、绝对路径都不进证据。 */
 export function redact(value: string): string {
   let out = value
-  const key = process.env.MINIMAX_API_KEY
+  const key = process.env.LLM_API_KEY
   if (key && key.length > 6) out = out.split(key).join('<redacted-key>')
   out = out.replace(/https?:\/\/[^\s"')]+/g, `<${ENDPOINT_LABEL}>`)
   out = out.replace(/\/(?:Users|home)\/[^\s"')]+/g, '<path>')
@@ -100,7 +100,7 @@ export function allEvidence(): readonly CallEvidence[] {
 }
 
 /**
- * 包住真实 MiniMax 适配器：加超时、计数、证据与失败原因。
+ * 包住真实推理服务 适配器：加超时、计数、证据与失败原因。
  * 它本身仍是真实 `LlmAdapter` 子类，chunk 一条不改地透传给 agent-loop，
  * 所以真实响应会照常进入工具管线、会话日志和后续 step。
  */
@@ -179,7 +179,7 @@ export interface StageSpec {
 
 /**
  * 入口 probe：用**完整装配链**（runtime/harness.ts 的全部服务 + 真实 agent-loop）
- * 打一次真实 MiniMax 请求。它证明的不是"HTTP 通了"，而是"这条装配链能把真实响应
+ * 打一次真实推理服务 请求。它证明的不是"HTTP 通了"，而是"这条装配链能把真实响应
  * 送回会话日志"——纯机制阶段因此也有真实证据，而不是只拼配置。
  */
 async function probeAssembly(stageId: string): Promise<string> {
@@ -202,8 +202,8 @@ async function probeAssembly(stageId: string): Promise<string> {
 /**
  * 驱动一个模块的真实运行。每个阶段：
  *   - mechanism：先做一次入口 probe（真实模型 + 完整装配），再跑本地机制断言；
- *   - model    ：直接跑阶段脚本，脚本内部的 runTurn 已被路由到真实 MiniMax。
- * 阶段结束后校验"这一段确实发生过成功的 MiniMax 调用"，否则 fail loud。
+ *   - model    ：直接跑阶段脚本，脚本内部的 runTurn 已被路由到真实推理服务。
+ * 阶段结束后校验"这一段确实发生过成功的 推理服务调用"，否则 fail loud。
  */
 export async function runRealModule(
   module: string,
@@ -216,7 +216,7 @@ export async function runRealModule(
     throw new Error(`真实模式入口必须带 DSH_REAL=1（例如 npm run ${module}:real）`)
   }
   const config = realConfig()
-  console.log(`\n████ ${module} · ${title} —— 真实 MiniMax 模式 ████`)
+  console.log(`\n████ ${module} · ${title} —— 真实推理服务 模式 ████`)
   console.log(`provider=${REAL_PROVIDER} model=${config.model} endpoint=<${ENDPOINT_LABEL}> timeout=${REAL_TIMEOUT_MS}ms`)
 
   for (const stage of stages) {
@@ -235,7 +235,7 @@ export async function runRealModule(
       throw new Error(`REAL_STAGE_FAIL ${stage.id} 真实调用失败：${failures.map((item) => item.failure).join(' / ')}`)
     }
     if (slice.length === 0) {
-      throw new Error(`REAL_STAGE_FAIL ${stage.id} 本阶段没有产生任何 MiniMax 调用证据（禁止把 mock 结果当真实验收）`)
+      throw new Error(`REAL_STAGE_FAIL ${stage.id} 本阶段没有产生任何 推理服务调用证据（禁止把 mock 结果当真实验收）`)
     }
     const answered = slice.filter((item) => item.textChars > 0 || item.toolCalls.length > 0)
     if (answered.length === 0) {

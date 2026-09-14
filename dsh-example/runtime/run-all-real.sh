@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 真实 MiniMax 全量验收：12 个模块、58 个阶段，每个阶段都必须留下真实调用证据。
+# 真实推理服务全量验收：12 个模块、58 个阶段，每个阶段都必须留下真实调用证据。
 # 从 dsh-example 根目录调用：npm run real:all
 #
 # 与 `npm run all`（离线 mock）的区别：本脚本设置 DSH_REAL=1，
@@ -60,4 +60,4 @@ echo "════════════════════════�
 "$NODE_BIN" M10-external-capabilities/run-real-demo.ts
 
 echo ""
-echo "REAL_ALL_OK modules=${#modules[@]} stages=$stages demos=3 provider=minimax-m3 model=${MINIMAX_MODEL:-MiniMax-M3}"
+echo "REAL_ALL_OK modules=${#modules[@]} stages=$stages demos=3 provider=anthropic-compat model=${LLM_MODEL:-MiniMax-M3}"

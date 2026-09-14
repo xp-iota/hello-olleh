@@ -15,7 +15,7 @@ BLOCKS = [
 > {MARK}：[`M03.1 · llm-adapter`]({EX}/M03-inference-service-access/steps/01-llm-adapter.ts) 是三角色模型的最小实例 ——
 > Definition 是真实包 `@deepseek-ai/dsh-llm` 导出的抽象类 `LlmAdapter`，Provider 是那个 `MockAdapter`，
 > Consumer 是 agent-loop（示例里换成 `ctx.llm.stream(...)` 直接消费）；`npm run M03:real`
-> 再用同一个循环消费真实 `minimax-m3` 路由，验证"换 provider 不换 Consumer"。
+> 再用同一个循环消费真实 `anthropic-compat` 路由，验证"换 provider 不换 Consumer"。
 >
 > ```ts
 > class MockAdapter extends LlmAdapter {{        // ← Provider
@@ -105,7 +105,7 @@ BLOCKS = [
 > {MARK}：[`M03.1 · llm-adapter`]({EX}/M03-inference-service-access/steps/01-llm-adapter.ts) 只实现这一个方法就接上了整条链；
 > [`runtime/llm-minimax.ts`]({EX}/runtime/llm-minimax.ts) 是同一个抽象类的真实 HTTP/SSE 实现
 > （MiniMax 的 Anthropic 兼容端点 → 同一份 StreamChunk 协议）；`npm run M03:real`
-> 用同一个消费循环消费真实 `minimax-m3` 路由。
+> 用同一个消费循环消费真实 `anthropic-compat` 路由。
 """),
     ('07-请求管线-LLM工具与提示.md', '7.3', f"""
 > {MARK}：[`M03.2 · llm-stream`]({EX}/M03-inference-service-access/steps/02-llm-stream.ts) 注册两个监听器包在真实适配器外层 ——

@@ -1,7 +1,7 @@
 ---
 type: Harness Concept
 title: "推理服务可替换"
-description: 从离线 mock 换到真实 MiniMax，只改 provider 路由与模型名，业务代码与工具定义一行都不用动。
+description: 从离线 mock 换到真实推理服务，只改 provider 路由与模型名，业务代码与工具定义一行都不用动。
 tags: [okf, dsh-example, llm, provider, minimax]
 status: stable
 sources:
@@ -34,11 +34,15 @@ LLM 是一条标准能力缝，所以**换推理服务的代价接近于零**：
 | 路由 | 适配器 | 特性 |
 |:-----|:-------|:-----|
 | `mock` | `MockAdapter` / `ToolCallingMockAdapter` | 离线、不要密钥，`npm run all` 因此恒绿 |
-| `minimax-m3` | `MinimaxAnthropicAdapter` | 真实 HTTP 与 SSE，需 `MINIMAX_API_KEY` |
+| `anthropic-compat` | `MinimaxAnthropicAdapter` | 真实 HTTP 与 SSE，需 `LLM_API_KEY` |
 
 选路优先级：显式入参 `provider` > 环境变量 `DSH_PROVIDER` > 默认 `mock`。
-`minimax-m3` 路由只在检测到 `MINIMAX_API_KEY` 时才注册——没有密钥就干脆不存在这条路由，
+`anthropic-compat` 路由只在检测到 `LLM_API_KEY` 时才注册——没有密钥就干脆不存在这条路由，
 而不是注册一个会在运行时失败的空壳。
+
+路由名描述的是**协议**而不是厂商：适配器讲的是 Anthropic Messages wire format，所以
+把 `LLM_BASE_URL` 指向任何同等兼容的端点（默认 `https://api.minimaxi.com/anthropic`）
+即可换服务，不必改路由名。这也是三个变量名不带厂商前缀的原因。
 
 ## 适配器真正的工作
 
@@ -64,7 +68,7 @@ LLM 是一条标准能力缝，所以**换推理服务的代价接近于零**：
 |:-----|:-----|:-----|
 | wire format 映射 | `runtime/llm-minimax.test.ts` 的 fixture 测试 | 已有 |
 | 整条工具调用回路 | 本地 SSE 桩 + 真实 agent-loop | 已验证，见 [一次工具调用等于两步](04-tool-call-round-trip.md) |
-| 真实端点连通性 | 需显式提供 `MINIMAX_API_KEY` | **A5 未执行**（A5 默认离线，不发外网请求） |
+| 真实端点连通性 | 需显式提供 `LLM_API_KEY` | **A5 未执行**（A5 默认离线，不发外网请求） |
 
 把「未验证」如实写在这里，是为了让后续读者不误以为真实计费链路已经跑通过。
 

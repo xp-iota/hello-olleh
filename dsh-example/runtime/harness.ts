@@ -167,12 +167,12 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
   const real = REAL_MODE ? realConfig() : undefined
   if (real) {
     ctx.llm.registerAdapter([REAL_PROVIDER], new CountingMinimaxAdapter(real))
-  } else if (process.env.MINIMAX_API_KEY) {
-    // 离线模式下也注册这条路由，方便 `DSH_PROVIDER=minimax-m3` 单点试跑。
-    ctx.llm.registerAdapter(['minimax-m3'], new MinimaxAnthropicAdapter({
-      apiKey: process.env.MINIMAX_API_KEY,
-      baseUrl: process.env.MINIMAX_BASE_URL,
-      defaultModel: process.env.MINIMAX_MODEL,
+  } else if (process.env.LLM_API_KEY) {
+    // 离线模式下也注册这条路由，方便 `DSH_PROVIDER=anthropic-compat` 单点试跑。
+    ctx.llm.registerAdapter([REAL_PROVIDER], new MinimaxAnthropicAdapter({
+      apiKey: process.env.LLM_API_KEY,
+      baseUrl: process.env.LLM_BASE_URL,
+      defaultModel: process.env.LLM_MODEL,
     }))
   }
   if (options.mock !== false) {
@@ -184,7 +184,7 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
 
   const provider = options.provider ?? (real ? REAL_PROVIDER : process.env.DSH_PROVIDER ?? 'mock')
   const model = options.model
-    ?? (real ? real.model : process.env.DSH_MODEL ?? (provider === 'minimax-m3' ? 'MiniMax-M3' : 'mock-1'))
+    ?? (real ? real.model : process.env.DSH_MODEL ?? (provider === REAL_PROVIDER ? 'MiniMax-M3' : 'mock-1'))
 
   const plugins: Fiber[] = []
   const loadPlugin = async (plugin: unknown, config?: unknown): Promise<Fiber> => {

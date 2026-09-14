@@ -30,7 +30,7 @@ title: "请求管线：LLM、工具与 SystemPrompt"
 > 📐 **配套可跑示例**：[`M03.1 · llm-adapter`](../../dsh-example/M03-inference-service-access/steps/01-llm-adapter.ts) 只实现这一个方法就接上了整条链；
 > [`runtime/llm-minimax.ts`](../../dsh-example/runtime/llm-minimax.ts) 是同一个抽象类的真实 HTTP/SSE 实现
 > （MiniMax 的 Anthropic 兼容端点 → 同一份 StreamChunk 协议）；`npm run M03:real`
-> 用同一个消费循环消费真实 `minimax-m3` 路由。
+> 用同一个消费循环消费真实 `anthropic-compat` 路由。
 
 
 `L/index.ts:180-233` 是抽象基类，**只有 `stream()` 是 abstract**，其余四个都有默认实现：

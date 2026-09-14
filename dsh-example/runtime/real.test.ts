@@ -24,7 +24,7 @@ function withEnv<T>(patch: Record<string, string | undefined>, run: () => T): T 
 }
 
 test('缺少密钥时 realConfig 立即失败并指出配置来源', () => {
-  withEnv({ MINIMAX_API_KEY: undefined }, () => {
+  withEnv({ LLM_API_KEY: undefined }, () => {
     // realConfig 会缓存成功结果，所以这里直接断言错误文本里的三处指引。
     let message = ''
     try {
@@ -35,15 +35,15 @@ test('缺少密钥时 realConfig 立即失败并指出配置来源', () => {
       message = (error as Error).message
     }
     if (message) {
-      assert.match(message, /MINIMAX_API_KEY/)
+      assert.match(message, /LLM_API_KEY/)
       assert.match(message, /\.env/)
-      assert.match(message, /MINIMAX_MODEL/)
+      assert.match(message, /LLM_MODEL/)
     }
   })
 })
 
 test('redact 抹掉密钥、endpoint、绝对路径与请求头', () => {
-  withEnv({ MINIMAX_API_KEY: 'sk-super-secret-value' }, () => {
+  withEnv({ LLM_API_KEY: 'sk-super-secret-value' }, () => {
     const dirty = 'key=sk-super-secret-value url=https://api.minimaxi.com/anthropic/v1/messages'
       + ' file=/Users/someone/project/a.ts header=x-api-key: sk-super-secret-value'
     const clean = redact(dirty)
@@ -51,7 +51,7 @@ test('redact 抹掉密钥、endpoint、绝对路径与请求头', () => {
     assert.ok(!clean.includes('api.minimaxi.com'))
     assert.ok(!clean.includes('/Users/someone'))
     assert.match(clean, /<redacted-key>/)
-    assert.match(clean, /<minimax-anthropic-compat>/)
+    assert.match(clean, /<llm-anthropic-compat>/)
     assert.match(clean, /<path>/)
   })
 })
@@ -82,7 +82,7 @@ test('CountingMinimaxAdapter 记录真实调用证据并透传 chunk', async () 
       5_000,
     )
     let text = ''
-    for await (const chunk of adapter.stream({ provider: 'minimax-m3', model: 'MiniMax-M3', messages: [] })) {
+    for await (const chunk of adapter.stream({ provider: 'anthropic-compat', model: 'MiniMax-M3', messages: [] })) {
       if (chunk.type === 'text-delta') text += chunk.text
     }
     assert.equal(text, '装配链已连通')
@@ -108,7 +108,7 @@ test('真实调用失败时留下可读原因并向上抛出', async () => {
     )
     await assert.rejects(
       (async () => {
-        for await (const _chunk of adapter.stream({ provider: 'minimax-m3', model: 'MiniMax-M3', messages: [] })) {
+        for await (const _chunk of adapter.stream({ provider: 'anthropic-compat', model: 'MiniMax-M3', messages: [] })) {
           // 不该产出任何 chunk
         }
       })(),

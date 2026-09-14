@@ -11,7 +11,7 @@ title: "服务注册与依赖解析"
 
 ## 5.1 四种插件形态
 
-> 📐 **配套可跑示例**：[`M03 llm-adapter`](../../dsh-example/M03-inference-service-access/README.md) 是对象插件的真实最小样本：导出 `inject = ['llm']` 与 `apply(ctx, config)`，再通过 effect-based 的 `ctx.llm.registerAdapter()` 注册 Provider。在 `dsh-example/` 运行 `npm run M03`，可观察依赖就绪后插件启动、服务注册与 Consumer 解析；`npm run M03:real` 再用同一个消费循环切到真实 `minimax-m3` 路由。其中 `ctx.llm` 是 DSH 建在 Cordis Service 机制上的领域服务。
+> 📐 **配套可跑示例**：[`M03 llm-adapter`](../../dsh-example/M03-inference-service-access/README.md) 是对象插件的真实最小样本：导出 `inject = ['llm']` 与 `apply(ctx, config)`，再通过 effect-based 的 `ctx.llm.registerAdapter()` 注册 Provider。在 `dsh-example/` 运行 `npm run M03`，可观察依赖就绪后插件启动、服务注册与 Consumer 解析；`npm run M03:real` 再用同一个消费循环切到真实 `anthropic-compat` 路由。其中 `ctx.llm` 是 DSH 建在 Cordis Service 机制上的领域服务。
 
 `Plugin` 类型（`C/registry.ts:63-66`）是三者联合：
 

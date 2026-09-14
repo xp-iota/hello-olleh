@@ -6,7 +6,7 @@ $ cd dsh-example && npm run M11:real
 
 
 ████ M11 · 配置与数据设施：配置、存储、附件、凭证与工作区 —— 真实 MiniMax 模式 ████
-provider=minimax-m3 model=MiniMax-M3 endpoint=<minimax-anthropic-compat> timeout=120000ms
+provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
 
 ════════ M11.1 · 注册并驱动 settings 命名空间（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M11.1"
@@ -34,7 +34,7 @@ provider=minimax-m3 model=MiniMax-M3 endpoint=<minimax-anthropic-compat> timeout
 
 ⑦ 重复注册同一命名空间抛错
    settings namespace "demo" is already registered
-REAL_STAGE_OK M11.1 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=1568 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.1"
+REAL_STAGE_OK M11.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1568 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.1"
 
 ════════ M11.2 · 装配 JSON storage 与 domain 路由（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M11.2"
@@ -43,7 +43,7 @@ storage: {
   backend: 'JsonStorageBackend',
   domainFacility: 'DomainFacility'
 }
-REAL_STAGE_OK M11.2 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=923 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.2"
+REAL_STAGE_OK M11.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=923 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.2"
 
 ════════ M11.3 · 保存 content-addressed 本地附件（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M11.3"
@@ -52,7 +52,7 @@ attachments: {
   attachmentId: 'sha256:565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3',
   name: 'sample.bin'
 }
-REAL_STAGE_OK M11.3 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=1168 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.3"
+REAL_STAGE_OK M11.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1168 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.3"
 
 ════════ M11.4 · 按 Agent workspace 搜索文件引用（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M11.4"
@@ -61,7 +61,7 @@ fileReferences: {
   matches: 5,
   sample: 'README.md'
 }
-REAL_STAGE_OK M11.4 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=823 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.4"
+REAL_STAGE_OK M11.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=823 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.4"
 
 ════════ M11.5 · 只读取凭证状态并列出授权 flow（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M11.5"
@@ -70,7 +70,7 @@ credentials: {
   safeDescription: { configured: false, writable: true },
   authorizationFlows: []
 }
-REAL_STAGE_OK M11.5 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=8675 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.5"
+REAL_STAGE_OK M11.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=8675 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.5"
 
 ════════ M11.6 · 组合 workspace 与耐久 Session（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M11.6"
@@ -79,7 +79,7 @@ workspaceRegistry: {
   listed: 0,
   persistence: 'JsonlSessionPersistence'
 }
-REAL_STAGE_OK M11.6 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=2118 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.6"
+REAL_STAGE_OK M11.6 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2118 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.6"
 
 REAL_MODULE_OK M11 stages=6 calls=6 failed=0
 [exit 0]

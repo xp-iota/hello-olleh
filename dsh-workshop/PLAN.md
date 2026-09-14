@@ -551,7 +551,7 @@ A3 严格从用户已提交的 A2 基线 `f83469ff PLAN-A2` 开始，只执行 �
 | `M03:real` | `M03-inference-service-access/run-real.ts` | 同一 StreamChunk Consumer 接真实 MiniMax |
 | `M10:real` | `M10-external-capabilities/run-real.ts` | 注入 `SKILL.md` 前后真实模型 A/B |
 
-共享协议消费器迁至 `M03-inference-service-access/support/consume-stream.ts`；Skill 资产迁至 `M10-external-capabilities/assets/SKILL.md`。三条 real 路径仍从工程根 `.env` 读取 `MINIMAX_API_KEY`，不进入 `npm run all`，A3 验收未发起外部请求。
+共享协议消费器迁至 `M03-inference-service-access/support/consume-stream.ts`；Skill 资产迁至 `M10-external-capabilities/assets/SKILL.md`。三条 real 路径仍从工程根 `.env` 读取 `LLM_API_KEY`，不进入 `npm run all`，A3 验收未发起外部请求。
 
 ### 14.3 根入口重构
 

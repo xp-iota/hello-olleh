@@ -10,7 +10,7 @@
 
 ```bash
 npm run M10          # 离线：验证注册、发现、注入与 Host 边界
-npm run M10:real     # 真实 MiniMax 对照；需要 MINIMAX_API_KEY
+npm run M10:real     # 真实 MiniMax 对照；需要 LLM_API_KEY
 ```
 
 ## 阶段与观察点

@@ -40,7 +40,7 @@ test('MiniMax 请求映射 tools、停止序列、温度和工具消息历史', 
     createUserMessage({ content: [{ type: 'text', text: '查天气' }], source: { kind: 'user' } }),
     createAssistantMessage({
       content: [{ type: 'tool-call', id: callId, name: 'weather', arguments: '{"city":"上海"}' }],
-      source: { provider: 'minimax-m3', model: 'MiniMax-M3' },
+      source: { provider: 'anthropic-compat', model: 'MiniMax-M3' },
     }),
     createToolResultMessage({
       callId,
@@ -57,7 +57,7 @@ test('MiniMax 请求映射 tools、停止序列、温度和工具消息历史', 
   await withFetch(fakeFetch, async () => {
     const adapter = new MinimaxAnthropicAdapter({ apiKey: 'redacted', baseUrl: 'https://fixture.invalid' })
     await collect(adapter, {
-      provider: 'minimax-m3',
+      provider: 'anthropic-compat',
       model: 'MiniMax-M3',
       messages,
       system: 'system text',
@@ -111,7 +111,7 @@ test('MiniMax tool_use/thinking SSE 映射为完整 dsh block 并保留 replay s
 
   const chunks = await withFetch(fakeFetch, async () => {
     const adapter = new MinimaxAnthropicAdapter({ apiKey: 'redacted', baseUrl: 'https://fixture.invalid' })
-    return collect(adapter, { provider: 'minimax-m3', model: 'MiniMax-M3', messages: [] })
+    return collect(adapter, { provider: 'anthropic-compat', model: 'MiniMax-M3', messages: [] })
   })
 
   assert.ok(chunks.some((chunk) => chunk.type === 'reasoning-delta' && chunk.text === '需要查天气'))
@@ -138,7 +138,7 @@ test('MiniMax 对没有官方映射的 reasoningEffort fail loud', async () => {
   const adapter = new MinimaxAnthropicAdapter({ apiKey: 'redacted', baseUrl: 'https://fixture.invalid' })
   await assert.rejects(
     collect(adapter, {
-      provider: 'minimax-m3',
+      provider: 'anthropic-compat',
       model: 'MiniMax-M3',
       messages: [],
       reasoningEffort: 'high' as GenerateOptions['reasoningEffort'],
@@ -165,7 +165,7 @@ test('MiniMax 把 agent-loop 放在 messages 里的 system 消息提升到顶层
 
   await withFetch(fakeFetch, async () => {
     const adapter = new MinimaxAnthropicAdapter({ apiKey: 'redacted', baseUrl: 'https://fixture.invalid' })
-    await collect(adapter, { provider: 'minimax-m3', model: 'MiniMax-M3', messages, system: '调用方显式 system' })
+    await collect(adapter, { provider: 'anthropic-compat', model: 'MiniMax-M3', messages, system: '调用方显式 system' })
   })
 
   assert.deepEqual(requestBody.system, [

@@ -24,7 +24,7 @@
     "M11": "node M11-config-data-infrastructure/run.ts",
     "M12": "node M12-framework-mechanisms/run.ts",
     "all": "bash ./runtime/run-all.sh",
-    "//real": "真实 MiniMax 请求：DSH_REAL=1 固定 provider=minimax-m3，缺 MINIMAX_API_KEY 立即失败，禁止回退 mock。",
+    "//real": "真实推理服务请求：DSH_REAL=1 固定 provider=anthropic-compat，缺 LLM_API_KEY 立即失败，禁止回退 mock。",
     "M01:real": "DSH_REAL=1 node M01-tool-pipeline/run-real.ts",
     "M02:real": "DSH_REAL=1 node M02-context-assembly-economics/run-real.ts",
     "M03:real": "DSH_REAL=1 node M03-inference-service-access/run-real.ts",

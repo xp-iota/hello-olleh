@@ -6,7 +6,7 @@ $ cd dsh-example && npm run M12:real
 
 
 ████ M12 · 框架机制本体：事件语义与生命周期资源 —— 真实 MiniMax 模式 ████
-provider=minimax-m3 model=MiniMax-M3 endpoint=<minimax-anthropic-compat> timeout=120000ms
+provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
 
 ════════ M12.1 · 对照五种事件派发模式（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M12.1"
@@ -49,7 +49,7 @@ provider=minimax-m3 model=MiniMax-M3 endpoint=<minimax-anthropic-compat> timeout
   bail   → 返回值 = Promise { <pending> }
   bail 没 await，直接把未决 Promise 当成了截链值 —— 这是用 bail 接异步监听者的坑。
   [异步候选] 睡够 30ms 才返回 4
-REAL_STAGE_OK M12.1 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=20433 in=0 out=9 finish=stop tools=- text="装配链已连通 M12.1"
+REAL_STAGE_OK M12.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=20433 in=0 out=9 finish=stop tools=- text="装配链已连通 M12.1"
 
 ════════ M12.2 · 验证绑定 Fiber 的可处置定时器（kind=model）════════
 ① timeout(delay) → Promise（可 await 的延时）
@@ -73,7 +73,7 @@ REAL_STAGE_OK M12.1 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 
 
 ⑥ dispose：fiber 卸载时挂起的 timeout Promise 被拒
    被拒: Context has been disposed
-REAL_STAGE_OK M12.2 kind=model provider=minimax-m3 model=MiniMax-M3 calls=1 ms=1585 in=0 out=72 finish=stop tools=- text="你好！我是 MiniMax-M3，由 MiniMax 开发的 AI 助手。看起来你的消息中包含了…"
+REAL_STAGE_OK M12.2 kind=model provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1585 in=0 out=72 finish=stop tools=- text="你好！我是 MiniMax-M3，由 MiniMax 开发的 AI 助手。看起来你的消息中包含了…"
 
 ════════ M12.3 · 观察 Fiber 依赖状态机（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M12.3"
@@ -82,12 +82,12 @@ FiberState: {
   afterDependency: 'ACTIVE',
   afterDispose: 'DISPOSED'
 }
-REAL_STAGE_OK M12.3 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=1100 in=0 out=9 finish=stop tools=- text="装配链已连通 M12.3"
+REAL_STAGE_OK M12.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1100 in=0 out=9 finish=stop tools=- text="装配链已连通 M12.3"
 
 ════════ M12.4 · 隔离同名服务 realm（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M12.4"
 isolate: { root: 'root', isolated: 'isolated', separated: true }
-REAL_STAGE_OK M12.4 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=2225 in=0 out=9 finish=stop tools=- text="装配链已连通 M12.4"
+REAL_STAGE_OK M12.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2225 in=0 out=9 finish=stop tools=- text="装配链已连通 M12.4"
 
 ════════ M12.5 · 叠加调用域 intercept 配置（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M12.5"
@@ -97,7 +97,7 @@ intercept: {
   bothViewsAreDemoPolicy: true,
   traceProxyIdentityDiffers: true
 }
-REAL_STAGE_OK M12.5 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=890 in=0 out=9 finish=stop tools=- text="装配链已连通 M12.5"
+REAL_STAGE_OK M12.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=890 in=0 out=9 finish=stop tools=- text="装配链已连通 M12.5"
 
 REAL_MODULE_OK M12 stages=5 calls=5 failed=0
 [exit 0]

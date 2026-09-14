@@ -34,6 +34,6 @@ A5 按 12 个方向模块重建结构证据；本节**取代** 2026-09-07 条目
 已知限制（同日记录，便于后续复核）：
 
 - 未对真实 MiniMax 端点发起请求：本机 Node 为 v20.20.2（工程要求 ≥ 22.18），
-  且无 `MINIMAX_API_KEY`。真实 wire format 的正确性由 `runtime/llm-minimax.test.ts`
+  且无 `LLM_API_KEY`。真实 wire format 的正确性由 `runtime/llm-minimax.test.ts`
   的 fixture 测试与本地桩共同覆盖。
 - graphify 的 4 条 `INFERRED` 边未计入任何结构性断言，仅在 reference 中列出。

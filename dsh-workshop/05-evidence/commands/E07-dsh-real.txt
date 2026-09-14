@@ -6,7 +6,7 @@ $ cd dsh-example && npm run M07:real
 
 
 ████ M07 · 执行侧后端：I/O、进程与沙箱边界 —— 真实 MiniMax 模式 ████
-provider=minimax-m3 model=MiniMax-M3 endpoint=<minimax-anthropic-compat> timeout=120000ms
+provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
 
 ════════ M07.1 · 通过 fs/subprocess seam 执行副作用（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M07.1"
@@ -35,7 +35,7 @@ provider=minimax-m3 model=MiniMax-M3 endpoint=<minimax-anthropic-compat> timeout
     子进程被提前掐掉了，而不是等它自然跑完。
 
 ⑥ 清理：演示文件已删除 = /var/folders/tr/zqmjm0dn6_nfthzqnztrd1gw0000gn/T/dsh-example-16-1789294767784.txt
-REAL_STAGE_OK M07.1 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=1130 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.1"
+REAL_STAGE_OK M07.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1130 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.1"
 
 ════════ M07.2 · 消费 shell 的 run/start 双形态（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M07.2"
@@ -61,7 +61,7 @@ REAL_STAGE_OK M07.1 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 
 
 ⑥ kill 幂等：对已结束的进程再 kill
    kill() → false | 再 kill() → false
-REAL_STAGE_OK M07.2 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=817 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.2"
+REAL_STAGE_OK M07.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=817 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.2"
 
 ════════ M07.3 · 用 sandbox provider 强制策略（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M07.3"
@@ -86,7 +86,7 @@ REAL_STAGE_OK M07.2 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 
 
 ⑥ 最后卸掉 RefuseSandbox → seam 回到未装
    ctx.sandbox = undefined
-REAL_STAGE_OK M07.3 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=789 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.3"
+REAL_STAGE_OK M07.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=789 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.3"
 
 ════════ M07.4 · 观察 terminal backend 注册边界（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M07.4"
@@ -95,7 +95,7 @@ terminals: {
   rejection: { name: 'TerminalError', code: 'NO_BACKEND' },
   nativeBackendSkipped: 'npm install scripts were not approved'
 }
-REAL_STAGE_OK M07.4 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=1150 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.4"
+REAL_STAGE_OK M07.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1150 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.4"
 
 ════════ M07.5 · 解析共享 sandbox policy（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M07.5"
@@ -104,7 +104,7 @@ sandboxPolicy: {
   sessionOverride: 'workspace-write',
   workspaceRoot: '<repo>/dsh-example'
 }
-REAL_STAGE_OK M07.5 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=2115 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.5"
+REAL_STAGE_OK M07.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2115 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.5"
 
 REAL_MODULE_OK M07 stages=5 calls=5 failed=0
 [exit 0]

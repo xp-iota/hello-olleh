@@ -37,7 +37,7 @@ DSH 里每个可替换的能力都是一条**缝（seam）**，由三个角色�
 | Consumer | 通过服务门面使用能力，不感知具体实现 | `agent-loop` 调 `ctx.llm` |
 
 判断「这是不是一条缝」的实操标准：**能不能在不改 Consumer 的前提下换掉 Provider**。
-LLM 能力满足这一点，所以 [换成真实 MiniMax](03-provider-swap.md) 不需要改任何示例代码。
+LLM 能力满足这一点，所以 [换成真实推理服务](03-provider-swap.md) 不需要改任何示例代码。
 
 ## 示例工程如何演示这一点
 

@@ -10,7 +10,7 @@
 
 ```bash
 npm run M03          # 离线 mock Provider
-npm run M03:real     # 真实 MiniMax；需要 MINIMAX_API_KEY，会发起网络请求
+npm run M03:real     # 真实 MiniMax；需要 LLM_API_KEY，会发起网络请求
 ```
 
 ## 阶段与观察点

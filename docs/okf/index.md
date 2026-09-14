@@ -23,7 +23,7 @@ generated: { by: kiro/gpt-5.6-sol, at: 2026-09-12T12:25:04Z }
 
 - [装配枢纽 createHarness](concepts/01-assembly-hub.md) — 12 个方向模块为什么仍能保持细粒度步骤：装配成本一次性付在 runtime 层。
 - [能力缝的三角色](concepts/02-capability-seam.md) — Definition、Provider、Consumer 如何切分，以及为什么故意留两个缝不装。
-- [推理服务可替换](concepts/03-provider-swap.md) — 从 mock 换到真实 MiniMax，业务代码为什么一行都不用改。
+- [推理服务可替换](concepts/03-provider-swap.md) — 从 mock 换到真实推理服务，业务代码为什么一行都不用改。
 - [一次工具调用等于两步](concepts/04-tool-call-round-trip.md) — 工具调用回路的步数从哪里来，怎么用会话日志验证。
 
 ## References

@@ -1,7 +1,7 @@
 /**
  * env.ts —— 唯一的 .env 加载点。
  *
- * 工程根 `.env` 保存真实 provider 配置（`MINIMAX_API_KEY` 等），文件被 .gitignore 忽略。
+ * 工程根 `.env` 保存真实 provider 配置（`LLM_API_KEY` 等），文件被 .gitignore 忽略。
  * `process.loadEnvFile` 不覆盖已存在的环境变量，所以命令行临时注入优先于文件。
  * 文件不存在时静默跳过 —— 离线模式本来就不需要它。
  *

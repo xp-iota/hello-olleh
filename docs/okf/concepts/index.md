@@ -13,7 +13,7 @@ tags: [okf, dsh-example]
 
 ## 运行时
 
-- [推理服务可替换](03-provider-swap.md) — mock 与 minimax-m3 两条路由，切换代价为零。
+- [推理服务可替换](03-provider-swap.md) — mock 与 anthropic-compat 两条路由，切换代价为零。
 - [一次工具调用等于两步](04-tool-call-round-trip.md) — 调用步加收尾步，用会话日志验证。
 
 上一层：[知识包首页](../index.md)。

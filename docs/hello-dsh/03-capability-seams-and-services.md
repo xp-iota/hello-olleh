@@ -15,7 +15,7 @@ title: "能力缝 Seam 与服务全景"
 > 📐 **配套可跑示例**：[`M03.1 · llm-adapter`](../../dsh-example/M03-inference-service-access/steps/01-llm-adapter.ts) 是三角色模型的最小实例 ——
 > Definition 是真实包 `@deepseek-ai/dsh-llm` 导出的抽象类 `LlmAdapter`，Provider 是那个 `MockAdapter`，
 > Consumer 是 agent-loop（示例里换成 `ctx.llm.stream(...)` 直接消费）；`npm run M03:real`
-> 再用同一个循环消费真实 `minimax-m3` 路由，验证"换 provider 不换 Consumer"。
+> 再用同一个循环消费真实 `anthropic-compat` 路由，验证"换 provider 不换 Consumer"。
 >
 > ```ts
 > class MockAdapter extends LlmAdapter {        // ← Provider

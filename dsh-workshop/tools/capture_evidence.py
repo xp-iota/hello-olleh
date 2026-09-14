@@ -28,7 +28,7 @@ VENV = ROOT / "iota-example" / ".venv" / "bin" / "python"
 
 SECRETS = (
     ("ANTHROPIC_AUTH_TOKEN", "<redacted-key>"),
-    ("MINIMAX_API_KEY", "<redacted-key>"),
+    ("LLM_API_KEY", "<redacted-key>"),
 )
 
 

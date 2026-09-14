@@ -42,10 +42,10 @@ npm run learn -- --list
 | 模式 | 命令 | 是什么 |
 |---|---|---|
 | **offline** | `npm run all` / `npm run MXX` | 确定性机制测试。全部走 `runtime/llm-mock.ts`，不联网、不需要密钥。 |
-| **real** | `npm run MXX:real` | 单模块真实 MiniMax 请求。`DSH_REAL=1` 固定 `provider=minimax-m3`。 |
+| **real** | `npm run MXX:real` | 单模块真实 MiniMax 请求。`DSH_REAL=1` 固定 `provider=anthropic-compat`。 |
 | **all:real** | `npm run real:all`（同 `npm run all:real`） | 完整真实验收：12 个模块、58 个阶段全部输出 `REAL_STAGE_OK`。 |
 
-`npm run all` 不会隐式发起真实请求，真实模式也不会静默退回 mock —— 缺 `MINIMAX_API_KEY`
+`npm run all` 不会隐式发起真实请求，真实模式也不会静默退回 mock —— 缺 `LLM_API_KEY`
 时立即失败并说明配置来源（工程根 `.env`，模板见 `.env.example`）。
 
 ```bash
@@ -65,7 +65,7 @@ npm run M03:real-demo  # 同一 StreamChunk 消费循环接真实 SSE
 npm run M10:real-demo  # 注入 SKILL.md 前后的真实作答对照
 ```
 
-三条真实路径都需要 `MINIMAX_API_KEY`，会向外部服务发送教学请求；不要把内部地址、分支名或敏感数据放入请求。
+三条真实路径都需要 `LLM_API_KEY`，会向外部服务发送教学请求；不要把内部地址、分支名或敏感数据放入请求。
 
 ## 能力索引
 

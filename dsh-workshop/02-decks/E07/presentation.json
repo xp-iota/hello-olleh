@@ -70,7 +70,7 @@
         "  sessionOverride: 'workspace-write',",
         "  workspaceRoot: '<repo>/dsh-example'",
         "}",
-        "REAL_STAGE_OK M07.5 kind=mechanism provider=minimax-m3 model=MiniMax-M3 calls=1 ms=2115 in=0 out=9 finish=stop tools=- text=\"装配链已连通 M07.5\"",
+        "REAL_STAGE_OK M07.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2115 in=0 out=9 finish=stop tools=- text=\"装配链已连通 M07.5\"",
         "REAL_MODULE_OK M07 stages=5 calls=5 failed=0",
         "[exit 0]"
       ]

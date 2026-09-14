@@ -3,7 +3,7 @@
  * （或用根目录 `npm run M01:real`）。
  *
  * 与 `run.ts` 的区别只有一处：`run.ts` 是**我们**直接 `callTool('word_count', ...)`，
- * 这里换成**模型自己决定要不要调**。provider 路由指到 `minimax-m3`
+ * 这里换成**模型自己决定要不要调**。provider 路由指到 `anthropic-compat`
  * （真实适配器见 `runtime/llm-minimax.ts`，MiniMax 的 Anthropic 兼容端点），
  * 于是链路变成：
  *
@@ -15,7 +15,7 @@
  *
  * 也就是说 01 里注册的那个工具，**不需要为了对接模型再写任何胶水代码**。
  *
- * ⚠️ 本例会发起**真实网络请求并消耗额度**，且需要 `MINIMAX_API_KEY`；
+ * ⚠️ 本例会发起**真实网络请求并消耗额度**，且需要 `LLM_API_KEY`；
  * 离线套件 `npm run all` 只跑各示例的 `run.ts`，不会碰到这里。
  */
 import { createHarness } from '../../runtime/harness.ts'
@@ -27,10 +27,10 @@ try {
   process.loadEnvFile(new URL('../../.env', import.meta.url))
 } catch { /* 没有 .env：继续看进程环境变量 */ }
 
-if (!process.env.MINIMAX_API_KEY) {
-  console.error('✗ 缺少 MINIMAX_API_KEY。')
-  console.error('  复制 .env.example 为 .env 并填入 MiniMax 平台密钥，或在命令前临时注入：')
-  console.error('  MINIMAX_API_KEY=<your-key> npm run M01:real')
+if (!process.env.LLM_API_KEY) {
+  console.error('✗ 缺少 LLM_API_KEY。')
+  console.error('  复制 .env.example 为 .env 并填入推理服务密钥，或在命令前临时注入：')
+  console.error('  LLM_API_KEY=<your-key> npm run M01:real')
   process.exit(1)
 }
 
@@ -41,15 +41,15 @@ const QUERY = [
   '。必须调用 word_count 工具来算，不要自己数，最后用一句中文报出结果。',
 ].join('')
 
-const model = process.env.MINIMAX_MODEL ?? 'MiniMax-M3'
+const model = process.env.LLM_MODEL ?? 'MiniMax-M3'
 // 插件放在 plugins 里 → 在 agent 建立之前就注册好，模型第一步就能看见这个工具。
 const harness = await createHarness({
-  provider: 'minimax-m3',
+  provider: 'anthropic-compat',
   model,
   plugins: [[wordcountPlugin]],
 })
 
-console.log('① 推理服务:', `minimax-m3 / ${model}`, '（真实 HTTP + SSE）')
+console.log('① 推理服务:', `anthropic-compat / ${model}`, '（真实 HTTP + SSE）')
 console.log('② 模型可见工具:', harness.visibleTools())
 console.log('③ 用户 query:', QUERY)
 

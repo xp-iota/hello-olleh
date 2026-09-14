@@ -8,7 +8,7 @@
  * 两组共用 `review.ts` 的注册/渲染/注入代码，差异只有\"有没有 inject 那一下\"，
  * 所以\"一份 Markdown 改变了模型行为\"在这里是可核对的事实，而不是一句口号。
  *
- * ⚠️ 本脚本会发起**真实网络请求并消耗额度**，且需要 `MINIMAX_API_KEY`；
+ * ⚠️ 本脚本会发起**真实网络请求并消耗额度**，且需要 `LLM_API_KEY`；
  * 离线套件 `npm run all` 只跑各示例的 `run.ts`，不会碰到这里。
  */
 import type { SessionId } from '@deepseek-ai/dsh-session'
@@ -21,19 +21,19 @@ try {
   process.loadEnvFile(new URL('../../.env', import.meta.url))
 } catch { /* 没有 .env：继续看进程环境变量 */ }
 
-if (!process.env.MINIMAX_API_KEY) {
-  console.error('✗ 缺少 MINIMAX_API_KEY。')
-  console.error('  复制 .env.example 为 .env 并填入 MiniMax 平台密钥，或在命令前临时注入：')
-  console.error('  MINIMAX_API_KEY=<your-key> npm run M10:real')
+if (!process.env.LLM_API_KEY) {
+  console.error('✗ 缺少 LLM_API_KEY。')
+  console.error('  复制 .env.example 为 .env 并填入推理服务密钥，或在命令前临时注入：')
+  console.error('  LLM_API_KEY=<your-key> npm run M10:real')
   process.exit(1)
 }
 
-const model = process.env.MINIMAX_MODEL ?? 'MiniMax-M3'
-console.log('目标模型: minimax-m3 /', model, '（真实 HTTP + SSE）')
+const model = process.env.LLM_MODEL ?? 'MiniMax-M3'
+console.log('目标模型: anthropic-compat /', model, '（真实 HTTP + SSE）')
 
 /** 跑一个真实 turn；withSkill=true 时先把 SKILL.md 正文注入下一步上下文。 */
 async function review(sessionId: string, withSkill: boolean) {
-  const harness = await createHarness({ provider: 'minimax-m3', model, sessionId: sessionId as SessionId })
+  const harness = await createHarness({ provider: 'anthropic-compat', model, sessionId: sessionId as SessionId })
   if (withSkill) invokeSkill(harness, await registerSkill(harness))
   const outcome = await harness.runTurn({ prompt: PROMPT })
   await harness.dispose()
