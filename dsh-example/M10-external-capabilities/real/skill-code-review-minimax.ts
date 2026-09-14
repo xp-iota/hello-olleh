@@ -1,6 +1,6 @@
 /**
- * 模块 M10 的对应阶段 的**真实推理服务版**：`node M10-external-capabilities/run-real.ts`
- * （或用根目录 `npm run M10:real`）。
+ * 模块 M10 的对应阶段 的**真实推理服务版**：`node M10-external-capabilities/run.ts`
+ * （或用根目录 `npm run M10`）。
  *
  * 同一段 diff、同一句请求，跑**两个真实 turn**做对照：
  *   A 组：不装 skill —— 模型按自己的习惯答；
@@ -9,24 +9,15 @@
  * 所以\"一份 Markdown 改变了模型行为\"在这里是可核对的事实，而不是一句口号。
  *
  * ⚠️ 本脚本会发起**真实网络请求并消耗额度**，且需要 `LLM_API_KEY`；
- * 离线套件 `npm run all` 只跑各示例的 `run.ts`，不会碰到这里。
+ * 本文件是 `run.ts` 的 `M10.d` 阶段；`--mock` 下该阶段直接跳过，不执行到这里。
  */
 import type { SessionId } from '@deepseek-ai/dsh-session'
+import { requireRealCredentials } from '../../runtime/env.ts'
 import { createHarness } from '../../runtime/harness.ts'
 import { PROMPT, checkFormat, invokeSkill, registerSkill } from '../steps/01-skill-code-review.ts'
 
-// runtime/harness.ts 启动时也会加载工程根 .env；这里先加载一次，
-// 好在装配 harness 之前就把"密钥没配"这件事说清楚。
-try {
-  process.loadEnvFile(new URL('../../.env', import.meta.url))
-} catch { /* 没有 .env：继续看进程环境变量 */ }
-
-if (!process.env.LLM_API_KEY) {
-  console.error('✗ 缺少 LLM_API_KEY。')
-  console.error('  复制 .env.example 为 .env 并填入推理服务密钥，或在命令前临时注入：')
-  console.error('  LLM_API_KEY=<your-key> npm run M10:real')
-  process.exit(1)
-}
+// 真实模式前置检查：加载 .env，缺密钥当场退出（逻辑只有 runtime/env.ts 一份）。
+requireRealCredentials('M10')
 
 const model = process.env.LLM_MODEL ?? 'MiniMax-M3'
 console.log('目标模型: anthropic-compat /', model, '（真实 HTTP + SSE）')

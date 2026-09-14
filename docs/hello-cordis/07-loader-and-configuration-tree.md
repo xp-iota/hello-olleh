@@ -11,7 +11,7 @@ title: "Loader 与配置树"
 
 ## 7.1 从配置到运行
 
-> 📐 **配套对照与可跑入口**：[`cordis.yml`](../../dsh-example/cordis.yml) 用 `id` / `name` / `config` 展示 DSH 插件配置行的形态；[`runtime/harness.ts`](../../dsh-example/runtime/harness.ts) 则用真实 npm 包完成等价的服务与插件装配。`cordis.yml` 是配置示范，**不是本工程的直接执行入口**；要观察插件挂载与卸载，请在 `dsh-example/` 运行 `npm run M12`，并把 [`M12 timer phase`](../../dsh-example/M12-framework-mechanisms/phases/02-cordis-timer.ts) 的 `loadPlugin()` / `fiber.dispose()` 与本篇 `Entry.init()` / Fiber 回收链对照阅读。
+> 📐 **配套对照与可跑入口**：[`cordis.yml`](../../dsh-example/cordis.yml) 用 `id` / `name` / `config` 展示 DSH 插件配置行的形态；[`runtime/harness.ts`](../../dsh-example/runtime/harness.ts) 则用真实 npm 包完成等价的服务与插件装配。`cordis.yml` 是配置示范，**不是本工程的直接执行入口**；要观察插件挂载与卸载，请在 `dsh-example/` 运行 `npm run M12`，并把 [`M12 timer phase`](../../dsh-example/M12-framework-mechanisms/phases/02-dispose-pending-timer.ts) 的 `loadPlugin()` / `fiber.dispose()` 与本篇 `Entry.init()` / Fiber 回收链对照阅读。
 
 一个典型配置文件：
 

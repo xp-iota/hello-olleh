@@ -11,8 +11,8 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 真实内核证据：
   - 真实模型: MiniMax-M3
   - 真实内核: claude（claude-agent-sdk + claude）
-  - 真实响应: Skill 由系统提示动态注入，MCP 工具直接列入可用函数列表。
-  - 事件序列: step_start, system_init, thinking, text_delta, final, step_end
+  - 真实响应: 文件系统 Skill 经 Skill 工具调用，MCP 由宿主注册后以工具形式直接调用。
+  - 事件序列: step_start, system_init, thinking, tool_call, tool_result, thinking, text_delta, final, step_end
 三类边界：
   - MiniMax-backed kernel 行为: 内核读到同步进来的 Skill 正文后作答。
   - iota 编排层本地机制断言 : SKILL.md 同步与进程内 MCP 的 tools/list、tools/call 往返在本地断言。
@@ -23,5 +23,5 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 对照关系：语义等价
 结论：知识资产与外部工具协议都能通过明确边界接入，默认示例无需网络。
 {"mcp": "hello iota", "module": "M10", "relationship": "语义等价", "skill": "offline-greeter", "status": "ok"}
-IOTA_REAL_MODULE_OK M10-external-capabilities kernel=claude model=MiniMax-M3 chars=33 events=6
+IOTA_REAL_MODULE_OK M10-external-capabilities kernel=claude model=MiniMax-M3 chars=44 events=9
 [exit 0]

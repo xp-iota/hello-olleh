@@ -1,12 +1,13 @@
-$ cd dsh-example && npm run M05:real
+$ cd dsh-example && npm run M05
 
 
-> @example/dsh-examples@0.0.0 M05:real
-> DSH_REAL=1 node M05-session-surface/run-real.ts
+> @example/dsh-examples@0.0.0 M05
+> node M05-session-surface/run.ts
 
 
-████ M05 · 会话面：日志、持久化、查询、投影与标题 —— 真实 MiniMax 模式 ████
+████ M05 · 会话面：日志、持久化、查询、投影与标题 —— 真实推理服务 模式 ████
 provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
+（离线请用 --mock，例如 `npm run M01 -- --mock`）
 
 ════════ M05.1 · 验证会话日志和模型可见面的不变量（kind=model）════════
 ① 跑一个 turn（事件先落日志，append 即广播）:
@@ -30,12 +31,12 @@ provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeo
    改写冻结事件 → TypeError（符合预期）
 
 ④ deriveMessages：只投影 surface 事件（chunk 不在其中）
-   投影消息: system:You are an A | user:你好 | user:Current runt | assistant:你好！有什么我可以帮助你
+   投影消息: system:You are an A | user:你好 | user:Current runt | assistant:你好！我是DeepSee
 
 ⑤ surfaceOp replace：位置性替换——摘要占据被遮蔽区间的原位置
   [log] seq=12 user/message surfaceOp={"op":"replace","startSeq":5,"endSeq":6}
    surface 节点 4 → 3，投影现在以摘要开头:
-    system:You are an A | user:（摘要）前文已折叠 | assistant:你好！有什么我可以帮助你
+    system:You are an A | user:（摘要）前文已折叠 | assistant:你好！我是DeepSee
 
 ⑤b 两条 fail-closed 校验（真实实现的抛错原文）:
    区间不在 surface 上: surface replace at seq 13: startSeq and endSeq must reference earlier events
@@ -48,12 +49,12 @@ provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeo
 
 ⑦ flush：parallel 持久化检查点（无监听者也正常返回）
    flush → false
-REAL_STAGE_OK M05.1 kind=model provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1280 in=0 out=9 finish=stop tools=- text="你好！有什么我可以帮助你的吗？"
+REAL_STAGE_OK M05.1 kind=model provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2637 in=0 out=17 finish=stop tools=- text="你好！我是DeepSeek Harness AI助手。请问有什么我可以帮助你的吗？"
 
 ════════ M05.2 · 装载 JSONL persistence Provider（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M05.2"
 sessionPersistence: { backend: 'JsonlSessionPersistence', storedSessions: 0 }
-REAL_STAGE_OK M05.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1283 in=0 out=9 finish=stop tools=- text="装配链已连通 M05.2"
+REAL_STAGE_OK M05.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1134 in=0 out=9 finish=stop tools=- text="装配链已连通 M05.2"
 
 ════════ M05.3 · 查询 live-preferred 会话语料（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M05.3"
@@ -62,7 +63,7 @@ sessionQuery: {
   livePreferredCount: 1,
   firstId: 'demo-session'
 }
-REAL_STAGE_OK M05.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=3163 in=0 out=9 finish=stop tools=- text="装配链已连通 M05.3"
+REAL_STAGE_OK M05.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=854 in=0 out=9 finish=stop tools=- text="装配链已连通 M05.3"
 
 ════════ M05.4 · 耐久化 projection checkpoint（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M05.4"
@@ -71,12 +72,12 @@ sessionProjectionCache: {
   cached: true,
   keys: [ 'subagentCatalog', 'subagentTiming', 'subagent', 'goal', 'inbox' ]
 }
-REAL_STAGE_OK M05.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1196 in=0 out=9 finish=stop tools=- text="装配链已连通 M05.4"
+REAL_STAGE_OK M05.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1108 in=0 out=9 finish=stop tools=- text="装配链已连通 M05.4"
 
 ════════ M05.5 · 把标题写成 latest-wins 日志事件（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M05.5"
 sessionTitle: { title: '会话服务链', source: 'user', foldedAgain: '会话服务链' }
-REAL_STAGE_OK M05.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1226 in=0 out=9 finish=stop tools=- text="装配链已连通 M05.5"
+REAL_STAGE_OK M05.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2178 in=0 out=9 finish=stop tools=- text="装配链已连通 M05.5"
 
 REAL_MODULE_OK M05 stages=5 calls=5 failed=0
 [exit 0]

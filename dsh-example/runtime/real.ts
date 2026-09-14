@@ -1,5 +1,5 @@
 /**
- * real.ts —— 真实运行模式（`DSH_REAL=1`）的公共设施。
+ * real.ts —— 真实运行模式（默认）的公共设施。离线要显式 `--mock`（见 runtime/mode.ts）。
  *
  * 离线模式与真实模式的分界只有一条：**真实模式下每一个阶段都必须产生至少一次
  * 推理服务调用证据**，否则阶段失败、进程非零退出。这条纪律避免把 mock 结果
@@ -9,17 +9,18 @@
  *   1. `realConfig()`  —— 读取并校验 MiniMax 配置，缺密钥时立即失败并说明配置来源；
  *   2. `CountingMinimaxAdapter` —— 包住真实适配器，加上超时、调用计数与调用证据；
  *   3. `redact()`      —— 输出前脱敏（密钥、endpoint、绝对路径一律不出现在证据里）；
- *   4. `runRealModule()` —— 按阶段清单驱动一个模块的真实运行，逐阶段打印 REAL_STAGE_OK。
+ *   4. `runModule()`   —— 12 个模块 `run.ts` 唯一的编排入口，按 `--mock` 分叉。
  *
  * 证据里刻意**不含** URL、请求头、文件路径与密钥：它要能直接贴进课程材料。
  */
 import './env.ts'
+import { isMockMode } from './mode.ts'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import { MinimaxAnthropicAdapter } from './llm-minimax.ts'
 
-/** 真实模式开关。只有显式 `DSH_REAL=1` 才算真实验收，`npm run all` 不受影响。 */
-export const REAL_MODE = process.env.DSH_REAL === '1'
+/** 真实模式开关：**默认真实**，只有 `--mock` / `DSH_MOCK=1` 才离线（见 runtime/mode.ts）。 */
+export const REAL_MODE = !isMockMode()
 
 /** 单次模型调用的墙钟上限；超时按失败计，不按"跳过"计。 */
 export const REAL_TIMEOUT_MS = Number(process.env.DSH_REAL_TIMEOUT_MS ?? 120_000)
@@ -175,6 +176,12 @@ export interface StageSpec {
   kind: StageKind
   /** 相对模块目录的阶段脚本路径。 */
   path: string
+  /**
+   * 只对真实模式有意义的阶段（`real/*.ts` 专项演示：它们自带真实 turn / 真实路由消费，
+   * 没有密钥就跑不起来）。mock 模式下打印一行 skip 而**不是**执行 —— 这样 `run.ts`
+   * 的阶段清单在两个模式下是同一份，不需要各自维护。
+   */
+  realOnly?: boolean
 }
 
 /**
@@ -200,34 +207,40 @@ async function probeAssembly(stageId: string): Promise<string> {
 }
 
 /**
- * 驱动一个模块的真实运行。每个阶段：
- *   - mechanism：先做一次入口 probe（真实模型 + 完整装配），再跑本地机制断言；
- *   - model    ：直接跑阶段脚本，脚本内部的 runTurn 已被路由到真实推理服务。
- * 阶段结束后校验"这一段确实发生过成功的 推理服务调用"，否则 fail loud。
+ * 驱动一个模块。**这是 12 个模块 `run.ts` 唯一的编排入口**，两个模式共用一份阶段清单：
+ *
+ *   - 默认（real）：每个阶段都必须留下真实调用证据，否则 fail loud。
+ *     mechanism 阶段先做一次入口 probe（真实模型 + 完整装配），再跑本地机制断言；
+ *     model 阶段直接跑脚本，脚本内部的 runTurn 已被路由到真实推理服务。
+ *   - `--mock`：只跑不带 `realOnly` 的阶段 —— 正是原先 `run.ts` 逐个 `import()` 的那批。
+ *     `realOnly` 阶段打印一行 skip，不执行、不联网、不需要密钥。
+ *
+ * 两个模式都按同一份清单打印阶段 banner，所以输出可以逐行对照。
  */
-export async function runRealModule(
+export async function runModule(
   module: string,
   title: string,
   stages: readonly StageSpec[],
   /** 调用方的 `import.meta.url`：阶段路径相对**模块目录**解析，而不是相对本文件。 */
   base: string,
 ): Promise<void> {
-  if (!REAL_MODE) {
-    throw new Error(`真实模式入口必须带 DSH_REAL=1（例如 npm run ${module}:real）`)
-  }
+  if (!REAL_MODE) return runMockModule(module, title, stages, base)
+
   const config = realConfig()
   console.log(`\n████ ${module} · ${title} —— 真实推理服务 模式 ████`)
   console.log(`provider=${REAL_PROVIDER} model=${config.model} endpoint=<${ENDPOINT_LABEL}> timeout=${REAL_TIMEOUT_MS}ms`)
+  console.log('（离线请用 --mock，例如 `npm run M01 -- --mock`）')
 
+  let realStages = 0
   for (const stage of stages) {
     const before = evidence.length
     console.log(`\n════════ ${stage.id} · ${stage.title}（kind=${stage.kind}）════════`)
-    let probe = ''
     if (stage.kind === 'mechanism') {
-      probe = await probeAssembly(stage.id)
+      const probe = await probeAssembly(stage.id)
       console.log(`  ↳ 入口 probe 真实回复: ${JSON.stringify(sample(probe, 40))}`)
     }
     await import(new URL(stage.path, base).href)
+    realStages += 1
 
     const slice = evidence.slice(before)
     const failures = slice.filter((item) => item.failure)
@@ -255,5 +268,31 @@ export async function runRealModule(
 
   const total = evidence.length
   const failed = evidence.filter((item) => item.failure).length
-  console.log(`\nREAL_MODULE_OK ${module} stages=${stages.length} calls=${total} failed=${failed}`)
+  console.log(`\nREAL_MODULE_OK ${module} stages=${realStages} calls=${total} failed=${failed}`)
+}
+
+/** mock 分支：只跑离线可跑的阶段，`realOnly` 阶段显式跳过。 */
+async function runMockModule(
+  module: string,
+  title: string,
+  stages: readonly StageSpec[],
+  base: string,
+): Promise<void> {
+  console.log(`\n████ ${module} · ${title} —— 离线 mock 模式 ████`)
+  console.log('provider=mock（不联网、不需要密钥；真实模式去掉 --mock）')
+
+  let ran = 0
+  let skipped = 0
+  for (const stage of stages) {
+    console.log(`\n════════ ${stage.id} · ${stage.title}（kind=${stage.kind}）════════`)
+    if (stage.realOnly) {
+      console.log('  ↳ 跳过：本阶段需要真实推理服务，离线 mock 模式不跑（去掉 --mock 即可执行）')
+      skipped += 1
+      continue
+    }
+    await import(new URL(stage.path, base).href)
+    ran += 1
+  }
+
+  console.log(`\nMOCK_MODULE_OK ${module} stages=${ran} skipped=${skipped}`)
 }

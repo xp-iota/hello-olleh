@@ -1,12 +1,13 @@
-$ cd dsh-example && npm run M04:real
+$ cd dsh-example && npm run M04
 
 
-> @example/dsh-examples@0.0.0 M04:real
-> DSH_REAL=1 node M04-agent-loop-intervention/run-real.ts
+> @example/dsh-examples@0.0.0 M04
+> node M04-agent-loop-intervention/run.ts
 
 
-████ M04 · Agent 循环与干预面：先观察，再引导 —— 真实 MiniMax 模式 ████
+████ M04 · Agent 循环与干预面：先观察，再引导 —— 真实推理服务 模式 ████
 provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
+（离线请用 --mock，例如 `npm run M01 -- --mock`）
 
 ════════ M04.1 · 观察 turn/step/session 事件（kind=model）════════
 ----- 开始 turn（下面应由遥测插件打印生命周期）-----
@@ -16,8 +17,8 @@ provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeo
 [telemetry]  · step 结束
 [telemetry] ■ turn 结束
 
------ 结束 turn；聚合文本 = "Pong! 🏓\n\nHow can I help you today?" | step 数 = 1 -----
-REAL_STAGE_OK M04.1 kind=model provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1548 in=0 out=15 finish=stop tools=- text="Pong! 🏓 How can I help you today?"
+----- 结束 turn；聚合文本 = "Pong! Ready when you are." | step 数 = 1 -----
+REAL_STAGE_OK M04.1 kind=model provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1080 in=0 out=9 finish=stop tools=- text="Pong! Ready when you are."
 
 ════════ M04.2 · 在生命周期边界请求 steering（kind=model）════════
 [hooks] session-start：agent=demo-session source=startup
@@ -28,11 +29,11 @@ REAL_STAGE_OK M04.1 kind=model provider=anthropic-compat model=MiniMax-M3 calls=
 [hooks] pre-step：turn=1 step=2，认领消息 1 条
 [hooks] request：turn=1 step=2 即将发出模型请求
 
-聚合文本: "我需要先看一下仓库里有什么 TODO。请告诉我：\n\n1. **项目在哪？** 请提供仓库路径或让我浏览一下当前目录。\n2. **TODO 在哪些文件中？** 是代码里的 `// TODO` / `# TODO` 注释，还是某个 `TODO.md` 任务列表？\n\n我先看看当前目录结构：]<]minimax[>[<tool_call>\n]<]minimax[>[<invoke name=\"bash\">]<]minimax[>[<content>]<]minimax[>[<command>pwd && ls -la]<]minimax[>[</command>]<]minimax[>[<timeout>5000]<]minimax[>[</timeout>]<]minimax[>[</invoke>\n]<]minimax[>[</tool_call>请先给我一些上下文——我目前无法访问你的代码仓库或文件系统。上一轮我尝试运行 `pwd` 但没有看到结果（看起来工具调用没有被处理或没有返回）。\n\n要帮你完成 TODO，我需要：\n\n1. **仓库/项目路径** — 你想让我修改的代码在哪里？\n2. **TODO 的位置** — 是：\n   - 代码注释里的 `// TODO` / `# TODO` / `<!-- TODO -->`？\n   - 还是某个任务文件（如 `TODO.md`、`ISSUES.md`）？\n3. **访问方式** — 你是想直接把代码贴给我，还是希望我通过某种方式读取文件？\n\n最简单的方式：**把 TODO 列表（连同相关代码）贴到这里**，我就可以逐项处理。"
+聚合文本: "我需要先查看仓库结构和这些 TODO 的具体内容，才能帮你完成。让我先了解一下当前的情况。\n\n请提供以下信息：\n1. 仓库路径或项目目录在哪里？\n2. TODO 列表在哪里可以查看？（例如某个文件、特定模块）\n3. 你希望我以什么方式完成？（直接修改代码、列出方案给你确认、还是其他）\n\n如果你希望我直接探索当前工作目录，请告诉我可以从哪个路径开始。我需要更多信息才能继续。让我先探索当前目录看看情况。\n\n请确认以下几点，以便我继续：\n\n1. **当前工作目录是哪里？** 你可以告诉我项目根目录的绝对路径，或者我可以从默认工作目录开始搜索。\n2. **TODO 在哪些文件里？** 是某个特定文件（如 `TODO.md`），还是分布在代码中（标记为 `// TODO` 或 `# TODO`）？\n3. **完成标准是什么？** 是要我：\n   - 直接实现代码并提交修改？\n   - 先列出每个 TODO 的实施方案给你审核？\n   - 还是只完成\"可安全处理\"的部分，把需要决策的留给你？\n\n由于审批策略是 `ask`（即修改类操作需要确认），我倾向于：\n- 先扫描并列出所有 TODO 及其上下文\n- 对每个 TODO 提出具体处理方案\n- 等待你确认后再执行修改\n\n请告诉我从哪个目录开始，或者直接贴出 TODO 列表，我就可以推进。"
 本轮实际 step 数(应为 2): 2
 本轮是否被引导(steerRequested): true
 累计 steer 次数(应为 1): 1
-REAL_STAGE_OK M04.2 kind=model provider=anthropic-compat model=MiniMax-M3 calls=2 ms=2828 in=0 out=269 finish=stop tools=- text="请先给我一些上下文——我目前无法访问你的代码仓库或文件系统。上一轮我尝试运行 `pwd` 但没有…"
+REAL_STAGE_OK M04.2 kind=model provider=anthropic-compat model=MiniMax-M3 calls=2 ms=3396 in=0 out=289 finish=stop tools=- text="我需要更多信息才能继续。让我先探索当前目录看看情况。 请确认以下几点，以便我继续： 1. **当…"
 
 ════════ M04.3 · 比较 inbox 四种输入通道（kind=model）════════
 ① inject：排入 nextStep 但不唤醒（turn 开始前注入的上下文）
@@ -81,7 +82,7 @@ REAL_STAGE_OK M04.2 kind=model provider=anthropic-compat model=MiniMax-M3 calls=
 
 ⑧ clear：丢弃全部待认领消息
    inbox 状态: nextStep = 0 | nextTurn = 0
-REAL_STAGE_OK M04.3 kind=model provider=anthropic-compat model=MiniMax-M3 calls=5 ms=9228 in=0 out=380 finish=stop tools=- text="好，我假设有一个未完成的任务。我来挑一个最常见的演示场景——**写一个待办事项管理的小程序**，…"
+REAL_STAGE_OK M04.3 kind=model provider=anthropic-compat model=MiniMax-M3 calls=5 ms=13093 in=0 out=323 finish=stop tools=- text="明白，那我继续做点事。 **再来一个：快速编程小知识** Python 里有个容易踩坑的点：可变…"
 
 ════════ M04.4 · 捕获会话遥测账本（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M04.4"
@@ -91,7 +92,7 @@ sessionTelemetry: {
   channels: [ 'ledger' ],
   eventTypes: [ 'user/message' ]
 }
-REAL_STAGE_OK M04.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=678 in=0 out=9 finish=stop tools=- text="装配链已连通 M04.4"
+REAL_STAGE_OK M04.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=755 in=0 out=9 finish=stop tools=- text="装配链已连通 M04.4"
 
 ════════ M04.5 · 注册包归属运行时不变量（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M04.5"
@@ -100,7 +101,7 @@ invariants: {
   selectedInstallerRan: true,
   duplicateNamesFailLoud: true
 }
-REAL_STAGE_OK M04.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=834 in=0 out=9 finish=stop tools=- text="装配链已连通 M04.5"
+REAL_STAGE_OK M04.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=765 in=0 out=9 finish=stop tools=- text="装配链已连通 M04.5"
 
 REAL_MODULE_OK M04 stages=5 calls=10 failed=0
 [exit 0]

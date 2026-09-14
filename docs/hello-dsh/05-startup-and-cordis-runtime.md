@@ -442,7 +442,7 @@ function emitPluginDisposed(context: Context, fiber: Fiber) {
 
 > 📐 **配套可跑示例**：[`M12.1 · dispatch-modes`](../../dsh-example/M12-framework-mechanisms/steps/01-dispatch-modes.ts) 在真实 `@deepseek-ai/cordis` 上把五种派发模式各跑一遍
 > （含 `parallel` 的 `AggregateError`、`serial` 的截链、`waterfall` 的"最后一个实参就是内建默认"）；
-> [`M12.2 · cordis-timer`](../../dsh-example/M12-framework-mechanisms/phases/02-cordis-timer.ts) 演示 effect 化的定时器与 fiber 卸载时的拒绝语义。
+> [`M12.2 · dispose-pending-timer`](../../dsh-example/M12-framework-mechanisms/phases/02-dispose-pending-timer.ts) 演示 effect 化的定时器与 fiber 卸载时的拒绝语义。
 
 
 ![每个能力都是一个 cordis Service](diagrams/05-services-as-plugins.svg)

@@ -1,14 +1,27 @@
-const phases = [
-  ['验证会话日志和模型可见面的不变量', './phases/01-session-log.ts'],
-  ['装载 JSONL persistence Provider', './phases/02-session-persistence.ts'],
-  ['查询 live-preferred 会话语料', './phases/03-session-query.ts'],
-  ['耐久化 projection checkpoint', './phases/04-session-projection-cache.ts'],
-  ['把标题写成 latest-wins 日志事件', './phases/05-session-title.ts'],
-] as const
+/**
+ * M05 的运行入口：**默认真实**，`--mock` 离线。
+ *
+ *   node M05-session-surface/run.ts            # 真实推理服务（需 LLM_API_KEY，会发起网络请求）
+ *   node M05-session-surface/run.ts --mock     # 离线确定性机制（走 runtime/llm-mock.ts，不联网）
+ *
+ * 两个模式共用下面这份阶段清单，由 runtime/real.ts 的 runModule() 分叉：
+ * 真实模式逐阶段校验"确实发生过成功的推理服务调用"，缺证据即 fail loud；
+ * mock 模式只跑离线阶段，`realOnly` 的专项演示打印 skip。
+ */
+import type { StageSpec } from '../runtime/real.ts'
+import { applyMockFlag } from '../runtime/mode.ts'
 
-console.log('\n████ M05 · 会话面：日志、持久化、查询、投影与标题 ████')
-for (const [index, [title, path]] of phases.entries()) {
-  console.log(`\n════════ M05.${index + 1} · ${title} ════════`)
-  await import(path)
-}
-console.log('\n结论：事件日志是事实源；persistence 保存事实，query 读取语料，projection cache 加速重放，title 仍以日志投影表达。')
+// ① 先解析 --mock。这一句必须早于 real.ts 求值：REAL_MODE 是模块级常量，
+//    而静态 import 会被提升到模块体之前执行，所以 real.ts 只能动态 import。
+applyMockFlag()
+const { runModule } = await import('../runtime/real.ts')
+
+const stages: readonly StageSpec[] = [
+  { id: 'M05.1', title: '验证会话日志和模型可见面的不变量', kind: 'model', path: './phases/01-check-log-invariants.ts' },
+  { id: 'M05.2', title: '装载 JSONL persistence Provider', kind: 'mechanism', path: './phases/02-load-jsonl-provider.ts' },
+  { id: 'M05.3', title: '查询 live-preferred 会话语料', kind: 'mechanism', path: './phases/03-list-live-preferred.ts' },
+  { id: 'M05.4', title: '耐久化 projection checkpoint', kind: 'mechanism', path: './phases/04-resume-from-checkpoint.ts' },
+  { id: 'M05.5', title: '把标题写成 latest-wins 日志事件', kind: 'mechanism', path: './phases/05-project-title.ts' },
+]
+
+await runModule('M05', '会话面：日志、持久化、查询、投影与标题', stages, import.meta.url)

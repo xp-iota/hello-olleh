@@ -9,18 +9,19 @@ DSH 同时维护两种视图：**追加式事件日志是事实来源，surface 
 ## 运行
 
 ```bash
-npm run M05
+npm run M05            # 真实 MiniMax（默认）；需要 LLM_API_KEY，会发起网络请求
+npm run M05 -- --mock  # 离线确定性机制；不联网、不需要密钥
 ```
 
 ## 阶段与观察点
 
-| 阶段 | 类型 | 实现 | 观察什么 |
-|---|---|---|---|
-| 1 日志与 surface | 教学主线 | `steps/01-session-log.ts` | seq 连续、深冻结、replace、fork 与 flush 不变量 |
-| 2 持久化 | 扩展面 | `steps/02-session-persistence.ts` | 临时根目录上的追加式 JSONL Provider |
-| 3 查询 | 扩展面 | `steps/03-session-query.ts` | live-preferred 精确读取；未实现搜索明确拒绝 |
-| 4 投影缓存 | 扩展面 | `steps/04-session-projection-cache.ts` | storage domain 上的可恢复 checkpoint |
-| 5 标题 | 扩展面 | `steps/05-session-title.ts` | `session/title` 事件的 latest-wins 投影 |
+| 阶段 | 类型 | 实现 | 观察场景 | 观察什么 |
+|---|---|---|---|---|
+| 1 日志与 surface | 教学主线 | `steps/01-session-log.ts` | `phases/01-check-log-invariants.ts` | seq 连续、深冻结、replace、fork 与 flush 不变量 |
+| 2 持久化 | 扩展面 | `steps/02-session-persistence.ts` | `phases/02-load-jsonl-provider.ts` | 临时根目录上的追加式 JSONL Provider |
+| 3 查询 | 扩展面 | `steps/03-session-query.ts` | `phases/03-list-live-preferred.ts` | live-preferred 精确读取；未实现搜索明确拒绝 |
+| 4 投影缓存 | 扩展面 | `steps/04-session-projection-cache.ts` | `phases/04-resume-from-checkpoint.ts` | storage domain 上的可恢复 checkpoint |
+| 5 标题 | 扩展面 | `steps/05-session-title.ts` | `phases/05-project-title.ts` | `session/title` 事件的 latest-wins 投影 |
 
 ## 完整链路
 

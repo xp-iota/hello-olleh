@@ -162,7 +162,7 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
     await (config === undefined ? ctx.plugin(plugin as any) : ctx.plugin(plugin as any, config)).await()
   }
 
-  // 真实模式（DSH_REAL=1）：密钥缺失当场失败，绝不静默退回 mock。
+  // 真实模式（默认；`--mock` 才关）：密钥缺失当场失败，绝不静默退回 mock。
   // 计数适配器把真实 chunk 一条不改地透传给 agent-loop，同时留下调用证据。
   const real = REAL_MODE ? realConfig() : undefined
   if (real) {

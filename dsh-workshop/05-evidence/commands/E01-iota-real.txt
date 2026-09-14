@@ -11,7 +11,7 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 真实内核证据：
   - 真实模型: MiniMax-M3
   - 真实内核: claude（claude-agent-sdk + claude）
-  - 真实响应: 为每个工具槽注册具名、可逆的处理阶段即可实现。
+  - 真实响应: 为工具槽注册具名钩子并按逆序调用，即可让处理阶段具备可逆性。
   - 事件序列: step_start, system_init, thinking, text_delta, final, step_end
 三类边界：
   - MiniMax-backed kernel 行为: 内核按自己的工具可见性规则作答，编排层不干预它内部的工具选择。
@@ -23,5 +23,5 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 对照关系：教学补齐 + 结构性边界
 结论：ToolPipeline 可治理 iota 自有工具槽，但不冒充内核内部工具可见性控制。
 {"module": "M01", "pipeline": "audit(guard(raw:x))", "refusal": "unknown stage 'typo' on pipeline 'iota-tools'; declared stages: audit, guard", "relationship": "教学补齐 + 结构性边界", "status": "ok"}
-IOTA_REAL_MODULE_OK M01-tool-pipeline kernel=claude model=MiniMax-M3 chars=23 events=6
+IOTA_REAL_MODULE_OK M01-tool-pipeline kernel=claude model=MiniMax-M3 chars=30 events=6
 [exit 0]

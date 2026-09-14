@@ -9,18 +9,19 @@ Cordis 用事件派发语义定义监听者如何组合，用 Fiber 生命周期
 ## 运行
 
 ```bash
-npm run M12
+npm run M12            # 真实 MiniMax（默认）；需要 LLM_API_KEY，会发起网络请求
+npm run M12 -- --mock  # 离线确定性机制；不联网、不需要密钥
 ```
 
 ## 阶段与观察点
 
-| 阶段 | 类型 | 实现 | 观察什么 |
-|---|---|---|---|
-| 1 Dispatch | 教学主线 | `steps/01-dispatch-modes.ts` | emit、parallel、serial、bail、waterfall 的顺序与返回值 |
-| 2 Timer | 教学主线 | `steps/02-cordis-timer.ts` | timeout、interval、throttle、debounce 与 Fiber dispose |
-| 3 Fiber 状态机 | 扩展面 | `steps/03-fiber-state-machine.ts` | 依赖缺失时 PENDING，满足后转为 ACTIVE |
-| 4 Isolate realm | 扩展面 | `steps/04-isolate-realm.ts` | 同名服务的独立解析域 |
-| 5 Intercept config | 扩展面 | `steps/05-intercept-config.ts` | 按调用域叠加配置而不复制服务实例 |
+| 阶段 | 类型 | 实现 | 观察场景 | 观察什么 |
+|---|---|---|---|---|
+| 1 Dispatch | 教学主线 | `steps/01-dispatch-modes.ts` | `phases/01-compare-dispatch-modes.ts` | emit、parallel、serial、bail、waterfall 的顺序与返回值 |
+| 2 Timer | 教学主线 | `steps/02-cordis-timer.ts` | `phases/02-dispose-pending-timer.ts` | timeout、interval、throttle、debounce 与 Fiber dispose |
+| 3 Fiber 状态机 | 扩展面 | `steps/03-fiber-state-machine.ts` | `phases/03-observe-pending-state.ts` | 依赖缺失时 PENDING，满足后转为 ACTIVE |
+| 4 Isolate realm | 扩展面 | `steps/04-isolate-realm.ts` | `phases/04-isolate-same-name-service.ts` | 同名服务的独立解析域 |
+| 5 Intercept config | 扩展面 | `steps/05-intercept-config.ts` | `phases/05-layer-intercept-config.ts` | 按调用域叠加配置而不复制服务实例 |
 
 ## 完整链路
 

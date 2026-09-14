@@ -9,17 +9,18 @@
 ## 运行
 
 ```bash
-npm run M08
+npm run M08            # 真实 MiniMax（默认）；需要 LLM_API_KEY，会发起网络请求
+npm run M08 -- --mock  # 离线确定性机制；不联网、不需要密钥
 ```
 
 ## 阶段与观察点
 
-| 阶段 | 类型 | 实现 | 观察什么 |
-|---|---|---|---|
-| 1 子代理委派 | 教学主线 | `steps/01-subagent-delegation.ts` | Provider 生命周期与模型可见工具如何解耦 |
-| 2 Agent preset | 扩展面 | `steps/02-agent-presets.ts` | 一次 Session 的插件组合来源 |
-| 3 Permission preset | 扩展面 | `steps/03-permission-presets.ts` | sandbox/approval 组合与未隔离 shell 的拒绝 |
-| 4 模型选择 | 扩展面 | `steps/04-subagent-model-selection.ts` | 精确 provider/model 路由授权 |
+| 阶段 | 类型 | 实现 | 观察场景 | 观察什么 |
+|---|---|---|---|---|
+| 1 子代理委派 | 教学主线 | `steps/01-subagent-delegation.ts` | `phases/01-delegate-a-review.ts` | Provider 生命周期与模型可见工具如何解耦 |
+| 2 Agent preset | 扩展面 | `steps/02-agent-presets.ts` | `phases/02-empty-preset-roster.ts` | 一次 Session 的插件组合来源 |
+| 3 Permission preset | 扩展面 | `steps/03-permission-presets.ts` | `phases/03-reject-unisolated-shell.ts` | sandbox/approval 组合与未隔离 shell 的拒绝 |
+| 4 模型选择 | 扩展面 | `steps/04-subagent-model-selection.ts` | `phases/04-authorize-subagent-route.ts` | 精确 provider/model 路由授权 |
 
 ## 完整链路
 

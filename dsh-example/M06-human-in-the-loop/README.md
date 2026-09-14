@@ -9,19 +9,20 @@
 ## 运行
 
 ```bash
-npm run M06
+npm run M06            # 真实 MiniMax（默认）；需要 LLM_API_KEY，会发起网络请求
+npm run M06 -- --mock  # 离线确定性机制；不联网、不需要密钥
 ```
 
 ## 阶段与观察点
 
-| 阶段 | 类型 | 实现 | 观察什么 |
-|---|---|---|---|
-| 1 Slash Command | 教学主线 | `steps/01-command-hello.ts` | 命令不消耗模型 turn，未知命令显式失败 |
-| 2 Approval | 教学主线 | `steps/02-approval-answerer.ts` | ask、allow-once、reject 与无 Provider 时 fail closed |
-| 3 用户问题 | 扩展面 | `steps/03-user-questions.ts` | scoped answerer waterfall |
-| 4 计划模式 | 扩展面 | `steps/04-plan-mode.ts` | 状态写入日志投影，退出走稳定工具 |
-| 5 Todo | 扩展面 | `steps/05-todo.ts` | 整表替换并投影，不做隐式局部更新 |
-| 6 消息反馈 | 扩展面 | `steps/06-message-feedback.ts` | 经持久化服务读取耐久反馈 |
+| 阶段 | 类型 | 实现 | 观察场景 | 观察什么 |
+|---|---|---|---|---|
+| 1 Slash Command | 教学主线 | `steps/01-command-hello.ts` | `phases/01-dispatch-slash-command.ts` | 命令不消耗模型 turn，未知命令显式失败 |
+| 2 Approval | 教学主线 | `steps/02-approval-answerer.ts` | `phases/02-three-approval-outcomes.ts` | ask、allow-once、reject 与无 Provider 时 fail closed |
+| 3 用户问题 | 扩展面 | `steps/03-user-questions.ts` | `phases/03-answer-structured-questions.ts` | scoped answerer waterfall |
+| 4 计划模式 | 扩展面 | `steps/04-plan-mode.ts` | `phases/04-toggle-plan-mode.ts` | 状态写入日志投影，退出走稳定工具 |
+| 5 Todo | 扩展面 | `steps/05-todo.ts` | `phases/05-replace-todo-list.ts` | 整表替换并投影，不做隐式局部更新 |
+| 6 消息反馈 | 扩展面 | `steps/06-message-feedback.ts` | `phases/06-read-durable-feedback.ts` | 经持久化服务读取耐久反馈 |
 
 ## 完整链路
 

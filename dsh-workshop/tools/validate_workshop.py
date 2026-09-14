@@ -20,6 +20,7 @@ import json
 import math
 import os
 import re
+import shutil
 import subprocess
 import sys
 import zipfile
@@ -32,8 +33,8 @@ from build_course import terminal_rows  # noqa: E402
 
 WORKSHOP = Path(__file__).resolve().parents[1]
 ROOT = WORKSHOP.parent
-FFMPEG = "/opt/homebrew/bin/ffmpeg"
-FFPROBE = "/opt/homebrew/bin/ffprobe"
+FFMPEG = os.environ.get("FFMPEG") or shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg"
+FFPROBE = os.environ.get("FFPROBE") or shutil.which("ffprobe") or "/opt/homebrew/bin/ffprobe"
 
 EPISODE_IDS = tuple(f"E{index:02d}" for index in range(1, 13))
 SLIDES_PER_EPISODE = 7

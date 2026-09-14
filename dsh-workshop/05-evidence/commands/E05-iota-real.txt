@@ -12,8 +12,8 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 真实内核证据：
   - 真实模型: MiniMax-M3
   - 真实内核: claude（claude-agent-sdk + claude）
-  - 真实响应: 正在检索 ConversationStore、RunStore 与 DSH 投影契约，待对比完成后回复。
-  - 事件序列: step_start, system_init, thinking, tool_call, tool_result, thinking, tool_call, tool_result, tool_call, tool_result, thinking, tool_call, tool_result, tool_call, tool_result, thinking, tool_call, tool_result, text_delta, final, step_end
+  - 真实响应: 正在检索相关文件，请稍候。
+  - 事件序列: step_start, system_init, thinking, tool_call, tool_result, thinking, thinking, tool_call, tool_result, thinking, text_delta, final, step_end
 三类边界：
   - MiniMax-backed kernel 行为: 内核回答被真实写入 ConversationStore 与 RunStore，可读回。
   - iota 编排层本地机制断言 : 消息顺序、run 状态与事件 schema 边界在本地断言。
@@ -25,5 +25,5 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 对照关系：语义等价 + 结构性边界
 结论：iota 保存会话和运行事实，但不声称拥有 DSH 的 seq/surface 不变量。
 {"messages": 2, "module": "M05", "relationship": "语义等价 + 结构性边界", "run_status": "succeeded", "sequence_contract": "not part of the iota event schema", "status": "ok"}
-IOTA_REAL_MODULE_OK M05-session-surface kernel=claude model=MiniMax-M3 chars=52 events=21
+IOTA_REAL_MODULE_OK M05-session-surface kernel=claude model=MiniMax-M3 chars=13 events=13
 [exit 0]

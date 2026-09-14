@@ -66,12 +66,12 @@
       "slideIndex": 2,
       "evidenceText": [
         "$ cd dsh-example && npm run M02",
-        "  backend: 'LocalSpillStore',",
-        "  inlineBytes: 255,",
+        "  inlineBytes: 253,",
         "  hasLocator: true,",
         "  isError: false",
         "}",
-        "结论：上下文是结构化装配结果；section/variable 控制进入什么，compaction 控制历史以什么成本继续可见；meter、pruner 与 spill 把预算变成可观测且可执行的策略。",
+        "REAL_STAGE_OK M02.6 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2221 in=0 out=9 finish=stop tools=- text=\"装配链已连通 M02.6\"",
+        "REAL_MODULE_OK M02 stages=6 calls=6 failed=0",
         "[exit 0]"
       ]
     },

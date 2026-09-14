@@ -11,7 +11,7 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 真实内核证据：
   - 真实模型: MiniMax-M3
   - 真实内核: claude（claude-agent-sdk + claude）
-  - 真实响应: 作用域记忆由内核序列化注入Prompt，压缩边界仍由内核在调用模型前截断摘要。
+  - 真实响应: 作用域记忆通过摘要注入Prompt，压缩边界由内核的token预算统一管辖。
   - 事件序列: step_start, system_init, thinking, text_delta, final, step_end
 三类边界：
   - MiniMax-backed kernel 行为: 内核自己装配完整 Prompt 并决定历史怎么进上下文。
@@ -24,5 +24,5 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 对照关系：语义等价 + 结构性边界
 结论：iota 能组织作用域记忆；模型请求的完整装配与压缩仍属于内核。
 {"compression_seam": "kernel-owned", "default_injection": false, "module": "M02", "relationship": "语义等价 + 结构性边界", "scope": "session-a", "status": "ok"}
-IOTA_REAL_MODULE_OK M02-context-assembly-economics kernel=claude model=MiniMax-M3 chars=39 events=6
+IOTA_REAL_MODULE_OK M02-context-assembly-economics kernel=claude model=MiniMax-M3 chars=38 events=6
 [exit 0]

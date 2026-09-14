@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -18,7 +19,7 @@ WORKSHOP = Path(__file__).resolve().parents[1]
 DECKS = WORKSHOP / "02-decks"
 PUBLIC = WORKSHOP / "03-public"
 PROFILE = DECKS / "tts-profile.edge-tts.json"
-FFPROBE = "/opt/homebrew/bin/ffprobe"
+FFPROBE = os.environ.get("FFPROBE") or shutil.which("ffprobe") or "/opt/homebrew/bin/ffprobe"
 EDGE_TTS = WORKSHOP / ".venv" / "bin" / "edge-tts"
 
 FORBIDDEN = (

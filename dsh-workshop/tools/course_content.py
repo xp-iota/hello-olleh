@@ -169,22 +169,22 @@ EPISODES: list[dict[str, Any]] = [
     episode(
         1, "M01", "tool-pipeline", "工具管线",
         task="给 Agent 加一个 word_count 工具，让真实模型自己决定调用它；再在编排层给自有工具槽装一条可回收的处理阶段",
-        command="cd dsh-example && npm run M01:real",
+        command="cd dsh-example && npm run M01",
         expect="模型自己发出 word_count 调用，工具结果回灌成「7 词 / 49 字符」，然后模型用一句中文收尾",
         evidence="E01-dsh-real.txt",
         slides=[
             task_slide(
                 1,
                 "给 Agent 加一个 word_count 工具，让真实模型自己决定调用它；再在编排层给自有工具槽装一条可回收的处理阶段",
-                "cd dsh-example && npm run M01:real",
+                "cd dsh-example && npm run M01",
                 "模型自己发出 word_count 调用，工具结果回灌成「7 词 / 49 字符」，然后模型用一句中文收尾",
                 "这一集你要做的事很具体：给 Agent 加一个数词数的工具，然后让真实模型自己决定要不要调它。命令就一条，"
-                "npm run M01:real，现在就可以暂停敲进去。你会看到三段输出：模型发出的 word_count 调用、"
+                "npm run M01，现在就可以暂停敲进去。你会看到三段输出：模型发出的 word_count 调用、"
                 "工具结果回灌成「7 词 / 49 字符」，最后模型用一句中文报结果。注意这里的模型是真的在跑，"
                 "不是固定回复。看到这三段，说明工具从注册到回灌的整条链是通的。",
             ),
             terminal_slide(
-                1, "这条命令的真实输出", "cd dsh-example && npm run M01:real", "E01-dsh-real.txt",
+                1, "这条命令的真实输出", "cd dsh-example && npm run M01", "E01-dsh-real.txt",
                 "屏幕上是刚才那条命令的真实输出。第一行告诉你推理服务是 MiniMax，走的是真实 HTTP 加 SSE。"
                 "第二行是模型可见工具，只有 word_count 一个。往下，模型发起的调用带着它自己填的参数，"
                 "工具结果那一行的 isError 是 false，渲染后的内容是七词四十九字符。最后 step 数是二，"
@@ -234,10 +234,10 @@ EPISODES: list[dict[str, Any]] = [
             exercise_slide(
                 1, "把 word_count 改成拒绝空文本，并让模型看到拒绝原因",
                 "在 steps/01-word-count.ts 的 execute 里，text 去空白后为空就抛错。",
-                "cd dsh-example && npm run M01 && npm run M01:real",
+                "cd dsh-example && npm run M01 && npm run M01",
                 "离线阶段的 isError 变成 true，渲染内容以 Error: 开头；真实模式下模型会重新组织一句话解释失败原因。",
                 "留一个练习。打开 steps 里的 word-count，在 execute 开头加一句：文本去掉空白后为空就抛错。"
-                "然后先跑离线的 M01，再跑真实的 M01:real。可验证的答案是这样的：离线那次工具结果的 isError 变成 true，"
+                "然后先跑离线的 M01，再跑真实的 M01。可验证的答案是这样的：离线那次工具结果的 isError 变成 true，"
                 "渲染内容以 Error 开头；真实那次模型会拿着这个错误重新组织一句话。两次都对，"
                 "说明你已经能控制「工具失败以什么形态回到模型面前」这件事了。",
             ),
@@ -319,22 +319,22 @@ EPISODES: list[dict[str, Any]] = [
     episode(
         3, "M03", "inference-access", "推理服务接入",
         task="把推理服务换成 MiniMax：注册一个适配器，让同一个消费循环拿到真实流",
-        command="cd dsh-example && npm run M03:real",
+        command="cd dsh-example && npm run M03",
         expect="同一个循环消费真实 SSE：block 先开始再有增量，结束时给出 finish 原因，还有 usage 里的 token 数",
         evidence="E03-dsh-real.txt",
         slides=[
             task_slide(
                 3,
                 "把推理服务换成 MiniMax：注册一个适配器，让同一个消费循环拿到真实流",
-                "cd dsh-example && npm run M03:real",
+                "cd dsh-example && npm run M03",
                 "同一个循环消费真实 SSE：block 先开始再有增量，结束时给出 finish 原因，还有 usage 里的 token 数",
                 "这一集换模型。任务是注册一个适配器，让上层那个消费循环完全不用改也能拿到真实流。"
-                "命令是 npm run M03:real。你会看到同一个循环消费真实 SSE：block 先开始再有增量，"
+                "命令是 npm run M03。你会看到同一个循环消费真实 SSE：block 先开始再有增量，"
                 "结束时给出 finish 原因，还有 usage 里的 token 数。判断标准就一条——上层代码一行没动，"
                 "只是换了一个有名字的适配器。做到这一点，换模型才是配置问题，而不是改造工程。",
             ),
             terminal_slide(
-                3, "同一个循环消费真实 SSE", "cd dsh-example && npm run M03:real", "E03-dsh-real.txt",
+                3, "同一个循环消费真实 SSE", "cd dsh-example && npm run M03", "E03-dsh-real.txt",
                 "看输出里的几处检查。已注册的 provider 路由是一个列表，模型选路就靠这个名字。"
                 "往下是 chunk 序列：每个 block 都是先 start 再 delta 再 end，没有没人认领的碎片。"
                 "最后三行是聚合文本、finish 原因和 usage。这三样齐了，上层就可以完全不知道模型是哪一家的。"
@@ -393,21 +393,21 @@ EPISODES: list[dict[str, Any]] = [
     episode(
         4, "M04", "loop-intervention", "Agent 循环与干预面",
         task="不复制主循环，也能在循环里插一脚：订阅事件、在生命周期边界引导下一步",
-        command="cd dsh-example && npm run M04:real",
+        command="cd dsh-example && npm run M04",
         expect="遥测插件把一轮、一步、一次请求逐条打出来；在准备停下来的那个边界上引导一次，本轮就多跑了一个 step",
         evidence="E04-dsh-real.txt",
         slides=[
             task_slide(
                 4,
                 "不复制主循环，也能在循环里插一脚：订阅事件、在生命周期边界引导下一步",
-                "cd dsh-example && npm run M04:real",
+                "cd dsh-example && npm run M04",
                 "遥测插件把一轮、一步、一次请求逐条打出来；在准备停下来的那个边界上引导一次，本轮就多跑了一个 step",
-                "这一集的任务是在 Agent 循环里插一脚，但不把循环复制一份。命令是 npm run M04:real，"
+                "这一集的任务是在 Agent 循环里插一脚，但不把循环复制一份。命令是 npm run M04，"
                 "模型是真的在跑。你会看到遥测插件把一轮、一步、一次请求逐条打出来；然后在准备停下来的那个边界上引导一次，"
                 "本轮就多跑了一个 step。判断标准是 step 数从一变成二，而循环代码你一行都没碰。",
             ),
             terminal_slide(
-                4, "生命周期事件与一次引导", "cd dsh-example && npm run M04:real", "E04-dsh-real.txt",
+                4, "生命周期事件与一次引导", "cd dsh-example && npm run M04", "E04-dsh-real.txt",
                 "输出里带方括号前缀的那些行都是插件打的，它只是订阅者，不是主循环。注意 turn-stopping 那一行："
                 "插件在这里反对停止，塞了一条消息进去，于是主循环重读收件箱又走了一步。"
                 "下面的 step 数是从会话日志里数出来的，不是插件自己记的账——这点很重要，"
@@ -467,22 +467,22 @@ EPISODES: list[dict[str, Any]] = [
     episode(
         5, "M05", "session-surface", "会话面",
         task="把「发生过的事」和「模型看见的事」分成两份：日志只往后加，可见面可以换",
-        command="cd dsh-example && npm run M05:real",
+        command="cd dsh-example && npm run M05",
         expect="四个可验证的点：序号连续、事件被冻结改不动、替换可见面之后投影以摘要开头、而日志长度一条没少",
         evidence="E05-dsh-real.txt",
         slides=[
             task_slide(
                 5,
                 "把「发生过的事」和「模型看见的事」分成两份：日志只往后加，可见面可以换",
-                "cd dsh-example && npm run M05:real",
+                "cd dsh-example && npm run M05",
                 "四个可验证的点：序号连续、事件被冻结改不动、替换可见面之后投影以摘要开头、而日志长度一条没少",
-                "这一集要把两件事分开：发生过的事，和模型看见的事。命令是 npm run M05:real。"
+                "这一集要把两件事分开：发生过的事，和模型看见的事。命令是 npm run M05。"
                 "你会看到四个可验证的点：序号连续、事件被冻结改不动、替换可见面之后投影以摘要开头、"
                 "而日志长度一条没少。这四点合起来就是审计和回放的地基。前一集的压缩之所以敢遮，"
                 "就是因为这一层保证了事实还在。",
             ),
             terminal_slide(
-                5, "日志不变量与可见面替换", "cd dsh-example && npm run M05:real", "E05-dsh-real.txt",
+                5, "日志不变量与可见面替换", "cd dsh-example && npm run M05", "E05-dsh-real.txt",
                 "第一处是连续性：序号等于数组下标，中间不许有洞。第二处是冻结：试着改一条事件，"
                 "拿到的是类型错误而不是改成功。第三处是投影，只有系统、用户、助手、工具这些节点会进去，"
                 "流式碎片不在其中。第四处是替换，摘要占住被遮区间的原位置，日志长度没变。"
@@ -523,7 +523,7 @@ EPISODES: list[dict[str, Any]] = [
             code_slide(
                 5,
                 "四条不变量的断言就在这一个文件里",
-                "grep -n '不变量' -A 4 dsh-example/M05-session-surface/phases/01-session-log.ts",
+                "grep -n '不变量' -A 4 dsh-example/M05-session-surface/phases/01-check-log-invariants.ts",
                 "连续性、深冻结、投影范围、替换区间校验，四条都能单独跑",
                 "代码在哪：M05 的 phases 里那个 session-log 文件，搜「不变量」就能挨个看到四条断言。它们的写法很值得学：每条都只验证一件事，失败时能立刻定位。你自己给会话层加功能时，先把这四条抄过去当回归测试，改坏了会马上知道。特别是替换区间那条校验，它是把「静默无效」变成「明确报错」的关键。",
             ),
@@ -541,22 +541,22 @@ EPISODES: list[dict[str, Any]] = [
     episode(
         6, "M06", "human-in-the-loop", "人在环路",
         task="让危险操作先回到人这里：工具在执行前请示，没有应答方就必须拒绝",
-        command="cd dsh-example && npm run M06:real",
+        command="cd dsh-example && npm run M06",
         expect="同一次部署请求在三种应答局面下分别得到 unavailable、allowed-once、rejected",
         evidence="E06-dsh-real.txt",
         slides=[
             task_slide(
                 6,
                 "让危险操作先回到人这里：工具在执行前请示，没有应答方就必须拒绝",
-                "cd dsh-example && npm run M06:real",
+                "cd dsh-example && npm run M06",
                 "同一次部署请求在三种应答局面下分别得到 unavailable、allowed-once、rejected",
-                "这一集做审批。任务是让危险操作在执行前先回到人这里。命令是 npm run M06:real，"
+                "这一集做审批。任务是让危险操作在执行前先回到人这里。命令是 npm run M06，"
                 "模型会真的决定要不要调那个部署工具。你会看到同一次请求在三种局面下的三个结果："
                 "没有应答方是 unavailable，白名单放行是 allowed-once，不在白名单是 rejected。"
                 "第一种最关键——没人应答时必须拒绝，不能因为忘了配就默认拿到权限。",
             ),
             terminal_slide(
-                6, "三种应答局面的真实结果", "cd dsh-example && npm run M06:real", "E06-dsh-real.txt",
+                6, "三种应答局面的真实结果", "cd dsh-example && npm run M06", "E06-dsh-real.txt",
                 "三段输出对应三种局面。每段里先是审批决定，然后是工具结果。第一段没有应答方，"
                 "决定是 unavailable，工具结果 isError 是 true——这就是 fail closed。第二段放行一次，"
                 "工具真的执行了。第三段被拒绝，模型拿到的是拒绝原因而不是执行结果。"
@@ -615,22 +615,22 @@ EPISODES: list[dict[str, Any]] = [
     episode(
         7, "M07", "execution-backends", "执行侧后端",
         task="让工具只提意图，由服务决定谁执行、在哪执行，沙箱把策略落到进程边界上",
-        command="cd dsh-example && npm run M07:real",
+        command="cd dsh-example && npm run M07",
         expect="同一个意图经过文件和命令服务派发，沙箱把只读工作区里的写入挡在进程边界上，被挡住的那次有明确的拒绝原因",
         evidence="E07-dsh-real.txt",
         slides=[
             task_slide(
                 7,
                 "让工具只提意图，由服务决定谁执行、在哪执行，沙箱把策略落到进程边界上",
-                "cd dsh-example && npm run M07:real",
+                "cd dsh-example && npm run M07",
                 "同一个意图经过文件和命令服务派发，沙箱把只读工作区里的写入挡在进程边界上，被挡住的那次有明确的拒绝原因",
                 "这一集处理真副作用：文件和命令。任务是让工具只提意图，由服务决定谁执行、在哪执行。"
-                "命令是 npm run M07:real。你会看到同一个意图经过文件和命令服务派发，"
+                "命令是 npm run M07。你会看到同一个意图经过文件和命令服务派发，"
                 "沙箱把只读工作区里的写入挡在进程边界上，被挡住的那次有明确的拒绝原因。"
                 "这一集的判断标准是：工具代码里没有任何一处直接碰系统接口。",
             ),
             terminal_slide(
-                7, "意图、后端与沙箱边界", "cd dsh-example && npm run M07:real", "E07-dsh-real.txt",
+                7, "意图、后端与沙箱边界", "cd dsh-example && npm run M07", "E07-dsh-real.txt",
                 "输出按四步看。第一步工具提交意图，参数里是要读的路径或要跑的命令。"
                 "第二步服务选后端：前台、后台还是终端，取消信号在派发前后都算。第三步沙箱把策略变成真正的进程参数，"
                 "只读工作区里的写入拿到拒绝。第四步是没有实现方的情况——稳稳地拒绝，而不是退化成本地直接执行。"
@@ -670,7 +670,7 @@ EPISODES: list[dict[str, Any]] = [
             code_slide(
                 7,
                 "沙箱把策略变成进程参数的那一步",
-                "sed -n '1,40p' dsh-example/M07-execution-backends/phases/03-sandbox-seam.ts",
+                "sed -n '1,40p' dsh-example/M07-execution-backends/phases/03-confine-and-fail-closed.ts",
                 "策略在派发前变成真正的进程参数，越界的写入在这一步被拒绝",
                 "代码在哪：M07 的 phases 里那个 sandbox seam 文件。重点是它在派发之前就把策略变成真正的进程参数，而不是执行完再检查。顺序反了，检查就成了事后审计，副作用已经发生了。读完这一段你会明白为什么工具里不能直接调系统接口：直接调就跳过了这一步，沙箱连拦的机会都没有。",
             ),
@@ -688,22 +688,22 @@ EPISODES: list[dict[str, Any]] = [
     episode(
         8, "M08", "delegation-presets", "委派与预设",
         task="把活儿分给子代理：注册能力之外，还要给模型一个看得见的工具，并用预设收紧权限",
-        command="cd dsh-example && npm run M08:real",
+        command="cd dsh-example && npm run M08",
         expect="子代理提供方注册好了，模型还是不会自动委派；包装成模型看得见的工具才行，未隔离命令行的权限预设会被直接拒绝",
         evidence="E08-dsh-real.txt",
         slides=[
             task_slide(
                 8,
                 "把活儿分给子代理：注册能力之外，还要给模型一个看得见的工具，并用预设收紧权限",
-                "cd dsh-example && npm run M08:real",
+                "cd dsh-example && npm run M08",
                 "子代理提供方注册好了，模型还是不会自动委派；包装成模型看得见的工具才行，未隔离命令行的权限预设会被直接拒绝",
-                "这一集讲委派。任务是把活儿分给子代理，同时把权限收紧。命令是 npm run M08:real。"
+                "这一集讲委派。任务是把活儿分给子代理，同时把权限收紧。命令是 npm run M08。"
                 "你会看到一个反直觉的结果：子代理提供方注册好了，模型还是不会自动委派——"
                 "得把它包装成一个模型看得见的工具才行。另外那条未隔离命令行的权限预设会被直接拒绝。"
                 "这两点合起来就是这一集的全部内容。",
             ),
             terminal_slide(
-                8, "注册不等于模型会用", "cd dsh-example && npm run M08:real", "E08-dsh-real.txt",
+                8, "注册不等于模型会用", "cd dsh-example && npm run M08", "E08-dsh-real.txt",
                 "第一段先只注册提供方，模型可见工具里没有委派入口，模型自然不会委派。"
                 "第二段包装成工具之后，委派入口出现在可见列表里，真实模型这才有机会显式调用它。"
                 "第三段是权限预设：未隔离命令行的那一条被拒绝，错误信息里写了该怎么改。"
@@ -762,21 +762,21 @@ EPISODES: list[dict[str, Any]] = [
     episode(
         9, "M09", "long-running", "长任务与编排",
         task="把「还在跑吗」和「这事要干成什么」拆开：后台句柄管运行，目标日志管意图",
-        command="cd dsh-example && npm run M09:real",
+        command="cd dsh-example && npm run M09",
         expect="后台任务可起可读可等可杀，目标状态用版本比对挡掉过期写入，计划从耐久日志恢复",
         evidence="E09-dsh-real.txt",
         slides=[
             task_slide(
                 9,
                 "把「还在跑吗」和「这事要干成什么」拆开：后台句柄管运行，目标日志管意图",
-                "cd dsh-example && npm run M09:real",
+                "cd dsh-example && npm run M09",
                 "后台任务可起可读可等可杀，目标状态用版本比对挡掉过期写入，计划从耐久日志恢复",
                 "这一集处理长任务。任务是把两件常被混在一起的事拆开：还在跑吗，和这事要干成什么。"
-                "命令是 npm run M09:real。你会看到后台任务可以起、读、等、杀；目标状态用版本比对挡掉过期写入；"
+                "命令是 npm run M09。你会看到后台任务可以起、读、等、杀；目标状态用版本比对挡掉过期写入；"
                 "计划能从耐久日志里恢复出来。三样都跑出来，长流程才算能放到生产里。",
             ),
             terminal_slide(
-                9, "运行句柄、目标状态与恢复", "cd dsh-example && npm run M09:real", "E09-dsh-real.txt",
+                9, "运行句柄、目标状态与恢复", "cd dsh-example && npm run M09", "E09-dsh-real.txt",
                 "前半段是运行：起一个后台任务，读它的增量输出，等它结束，或者杀掉它，按归属隔开。"
                 "后半段是意图：目标走到哪个阶段、有没有激活，并发写的时候用版本号比对，过期的写入被拒绝而不是覆盖。"
                 "注意那条拒绝——它是并发安全的关键，缺了它，两个写入者会互相把对方的进度抹掉。"
@@ -822,7 +822,7 @@ EPISODES: list[dict[str, Any]] = [
             code_slide(
                 9,
                 "目标更新的版本比对写在这里",
-                "grep -n 'revision' -A 4 dsh-example/M09-long-running-orchestration/phases/02-goal-lifecycle.ts",
+                "grep -n 'revision' -A 4 dsh-example/M09-long-running-orchestration/phases/02-goal-cas-conflict.ts",
                 "更新携带读到的版本号，比对失败就显式报错，而不是覆盖",
                 "代码在哪：M09 的 phases 里那个 goal lifecycle 文件，搜 revision。每次更新都带上读到的版本号，比对失败就显式报错。这一行是并发安全的全部秘密，也是最容易被省略的一行——省掉之后功能照常，只有并发时才出错，而且表现是进度回退，不是异常。你做任何有状态推进的东西，都值得先把这条抄上。",
             ),
@@ -840,21 +840,21 @@ EPISODES: list[dict[str, Any]] = [
     episode(
         10, "M10", "external-capabilities", "外部能力接入",
         task="能写成数据的先别写成代码：把一份清单注入模型视野，再看它答得有什么不同",
-        command="cd dsh-example && npm run M10:real-demo",
+        command="cd dsh-example && npm run M10",
         expect="不注入清单时模型自由发挥；注入之后第一行就是结论，条目按严重性排序",
         evidence="E10-dsh-real.txt",
         slides=[
             task_slide(
                 10,
                 "能写成数据的先别写成代码：把一份清单注入模型视野，再看它答得有什么不同",
-                "cd dsh-example && npm run M10:real-demo",
+                "cd dsh-example && npm run M10",
                 "不注入清单时模型自由发挥；注入之后第一行就是结论，条目按严重性排序",
                 "这一集讲外部能力。任务是把一份评审清单写成数据，注入模型视野，然后对比它答得有什么不同。"
-                "命令是 npm run M10:real-demo。同一段代码、同一句请求，跑两次：不注入时模型自由发挥，"
+                "命令是 npm run M10。同一段代码、同一句请求，跑两次：不注入时模型自由发挥，"
                 "注入之后第一行就是结论，条目按严重性排序。这个对比就是「数据也能扩展能力」的证据。",
             ),
             terminal_slide(
-                10, "注入清单前后的真实作答对照", "cd dsh-example && npm run M10:real-demo", "E10-dsh-real.txt",
+                10, "注入清单前后的真实作答对照", "cd dsh-example && npm run M10", "E10-dsh-real.txt",
                 "上半屏是没有清单的一次：模型答得不差，但格式随它高兴，结论埋在中间。"
                 "下半屏注入了清单：第一行是结论，然后按正确性、安全、风格排序，每条带文件和行号。"
                 "两次用的是同一个模型、同一段代码。差别只来自那份带头部信息的文档，它本身不含任何可执行代码。"
@@ -902,7 +902,7 @@ EPISODES: list[dict[str, Any]] = [
             exercise_slide(
                 10, "给清单加一条「必须给出可执行的修法」，观察输出变化",
                 "在 SKILL.md 的输出格式里加一条要求：每条问题都要带具体改法。",
-                "cd dsh-example && npm run M10:real-demo",
+                "cd dsh-example && npm run M10",
                 "注入后的每条问题末尾都出现具体改法，而未注入那一次仍然只描述现象。",
                 "练习：在清单的输出格式里加一条要求——每条问题都要带具体改法，再跑一次对照。"
                 "可验证的答案是注入那一次每条末尾都出现了改法，未注入那一次仍然只描述现象。"
@@ -913,21 +913,21 @@ EPISODES: list[dict[str, Any]] = [
     episode(
         11, "M11", "config-data", "配置与数据设施",
         task="让配置不再是一个随便丢东西的口袋：命名空间、格式声明、版本号，凭证只看状态",
-        command="cd dsh-example && npm run M11:real",
+        command="cd dsh-example && npm run M11",
         expect="每个插件只拥有自己的命名空间；并发写入不是悄悄覆盖，而是显式失败；凭证只显示状态，从头到尾不打印内容",
         evidence="E11-dsh-real.txt",
         slides=[
             task_slide(
                 11,
                 "让配置不再是一个随便丢东西的口袋：命名空间、格式声明、版本号，凭证只看状态",
-                "cd dsh-example && npm run M11:real",
+                "cd dsh-example && npm run M11",
                 "每个插件只拥有自己的命名空间；并发写入不是悄悄覆盖，而是显式失败；凭证只显示状态，从头到尾不打印内容",
-                "这一集处理配置和数据。任务是让配置不再是一个随便丢东西的口袋。命令是 npm run M11:real。"
+                "这一集处理配置和数据。任务是让配置不再是一个随便丢东西的口袋。命令是 npm run M11。"
                 "你会看到每个插件只拥有自己的命名空间；并发写入不是悄悄覆盖，而是显式失败；"
                 "凭证只显示状态，从头到尾不打印内容。最后这一条是纪律：示例里也不该出现真实凭证。",
             ),
             terminal_slide(
-                11, "命名空间、并发失败与凭证状态", "cd dsh-example && npm run M11:real", "E11-dsh-real.txt",
+                11, "命名空间、并发失败与凭证状态", "cd dsh-example && npm run M11", "E11-dsh-real.txt",
                 "第一段是命名空间：格式声明在边界上给默认值、做校验，越界写别人的空间会被拒绝。"
                 "第二段是版本号：两次并发写入，后一次显式失败，而不是覆盖前一次。"
                 "第三段是存储与按域路由，附件按内容寻址保存。第四段是凭证：只显示状态和可用的授权流程，"
@@ -986,21 +986,21 @@ EPISODES: list[dict[str, Any]] = [
     episode(
         12, "M12", "framework-mechanisms", "框架机制本体",
         task="把底座看清楚：五种派发模式怎么选，副作用怎么随插件一起回收",
-        command="cd dsh-example && npm run M12:real",
+        command="cd dsh-example && npm run M12",
         expect="五种派发模式返回值与执行顺序各不相同；插件卸载后定时器被拒、监听器消失",
         evidence="E12-dsh-real.txt",
         slides=[
             task_slide(
                 12,
                 "把底座看清楚：五种派发模式怎么选，副作用怎么随插件一起回收",
-                "cd dsh-example && npm run M12:real",
+                "cd dsh-example && npm run M12",
                 "五种派发模式的返回值与执行顺序各不相同；插件卸载后挂起的定时器被拒、监听器消失",
                 "最后一集看底座。任务是把两件事看清楚：五种事件派发模式怎么选，副作用怎么随插件一起回收。"
-                "命令是 npm run M12:real。你会看到同一个事件在五种模式下返回值和执行顺序都不一样；"
+                "命令是 npm run M12。你会看到同一个事件在五种模式下返回值和执行顺序都不一样；"
                 "插件卸载之后挂起的定时器被拒绝、监听器消失。上面十一集的可插拔能力，全踩在这两件事上。",
             ),
             terminal_slide(
-                12, "五种派发与可逆生命周期", "cd dsh-example && npm run M12:real", "E12-dsh-real.txt",
+                12, "五种派发与可逆生命周期", "cd dsh-example && npm run M12", "E12-dsh-real.txt",
                 "前半屏五段对照：广播、并行、串行、短路、接力，返回什么、按什么顺序跑都不一样。"
                 "模式选错，控制流就变了——比如该短路的地方用了广播，第一个拒绝就不再有拦截效果。"
                 "后半屏是生命周期：定时器、监听器都绑在纤程上，插件卸载时自动回收，"

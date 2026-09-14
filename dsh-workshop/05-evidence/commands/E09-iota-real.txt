@@ -11,7 +11,7 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 真实内核证据：
   - 真实模型: MiniMax-M3
   - 真实内核: claude（claude-agent-sdk + claude）
-  - 真实响应: 租约防重复消费，幂等去重入队，checkpoint 确保崩溃后可恢复。
+  - 真实响应: 租约防重复消费，幂等键去重入队，checkpoint 持久化偏移以恢复。
   - 事件序列: step_start, system_init, thinking, text_delta, final, step_end
 三类边界：
   - MiniMax-backed kernel 行为: 内核负责单次运行；断点续跑所需的状态不在它手里。
@@ -24,5 +24,5 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 对照关系：语义等价（iota 提供更多耐久语义）
 结论：队列与 checkpoint 让长任务可租约、可恢复，而不只是一段后台进程。
 {"checkpoint_sequence": 1, "idempotent_task_id": "m09-task", "module": "M09", "queue": "succeeded", "relationship": "语义等价（iota 提供更多耐久语义）", "status": "ok"}
-IOTA_REAL_MODULE_OK M09-long-running-orchestration kernel=claude model=MiniMax-M3 chars=35 events=6
+IOTA_REAL_MODULE_OK M09-long-running-orchestration kernel=claude model=MiniMax-M3 chars=36 events=6
 [exit 0]

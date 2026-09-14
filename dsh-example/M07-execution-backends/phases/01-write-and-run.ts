@@ -60,7 +60,7 @@ console.log('   ', outcome(cancelled))
 console.log('    render:', text(cancelled))
 // 决定性证据：文件内容没被改。取消确实拦住了副作用，而不是"执行后失败"。
 console.log('    文件内容仍是:', JSON.stringify(await ctx.fs.readText(resolved)))
-console.log('    注意 code = ABORTED_BEFORE_DISPATCH：index.ts 里那句 `signal.aborted` 守卫')
+console.log('    注意 code = ABORTED_BEFORE_DISPATCH：steps/01-fs-shell-side-effects.ts 里那句 `signal.aborted` 守卫')
 console.log('    在这条路径上是够不着的 —— 注册表在调用工具主体之前就已经返回了。')
 
 console.log('\n----- ⑤b 派发后取消：主体已启动，被中止并收敛（code 不同） -----')

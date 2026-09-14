@@ -1,15 +1,28 @@
-const phases = [
-  ['人类斜杠命令直接进入宿主', './phases/01-command-hello.ts'],
-  ['工具 ask 请求进入审批 seam', './phases/02-approval-answerer.ts'],
-  ['结构化问题进入宿主 answerer', './phases/03-user-questions.ts'],
-  ['用日志投影切换计划模式', './phases/04-plan-mode.ts'],
-  ['整体替换 todo 列表', './phases/05-todo.ts'],
-  ['读取耐久消息反馈', './phases/06-message-feedback.ts'],
-] as const
+/**
+ * M06 的运行入口：**默认真实**，`--mock` 离线。
+ *
+ *   node M06-human-in-the-loop/run.ts            # 真实推理服务（需 LLM_API_KEY，会发起网络请求）
+ *   node M06-human-in-the-loop/run.ts --mock     # 离线确定性机制（走 runtime/llm-mock.ts，不联网）
+ *
+ * 两个模式共用下面这份阶段清单，由 runtime/real.ts 的 runModule() 分叉：
+ * 真实模式逐阶段校验"确实发生过成功的推理服务调用"，缺证据即 fail loud；
+ * mock 模式只跑离线阶段，`realOnly` 的专项演示打印 skip。
+ */
+import type { StageSpec } from '../runtime/real.ts'
+import { applyMockFlag } from '../runtime/mode.ts'
 
-console.log('\n████ M06 · 人在环路：显式命令与执行审批 ████')
-for (const [index, [title, path]] of phases.entries()) {
-  console.log(`\n════════ M06.${index + 1} · ${title} ════════`)
-  await import(path)
-}
-console.log('\n结论：命令是人绕过模型的控制入口，审批是模型执行副作用前回到人的裁决入口；两条路都不应伪装成普通提示词。')
+// ① 先解析 --mock。这一句必须早于 real.ts 求值：REAL_MODE 是模块级常量，
+//    而静态 import 会被提升到模块体之前执行，所以 real.ts 只能动态 import。
+applyMockFlag()
+const { runModule } = await import('../runtime/real.ts')
+
+const stages: readonly StageSpec[] = [
+  { id: 'M06.1', title: '人类斜杠命令直接进入宿主', kind: 'mechanism', path: './phases/01-dispatch-slash-command.ts' },
+  { id: 'M06.2', title: '工具 ask 请求进入审批 seam', kind: 'model', path: './phases/02-three-approval-outcomes.ts' },
+  { id: 'M06.3', title: '结构化问题进入宿主 answerer', kind: 'mechanism', path: './phases/03-answer-structured-questions.ts' },
+  { id: 'M06.4', title: '用日志投影切换计划模式', kind: 'mechanism', path: './phases/04-toggle-plan-mode.ts' },
+  { id: 'M06.5', title: '整体替换 todo 列表', kind: 'mechanism', path: './phases/05-replace-todo-list.ts' },
+  { id: 'M06.6', title: '读取耐久消息反馈', kind: 'mechanism', path: './phases/06-read-durable-feedback.ts' },
+]
+
+await runModule('M06', '人在环路：显式命令与执行审批', stages, import.meta.url)

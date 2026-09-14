@@ -11,7 +11,7 @@
  *   - start(spec) 后台：立即返回 ShellProcess（无超时）：status 三态、done 是 Promise<void>
  *     且**永不 reject**、readOutput() → { delta, lossy } 增量读、kill() 幂等。
  *
- * 本插件没有注册行为——shell 的本地实现由 harness 默认装配；这个 index.ts 只作为占位插件，
+ * 本插件没有注册行为——shell 的本地实现由 harness 默认装配；这个占位插件
  * 展示"seam 也可以不挂监听器、只消费服务"的形状。
  */
 import type { Context } from '@deepseek-ai/cordis'

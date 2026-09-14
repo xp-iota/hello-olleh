@@ -1,6 +1,0 @@
-export * as settingsNamespaces from './steps/01-settings-namespaces.ts'
-export * as jsonStorageDomain from './steps/02-json-storage-domain.ts'
-export * as localAttachments from './steps/03-local-attachments.ts'
-export * as localFileReferences from './steps/04-local-file-references.ts'
-export * as credentialsAuthorization from './steps/05-credentials-authorization.ts'
-export * as workspaceRegistry from './steps/06-workspace-registry.ts'

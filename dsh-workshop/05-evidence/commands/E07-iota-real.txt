@@ -12,7 +12,7 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 真实内核证据：
   - 真实模型: MiniMax-M3
   - 真实内核: claude（claude-agent-sdk + claude）
-  - 真实响应: Shell 副作用由 KernelAdapter 执行，编排层工具注册表仅做声明。
+  - 真实响应: 确认：shell 副作用由 KernelAdapter 执行，编排层工具注册表不参与。
   - 事件序列: step_start, system_init, thinking, text_delta, final, step_end
 三类边界：
   - MiniMax-backed kernel 行为: shell 副作用由内核执行并以工具事件回传，编排层只转发。
@@ -27,5 +27,5 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 对照关系：结构性边界
 结论：iota 转发执行事件，但不重写内核的 fs/shell/sandbox 执行栈。
 {"execution_proof": "token read by kernel", "kernel": "claude", "kernel_tool_calls": ["Bash"], "module": "M07", "orchestrator_shell_registry": [], "relationship": "结构性边界", "route": "prompt -> KernelAdapter -> kernel tool events", "status": "ok"}
-IOTA_REAL_MODULE_OK M07-execution-backends kernel=claude model=MiniMax-M3 chars=41 events=6
+IOTA_REAL_MODULE_OK M07-execution-backends kernel=claude model=MiniMax-M3 chars=43 events=6
 [exit 0]

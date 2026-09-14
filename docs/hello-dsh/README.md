@@ -34,7 +34,7 @@ npm run learn -- --tour
 | 不写 TypeScript 做 Skill | `npm run learn -- --module M10` | [04 § 4.1](04-extensions-and-ecosystem.md) |
 | 理解 Cordis 事件与 Fiber | `npm run learn -- --module M12` | [05 § 5.17](05-startup-and-cordis-runtime.md) |
 
-完整命令与 12 个方向模块索引见 [`dsh-example/README.md`](../../dsh-example/README.md)。建议形成固定循环：**先跑 → 对照 `index.ts` → 回读对应章节 → 改一个值再跑**。
+完整命令与 12 个方向模块索引见 [`dsh-example/README.md`](../../dsh-example/README.md)。建议形成固定循环：**先跑 → 对照 `steps/*.ts` → 回读对应章节 → 改一个值再跑**。
 
 ### 示例工程的结构与一条真实回路
 

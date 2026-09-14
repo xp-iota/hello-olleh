@@ -157,7 +157,7 @@ title: "执行侧服务：文件、Shell、沙箱、子代理、压缩"
 
 ## 8.11 `ShellExecutor`：三个抽象方法
 
-> 📐 **配套可跑示例**：[`M07.2 · shell-service`](../../dsh-example/M07-execution-backends/phases/02-shell-service.ts) 把三个方法都跑了一遍 ——
+> 📐 **配套可跑示例**：[`M07.2 · run-and-start`](../../dsh-example/M07-execution-backends/phases/02-run-and-start.ts) 把三个方法都跑了一遍 ——
 > `resolve` 把 999999ms 的请求夹到实现上限（实测 600000）、`run` 对非零退出/超时/取消都 **resolve**、
 > `start` 的 `readOutput()` 是消费性增量读。注意 `stdout`/`stderr` 是 `CollectedOutput`（`{ text, truncated }`）而不是裸字符串。
 
@@ -568,7 +568,7 @@ CI 里有专门的 sandbox workflow（[02 § 2.9](02-codebase-map.md) 的 15 个
 
 ## 8.34 压缩怎么做到"不丢日志"
 
-> 📐 **配套可跑示例**：[`M02.3 · compaction-provider`](../../dsh-example/M02-context-assembly-economics/phases/03-compaction-provider.ts) 实测把 12 个 surface 节点折成 4 个
+> 📐 **配套可跑示例**：[`M02.3 · fold-history`](../../dsh-example/M02-context-assembly-economics/phases/03-fold-history.ts) 实测把 12 个 surface 节点折成 4 个
 > （摘要 + 保留最近 3 条），返回的 `CompactionResult` 报出 `summarySeq` / `shadowedRange` / `shadowedSeqs` /
 > `shadowedTokenCount` 这份可核对的账。两个真实约束：摘要只能以 `assistant/message` 进 surface，
 > 且**必须带 model 来源**（消息本体要经 `createAssistantMessage` 铸造）。

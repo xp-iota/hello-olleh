@@ -1,33 +1,24 @@
 /**
- * 模块 M03 的对应阶段 的**真实推理服务版**：`node M03-inference-service-access/run-real.ts`
- * （或用根目录 `npm run M03:real`）。
+ * 模块 M03 的对应阶段 的**真实推理服务版**：`node M03-inference-service-access/run.ts`
+ * （或用根目录 `npm run M03`）。
  *
  * 与 `run.ts` 共用**同一个**消费循环（consume.ts）——"换 provider 不换 Consumer"
  * 在这里被直接演示：差异只有 llm.stream() 的 `provider` 从 'mock' 换成 'anthropic-compat'，
  * 后者是 harness 检测到 LLM_API_KEY 时注册的真实适配器（见 runtime/llm-minimax.ts，
  * MiniMax 的 Anthropic 兼容端点，真实 HTTP + SSE）。
  *
- * mock 路由的离线消费与逐 chunk 协议追踪集中在 run.ts（离线套件只跑它）；本脚本
+ * mock 路由的离线消费与逐 chunk 协议追踪集中在 run.ts 的 `--mock` 分支；本脚本
  * 只消费 `anthropic-compat` 路由，与 run.ts 的 mock 段共用同一组协议检查断言。
  *
  * ⚠️ 本脚本会发起**真实网络请求并消耗额度**，且需要 `LLM_API_KEY`；
- * 离线套件 `npm run all` 只跑各示例的 `run.ts`，不会碰到这里。
+ * 本文件是 `run.ts` 的 `M03.d` 阶段；`--mock` 下该阶段直接跳过，不执行到这里。
  */
+import { requireRealCredentials } from '../../runtime/env.ts'
 import { createHarness, userText } from '../../runtime/harness.ts'
 import { consumeStream, printProtocolChecks } from '../support/consume-stream.ts'
 
-// runtime/harness.ts 启动时也会加载工程根 .env；这里先加载一次，
-// 好在装配 harness 之前就把"密钥没配"这件事说清楚。
-try {
-  process.loadEnvFile(new URL('../../.env', import.meta.url))
-} catch { /* 没有 .env：继续看进程环境变量 */ }
-
-if (!process.env.LLM_API_KEY) {
-  console.error('✗ 缺少 LLM_API_KEY。')
-  console.error('  复制 .env.example 为 .env 并填入推理服务密钥，或在命令前临时注入：')
-  console.error('  LLM_API_KEY=<your-key> npm run M03:real')
-  process.exit(1)
-}
+// 真实模式前置检查：加载 .env，缺密钥当场退出（逻辑只有 runtime/env.ts 一份）。
+requireRealCredentials('M03')
 
 const model = process.env.LLM_MODEL ?? 'MiniMax-M3'
 // 'mock' 路由由 harness 内置适配器占位（本插件如何在 'mock' 路由上注册与被消费，见 run.ts）；

@@ -11,7 +11,7 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 真实内核证据：
   - 真实模型: MiniMax-M3
   - 真实内核: claude（claude-agent-sdk + claude）
-  - 真实响应: 整个 KernelAdapter 作为一个原子单元整体替换，保证内核状态一致性。
+  - 真实响应: 以整个 KernelAdapter 为原子单元整体替换，保证接口一致与行为同步。
   - 事件序列: step_start, system_init, thinking, text_delta, final, step_end
 三类边界：
   - MiniMax-backed kernel 行为: 换成 MiniMax 只换了内核这一个替换单元，编排层代码一行未改。

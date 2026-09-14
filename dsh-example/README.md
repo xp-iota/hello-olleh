@@ -14,8 +14,8 @@
 |---|---|
 | 13 个扫描根、169 文件、584 节点、744 边、45 社区 | `/cards/0/items/0`、`/cards/0/items/1` |
 | 739 条 `EXTRACTED`、5 条 `INFERRED` | `/cards/0/items/2` |
-| 12 个模块；58 steps + 58 phases | `/cards/1/items/0` |
-| 3 条真实 Provider 路径；默认 12 个模块全部离线 | `/cards/1/items/1` |
+| 12 个模块；61 个阶段（58 逐阶段 + 3 专项演示） | `/cards/1/items/0` |
+| 每个模块 1 个 `run.ts`；默认真实模式，`--mock` 离线 | `/cards/1/items/1` |
 | 覆盖 59，门槛 ≥ 50 | `/cards/1/items/2` |
 | `createHarness` 匹配 1 个；度数 66 = 入 62 + 出 4 | `/cards/2/items/0` |
 | 4 条扩展路径：按注册、按事件、按服务、按数据 | `/cards/2/items/1` |
@@ -32,40 +32,43 @@ npm install
 npm run typecheck
 npm run coverage:surfaces
 npm test
-npm run M01       # 运行一个方向模块
-npm run all       # 顺序运行全部 12 个离线模块
+npm run M01 -- --mock   # 运行一个方向模块（离线）
+npm run all:mock        # 顺序运行全部 12 个离线模块
 npm run learn -- --list
 ```
 
-### 三种运行模式
+### 两种运行模式
+
+每个模块**只有一个 `run.ts`**，模式和阶段清单都在里面：
 
 | 模式 | 命令 | 是什么 |
 |---|---|---|
-| **offline** | `npm run all` / `npm run MXX` | 确定性机制测试。全部走 `runtime/llm-mock.ts`，不联网、不需要密钥。 |
-| **real** | `npm run MXX:real` | 单模块真实 MiniMax 请求。`DSH_REAL=1` 固定 `provider=anthropic-compat`。 |
-| **all:real** | `npm run real:all`（同 `npm run all:real`） | 完整真实验收：12 个模块、58 个阶段全部输出 `REAL_STAGE_OK`。 |
+| **real**（默认） | `npm run MXX` / `npm run all` | 真实 MiniMax 请求，`provider=anthropic-compat`。需 `LLM_API_KEY`，会联网。 |
+| **mock** | `npm run MXX -- --mock` / `npm run all:mock` | 确定性机制测试。全部走 `runtime/llm-mock.ts`，不联网、不需要密钥。 |
 
-`npm run all` 不会隐式发起真实请求，真实模式也不会静默退回 mock —— 缺 `LLM_API_KEY`
-时立即失败并说明配置来源（工程根 `.env`，模板见 `.env.example`）。
+不带 `--mock` 就是真实模式，**不会静默退回 mock** —— 缺 `LLM_API_KEY` 时立即失败并说明
+配置来源（工程根 `.env`，模板见 `.env.example`）。离线门禁请显式用 `--mock`。
 
 ```bash
-npm run M01:real   # M01 的 5 个阶段，逐阶段 REAL_STAGE_OK
-npm run real:all   # 58 个阶段 + 3 个专项演示，末行 REAL_ALL_OK
+npm run M01            # M01 的 6 个阶段，逐阶段 REAL_STAGE_OK
+npm run M01 -- --mock  # 同样的阶段清单，离线；3 个专项演示打印 skip
+npm run real:all       # 61 个阶段，末行 REAL_ALL_OK
 ```
 
 真实模式下每个阶段都必须留下真实调用证据：模型-facing 阶段由 MiniMax 驱动；纯注册、回收、
 队列、状态机阶段保留本地机制断言，并在**阶段入口**用完整装配链打一次真实 probe，证明这条链
 真的能把模型响应送回会话日志。阶段结束时若没有成功调用，进程非零退出。
 
-三个专项真实演示（模型自主调用工具 / 真实流消费 / 清单注入对照）：
+三个专项真实演示（模型自主调用工具 / 真实流消费 / 清单注入对照）已并入各模块的阶段清单，
+在 M01/M03/M10 里各占一个阶段：
 
 ```bash
-npm run M01:real-demo  # 模型自主调用 word_count
-npm run M03:real-demo  # 同一 StreamChunk 消费循环接真实 SSE
-npm run M10:real-demo  # 注入 SKILL.md 前后的真实作答对照
+npm run M01   # 含 M01.d：模型自主调用 word_count
+npm run M03   # 含 M03.d：同一 StreamChunk 消费循环接真实 SSE
+npm run M10   # 含 M10.d：注入 SKILL.md 前后的真实作答对照
 ```
 
-三条真实路径都需要 `LLM_API_KEY`，会向外部服务发送教学请求；不要把内部地址、分支名或敏感数据放入请求。
+这三条路径都需要 `LLM_API_KEY`，会向外部服务发送教学请求；不要把内部地址、分支名或敏感数据放入请求。
 
 ## 能力索引
 
@@ -104,11 +107,10 @@ npm run M10:real-demo  # 注入 SKILL.md 前后的真实作答对照
 ```text
 MXX-name/
   README.md       一条完整方向叙事、观察点和结论
-  index.ts        按命名空间聚合，避免插件导出名冲突
   steps/*.ts      一种能力一个实现；通常可独立 ctx.plugin()
-  phases/*.ts     对应能力的可运行观察场景
-  run.ts          只负责分阶段 banner 与顺序编排
-  real/           可选真实 provider 路径，不进离线 all
+  phases/*.ts     对应能力的可运行观察场景；按"这次观察什么"命名，不与 steps 重名
+  run.ts          唯一的运行入口：阶段清单 + real/mock 分叉
+  real/*.ts       专项真实演示，由 run.ts 作为 realOnly 阶段驱动（M01/M03/M10）
   support/assets  共享协议 helper 或数据资产（按需）
 ```
 
@@ -118,14 +120,14 @@ MXX-name/
 2. 运行 `npm run MXX`，按 banner 观察事实。
 3. 只读对应 `steps/*.ts`，看标准 Cordis 插件或数据能力形状。
 4. 需要理解装配时再读 `runtime/harness.ts`；它是全工程唯一装配枢纽。
-5. 最后回到 `phases/*.ts`，看测试数据和边界场景如何驱动能力。
+5. 最后回到 `phases/*.ts`，看测试数据和边界场景如何驱动能力。文件名就是这个场景的名字，所以不必先比对 steps 的名字。
 
 ## 架构纪律
 
 - **插件而非 fork 主循环**：能力通过 Context 服务、事件和 effect 接入。
 - **一个装配枢纽**：所有模块复用 `runtime/harness.ts`，不复制 runtime。
 - **目录整合、文件保粒度**：模块讲完整方向，step 仍可独立复制。
-- **离线与真实路径分离**：默认全跑不需要密钥、不发网络请求。
+- **离线与真实路径分离**：`--mock` 全跑不需要密钥、不发网络请求；不带 `--mock` 才走真实。
 - **fail loud / fail closed**：教学断言失败时直接非零退出；安全 seam 缺失时不静默降级。
 - **日志与 surface 分离**：事件保存事实，模型上下文使用可治理投影。
 
@@ -142,10 +144,9 @@ MXX-name/
 ```bash
 npm run typecheck          # 所有 steps/phases/real/support 对真实 .d.ts 编译
 npm run coverage:surfaces # 核心 25 + 扩展面 34 = 59，门槛 ≥50
-npm test                   # runtime 离线回归
-npm run all                # 12 个模块逐个 exit 0（离线 mock）
-npm run test               # 离线单测，含 MiniMax wire 协议与真实模式纪律
-npm run real:all           # 58 个阶段真实 MiniMax 验收，末行 REAL_ALL_OK
+npm test                   # 离线单测，含 MiniMax wire 协议与真实模式纪律
+npm run all:mock           # 12 个模块逐个 exit 0（离线 mock，无密钥可跑）
+npm run real:all           # 61 个阶段真实 MiniMax 验收，末行 REAL_ALL_OK
 ```
 
-服务与能力缝统一按公开扩展面计数；Provider 选择、拒绝路径和显式排除均在各模块 README 的“边界”中说明。默认 `all` 保持离线，复杂 Host plane 不进入核心 harness。
+服务与能力缝统一按公开扩展面计数；Provider 选择、拒绝路径和显式排除均在各模块 README 的“边界”中说明。离线门禁是 `all:mock`（显式 `--mock`），复杂 Host plane 不进入核心 harness。

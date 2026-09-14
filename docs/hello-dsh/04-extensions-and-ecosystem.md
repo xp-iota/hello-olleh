@@ -12,7 +12,7 @@ title: "扩展与生态：Skill、插件、协议、SDK"
 ## 4.1 两条扩展路径的区别
 
 > 📐 **配套可跑示例**：[`M10.1 · skill-code-review`](../../dsh-example/M10-external-capabilities/assets/SKILL.md) 是"按数据扩展"的完整样本
-> （一个 `SKILL.md`，零行 TypeScript）；它的 [`run.ts`](../../dsh-example/M10-external-capabilities/phases/01-skill-code-review.ts) 把这份 Markdown
+> （一个 `SKILL.md`，零行 TypeScript）；它的 [`run.ts`](../../dsh-example/M10-external-capabilities/phases/01-inject-skill-into-turn.ts) 把这份 Markdown
 > 注册进真实 `ctx.skills`，再用真实 `renderSkillContent` 渲染后经 `agent.inject()` 送进下一步上下文。
 
 

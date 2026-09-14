@@ -9,19 +9,20 @@
 ## 运行
 
 ```bash
-npm run M02
+npm run M02            # 真实 MiniMax（默认）；需要 LLM_API_KEY，会发起网络请求
+npm run M02 -- --mock  # 离线确定性机制；不联网、不需要密钥
 ```
 
 ## 阶段与观察点
 
-| 阶段 | 类型 | 实现 | 观察什么 |
-|---|---|---|---|
-| 1 Prompt 段落 | 教学主线 | `steps/01-prompt-section.ts` | section 按 order 组合，插件只贡献自己的段落 |
-| 2 装配改写 | 教学主线 | `steps/02-prompt-variable-assemble.ts` | variable 延迟求值；waterfall 保留结构化 assembly |
-| 3 历史压缩 | 教学主线 | `steps/03-compaction-provider.ts` | 压缩 Provider、触发条件与 surface replace |
-| 4 Token 计量 | 扩展面 | `steps/04-token-meter.ts` | 从可回放日志估算 surface 与请求压力 |
-| 5 结果裁剪 | 扩展面 | `steps/05-tool-result-pruner.ts` | Unicode 安全的头尾保留与可审计替换 |
-| 6 结果溢出 | 扩展面 | `steps/06-spill-policy.ts` | 完整结果落本地私有文件，模型只接收预览和 locator |
+| 阶段 | 类型 | 实现 | 观察场景 | 观察什么 |
+|---|---|---|---|---|
+| 1 Prompt 段落 | 教学主线 | `steps/01-prompt-section.ts` | `phases/01-assemble-system-prompt.ts` | section 按 order 组合，插件只贡献自己的段落 |
+| 2 装配改写 | 教学主线 | `steps/02-prompt-variable-assemble.ts` | `phases/02-interpolate-variable.ts` | variable 延迟求值；waterfall 保留结构化 assembly |
+| 3 历史压缩 | 教学主线 | `steps/03-compaction-provider.ts` | `phases/03-fold-history.ts` | 压缩 Provider、触发条件与 surface replace |
+| 4 Token 计量 | 扩展面 | `steps/04-token-meter.ts` | `phases/04-estimate-token-pressure.ts` | 从可回放日志估算 surface 与请求压力 |
+| 5 结果裁剪 | 扩展面 | `steps/05-tool-result-pruner.ts` | `phases/05-prune-long-result.ts` | Unicode 安全的头尾保留与可审计替换 |
+| 6 结果溢出 | 扩展面 | `steps/06-spill-policy.ts` | `phases/06-spill-to-file.ts` | 完整结果落本地私有文件，模型只接收预览和 locator |
 
 ## 完整链路
 

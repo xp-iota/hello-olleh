@@ -33,7 +33,7 @@ LLM 是一条标准能力缝，所以**换推理服务的代价接近于零**：
 
 | 路由 | 适配器 | 特性 |
 |:-----|:-------|:-----|
-| `mock` | `MockAdapter` / `ToolCallingMockAdapter` | 离线、不要密钥，`npm run all` 因此恒绿 |
+| `mock` | `MockAdapter` / `ToolCallingMockAdapter` | 离线、不要密钥，`npm run all:mock` 因此恒绿 |
 | `anthropic-compat` | `MinimaxAnthropicAdapter` | 真实 HTTP 与 SSE，需 `LLM_API_KEY` |
 
 选路优先级：显式入参 `provider` > 环境变量 `DSH_PROVIDER` > 默认 `mock`。

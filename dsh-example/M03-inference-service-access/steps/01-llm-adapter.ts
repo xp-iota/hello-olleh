@@ -1,6 +1,6 @@
 /**
  * M03.1 · 替换 LLM 能力缝（seam）的 provider：本插件提供 mock 适配器，
- * 真实推理服务 适配器由 harness 注册（见 run-real.ts）——两条路由，同一份契约。
+ * 真实推理服务 适配器由 harness 注册（见 run.ts 的真实模式）——两条路由，同一份契约。
  *
  * `ctx.llm` 是一个 seam：Definition（LlmAdapter 抽象类）+ Provider（各具体适配器）
  * + Consumer（agent-loop）。接一个新模型方 = 实现 LlmAdapter 并注册一条 provider 路由。

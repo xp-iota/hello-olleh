@@ -4,13 +4,13 @@
  * 确实被主循环认领、进了这一步的模型可见上下文。`npm run M10`。
  *
  * 本脚本推理走 harness 自带的 mock 适配器（固定回复），所以它只证明\"清单送到了\"；
- * \"模型照清单答\"这件事需要真实推理服务 —— 见 `npm run M10:real`。
+ * \"模型照清单答\"这件事需要真实推理服务 —— 见 `npm run M10`（M10.d 阶段）。
  */
 import type { UserMessage } from '@deepseek-ai/dsh-session'
 import { createHarness } from '../../runtime/harness.ts'
 import { PROMPT, invokeSkill, registerSkill } from '../steps/01-skill-code-review.ts'
 
-const harness = await createHarness({ reply: '（mock 适配器固定回复：真实按清单评审见 npm run M10:real）' })
+const harness = await createHarness({ reply: '（mock 适配器固定回复：真实按清单评审见 npm run M10）' })
 const skill = await registerSkill(harness)
 
 console.log('① 模型在目录里发现的 skill:')

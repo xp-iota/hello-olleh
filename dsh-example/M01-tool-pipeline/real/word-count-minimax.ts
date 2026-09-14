@@ -1,6 +1,6 @@
 /**
- * 模块 M01 的对应阶段 的**真实推理服务版**：`node M01-tool-pipeline/run-real.ts`
- * （或用根目录 `npm run M01:real`）。
+ * 模块 M01 的对应阶段 的**真实推理服务版**：`node M01-tool-pipeline/run.ts`
+ * （或用根目录 `npm run M01`）。
  *
  * 与 `run.ts` 的区别只有一处：`run.ts` 是**我们**直接 `callTool('word_count', ...)`，
  * 这里换成**模型自己决定要不要调**。provider 路由指到 `anthropic-compat`
@@ -16,23 +16,14 @@
  * 也就是说 01 里注册的那个工具，**不需要为了对接模型再写任何胶水代码**。
  *
  * ⚠️ 本例会发起**真实网络请求并消耗额度**，且需要 `LLM_API_KEY`；
- * 离线套件 `npm run all` 只跑各示例的 `run.ts`，不会碰到这里。
+ * 本文件是 `run.ts` 的 `M01.d` 阶段；`--mock` 下该阶段直接跳过，不执行到这里。
  */
+import { requireRealCredentials } from '../../runtime/env.ts'
 import { createHarness } from '../../runtime/harness.ts'
 import * as wordcountPlugin from '../steps/01-word-count.ts'
 
-// runtime/harness.ts 启动时也会加载工程根 .env；这里先加载一次，
-// 好在装配 harness 之前就把"密钥没配"这件事说清楚。
-try {
-  process.loadEnvFile(new URL('../../.env', import.meta.url))
-} catch { /* 没有 .env：继续看进程环境变量 */ }
-
-if (!process.env.LLM_API_KEY) {
-  console.error('✗ 缺少 LLM_API_KEY。')
-  console.error('  复制 .env.example 为 .env 并填入推理服务密钥，或在命令前临时注入：')
-  console.error('  LLM_API_KEY=<your-key> npm run M01:real')
-  process.exit(1)
-}
+// 真实模式前置检查：加载 .env，缺密钥当场退出（逻辑只有 runtime/env.ts 一份）。
+requireRealCredentials('M01')
 
 /** 一条**必须动用 word_count 才能答对**的 query：明确禁止模型自己数。 */
 const QUERY = [

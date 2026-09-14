@@ -1,12 +1,13 @@
-$ cd dsh-example && npm run M09:real
+$ cd dsh-example && npm run M09
 
 
-> @example/dsh-examples@0.0.0 M09:real
-> DSH_REAL=1 node M09-long-running-orchestration/run-real.ts
+> @example/dsh-examples@0.0.0 M09
+> node M09-long-running-orchestration/run.ts
 
 
-████ M09 · 长任务与编排：运行句柄与目标状态 —— 真实 MiniMax 模式 ████
+████ M09 · 长任务与编排：运行句柄与目标状态 —— 真实推理服务 模式 ████
 provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
+（离线请用 --mock，例如 `npm run M01 -- --mock`）
 
 ════════ M09.1 · 管理后台 Job 的启动、读取、终止与等待（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M09.1"
@@ -31,7 +32,7 @@ provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeo
 
 ⑥ 准入：没有 controller 时 start 被拒（先卸掉插件的 controller）:
    background jobs unavailable: no job controller serves this agent (load @deepseek-ai/dsh-tool-jobs in its composition)
-REAL_STAGE_OK M09.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1364 in=0 out=9 finish=stop tools=- text="装配链已连通 M09.1"
+REAL_STAGE_OK M09.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=957 in=0 out=9 finish=stop tools=- text="装配链已连通 M09.1"
 
 ════════ M09.2 · 以追加日志和 CAS 推进 Goal 生命周期（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M09.2"
@@ -44,7 +45,7 @@ REAL_STAGE_OK M09.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 ca
    → paused disarmed rev=2
 
 ③ CAS 冲突：用旧 ref 操作被拒
-   stale goal ref "goal-3d891a84-1eff-481e-8eed-84a14be0d262" revision 1; current is "goal-3d891a84-1eff-481e-8eed-84a14be0d262" revision 2
+   stale goal ref "goal-9ac8306d-cacb-4233-810d-e7b2ff4e2336" revision 1; current is "goal-9ac8306d-cacb-4233-810d-e7b2ff4e2336" revision 2
 
 ④ resume：paused → active（重新 arm）
   [goal/change] seq=2 → rev=3 phase=active "重构支付模块"
@@ -62,7 +63,7 @@ REAL_STAGE_OK M09.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 ca
    goals.get(agent) = undefined
 
 ⑧ 日志即状态：回放 6 条 goal/change 事件即可重建全程
-REAL_STAGE_OK M09.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=867 in=0 out=9 finish=stop tools=- text="装配链已连通 M09.2"
+REAL_STAGE_OK M09.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1961 in=0 out=9 finish=stop tools=- text="装配链已连通 M09.2"
 
 ════════ M09.3 · 在 worker thread 执行工作流脚本（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M09.3"
@@ -72,7 +73,7 @@ workflowEngine: {
   value: { ok: true, value: 42 },
   agentsStarted: 0
 }
-REAL_STAGE_OK M09.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=995 in=0 out=9 finish=stop tools=- text="装配链已连通 M09.3"
+REAL_STAGE_OK M09.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1475 in=0 out=9 finish=stop tools=- text="装配链已连通 M09.3"
 
 ════════ M09.4 · 把计划调度注册到耐久会话（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M09.4"
@@ -80,7 +81,7 @@ schedule: {
   persistence: 'JsonlSessionPersistence',
   tools: [ 'schedule_create', 'schedule_list', 'schedule_delete' ]
 }
-REAL_STAGE_OK M09.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=927 in=0 out=9 finish=stop tools=- text="装配链已连通 M09.4"
+REAL_STAGE_OK M09.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=4769 in=0 out=9 finish=stop tools=- text="装配链已连通 M09.4"
 
 REAL_MODULE_OK M09 stages=4 calls=4 failed=0
 [exit 0]

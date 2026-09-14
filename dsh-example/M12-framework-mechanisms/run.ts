@@ -1,14 +1,27 @@
-const phases = [
-  ['对照五种事件派发模式', './phases/01-dispatch-modes.ts'],
-  ['验证绑定 Fiber 的可处置定时器', './phases/02-cordis-timer.ts'],
-  ['观察 Fiber 依赖状态机', './phases/03-fiber-state-machine.ts'],
-  ['隔离同名服务 realm', './phases/04-isolate-realm.ts'],
-  ['叠加调用域 intercept 配置', './phases/05-intercept-config.ts'],
-] as const
+/**
+ * M12 的运行入口：**默认真实**，`--mock` 离线。
+ *
+ *   node M12-framework-mechanisms/run.ts            # 真实推理服务（需 LLM_API_KEY，会发起网络请求）
+ *   node M12-framework-mechanisms/run.ts --mock     # 离线确定性机制（走 runtime/llm-mock.ts，不联网）
+ *
+ * 两个模式共用下面这份阶段清单，由 runtime/real.ts 的 runModule() 分叉：
+ * 真实模式逐阶段校验"确实发生过成功的推理服务调用"，缺证据即 fail loud；
+ * mock 模式只跑离线阶段，`realOnly` 的专项演示打印 skip。
+ */
+import type { StageSpec } from '../runtime/real.ts'
+import { applyMockFlag } from '../runtime/mode.ts'
 
-console.log('\n████ M12 · 框架机制本体：事件语义与生命周期资源 ████')
-for (const [index, [title, path]] of phases.entries()) {
-  console.log(`\n════════ M12.${index + 1} · ${title} ════════`)
-  await import(path)
-}
-console.log('\n结论：派发模式定义监听者如何组合，Fiber 定义监听器与定时资源何时回收；两者构成插件可组合、可卸载的底层纪律。')
+// ① 先解析 --mock。这一句必须早于 real.ts 求值：REAL_MODE 是模块级常量，
+//    而静态 import 会被提升到模块体之前执行，所以 real.ts 只能动态 import。
+applyMockFlag()
+const { runModule } = await import('../runtime/real.ts')
+
+const stages: readonly StageSpec[] = [
+  { id: 'M12.1', title: '对照五种事件派发模式', kind: 'mechanism', path: './phases/01-compare-dispatch-modes.ts' },
+  { id: 'M12.2', title: '验证绑定 Fiber 的可处置定时器', kind: 'model', path: './phases/02-dispose-pending-timer.ts' },
+  { id: 'M12.3', title: '观察 Fiber 依赖状态机', kind: 'mechanism', path: './phases/03-observe-pending-state.ts' },
+  { id: 'M12.4', title: '隔离同名服务 realm', kind: 'mechanism', path: './phases/04-isolate-same-name-service.ts' },
+  { id: 'M12.5', title: '叠加调用域 intercept 配置', kind: 'mechanism', path: './phases/05-layer-intercept-config.ts' },
+]
+
+await runModule('M12', '框架机制本体：事件语义与生命周期资源', stages, import.meta.url)

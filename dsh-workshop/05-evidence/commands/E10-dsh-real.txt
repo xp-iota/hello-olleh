@@ -1,78 +1,175 @@
-$ cd dsh-example && npm run M10:real-demo
+$ cd dsh-example && npm run M10
 
 
-> @example/dsh-examples@0.0.0 M10:real-demo
-> DSH_REAL=1 node M10-external-capabilities/run-real-demo.ts
+> @example/dsh-examples@0.0.0 M10
+> node M10-external-capabilities/run.ts
 
 
-████ M10 · 专项真实演示：注入清单前后的真实作答对照 ████
+████ M10 · 外部能力接入：知识、协议、Webhook 与动态扩展 —— 真实推理服务 模式 ████
+provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
+（离线请用 --mock，例如 `npm run M01 -- --mock`）
+
+════════ M10.1 · 注册、发现并注入代码审查 Skill（kind=model）════════
+① 模型在目录里发现的 skill:
+   name    = code-review-checklist | source = project-dsh | provider = runtime
+   何时该用 = Use when the user asks for a code review of a diff, PR, or recent change, to give a consistent, prioritized review instead of ad-hoc nitpicking.
+
+② 调用 skill：渲染正文并 inject 到下一步的模型可见上下文
+   inbox.nextStep 待认领 = 1
+
+③ 跑一个真实 turn：主循环在 step 边界认领，清单随请求进入模型可见上下文
+   已被认领（nextStep 清空）  = true
+   模型可见投影里有 skill 消息 = true (source=skill-invocation)
+   其正文带清单的输出格式要求 = true
+   本轮 step 数 = 1 | mock 回复 = "结论：阻断\n[正确性] src/cart.ts:3 — 循环从 i=1 开始且条件为 i <= items.length，但用 items[i] 取值，最后一次迭代访问 items[length] 为 undefined，会抛 TypeError — 改为 i = 0; i < items.length\n[正确性] src/cart.ts:3 — 用 for 按下标遍历纯数组做求和，比原 reduce 多余且更易出错，可读性也更差 — 保留 items.reduce((sum, it) => sum + it.price * it.qty, 0)\n[安全] src/cart.ts:6 — eval('COUPONS.' + code) 会执行任意输入字符串，存在代码注入风险，且原型链属性也会被读取 — 用 COUPONS[code] ?? 0\n[正确性] src/cart.ts:6 — 即使去掉 eval，COUPONS[code] ?? 0 在 code 为 \"toString\" 等原型属性时会返回函数值而非 0，且 number 上下文中会变 NaN — 用 Object.hasOwn(COUPONS, code) ? COUPONS[code] : 0\n[风格] src/cart.ts:3 — 一行 for 内联 sum += 不带大括号且与 for 同行，违反常规格式且不利于排错 — 拆分主体行"
+REAL_STAGE_OK M10.1 kind=model provider=anthropic-compat model=MiniMax-M3 calls=1 ms=6156 in=0 out=282 finish=stop tools=- text="结论：阻断 [正确性] src/cart.ts:3 — 循环从 i=1 开始且条件为 i <= …"
+
+════════ M10.2 · 跨进程 MCP：真实成功往返与明确拒绝（kind=mechanism）════════
+  ↳ 入口 probe 真实回复: "装配链已连通 M10.2"
+① 实际成功：拉起真实 MCP stdio server，并同步它的工具
+   模型可见的 MCP 工具: [ 'mcp__local_word_count__mcp_word_count' ]
+   tools/call 真实往返: 5 词 / 34 字符（来自 MCP server 进程）
+   dispose 之后工具被回收: true
+
+② 明确拒绝：换成不存在的可执行文件 → 启动失败并 fail loud
+   mcp: {
+  transport: 'stdio',
+  networkUsed: false,
+  failLoud: true,
+  reason: 'mcp-client(offline_missing): initial connection or tool synchronization failed'
+}
+REAL_STAGE_OK M10.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=704 in=0 out=9 finish=stop tools=- text="装配链已连通 M10.2"
+
+════════ M10.3 · 检查 Webhook Host-plane 组合边界（kind=mechanism）════════
+  ↳ 入口 probe 真实回复: "装配链已连通 M10.3"
+webhookRuntime boundary: {
+  required: [
+    'agents',
+    'agentDefaultModel',
+    'agentPresets',
+    'permissionPresets',
+    'sessionTitle',
+    'workspaceRegistry'
+  ],
+  missing: [
+    'agentDefaultModel',
+    'agentPresets',
+    'permissionPresets',
+    'sessionTitle',
+    'workspaceRegistry'
+  ],
+  loaded: false,
+  reason: 'Host-plane dependencies stay explicit in an offline teaching profile'
+}
+REAL_STAGE_OK M10.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=988 in=0 out=9 finish=stop tools=- text="装配链已连通 M10.3"
+
+════════ M10.4 · 装配动态 Cordis 扩展工具（kind=mechanism）════════
+  ↳ 入口 probe 真实回复: "装配链已连通 M10.4"
+extensions: {
+  dynamicRunner: 'DynamicCordisRunnerService',
+  inspectRegistry: 'CordisInspectRegistryService',
+  tools: [
+    'cordis_inspect_list',
+    'cordis_inspect_query',
+    'cordis_inspect_self',
+    'cordis_define',
+    'cordis_run',
+    'cordis_stop',
+    'cordis_undefine'
+  ]
+}
+REAL_STAGE_OK M10.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=948 in=0 out=9 finish=stop tools=- text="装配链已连通 M10.4"
+
+════════ M10.5 · 配置 Webhook 所需默认模型路由（kind=mechanism）════════
+  ↳ 入口 probe 真实回复: "装配链已连通 M10.5"
+agentDefaultModel: { provider: 'mock', model: 'mock-1' }
+REAL_STAGE_OK M10.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=3004 in=0 out=9 finish=stop tools=- text="装配链已连通 M10.5"
+
+════════ M10.d · 专项真实演示：注入 SKILL.md 前后的真实作答对照（kind=model）════════
 目标模型: anthropic-compat / MiniMax-M3 （真实 HTTP + SSE）
 
 ① A 组：不注入 skill
-   我来 review 一下这两处改动。
+   这段改动有两个比较严重的问题，都**不建议合并**：
 
-   ## 改动 1：`total` 函数
+   ---
 
-   **问题：off-by-one 错误（严重 bug）**
+   ## 1. `total()`：循环边界错了 + 越界访问
 
    ```ts
-   // 改前
-   return items.reduce((sum, it) => sum + it.price * it.qty, 0)
-
-   // 改后
    let sum = 0
    for (let i = 1; i <= items.length; i++) sum += items[i].price * items[i].qty
    ```
 
-   两个明显的 bug：
+   - **起始索引错误**：数组下标从 `0` 开始，`i = 1` 会漏掉第一件商品。
+   - **循环条件错误**：`i <= items.length` 会让最后一次循环访问 `items[items.length]`，即 `undefined`，运行时会抛 `TypeError: Cannot read properties of undefined`。
+   - 即使修好边界，`for` + `items[i]` 比原来的 `reduce` 还要冗长，可读性没有提升。
 
-   1. **越界访问**：`i <= items.length` 会在 `items[items.length]` 时访问 `undefined`，访问 `.price` 会抛 `TypeError: Cannot read properties of undefined`。如果数组为空，倒是不会进循环，但如果有任何元素，最后一轮就炸了。
-   2. **`i = 1` 跳过了第一个元素**：当 `i === 1` 时访问的是数组的第 2 个元素，第一个元素（`items[0]`）永远没被加进去，结果少算一项。
+   **建议：直接还原 `reduce` 版本。**
 
-   应该用经典的 `for (let i = 0; i < items.length; i++)`。
+   ```ts
+   return items.reduce((sum, it) => sum + it.price * it.qty, 0)
+   ```
 
-   另外，改成手写 for 循环本身是没必要的，`reduce` 版本更简洁、更函数式，也没性能问题（V8 优化得很好）。如果是为了某个 lint 规则禁用 `reduce`，至少手写循环要写对。
+   如果只是为了规避 `reduce` 的一些争议风格，可以写成：
+
+   ```ts
+   let sum = 0
+   for (const it of items) sum += it.price * it.qty
+   return sum
+   ```
 
    ---
 
-   ## 改动 2：`applyCoupon` 函数
-
-   **问题：`eval` 注入漏洞（严重安全问题）**
+   ## 2. `applyCoupon()`：引入了 `eval`，安全风险极高
 
    ```ts
-   // 改前
-   return COUPONS[code] ?? 0
-
-   // 改后
    return eval('COUPONS.' + code) ?? 0
    ```
 
-   `COUPONS` 是普通的对象，`COUPONS[code]` 完全够用，而且安全。换成 `eval` 后：
+   - **任意代码执行**：`code` 来源不可控（用户输入？URL 参数？），攻击者传入 `code = "x; process.exit(1)"` 或 `code = "; require('fs').unlinkSync('/')"` 就能在服务器上执行任意 JS。
+   - **作用域不可见**：`COUPONS` 是模块私有变量，字符串拼出来的 `'COUPONS.x'` 在 `eval` 里其实**也访问不到** `COUPONS`（`eval` 不会自动捕获外层局部变量，除非用间接 `eval` / `(0, eval)`），所以这个改动**功能上也是坏的**。
+   - **绕过所有 lint/类型检查**。
 
-   1. **任意代码执行**：如果 `code` 来自用户输入，攻击者可以传 `"x); process.exit(); (COUPONS.x"` 之类的东西直接执行任意 JS。
-   2. **即便 `code` 是内部来源**，`eval` 也是反模式：慢、难优化、难审计。
+   **建议：还原成 `COUPONS[code] ?? 0`，如果担心原型污染，可以加白名单：**
 
-   `?? 0` 还有个坑：`eval(...)` 返回值可能是 `undefined`、也可能是某个属性值，`??` 只防 `null/undefined`，不会防返回 `0` 时被原样保留——这点和原来行为倒是基本一致，但意图不清晰。
+   ```ts
+   export function applyCoupon(code: string): number {
+     const allowed = ['SAVE10', 'FREESHIP'] as const
+     if (!(allowed as readonly string[]).includes(code)) return 0
+     return COUPONS[code] ?? 0
+   }
+   ```
 
-   如果原来 `COUPONS[code] ?? 0` 是有问题的（比如 ts 类型报错、或者有原型链查找顾虑），正确的替代是 `Object.hasOwn(COUPONS, code) ? COUPONS[code] : 0`，而不是 `eval`。
+   或者更通用一点：
+
+   ```ts
+   export function applyCoupon(code: string): number {
+     if (!Object.prototype.hasOwnProperty.call(COUPONS, code)) return 0
+     return COUPONS[code]
+   }
+   ```
 
    ---
 
    ## 总结
 
-   | 改动 | 严重度 | 问题 |
+   | 改动 | 问题 | 建议 |
    |---|---|---|
-   | `total` 用手写 for | 🔴 高 | off-by-one 导致结果错误 + 空数组边界可能未崩但有元素时必崩 |
-   | `applyCoupon` 用 `eval` | 🔴 高 | 代码注入风险，无任何收益 |
+   | `total` 改用 for 循环 | 下标越界 + 漏元素 | 回退 `reduce` 或用 `for...of` |
+   | `applyCoupon` 用 `eval` | 安全漏洞 + 功能也是坏的 | 回退 `COUPONS[code] ?? 0`，必要时加白名单 |
 
-   **建议：两个改动都 revert。** 如果有具体动机（比如性能、规避 lint、绕过类型错误），说一下，可以给出更针对性的正确写法。
+   要我帮你写一版修复后的 diff 吗？
    → 第一行是结论 = false | 清单条目数 = 0
 
 ② B 组：注入 SKILL.md 正文（同一段 diff、同一句请求）
    结论：阻断
-   [正确性] src/cart.ts:3 — 循环从 `i = 1` 开始到 `i <= items.length`，最后一次访问 `items[items.length]` 为 `undefined`，且完全跳过了 `items[0]`，结果始终少算第一项且最后一项为 NaN — 改为 `for (let i = 0; i < items.length; i++)`，或直接用原来的 `reduce`
-   [安全] src/cart.ts:7 — `eval('COUPONS.' + code)` 存在代码注入风险，攻击者可通过传入 `'x; process.exit(1)'` 等恶意 code 执行任意代码 — 用 `COUPONS[code] ?? 0`（已存在于旧实现），或在白名单中查找
-   [风格] src/cart.ts:3 — 用命令式累加重写原本简洁的 `reduce`，可读性与可维护性下降 — 保留 `reduce` 实现
-   → 第一行是结论 = true | 清单条目数 = 3
-   → 严重性顺序 = ["正确性","安全","风格"]
+   [正确性] src/cart.ts:3 — 循环从 `i = 1` 开始且条件为 `i <= items.length`，最后一个元素 `items[items.length]` 为 `undefined`，读取 `.price` 会抛 `TypeError`；且索引方式改变了原 `reduce` 累加顺序与语义，应改回 0 基 `i < items.length`。
+   [正确性] src/cart.ts:5 — 使用 `eval` 执行拼接字符串以访问 `COUPONS[code]`，若 `code` 含 `') ; …` 等可成为可执行语句，导致运行任意代码并抛错或行为异常；应改回 `COUPONS[code] ?? 0`。
+   [安全] src/cart.ts:5 — `eval` 引入 RCE 风险，且 `code` 来源未校验，攻击者可注入任意 JS 执行，必须移除。
+   [风格] src/cart.ts:3 — `for` 循环中 `sum +=` 与 `i++` 未加分号，且循环变量与累加混合在一行，可读性下降；建议拆分并保持原 `reduce` 写法。
+   → 第一行是结论 = true | 清单条目数 = 4
+   → 严重性顺序 = ["正确性","正确性","安全","风格"]
+REAL_STAGE_OK M10.d kind=model provider=anthropic-compat model=MiniMax-M3 calls=2 ms=16507 in=0 out=898 finish=stop tools=- text="结论：阻断 [正确性] src/cart.ts:3 — 循环从 `i = 1` 开始且条件为 `…"
+
+REAL_MODULE_OK M10 stages=6 calls=7 failed=0
 [exit 0]

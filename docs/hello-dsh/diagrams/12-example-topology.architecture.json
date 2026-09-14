@@ -104,9 +104,9 @@
     {
       "id": "providers",
       "type": "external",
-      "label": "离线与真实 Provider 分路",
-      "sublabel": "mock 默认离线；M01/M03/M10 三条 real 路径显式选择 anthropic-compat",
-      "tag": "npm run all 永不隐式触网",
+      "label": "真实默认 / --mock 离线",
+      "sublabel": "每个模块一个 run.ts；默认真实 anthropic-compat，--mock 走 llm-mock",
+      "tag": "npm run all:mock 永不隐式触网",
       "pos": [
         1230,
         290

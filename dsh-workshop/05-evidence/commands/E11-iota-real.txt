@@ -11,7 +11,7 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 真实内核证据：
   - 真实模型: MiniMax-M3
   - 真实内核: claude（claude-agent-sdk + claude）
-  - 真实响应: 投影是视图，存储协议管数据，宿主凭证是设备级密钥。
+  - 真实响应: 投影呈现视图，协议管可换存储，凭证附件由宿主持管。
   - 事件序列: step_start, system_init, thinking, text_delta, final, step_end
 三类边界：
   - MiniMax-backed kernel 行为: 内核在本次配置投影下真实启动并作答。

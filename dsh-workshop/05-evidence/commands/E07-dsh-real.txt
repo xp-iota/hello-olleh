@@ -1,12 +1,13 @@
-$ cd dsh-example && npm run M07:real
+$ cd dsh-example && npm run M07
 
 
-> @example/dsh-examples@0.0.0 M07:real
-> DSH_REAL=1 node M07-execution-backends/run-real.ts
+> @example/dsh-examples@0.0.0 M07
+> node M07-execution-backends/run.ts
 
 
-████ M07 · 执行侧后端：I/O、进程与沙箱边界 —— 真实 MiniMax 模式 ████
+████ M07 · 执行侧后端：I/O、进程与沙箱边界 —— 真实推理服务 模式 ████
 provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
+（离线请用 --mock，例如 `npm run M01 -- --mock`）
 
 ════════ M07.1 · 通过 fs/subprocess seam 执行副作用（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M07.1"
@@ -14,7 +15,7 @@ provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeo
    seam 后端: LocalFileSystem / LocalSubprocessRuntime
 
 ----- ② write_note：经 ctx.fs seam 真实写盘 -----
-    isError=false, 成功 | render: 已写入 <temp> 字节）
+    isError=false, 成功 | render: 已写入 /tmp/dsh-example-16-1789382240096.txt（53 字节）
 
 ----- ③ 用同一个 seam 读回，验证真的落盘 -----
    读回内容: "hello from the fs seam\n第二行：中文也没问题"
@@ -26,16 +27,16 @@ provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeo
     isError=true, code=ABORTED_BEFORE_DISPATCH
     render: Error: tool call aborted before dispatch
     文件内容仍是: "hello from the fs seam\n第二行：中文也没问题"
-    注意 code = ABORTED_BEFORE_DISPATCH：index.ts 里那句 `signal.aborted` 守卫
+    注意 code = ABORTED_BEFORE_DISPATCH：steps/01-fs-shell-side-effects.ts 里那句 `signal.aborted` 守卫
     在这条路径上是够不着的 —— 注册表在调用工具主体之前就已经返回了。
 
 ----- ⑤b 派发后取消：主体已启动，被中止并收敛（code 不同） -----
     isError=true, code=ABORTED
-    耗时: 312 ms（子进程本身要跑 5000ms）
+    耗时: 316 ms（子进程本身要跑 5000ms）
     子进程被提前掐掉了，而不是等它自然跑完。
 
-⑥ 清理：演示文件已删除 = /var/folders/tr/zqmjm0dn6_nfthzqnztrd1gw0000gn/T/dsh-example-16-1789294767784.txt
-REAL_STAGE_OK M07.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1130 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.1"
+⑥ 清理：演示文件已删除 = /tmp/dsh-example-16-1789382240096.txt
+REAL_STAGE_OK M07.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1115 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.1"
 
 ════════ M07.2 · 消费 shell 的 run/start 双形态（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M07.2"
@@ -61,7 +62,7 @@ REAL_STAGE_OK M07.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 ca
 
 ⑥ kill 幂等：对已结束的进程再 kill
    kill() → false | 再 kill() → false
-REAL_STAGE_OK M07.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=817 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.2"
+REAL_STAGE_OK M07.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1112 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.2"
 
 ════════ M07.3 · 用 sandbox provider 强制策略（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M07.3"
@@ -69,7 +70,7 @@ REAL_STAGE_OK M07.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 ca
 ① 调用方给出的策略: {"mode":"workspace-write","workspaceRoot":"<repo>/dsh-example"}
 
 ② confine：把调用者 argv 包装成受约束的 argv（argv 是程序+参数，不是 shell 字符串）
-   包装后 argv : ["demo-sandbox-exec","--mode=workspace-write","--allow-write=<repo>/dsh-example","--allow-write=/private/tmp","--allow-write=<temp>","--","bash","-c","echo hi"]
+   包装后 argv : ["demo-sandbox-exec","--mode=workspace-write","--allow-write=<repo>/dsh-example","--allow-write=/tmp","--","bash","-c","echo hi"]
    强制力      : full
    拒绝签名    : ["[sandbox: file access denied under workspace-write mode]"]
 
@@ -86,7 +87,7 @@ REAL_STAGE_OK M07.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 ca
 
 ⑥ 最后卸掉 RefuseSandbox → seam 回到未装
    ctx.sandbox = undefined
-REAL_STAGE_OK M07.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=789 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.3"
+REAL_STAGE_OK M07.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=10940 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.3"
 
 ════════ M07.4 · 观察 terminal backend 注册边界（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M07.4"
@@ -95,7 +96,7 @@ terminals: {
   rejection: { name: 'TerminalError', code: 'NO_BACKEND' },
   nativeBackendSkipped: 'npm install scripts were not approved'
 }
-REAL_STAGE_OK M07.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1150 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.4"
+REAL_STAGE_OK M07.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1428 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.4"
 
 ════════ M07.5 · 解析共享 sandbox policy（kind=mechanism）════════
   ↳ 入口 probe 真实回复: "装配链已连通 M07.5"
@@ -104,7 +105,7 @@ sandboxPolicy: {
   sessionOverride: 'workspace-write',
   workspaceRoot: '<repo>/dsh-example'
 }
-REAL_STAGE_OK M07.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2115 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.5"
+REAL_STAGE_OK M07.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=924 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.5"
 
 REAL_MODULE_OK M07 stages=5 calls=5 failed=0
 [exit 0]

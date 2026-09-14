@@ -84,7 +84,7 @@ stale_after: 2026-12-31T00:00:00Z
 | 来源 | 目标 | 关系 | 位置 |
 |:-----|:-----|:-----|:-----|
 | `collect()` | `MinimaxAnthropicAdapter.stream()` | `calls` | `runtime/llm-minimax.test.ts` L14 |
-| `M05 phases/01-session-log.ts` | `describe()` | `indirect_call` | `M05-session-surface/phases/01-session-log.ts` L32 |
+| `M05 phases/01-session-log.ts` | `describe()` | `indirect_call` | `M05-session-surface/phases/01-check-log-invariants.ts` L32 |
 | `MinimaxAnthropicAdapter.stream()` | `toAnthropicTool()` | `indirect_call` | `runtime/llm-minimax.ts` L221 |
 | `MinimaxAnthropicAdapter.stream()` | `toAnthropicMessage()` | `indirect_call` | `runtime/llm-minimax.ts` L224 |
 | `toAnthropicMessage()` | `toAnthropicNestedBlock()` | `indirect_call` | `runtime/llm-minimax.ts` L163 |

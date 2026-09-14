@@ -25,7 +25,7 @@ title: "Fiber 模型"
 
 ## 3.2 `effect()`：唯一的副作用入口
 
-> 📐 **配套可跑示例**：[`M12 cordis-timer`](../../dsh-example/M12-framework-mechanisms/README.md) 把 timeout、interval、throttle、debounce 都挂到真实 cordis Fiber 的 effect 上。在 `dsh-example/` 运行 `npm run M12`，最后一步会卸载插件 Fiber，并验证挂起的 timeout Promise 以 `Context has been disposed` 拒绝。重点对照 [`run.ts`](../../dsh-example/M12-framework-mechanisms/phases/02-cordis-timer.ts) 的第 ⑥ 步。
+> 📐 **配套可跑示例**：[`M12 cordis-timer`](../../dsh-example/M12-framework-mechanisms/README.md) 把 timeout、interval、throttle、debounce 都挂到真实 cordis Fiber 的 effect 上。在 `dsh-example/` 运行 `npm run M12`，最后一步会卸载插件 Fiber，并验证挂起的 timeout Promise 以 `Context has been disposed` 拒绝。重点对照 [`run.ts`](../../dsh-example/M12-framework-mechanisms/phases/02-dispose-pending-timer.ts) 的第 ⑥ 步。
 
 这是 cordis 的核心契约：**插件做的任何有副作用的事，都必须通过 `ctx.effect()` 登记，并返回撤销它的函数。**
 

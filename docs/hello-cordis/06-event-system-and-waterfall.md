@@ -11,7 +11,7 @@ title: "事件系统与 Waterfall"
 
 ## 6.1 五种派发模式
 
-> 📐 **配套可跑示例**：[`M12 dispatch-modes`](../../dsh-example/M12-framework-mechanisms/README.md) 在真实 `@deepseek-ai/cordis` 上依次运行 `emit`、`parallel`、`serial`、`bail`、`waterfall`。在 `dsh-example/` 执行 `npm run M12`，可直接观察 AggregateError、bail 截链与 waterfall 外层包装内建默认值；实现与断言见 [`index.ts`](../../dsh-example/M12-framework-mechanisms/steps/01-dispatch-modes.ts) / [`run.ts`](../../dsh-example/M12-framework-mechanisms/phases/01-dispatch-modes.ts)。
+> 📐 **配套可跑示例**：[`M12 dispatch-modes`](../../dsh-example/M12-framework-mechanisms/README.md) 在真实 `@deepseek-ai/cordis` 上依次运行 `emit`、`parallel`、`serial`、`bail`、`waterfall`。在 `dsh-example/` 执行 `npm run M12`，可直接观察 AggregateError、bail 截链与 waterfall 外层包装内建默认值；实现与断言见 [`index.ts`](../../dsh-example/M12-framework-mechanisms/steps/01-dispatch-modes.ts) / [`run.ts`](../../dsh-example/M12-framework-mechanisms/phases/01-compare-dispatch-modes.ts)。
 
 `DispatchMode`（`C/events.ts:14`）：
 

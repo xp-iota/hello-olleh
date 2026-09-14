@@ -29,7 +29,7 @@ title: "请求管线：LLM、工具与 SystemPrompt"
 
 > 📐 **配套可跑示例**：[`M03.1 · llm-adapter`](../../dsh-example/M03-inference-service-access/steps/01-llm-adapter.ts) 只实现这一个方法就接上了整条链；
 > [`runtime/llm-minimax.ts`](../../dsh-example/runtime/llm-minimax.ts) 是同一个抽象类的真实 HTTP/SSE 实现
-> （MiniMax 的 Anthropic 兼容端点 → 同一份 StreamChunk 协议）；`npm run M03:real`
+> （MiniMax 的 Anthropic 兼容端点 → 同一份 StreamChunk 协议）；`npm run M03`
 > 用同一个消费循环消费真实 `anthropic-compat` 路由。
 
 
@@ -328,7 +328,7 @@ JSON 解析失败**不抛错，而是把原始字符串当作参数传下去**�
 
 ## 7.14 `ToolRuntime`：注册表
 
-> 📐 **配套可跑示例**：[`M01.4 · tool-restrict`](../../dsh-example/M01-tool-pipeline/phases/04-tool-restrict.ts) 验证"展示 / 查找 / 执行三者对齐"——
+> 📐 **配套可跑示例**：[`M01.4 · narrow-visible-set`](../../dsh-example/M01-tool-pipeline/phases/04-narrow-visible-set.ts) 验证"展示 / 查找 / 执行三者对齐"——
 > 被收紧掉的工具在 `schemas(scope)` 里消失，调用它直接得到 `unknown tool "write"`。
 
 

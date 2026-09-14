@@ -82,7 +82,7 @@ const lastTurn = session.events.findLast(event => event.type === 'turn/start')?.
 
 ## 6.4 `turn()`：主循环
 
-> 📐 **配套可跑示例**：[`M04.1 · agent-events-telemetry`](../../dsh-example/M04-agent-loop-intervention/phases/01-agent-events-telemetry.ts) 用真实 agent-loop 跑一个 turn，
+> 📐 **配套可跑示例**：[`M04.1 · observe-turn-events`](../../dsh-example/M04-agent-loop-intervention/phases/01-observe-turn-events.ts) 用真实 agent-loop 跑一个 turn，
 > 把这里描述的边界事件逐条打印出来；实测序列是
 > `turn/start → step/start → user/message → request/header → request/context → assistant/chunk* → assistant/message → step/end → turn/end`。
 
@@ -217,7 +217,7 @@ phase.wakeRequested = false
 
 ## 6.9 `Inbox`：两条有序队列
 
-> 📐 **配套可跑示例**：[`M04.3 · agent-inbox`](../../dsh-example/M04-agent-loop-intervention/phases/03-agent-inbox.ts) 把四个入口各调一遍，
+> 📐 **配套可跑示例**：[`M04.3 · compare-inbox-channels`](../../dsh-example/M04-agent-loop-intervention/phases/03-compare-inbox-channels.ts) 把四个入口各调一遍，
 > 并把会话日志里的 `agent/inbox/spliced` 流水打出来 —— "谁在什么时候塞了什么"是可回放的。
 
 
@@ -294,7 +294,7 @@ phase.wakeRequested = false
 
 ## 6.12 核心不变量：Model-visible means logged
 
-> 📐 **配套可跑示例**：[`M05.1 · session-log`](../../dsh-example/M05-session-surface/phases/01-session-log.ts) 逐条验证本节的不变量：
+> 📐 **配套可跑示例**：[`M05.1 · check-log-invariants`](../../dsh-example/M05-session-surface/phases/01-check-log-invariants.ts) 逐条验证本节的不变量：
 > seq 连续、事件深冻结（改写抛 `TypeError`）、`deriveMessages()` 只投影三类消息事件。
 
 
@@ -366,7 +366,7 @@ phase.wakeRequested = false
 
 ## 6.15 `surfaceOp`：有序表面
 
-> 📐 **配套可跑示例**：[`M05.1 · session-log`](../../dsh-example/M05-session-surface/phases/01-session-log.ts) 用真实 `replace` 折叠了两个节点并打印
+> 📐 **配套可跑示例**：[`M05.1 · check-log-invariants`](../../dsh-example/M05-session-surface/phases/01-check-log-invariants.ts) 用真实 `replace` 折叠了两个节点并打印
 > "模型现在看到的第一条"；两条 fail-closed 校验的抛错原文也在输出里：
 >
 > ```text
@@ -474,7 +474,7 @@ phase.wakeRequested = false
 
 ## 6.19 `fork()`：分叉会话
 
-> 📐 **配套可跑示例**：[`M05.1 · session-log`](../../dsh-example/M05-session-surface/phases/01-session-log.ts) 第 ⑥ 节演示 fork 的稳定前缀要求 ——
+> 📐 **配套可跑示例**：[`M05.1 · check-log-invariants`](../../dsh-example/M05-session-surface/phases/01-check-log-invariants.ts) 第 ⑥ 节演示 fork 的稳定前缀要求 ——
 > 边界落在未闭合的 turn 里会抛 `SessionForkError { code: 'OPEN_TURN' }`。
 
 

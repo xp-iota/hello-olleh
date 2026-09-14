@@ -16,6 +16,7 @@ import argparse
 import html
 import json
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -34,9 +35,8 @@ WORKSHOP = Path(__file__).resolve().parents[1]
 DECKS = WORKSHOP / "02-decks"
 PUBLIC = WORKSHOP / "03-public"
 OUT = WORKSHOP / "04-out"
-FFMPEG = "/opt/homebrew/bin/ffmpeg"
-FFPROBE = "/opt/homebrew/bin/ffprobe"
-SIPS = "/usr/bin/sips"
+FFMPEG = os.environ.get("FFMPEG") or shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg"
+FFPROBE = os.environ.get("FFPROBE") or shutil.which("ffprobe") or "/opt/homebrew/bin/ffprobe"
 
 WIDTH, HEIGHT, FPS, TAIL_FRAMES = 1280, 720, 15, 8
 FOOTER_BASELINE = 696
@@ -395,15 +395,17 @@ def probe_duration(path: Path) -> float:
 
 
 def rasterize(svg: Path, png: Path) -> None:
+    """SVG → PNG，再由 ffmpeg 缩放到画布。全程只依赖 ffmpeg，不绑 macOS 的 sips。
+
+    原先这里先调 macOS 专有的 `sips -s format png` 落一张中间 raster，再交给 ffmpeg
+    缩放；在 Linux 上 `sips` 不存在，整条构建链直接 FileNotFoundError。ffmpeg 本身就能
+    读 SVG（经 librsvg），所以一步到位，顺带少一次落盘。
+    """
     png.parent.mkdir(parents=True, exist_ok=True)
-    raster = svg.with_suffix(".raster.png")
-    subprocess.run([SIPS, "-s", "format", "png", str(svg), "--out", str(raster)],
-                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     scale = (f"scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=decrease,"
              f"pad={WIDTH}:{HEIGHT}:(ow-iw)/2:(oh-ih)/2:color=0x08111f")
-    subprocess.run([FFMPEG, "-hide_banner", "-loglevel", "error", "-y", "-i", str(raster),
+    subprocess.run([FFMPEG, "-hide_banner", "-loglevel", "error", "-y", "-i", str(svg),
                     "-vf", scale, "-frames:v", "1", str(png)], check=True)
-    raster.unlink(missing_ok=True)
 
 
 def load_episode(deck_path: Path) -> tuple[dict[str, Any], list[Slide]]:

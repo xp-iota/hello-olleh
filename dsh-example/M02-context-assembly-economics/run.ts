@@ -1,15 +1,28 @@
-const phases = [
-  ['按顺序贡献 Prompt section', './phases/01-prompt-section.ts'],
-  ['变量解析与 assembly waterfall', './phases/02-prompt-variable-assemble.ts'],
-  ['压缩历史并替换模型可见 surface', './phases/03-compaction-provider.ts'],
-  ['回放日志估算 token 压力', './phases/04-token-meter.ts'],
-  ['确定性裁剪超长工具结果', './phases/05-tool-result-pruner.ts'],
-  ['把超长结果 spill 到本地文件', './phases/06-spill-policy.ts'],
-] as const
+/**
+ * M02 的运行入口：**默认真实**，`--mock` 离线。
+ *
+ *   node M02-context-assembly-economics/run.ts            # 真实推理服务（需 LLM_API_KEY，会发起网络请求）
+ *   node M02-context-assembly-economics/run.ts --mock     # 离线确定性机制（走 runtime/llm-mock.ts，不联网）
+ *
+ * 两个模式共用下面这份阶段清单，由 runtime/real.ts 的 runModule() 分叉：
+ * 真实模式逐阶段校验"确实发生过成功的推理服务调用"，缺证据即 fail loud；
+ * mock 模式只跑离线阶段，`realOnly` 的专项演示打印 skip。
+ */
+import type { StageSpec } from '../runtime/real.ts'
+import { applyMockFlag } from '../runtime/mode.ts'
 
-console.log('\n████ M02 · 上下文装配与经济学：构造、改写、压缩 ████')
-for (const [index, [title, path]] of phases.entries()) {
-  console.log(`\n════════ M02.${index + 1} · ${title} ════════`)
-  await import(path)
-}
-console.log('\n结论：上下文是结构化装配结果；section/variable 控制进入什么，compaction 控制历史以什么成本继续可见；meter、pruner 与 spill 把预算变成可观测且可执行的策略。')
+// ① 先解析 --mock。这一句必须早于 real.ts 求值：REAL_MODE 是模块级常量，
+//    而静态 import 会被提升到模块体之前执行，所以 real.ts 只能动态 import。
+applyMockFlag()
+const { runModule } = await import('../runtime/real.ts')
+
+const stages: readonly StageSpec[] = [
+  { id: 'M02.1', title: '按顺序贡献 Prompt section', kind: 'mechanism', path: './phases/01-assemble-system-prompt.ts' },
+  { id: 'M02.2', title: '变量解析与 assembly waterfall', kind: 'mechanism', path: './phases/02-interpolate-variable.ts' },
+  { id: 'M02.3', title: '压缩历史并替换模型可见 surface', kind: 'mechanism', path: './phases/03-fold-history.ts' },
+  { id: 'M02.4', title: '回放日志估算 token 压力', kind: 'mechanism', path: './phases/04-estimate-token-pressure.ts' },
+  { id: 'M02.5', title: '确定性裁剪超长工具结果', kind: 'mechanism', path: './phases/05-prune-long-result.ts' },
+  { id: 'M02.6', title: '把超长结果 spill 到本地文件', kind: 'mechanism', path: './phases/06-spill-to-file.ts' },
+]
+
+await runModule('M02', '上下文装配与经济学：构造、改写、压缩', stages, import.meta.url)

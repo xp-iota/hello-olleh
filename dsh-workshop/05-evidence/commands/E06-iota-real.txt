@@ -11,7 +11,7 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 真实内核证据：
   - 真实模型: MiniMax-M3
   - 真实内核: claude（claude-agent-sdk + claude）
-  - 真实响应: ACP 权限验证必有应答，计划模式宿主边界由 ExitPlanMode 划分。
+  - 真实响应: ACP 权限由主机裁定，计划模式边界止于只读提案。
   - 事件序列: step_start, system_init, thinking, text_delta, final, step_end
 三类边界：
   - MiniMax-backed kernel 行为: 内核在权限策略下作答；请求必定得到答复，不会挂住整轮。
@@ -24,5 +24,5 @@ $ cd iota-example && env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime
 对照关系：语义等价 + 结构性边界
 结论：权限请求由适配器可靠闭合；计划模式由具体内核或宿主管理。
 {"hang_prevention": "request answered", "module": "M06", "permission": "no", "plan_mode": "kernel/harness-owned", "relationship": "语义等价 + 结构性边界", "status": "ok"}
-IOTA_REAL_MODULE_OK M06-human-in-the-loop kernel=claude model=MiniMax-M3 chars=39 events=6
+IOTA_REAL_MODULE_OK M06-human-in-the-loop kernel=claude model=MiniMax-M3 chars=25 events=6
 [exit 0]

@@ -20,7 +20,7 @@ const lessons = [
     id: 'M03', title: '推理服务接入', goal: '区分 Provider seam、StreamChunk Consumer 与 llm/stream 中间件',
     entry: 'M03-inference-service-access/run.ts', source: 'M03-inference-service-access/steps/01-llm-adapter.ts',
     observe: ['具名 provider 路由怎样注册', '统一 chunk 协议包含哪些不变量', 'waterfall 怎样包装而不替换后端'],
-    takeaway: '后端、流中间件和 Consumer 分离后，业务代码不依赖供应商。', next: '有密钥时运行 npm run M03:real，或继续 M04 看 AgentLoop。',
+    takeaway: '后端、流中间件和 Consumer 分离后，业务代码不依赖供应商。', next: '真实模式默认就是 npm run M03；或继续 M04 看 AgentLoop。',
   },
   {
     id: 'M04', title: 'Agent 循环与干预面', goal: '从事件边界理解循环，并通过 inbox/steer 做非侵入干预',
@@ -32,7 +32,7 @@ const lessons = [
     id: 'M10', title: '外部能力接入', goal: '不写执行插件，用 SKILL.md 注入流程知识',
     entry: 'M10-external-capabilities/run.ts', source: 'M10-external-capabilities/assets/SKILL.md',
     observe: ['frontmatter 怎样支持发现', '正文怎样进入 inbox', 'step 边界怎样把 skill 认领进模型上下文'],
-    takeaway: '流程知识优先数据化，需要执行逻辑时再升级成插件。', next: '有密钥时运行 npm run M10:real 做真实 A/B 对照。',
+    takeaway: '流程知识优先数据化，需要执行逻辑时再升级成插件。', next: '真实模式默认就是 npm run M10（含 M10.d 的 A/B 对照）。',
   },
   {
     id: 'M12', title: '框架机制本体', goal: '直接观察 Cordis 派发模式与 Fiber 资源回收',
