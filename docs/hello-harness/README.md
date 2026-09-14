@@ -1,16 +1,18 @@
+---
+title: "Hello Harness"
+---
 # Hello Harness
 
 `docs/hello-harness/` 是跨 AI Coding CLI 的综合分析层。它不绑定某一个上游工程，而是把 Claude Code、Codex、Gemini CLI、OpenCode 等实现抽象成 Harness Engineering 的控制系统：控制平面、前馈控制、反馈控制、工具治理、上下文与记忆、可驾驭性、熵管理、多代理验证、人类导向和扩展性。
 
+> **Source baselines:** Codex `rust-v0.154.0`, OpenCode `v2.0.2`, Hermes Agent `0.21.2`, and nanobot `v0.3.0`. OpenCode comparisons use the [v2 overview](../hello-opencode/01-overview.md).
+
 ## 阅读入口
 
-- 网页索引：[index.md](./index.md)
 - 框架总览：[01-framework.md](./01-framework.md)
 - Context/Memory 对比：[06-context-and-memory.md](./06-context-and-memory.md)
 - Agent Loop 对比：[13-agent-loop.md](./13-agent-loop.md)
-- 源码分析质量评估：[14-source-analysis-quality.md](./14-source-analysis-quality.md)
 - 篇章主题对齐矩阵：[15-topic-alignment-matrix.md](./15-topic-alignment-matrix.md)
-- 最终验收与维护索引：[21-final-audit.md](./21-final-audit.md)
 - 可插拔模块设计：[40-pluggable-context-memory-module.md](./40-pluggable-context-memory-module.md)
 - Runtime 对比：[42-runtime-comparison.md](./42-runtime-comparison.md)
 
@@ -23,9 +25,7 @@
 5. [05-tool-governance.md](./05-tool-governance.md)：比较四类工具权限与审批模型。
 6. [06-context-and-memory.md](./06-context-and-memory.md)：深入比较 state/session/memory/context compaction。
 7. [13-agent-loop.md](./13-agent-loop.md)：用闭环拓扑横向比较各工具的主循环。
-8. [14-source-analysis-quality.md](./14-source-analysis-quality.md) 和 [15-topic-alignment-matrix.md](./15-topic-alignment-matrix.md)：校准源码证据标准与 `01-25` 共享主干。
 9. [16-tool-governance-comparison.md](./16-tool-governance-comparison.md) 到 [19-runtime-surface-comparison.md](./19-runtime-surface-comparison.md)：阅读工具、Prompt、扩展和入口传输的横向合并结论。
-10. [21-final-audit.md](./21-final-audit.md)：查看证据密度、术语表和维护风险。
 11. [12-synthesis.md](./12-synthesis.md)：最后读综合结论。
 
 ## 章节索引
@@ -46,13 +46,11 @@
 | [11-extensibility.md](./11-extensibility.md) | 扩展性 | MCP、Plugin、Skill、Command 接入模型 |
 | [12-synthesis.md](./12-synthesis.md) | 综合 | 综合评分、差异归纳和工程建议 |
 | [13-agent-loop.md](./13-agent-loop.md) | Agent Loop | 四类 runtime 的闭环拓扑对比 |
-| [14-source-analysis-quality.md](./14-source-analysis-quality.md) | 源码分析质量 | 评估四套 `hello-*` 文档的覆盖、证据和维护性 |
 | [15-topic-alignment-matrix.md](./15-topic-alignment-matrix.md) | 篇章主题对齐 | 定义四项目 `01-25` 共享主干和项目附录规则 |
 | [16-tool-governance-comparison.md](./16-tool-governance-comparison.md) | 工具治理对比 | 工具注册、权限、审批、沙箱、结果回注 |
 | [17-prompt-systems-comparison.md](./17-prompt-systems-comparison.md) | Prompt 系统对比 | system prompt、项目指令、工具 prompt、skill 注入 |
 | [18-extension-mcp-comparison.md](./18-extension-mcp-comparison.md) | 扩展与 MCP 对比 | Skill、Plugin、MCP、Command、Hook 的分层关系 |
 | [19-runtime-surface-comparison.md](./19-runtime-surface-comparison.md) | 入口与传输对比 | CLI/TUI/SDK/Bridge/Input Queue 的横向合并视角 |
-| [21-final-audit.md](./21-final-audit.md) | 最终验收 | 五目录主题验收、证据等级、术语表和维护风险 |
 | [40-pluggable-context-memory-module.md](./40-pluggable-context-memory-module.md) | 可插拔模块 | 跨 OpenCode/Hermes 的 context/memory 抽象设计 |
 | [42-runtime-comparison.md](./42-runtime-comparison.md) | Runtime 对比 | OpenCode 与 Hermes Agent 的消息、上下文、存储对比 |
 

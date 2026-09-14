@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "项目初始化分析报告：首次进入 Gemini CLI 仓库时该先看什么"
 ---
 # 项目初始化分析报告：首次进入 Gemini CLI 仓库时该先看什么
@@ -35,18 +34,13 @@ title: "项目初始化分析报告：首次进入 Gemini CLI 仓库时该先看
 
 当前仓库最重要的几个包如下：
 
-```text
-gemini-cli/
-├── packages/
-│   ├── cli/                    # 终端宿主、参数解析、TUI、启动链路
-│   ├── core/                   # 模型交互、调度、工具、策略、memory、hooks、agents
-│   ├── sdk/                    # 程序化接入 Gemini CLI 的 SDK
-│   ├── a2a-server/             # 实验性的远程 Agent 服务
-│   └── vscode-ide-companion/   # VS Code 侧桥接与 IDE 上下文服务
-├── integration-tests/          # 集成测试
-├── evals/                      # 行为评估
-└── package.json                # workspace 与根脚本
-```
+![先建立正确的包级视图](diagrams/22-project-init-analysis-diagram.svg)
+
+**先建立正确的包级视图** — [交互版](diagrams/22-project-init-analysis-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/22-project-init-analysis-diagram.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：gemini-cli/ · 末节点：package.json # workspace 与根…
 
 如果你第一次进入仓库，最容易犯的错误是把它看成“CLI 包 + 一点工具代码”。实际上 `packages/core` 才是主引擎，`packages/cli` 只是最常见的宿主。
 

@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "一次请求流中的提示词作用点",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1940,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "UI",
+      "type": "frontend",
+      "label": "REPL/Print/SDK"
+    },
+    {
+      "id": "QE",
+      "type": "backend",
+      "label": "QueryEngine"
+    },
+    {
+      "id": "Q",
+      "type": "backend",
+      "label": "queryLoop()"
+    },
+    {
+      "id": "Ctx",
+      "type": "backend",
+      "label": "context/queryContext"
+    },
+    {
+      "id": "API",
+      "type": "cloud",
+      "label": "claude.ts",
+      "sublabel": "services/api/"
+    },
+    {
+      "id": "Model",
+      "type": "external",
+      "label": "Anthropic API"
+    },
+    {
+      "id": "Tools",
+      "type": "backend",
+      "label": "Tool runtime"
+    },
+    {
+      "id": "Ctx-",
+      "type": "backend",
+      "label": "Ctx-"
+    },
+    {
+      "id": "Model-",
+      "type": "external",
+      "label": "Model-"
+    },
+    {
+      "id": "Tools-",
+      "type": "backend",
+      "label": "Tools-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "UI",
+      "to": "QE",
+      "y": 180,
+      "label": "prompt / slash command / SDK command",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "QE",
+      "to": "Ctx",
+      "y": 225,
+      "label": "fetchSystemPromptParts()",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "Ctx-",
+      "to": "QE",
+      "y": 270,
+      "label": "defaultSystemPrompt + userContext + systemContext",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "QE",
+      "to": "Q",
+      "y": 315,
+      "label": "messages + systemPrompt + toolUseContext",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "Q",
+      "to": "API",
+      "y": 360,
+      "label": "callModel(messages, fullSystemPrompt, tools)",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "10 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 10 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "QueryEngine 自调用：processUserInput()",
+        "queryLoop() 自调用：getMessagesAfterCompactBoundary()",
+        "queryLoop() 自调用：appendSystemContext(systemPrompt, systemContext)"
+      ]
+    }
+  ]
+}

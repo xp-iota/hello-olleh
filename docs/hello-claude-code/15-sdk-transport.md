@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Claude Code 的传输系统"
 ---
 # Claude Code 的传输系统
@@ -49,34 +48,13 @@ title: "Claude Code 的传输系统"
 
 如果要继续看这层能力如何被组织成远程桥接与会话控制，请继续看 [23-bridge-system.md](./21-bridge-system.md)。
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    subgraph Interface["Transport 接口"]
-        A1["connect()"]
-        A2["write(message)"]
-        A3["writeBatch()"]
-        A4["close()"]
-        A5["setOnConnect()"]
-        A6["setOnData()"]
-    end
+![传输系统概述](diagrams/15-sdk-transport-diagram-01.svg)
 
-    subgraph Implementations["传输实现"]
-        B1["HybridTransport"]
-        B2["WebSocketTransport"]
-        B3["SSETransport"]
-    end
+**传输系统概述** — [交互版](diagrams/15-sdk-transport-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/15-sdk-transport-diagram-01.architecture.json)
 
-    subgraph Uploader["批量上传器"]
-        C1["SerialBatchEventUploader"]
-    end
-
-    Interface <--> Implementations
-    B1 --> C1
-```
+- **组成**：13 个节点
+- **关系**：源图 2 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：Transport 接口 → 传输实现 · HybridTransport → SerialBatchEventUploader
 
 ## 2. 传输接口定义
 
@@ -110,24 +88,13 @@ export interface Transport {
 
 ### 3.1 基本实现
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["connect()"] --> B["刷新 Headers"]
-    B --> C["创建 WebSocket"]
-    C --> D{"连接成功?"}
+![基本实现](diagrams/15-sdk-transport-diagram-02.svg)
 
-    D -->|是| E["重置重试计数"]
-    D -->|否| F["触发重连"]
+**基本实现** — [交互版](diagrams/15-sdk-transport-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/15-sdk-transport-diagram-02.architecture.json)
 
-    E --> G["flushQueue()"]
-    G --> H["发送队列消息"]
-
-    F --> H
-```
+- **组成**：8 个节点
+- **关系**：源图 8 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：connect() → 刷新 Headers · 刷新 Headers → 创建 WebSocket · 创建 WebSocket → 连接成功?
 
 ### 3.2 重连机制
 
@@ -157,27 +124,13 @@ private handleReconnect(): void {
 
 ### 4.1 SSE 客户端实现
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["connect()"] --> B["创建 AbortController"]
-    B --> C["fetch SSE 端点"]
-    C --> D["读取 ReadableStream"]
+![SSE 客户端实现](diagrams/15-sdk-transport-sse.svg)
 
-    D --> E{"数据块?"}
-    E -->|yes| F["解码"]
-    E -->|no| G["继续读取"]
+**SSE 客户端实现** — [交互版](diagrams/15-sdk-transport-sse.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/15-sdk-transport-sse.architecture.json)
 
-    F --> H["解析 SSE 格式"]
-    H --> I["提取 data: 字段"]
-    I --> J["触发 onData"]
-
-    J --> D
-    G --> D
-```
+- **组成**：10 个节点
+- **关系**：源图 11 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：connect() → 创建 AbortController · 创建 AbortController → fetch SSE 端点 · fetch SSE 端点 → 读取 ReadableStream
 
 ## 5. 混合传输 (HybridTransport)
 
@@ -185,30 +138,13 @@ flowchart LR
 
 ### 5.1 设计原理
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    subgraph Write["写入流程"]
-        A1["write(stream_event)"] --> A2["加入缓冲"]
-        A2 --> A3["设置 100ms 定时器"]
+![设计原理](diagrams/15-sdk-transport-diagram-04.svg)
 
-        B1["write(other)"] --> B2["立即 flush"]
-        B2 --> A3
+**设计原理** — [交互版](diagrams/15-sdk-transport-diagram-04.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/15-sdk-transport-diagram-04.architecture.json)
 
-        A3 -->|定时触发| B4["enqueue + flush"]
-        B4 --> B5["SerialBatchEventUploader"]
-    end
-
-    subgraph Post["POST 处理"]
-        B5 --> C1{"状态码?"}
-        C1 -->|2xx| C2["成功"]
-        C1 -->|4xx 非 429| C3["丢弃"]
-        C1 -->|429/5xx| C4["重试"]
-    end
-```
+- **组成**：13 个节点
+- **关系**：源图 10 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：write(streamevent) → 加入缓冲 · 加入缓冲 → 设置 100ms 定时器 · write(other) → 立即 flush
 
 ### 5.2 实现细节
 
@@ -272,33 +208,13 @@ export class HybridTransport extends WebSocketTransport {
 
 ### 6.1 核心功能
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    subgraph Enqueue["入队"]
-        A1["enqueue(items)"] --> A2{"队列满?"}
-        A2 -->|是| A3["drain()"]
-        A2 -->|否| A4["加入队列"]
-    end
+![核心功能](diagrams/15-sdk-transport-diagram-05.svg)
 
-    subgraph Drain["发送"]
-        A4 --> B1["flush()"]
-        A3 --> B1
+**核心功能** — [交互版](diagrams/15-sdk-transport-diagram-05.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/15-sdk-transport-diagram-05.architecture.json)
 
-        B1 --> B2{"队列非空?"}
-        B2 -->|是| B3["sendWithRetry()"]
-        B2 -->|否| B4["完成"]
-
-        B3 -->|成功| B5["shift()"]
-        B3 -->|失败| B6["超过最大失败?"]
-        B6 -->|是| B7["dropBatch()"]
-        B6 -->|否| B8["指数退避"]
-        B8 --> B3
-    end
-```
+- **组成**：14 个节点
+- **关系**：源图 13 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：enqueue(items) → 队列满? · 队列满? → drain()（是） · 队列满? → 加入队列（否）
 
 ### 6.2 发送与重试
 
@@ -333,19 +249,13 @@ private async sendWithRetry(batch: T[]): Promise<void> {
 
 CCR (Cloud Code Runtime) 是远程执行协议：
 
-```mermaid
----
-config:
-  theme: neutral
----
-sequenceDiagram
-    participant CCR as CCRClient
-    participant Transport as Transport
+![CCR 客户端](diagrams/15-sdk-transport-ccr.svg)
 
-    CCR->>Transport: initialize()
-    CCR->>Transport: sendEvents()
-    CCR->>Transport: reportState()
-```
+**CCR 客户端** — [交互版](diagrams/15-sdk-transport-ccr.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/15-sdk-transport-ccr.sequence.json)
+
+- **组成**：2 个参与方
+- **关系**：源图 3 条消息
+- **要点**：消息标签保留源图中的调用名
 
 ## 8. Worker 状态上传器
 
@@ -386,22 +296,13 @@ export class WorkerStateUploader {
 
 **位置**: `src/cli/transports/transportUtils.ts`
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["createTransport(type, url, params)"] --> B{"type?"}
+![传输工厂](diagrams/15-sdk-transport-diagram-07.svg)
 
-    B -->|hybrid| C["HybridTransport"]
-    B -->|websocket| D["WebSocketTransport"]
-    B -->|sse| E["SSETransport"]
+**传输工厂** — [交互版](diagrams/15-sdk-transport-diagram-07.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/15-sdk-transport-diagram-07.architecture.json)
 
-    C --> F["返回 Transport 实例"]
-    D --> F
-    E --> F
-```
+- **组成**：6 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：createTransport(type, url… → type? · type? → HybridTransport（hybrid） · type? → WebSocketTransport（websocket）
 
 ## 10. 错误处理与恢复
 
@@ -419,28 +320,13 @@ enum TransportErrorType {
 
 ### 10.2 恢复策略
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["传输错误"] --> B{"错误类型?"}
+![恢复策略](diagrams/15-sdk-transport-diagram-08.svg)
 
-    B -->|auth_error| C["刷新 JWT"]
-    C --> D["重建传输"]
+**恢复策略** — [交互版](diagrams/15-sdk-transport-diagram-08.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/15-sdk-transport-diagram-08.architecture.json)
 
-    B -->|protocol_error| E["完全重连"]
-
-    B -->|network_error| F["尝试重连"]
-    B -->|timeout| F
-
-    B -->|server_error| G["指数退避重试"]
-
-    F --> H{"成功?"}
-    H -->|是| I["恢复"]
-    H -->|否| G
-```
+- **组成**：9 个节点
+- **关系**：源图 9 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：传输错误 → 错误类型? · 错误类型? → 刷新 JWT（autherror） · 刷新 JWT → 重建传输
 
 ## 10. 补充：关键实现细节
 
@@ -764,22 +650,13 @@ QueryEngine 也承担了协议转换责任。
 
 ## 16. 非交互路径总体图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[SDK / print 调用] --> B[QueryEngine.submitMessage]
-    B --> C[fetchSystemPromptParts]
-    B --> D[processUserInput]
-    D --> E{shouldQuery}
-    E -- 否 --> F[直接产出本地 SDK 结果]
-    E -- 是 --> G["query()"]
-    G --> H[内部 Message 流]
-    H --> I[normalize 成 SDKMessage]
-    I --> J[result / progress / assistant / system_init]
-```
+![非交互路径总体图](diagrams/15-sdk-transport-diagram-09.svg)
+
+**非交互路径总体图** — [交互版](diagrams/15-sdk-transport-diagram-09.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/15-sdk-transport-diagram-09.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图 9 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：SDK / print 调用 → QueryEngine.submitMessage · QueryEngine.submitMessage → fetchSystemPromptParts · QueryEngine.submitMessage → processUserInput
 
 ## 17. 关键源码锚点
 
@@ -846,17 +723,13 @@ Claude Code 有模型请求层 transport，也有 headless/Agent SDK/bridge 等�
 
 ## Transport 分层图
 
-```mermaid
-flowchart TD
-    Host[外部宿主 / Headless 调用] --> Print[cli/print.ts SDK 控制面]
-    IDE[IDE / 远程 REPL] --> Bridge[bridge / remote session]
-    Print --> Query[query.ts agent loop]
-    Bridge --> Query
-    Query --> Provider[services/api/claude.ts provider stream]
-    Query --> MCP[MCP stdio/http/sse tools]
-    Provider --> Model[Anthropic / compatible endpoint]
-    MCP --> ExternalTools[外部工具服务]
-```
+![Transport 分层图](diagrams/15-sdk-transport-transport.svg)
+
+**Transport 分层图** — [交互版](diagrams/15-sdk-transport-transport.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/15-sdk-transport-transport.architecture.json)
+
+- **组成**：9 个节点
+- **关系**：源图 8 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：外部宿主 / Headless 调用 → cli/print.ts SDK 控制面 · IDE / 远程 REPL → bridge / remote session · cli/print.ts SDK 控制面 → query.ts agent loop
 
 分层阅读时，provider stream 只负责模型事件；Agent SDK/headless 负责把外部请求转换成 Claude Code 会话；bridge/remote session 负责长连接宿主和认证；MCP transport 负责工具发现与调用。源码锚点上，模型请求层看 `sources/claude-code/src/services/api/claude.ts:753`、`sources/claude-code/src/services/api/claude.ts:1018`、`sources/claude-code/src/services/api/claude.ts:1869` 到 `sources/claude-code/src/services/api/claude.ts:1875`；headless/SDK 控制面看 `sources/claude-code/src/cli/print.ts:1251`、`sources/claude-code/src/cli/print.ts:1535`、`sources/claude-code/src/cli/print.ts:2868`；远程会话看 `sources/claude-code/src/remote/SessionsWebSocket.ts:50`、`sources/claude-code/src/remote/SessionsWebSocket.ts:214`、`sources/claude-code/src/remote/SessionsWebSocket.ts:326`、`sources/claude-code/src/remote/SessionsWebSocket.ts:341`。
 

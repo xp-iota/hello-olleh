@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "React 集成",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "Component",
+      "type": "backend",
+      "label": "React Component"
+    },
+    {
+      "id": "Store",
+      "type": "database",
+      "label": "AppStateStore"
+    },
+    {
+      "id": "Selector",
+      "type": "backend",
+      "label": "Selector"
+    },
+    {
+      "id": "Store-",
+      "type": "database",
+      "label": "Store-"
+    },
+    {
+      "id": "Selector-",
+      "type": "backend",
+      "label": "Selector-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "Component",
+      "to": "Selector",
+      "y": 180,
+      "label": "useAppState(selector)",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "Selector",
+      "to": "Store",
+      "y": 225,
+      "label": "getState()",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "Store-",
+      "to": "Selector",
+      "y": 270,
+      "label": "state",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "Selector-",
+      "to": "Component",
+      "y": 315,
+      "label": "value",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "Store",
+      "to": "Component",
+      "y": 360,
+      "label": "状态变化",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "5 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 7 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "未上画布的调用：重新计算",
+        "未上画布的调用：新值"
+      ]
+    }
+  ]
+}

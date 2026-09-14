@@ -1,62 +1,48 @@
 ---
-layout: content
-title: "Hello Harness: 源码分析质量横向评估"
+title: "Hello Harness 文档导航"
 ---
+# Hello Harness 文档导航
 
-# Hello Harness: 源码分析质量横向评估
+Hello Harness 是 `docs/hello-claude-code/`、`docs/hello-codex/`、`docs/hello-gemini-cli/` 与 `docs/hello-opencode/` 的横向综合层。它以源码证据为基础，对齐不同运行时的控制面、工具治理、上下文、记忆、扩展机制与验证模型。
 
-> 四套 AI Coding CLI 源码阅读文档的证据标准、横向对比和合并计划
-
----
-
-## 项目概述
-
-Hello Harness 是 `docs/hello-claude-code/`、`docs/hello-codex/`、`docs/hello-gemini-cli/`、`docs/hello-opencode/` 的横向综合层。它不替代单项目源码细读，而是回答三个问题：这些 `hello-*` 文档是否真正回链源码、四个项目在相同主题上如何比较、后续应该如何补强和合并文档。
-
-### 核心价值
-
-1. **质量门禁**：统一覆盖度、证据密度、链路完整性、差异表达和维护性标准。
-2. **主题对齐**：用 `01-25` 共享主干保证四个项目可以按相同编号横向阅读。
-3. **证据闭环**：要求关键结论回链到 repo-root 源码路径或项目章节锚点。
-4. **合并路线**：把项目源码笔记和 Harness 横向结论分层维护，减少重复摘要。
-
----
-
-## 文档导航
-
-### 核心设计文档
-
-| 文档 | 内容 | 状态 |
-| :------| :------| :------|
-| [14-source-analysis-quality.md](14-source-analysis-quality.md) | 四套 `hello-*` 源码分析质量、证据密度和补强策略 | 完成 |
-| [15-topic-alignment-matrix.md](15-topic-alignment-matrix.md) | 四项目 `01-25` 共享主干与项目附录规则 | 完成 |
-| [16-tool-governance-comparison.md](16-tool-governance-comparison.md) | 工具注册、权限、审批、沙箱、结果回注横向对比 | 完成 |
-| [17-prompt-systems-comparison.md](17-prompt-systems-comparison.md) | Prompt 注入面、项目指令、工具 prompt 与 skill 注入对比 | 完成 |
-| [18-extension-mcp-comparison.md](18-extension-mcp-comparison.md) | Skill、Plugin、MCP、Command、Hook 扩展面分层 | 完成 |
-| [19-runtime-surface-comparison.md](19-runtime-surface-comparison.md) | 入口、传输、REPL、Bridge、Input Queue 合并视角 | 完成 |
-| [20-doc-merge-plan.md](20-doc-merge-plan.md) | 项目源码笔记与 Harness 横向结论的逐主题合并计划 | 完成 |
-| [21-final-audit.md](21-final-audit.md) | 五目录主题验收、证据等级、术语表和维护风险 | 完成 |
-| [40-pluggable-context-memory-module.md](40-pluggable-context-memory-module.md) | 统一抽象层设计、核心接口定义、适配器实现、使用示例 | ✅ 完成 |
-| [42-runtime-comparison.md](42-runtime-comparison.md) | OpenCode vs Hermes Agent 详细对比分析 | ✅ 完成 |
-| [pluggable-architecture.mermaid](pluggable-architecture.mermaid) | 分层架构可视化图表 | ✅ 完成 |
-
-### 快速开始
-
-1. **先看质量标准**：阅读 [14-source-analysis-quality.md](14-source-analysis-quality.md)，确认四套 `hello-*` 文档的证据密度和剩余风险。
-2. **再看主题骨架**：阅读 [15-topic-alignment-matrix.md](15-topic-alignment-matrix.md)，按统一编号比较相同主题。
-3. **进入专题对比**：阅读 [16-tool-governance-comparison.md](16-tool-governance-comparison.md) 到 [19-runtime-surface-comparison.md](19-runtime-surface-comparison.md)，查看工具、Prompt、扩展和入口传输的横向结论。
-4. **最后看合并计划与验收页**：阅读 [20-doc-merge-plan.md](20-doc-merge-plan.md) 和 [21-final-audit.md](21-final-audit.md)，确认哪些内容留在项目章、哪些内容进入 Harness、还有哪些维护风险。
-
----
-
-## 历史设计附录
-
-以下内容保留为 OpenCode/Hermes 跨运行时模块设计的历史附录，不是当前四项目源码分析质量评估的主入口。
+## Harness 基础模型
 
 | 文档 | 内容 |
-| --- | --- |
-| [40-pluggable-context-memory-module.md](40-pluggable-context-memory-module.md) | 可插拔 context/memory 抽象层设计、接口和示例 |
-| [42-runtime-comparison.md](42-runtime-comparison.md) | OpenCode 与 Hermes Agent 的 runtime 对比 |
-| [pluggable-architecture.mermaid](pluggable-architecture.mermaid) | 历史模块设计的架构图 |
+| :--- | :--- |
+| [01-framework.md](01-framework.md) | Harness 分析框架与系统边界 |
+| [02-control-plane.md](02-control-plane.md) | 控制平面、策略与执行入口 |
+| [03-feedforward-controls.md](03-feedforward-controls.md) | 前馈控制与请求前约束 |
+| [04-feedback-controls.md](04-feedback-controls.md) | 反馈控制、观测与纠偏 |
+| [05-tool-governance.md](05-tool-governance.md) | 工具注册、权限、审批与沙箱 |
+| [06-context-and-memory.md](06-context-and-memory.md) | 上下文编译、压缩与记忆 |
+| [07-harnessability.md](07-harnessability.md) | 可治理性与运行时接缝 |
+| [08-entropy-management.md](08-entropy-management.md) | 状态熵、恢复与持久化 |
+| [09-multi-agent-verification.md](09-multi-agent-verification.md) | 多 Agent 协作与独立验证 |
+| [10-human-steering.md](10-human-steering.md) | 人工引导与审批边界 |
+| [11-extensibility.md](11-extensibility.md) | Plugin、Skill、MCP 与 Hook 扩展面 |
+| [12-synthesis.md](12-synthesis.md) | 跨运行时综合结论 |
+| [13-agent-loop.md](13-agent-loop.md) | Agent loop、事件与持久化链路 |
 
-当前主线只维护 `14-20` 的源码分析质量评估、主题对齐、横向对比和文档合并计划。
+## 跨项目对比
+
+| 文档 | 内容 |
+| :--- | :--- |
+| [15-topic-alignment-matrix.md](15-topic-alignment-matrix.md) | 四项目共享主题与章节对齐 |
+| [16-tool-governance-comparison.md](16-tool-governance-comparison.md) | 工具注册、权限、审批、沙箱与结果回注 |
+| [17-prompt-systems-comparison.md](17-prompt-systems-comparison.md) | Prompt 注入、项目指令、工具描述与 Skill |
+| [18-extension-mcp-comparison.md](18-extension-mcp-comparison.md) | Skill、Plugin、MCP、Command 与 Hook |
+| [19-runtime-surface-comparison.md](19-runtime-surface-comparison.md) | 入口、传输、REPL、Bridge 与输入队列 |
+
+## 上下文与记忆运行时设计
+
+| 文档 | 内容 |
+| :--- | :--- |
+| [40-pluggable-context-memory-module.md](40-pluggable-context-memory-module.md) | OpenCode 与 Hermes Agent 的可插拔 context/memory 抽象 |
+| [42-runtime-comparison.md](42-runtime-comparison.md) | OpenCode v2 与 Hermes Agent 运行时对比 |
+
+## 阅读路径
+
+1. 从 [01-framework.md](01-framework.md) 到 [13-agent-loop.md](13-agent-loop.md) 建立 Harness 控制模型。
+2. 用 [15-topic-alignment-matrix.md](15-topic-alignment-matrix.md) 对齐四个项目的同类章节。
+3. 阅读 [16-tool-governance-comparison.md](16-tool-governance-comparison.md) 到 [19-runtime-surface-comparison.md](19-runtime-surface-comparison.md) 获取专题横向结论。
+4. 需要跨运行时上下文与记忆设计时，进入 [40-pluggable-context-memory-module.md](40-pluggable-context-memory-module.md) 与 [42-runtime-comparison.md](42-runtime-comparison.md)。

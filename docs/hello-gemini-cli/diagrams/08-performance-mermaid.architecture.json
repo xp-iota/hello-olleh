@@ -1,0 +1,274 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "性能关键路径 Mermaid 图",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      550
+    ]
+  },
+  "components": [
+    {
+      "id": "LargeFile",
+      "type": "backend",
+      "label": "大文件 readfile",
+      "sublabel": "ToolExecutor.execute()",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Distill",
+      "type": "cloud",
+      "label": "ToolOutputDistillationService",
+      "sublabel": "截断 + 摘要",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "TokenSave",
+      "type": "backend",
+      "label": "完整输出落盘",
+      "sublabel": "节省 Token",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Grep",
+      "type": "backend",
+      "label": "grepsearch",
+      "sublabel": "RipGrepTool",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Ripgrep",
+      "type": "backend",
+      "label": "ripgrep 二进制",
+      "sublabel": "跳过 nodemodules/dist/.git",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Parallel",
+      "type": "backend",
+      "label": "Scheduler: 并行调度",
+      "sublabel": "只读工具并行 @ gemini-cli/packages/core/s…",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "StreamGen",
+      "type": "messagebus",
+      "label": "sendMessageStream()",
+      "sublabel": "@ geminiChat.ts:303",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "ChunkYield",
+      "type": "frontend",
+      "label": "流式 yield CHUNK",
+      "sublabel": "UI 逐步渲染",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Input",
+      "type": "backend",
+      "label": "输入阶段",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Search",
+      "type": "backend",
+      "label": "搜索优化",
+      "pos": [
+        1083,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Stream",
+      "type": "backend",
+      "label": "流式传输",
+      "pos": [
+        1429,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "LargeFile",
+      "to": "Distill",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Distill",
+      "to": "TokenSave",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "TokenSave",
+      "to": "Grep",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "Grep",
+      "to": "Ripgrep",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "Ripgrep",
+      "to": "Parallel",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "StreamGen",
+      "to": "ChunkYield",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "ChunkYield",
+      "to": "Input",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge8",
+      "from": "Input",
+      "to": "Search",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge9",
+      "from": "Search",
+      "to": "Stream",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "11 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 5 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "大文件 readfile / ToolExe… → ToolOutputDistillationSer…",
+        "ToolOutputDistillationSer… → 完整输出落盘 / 节省 Token",
+        "grepsearch / RipGrepTool → ripgrep 二进制 / 跳过 nod…"
+      ]
+    }
+  ]
+}

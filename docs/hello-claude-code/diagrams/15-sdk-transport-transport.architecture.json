@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Transport 分层图",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      550
+    ]
+  },
+  "components": [
+    {
+      "id": "Host",
+      "type": "external",
+      "label": "外部宿主",
+      "sublabel": "Headless 调用",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Print",
+      "type": "backend",
+      "label": "cli/print.ts SDK 控制面",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "IDE",
+      "type": "frontend",
+      "label": "IDE",
+      "sublabel": "远程 REPL",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Bridge",
+      "type": "backend",
+      "label": "bridge",
+      "sublabel": "remote session",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Query",
+      "type": "backend",
+      "label": "query.ts agent loop",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Provider",
+      "type": "messagebus",
+      "label": "services/api/claude.ts provider stream",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "MCP",
+      "type": "cloud",
+      "label": "MCP stdio/http/sse tools",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Model",
+      "type": "backend",
+      "label": "Anthropic",
+      "sublabel": "compatible endpoint",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "ExternalTools",
+      "type": "external",
+      "label": "外部工具服务",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "Host",
+      "to": "Print",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Print",
+      "to": "IDE",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "IDE",
+      "to": "Bridge",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "Bridge",
+      "to": "Query",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "Query",
+      "to": "Provider",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "MCP",
+      "to": "Model",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "Model",
+      "to": "ExternalTools",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "9 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 8 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "外部宿主 / Headless 调用 → cli/print.ts SDK 控制面",
+        "IDE / 远程 REPL → bridge / remote session",
+        "cli/print.ts SDK 控制面 → query.ts agent loop"
+      ]
+    }
+  ]
+}

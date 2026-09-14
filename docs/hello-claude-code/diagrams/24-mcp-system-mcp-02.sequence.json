@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "MCP 客户端实现",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "Client",
+      "type": "external",
+      "label": "MCPClient"
+    },
+    {
+      "id": "Transport",
+      "type": "cloud",
+      "label": "McpTransport"
+    },
+    {
+      "id": "Server",
+      "type": "cloud",
+      "label": "MCP Server"
+    },
+    {
+      "id": "Server-",
+      "type": "cloud",
+      "label": "Server-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "Client",
+      "to": "Server",
+      "y": 180,
+      "label": "JSON-RPC initialize",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "Server-",
+      "to": "Client",
+      "y": 225,
+      "label": "capabilities",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "Client",
+      "to": "Server",
+      "y": 270,
+      "label": "tools/list",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "Server-",
+      "to": "Client",
+      "y": 315,
+      "label": "tools",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "Client",
+      "to": "Server",
+      "y": 360,
+      "label": "tools/call",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "4 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 6 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "MCPClient 自调用：initialize()",
+        "未上画布的调用：result"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,301 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "设计原理",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      690
+    ]
+  },
+  "components": [
+    {
+      "id": "A1",
+      "type": "messagebus",
+      "label": "write(streamevent)",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "A2",
+      "type": "backend",
+      "label": "加入缓冲",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "A3",
+      "type": "backend",
+      "label": "设置 100ms 定时器",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B1",
+      "type": "backend",
+      "label": "write(other)",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B2",
+      "type": "backend",
+      "label": "立即 flush",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B4",
+      "type": "messagebus",
+      "label": "enqueue + flush",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B5",
+      "type": "messagebus",
+      "label": "SerialBatchEventUploader",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "C1",
+      "type": "backend",
+      "label": "状态码?",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "C2",
+      "type": "backend",
+      "label": "成功",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "C3",
+      "type": "backend",
+      "label": "丢弃",
+      "pos": [
+        1083,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "C4",
+      "type": "backend",
+      "label": "重试",
+      "pos": [
+        1429,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Write",
+      "type": "backend",
+      "label": "写入流程",
+      "pos": [
+        1775,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Post",
+      "type": "backend",
+      "label": "POST 处理",
+      "pos": [
+        45,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "A1",
+      "to": "A2",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "A2",
+      "to": "A3",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "A3",
+      "to": "B1",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "B1",
+      "to": "B2",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "B2",
+      "to": "B4",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "B5",
+      "to": "C1",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "C1",
+      "to": "C2",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge8",
+      "from": "C2",
+      "to": "C3",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge9",
+      "from": "C3",
+      "to": "C4",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge10",
+      "from": "C4",
+      "to": "Write",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "13 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 10 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "write(streamevent) → 加入缓冲",
+        "加入缓冲 → 设置 100ms 定时器",
+        "write(other) → 立即 flush"
+      ]
+    }
+  ]
+}

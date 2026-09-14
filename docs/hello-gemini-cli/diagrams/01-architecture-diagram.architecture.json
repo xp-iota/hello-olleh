@@ -1,0 +1,380 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "总体结构图",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      690
+    ]
+  },
+  "components": [
+    {
+      "id": "CLI",
+      "type": "backend",
+      "label": "packages/cli",
+      "sublabel": "interactive · headless · ACP",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Config",
+      "type": "backend",
+      "label": "Config",
+      "sublabel": "组合根 + AgentLoopContext",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "SDK",
+      "type": "backend",
+      "label": "packages/sdk",
+      "sublabel": "GeminiCliSession",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "A2A",
+      "type": "cloud",
+      "label": "packages/a2a-server",
+      "sublabel": "CoderAgentExecutor",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Client",
+      "type": "external",
+      "label": "GeminiClient",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Turn",
+      "type": "backend",
+      "label": "Turn",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Chat",
+      "type": "backend",
+      "label": "GeminiChat",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Tools",
+      "type": "cloud",
+      "label": "ToolRegistry",
+      "sublabel": "内建工具 · discovered · MCP",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Prompts",
+      "type": "cloud",
+      "label": "PromptProvider",
+      "sublabel": "PromptRegistry · ResourceRegistry",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Ext",
+      "type": "external",
+      "label": "McpClientManager",
+      "sublabel": "SkillManager · AgentRegistry",
+      "pos": [
+        1083,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Safe",
+      "type": "security",
+      "label": "PolicyEngine",
+      "sublabel": "MessageBus · HookSystem",
+      "pos": [
+        1429,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Route",
+      "type": "external",
+      "label": "ModelRouterService",
+      "sublabel": "ContextManager",
+      "pos": [
+        1775,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Storage",
+      "type": "database",
+      "label": "Storage",
+      "sublabel": "ChatRecordingService",
+      "pos": [
+        45,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "FS",
+      "type": "database",
+      "label": "Sandbox",
+      "sublabel": "FileSystem · Git · FileDiscovery",
+      "pos": [
+        391,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Telemetry",
+      "type": "messagebus",
+      "label": "coreEvents",
+      "sublabel": "telemetry",
+      "pos": [
+        737,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Hosts",
+      "type": "backend",
+      "label": "宿主层",
+      "pos": [
+        1083,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "CLI",
+      "to": "Config",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Config",
+      "to": "SDK",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "SDK",
+      "to": "A2A",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "A2A",
+      "to": "Client",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "Client",
+      "to": "Turn",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "Chat",
+      "to": "Tools",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "Tools",
+      "to": "Prompts",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge8",
+      "from": "Prompts",
+      "to": "Ext",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge9",
+      "from": "Ext",
+      "to": "Safe",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge10",
+      "from": "Safe",
+      "to": "Route",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge11",
+      "from": "Storage",
+      "to": "FS",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge12",
+      "from": "FS",
+      "to": "Telemetry",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge13",
+      "from": "Telemetry",
+      "to": "Hosts",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "画布 16 个节点",
+        "源图共 21 个节点，其余见正文"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 14 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "packages/cli / interactiv… → Config / 组合根 + AgentLo…",
+        "packages/sdk / GeminiCliS… → Config / 组合根 + AgentLo…",
+        "packages/a2a-server / Cod… → Config / 组合根 + AgentLo…"
+      ]
+    }
+  ]
+}

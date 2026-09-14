@@ -1,0 +1,288 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "MCP 系统概述",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      550
+    ]
+  },
+  "components": [
+    {
+      "id": "A1",
+      "type": "external",
+      "label": "MCPClient",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B1",
+      "type": "messagebus",
+      "label": "JSON-RPC 消息",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "A2",
+      "type": "backend",
+      "label": "工具转换层",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "A3",
+      "type": "backend",
+      "label": "资源工具",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "C1",
+      "type": "backend",
+      "label": "StdioTransport",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "C2",
+      "type": "backend",
+      "label": "HTTP/SSE Transport",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "C3",
+      "type": "external",
+      "label": "外部服务",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "ClaudeCode",
+      "type": "backend",
+      "label": "Claude Code",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Protocol",
+      "type": "cloud",
+      "label": "MCP 协议",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B2",
+      "type": "backend",
+      "label": "工具调用",
+      "pos": [
+        1083,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B3",
+      "type": "backend",
+      "label": "资源读写",
+      "pos": [
+        1429,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "MCPServer",
+      "type": "cloud",
+      "label": "MCP Server",
+      "pos": [
+        1775,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "A1",
+      "to": "B1",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "B1",
+      "to": "A2",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "A2",
+      "to": "A3",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "A3",
+      "to": "C1",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "C1",
+      "to": "C2",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "C3",
+      "to": "ClaudeCode",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "ClaudeCode",
+      "to": "Protocol",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge8",
+      "from": "Protocol",
+      "to": "B2",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge9",
+      "from": "B2",
+      "to": "B3",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge10",
+      "from": "B3",
+      "to": "MCPServer",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "12 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 7 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "MCPClient → JSON-RPC 消息（JSON-RPC）",
+        "工具转换层 → MCPClient",
+        "资源工具 → MCPClient"
+      ]
+    }
+  ]
+}

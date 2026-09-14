@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "启动流程详解"
 ---
 # 启动流程详解
@@ -41,31 +40,13 @@ title: "启动流程详解"
 
 ## 1. 总体时序图
 
-```mermaid
----
-config:
-  theme: 'neutral'
----
-sequenceDiagram
-    participant P as 进程启动
-    participant M as main.tsx
-    participant I as init()/entrypoints
-    participant S as setup.ts
-    participant H as interactiveHelpers
-    participant R as REPL
+![总体时序图](diagrams/02-startup-flow-diagram.svg)
 
-    P->>M: 顶层 import 前 side effects
-    M->>M: 早期 flag/settings 解析
-    M->>I: init()
-    M->>S: setup(...)
-    alt 交互模式
-        M->>H: createRoot + showSetupScreens()
-        H->>R: launchRepl()
-        R->>M: renderAndRun() 后启动 deferred prefetches
-    else 非交互模式
-        M->>M: 进入 print / sdk / other entrypoint
-    end
-```
+**总体时序图** — [交互版](diagrams/02-startup-flow-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-startup-flow-diagram.sequence.json)
+
+- **组成**：6 个参与方
+- **关系**：源图 6 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：main.tsx 自调用：早期 flag/settings 解析 · main.tsx 自调用：进入 print / sdk / other entrypoint · 未上画布的调用：renderAndRun() 后启动 deferred prefetches
 
 ## 2. 分析维度
 
@@ -168,7 +149,7 @@ sequenceDiagram
 
 关键文件：`src/entrypoints/init.ts`
 
-虽然本轮主分析更多聚焦 `main.tsx` / `setup.ts`，但启动链里 `init()` 是必经层。它通常负责：
+本文主要聚焦 `main.tsx` / `setup.ts`，但启动链里 `init()` 是必经层。它通常负责：
 
 - 基础环境初始化。
 - 遥测/全局状态基础搭建。

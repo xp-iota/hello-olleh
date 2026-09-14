@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "三层状态模型",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1128,
+      480
+    ]
+  },
+  "components": [
+    {
+      "id": "T",
+      "type": "external",
+      "label": "Thread",
+      "sublabel": "id, preview, modelprovider · status, cwd, so…",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "TN",
+      "type": "backend",
+      "label": "Turn",
+      "sublabel": "id, status, error · items: Vec<ThreadItem>",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "TI",
+      "type": "external",
+      "label": "ThreadItem",
+      "sublabel": "UserMessage | AgentMessage · CommandExec…",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "T",
+      "to": "TN",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "TN",
+      "to": "TI",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "3 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 2 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "Thread / id, preview, mod… → Turn / id, status, error…",
+        "Turn / id, status, error… → ThreadItem / UserMessage…"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "API Provider 选择、请求构造、重试与错误治理"
 ---
 # API Provider 选择、请求构造、重试与错误治理
@@ -362,29 +361,13 @@ API 层最怕的不是单纯网络错误，而是：
 
 ## 18. 一张总图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["query()"] --> B["claude.ts paramsFromContext"]
-    B --> C[getAnthropicClient]
-    C --> D{provider}
-    D -->|first-party| E[Anthropic]
-    D -->|bedrock| F[AnthropicBedrock]
-    D -->|foundry| G[AnthropicFoundry]
-    D -->|vertex| H[AnthropicVertex]
-    E --> I[withRetry]
-    F --> I
-    G --> I
-    H --> I
-    I --> J["beta.messages.create(...).withResponse"]
-    J --> K{error?}
-    K -->|no| L[stream to query loop]
-    K -->|yes| M["retry / fallback / cooldown / auth refresh"]
-    M --> N["errors.ts -> assistant API error message"]
-```
+![一张总图](diagrams/07-error-security-diagram.svg)
+
+**一张总图** — [交互版](diagrams/07-error-security-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/07-error-security-diagram.architecture.json)
+
+- **组成**：14 个节点
+- **关系**：源图 16 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：query() → claude.ts paramsFromConte… · claude.ts paramsFromConte… → getAnthropicClient · getAnthropicClient → provider
 
 ## 19. 关键源码锚点
 

@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "核心执行循环：Agent 决策链、Prompt 构建、LLM 调用与流式响应处理"
 ---
 # 核心执行循环：Agent 决策链、Prompt 构建、LLM 调用与流式响应处理
@@ -31,44 +30,13 @@ Codex 的 Agent 执行由四层嵌套函数驱动：
 | 采样层 | `run_sampling_request()` | `codex.rs:6363` | LLM 编排与重试 |
 | 流式层 | `try_run_sampling_request()` | `codex.rs:7176` | 流式响应消费与工具调度 |
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    participant U as 用户 / TUI
-    participant SL as submission_loop
-    participant RT as run_turn
-    participant RSR as run_sampling_request
-    participant TSR as try_run_sampling_request
-    participant LLM as ModelClientSession
-    participant TOOL as ToolRouter + Orchestrator
+![三层嵌套循环总览](diagrams/03-agent-loop-diagram-01.svg)
 
-    U->>SL: Op::UserInput
-    SL->>RT: run_turn()
-    RT->>RT: 预采样: 插件/技能/上下文
-    loop 回合循环 (needs_follow_up)
-        RT->>RSR: run_sampling_request()
-        RSR->>RSR: 加载工具 + 构建 Prompt
-        loop 重试循环 (retryable error)
-            RSR->>TSR: try_run_sampling_request()
-            TSR->>LLM: client_session.stream(prompt)
-            loop 流式事件循环
-                LLM-->>TSR: ResponseEvent
-                alt OutputItemDone (工具调用)
-                    TSR->>TOOL: handle_output_item_done
-                    TOOL-->>TSR: FunctionCallOutput
-                end
-                alt Completed
-                    TSR-->>RSR: SamplingRequestResult
-                end
-            end
-        end
-        alt needs_follow_up = true
-            RSR-->>RT: continue
-        end
-    end
-    RT-->>SL: 回合结束事件
-    SL-->>U: 线程事件
-```
+**三层嵌套循环总览** — [交互版](diagrams/03-agent-loop-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-diagram-01.sequence.json)
+
+- **组成**：画布 10 个参与方 · 源图共 13 个参与方，其余见正文
+- **关系**：源图 9 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：runturn 自调用：预采样: 插件/技能/上下文 · runsamplingrequest 自调用：加载工具 + 构建 Prompt · 未上画布的调用：ResponseEvent
 
 ## 第一层：submission_loop（会话事件分发器）
 
@@ -94,24 +62,13 @@ pub struct Submission {
 
 默认路径是 **Embedded/InProcess**，只有显式 `--remote` 时才会走 remote WebSocket app-server（`sources/codex/codex-rs/tui/src/lib.rs:598-604`; `sources/codex/codex-rs/tui/src/lib.rs:348-372`）。
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    participant TUI as tui/src/app.rs
-    participant SESSION as tui/src/app_server_session.rs
-    participant CLIENT as app-server-client
-    participant MSP as app-server/codex_message_processor.rs
-    participant THREAD as core::CodexThread
-    participant SL as core::submission_loop
+![TUI 请求如何进入 submissionloop](diagrams/03-agent-loop-tui-submissionloop.svg)
 
-    TUI->>SESSION: submit_thread_op() / try_submit_active_thread_op_via_app_server()
-    SESSION->>CLIENT: turn_start(ClientRequest::TurnStart)
-    CLIENT->>MSP: turn/start request
-    MSP->>MSP: turn_start() -> submit_core_op()
-    MSP->>THREAD: submit_with_trace(Op::UserInput)
-    THREAD->>SL: tx_sub.send(Submission)
-    SL->>SL: recv() -> match Op::UserInput
-```
+**TUI 请求如何进入 submissionloop** — [交互版](diagrams/03-agent-loop-tui-submissionloop.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-tui-submissionloop.sequence.json)
+
+- **组成**：6 个参与方
+- **关系**：源图 5 条消息
+- **要点**：app-server/codexmessageprocessor.rs 自调用：turnstart() -> submitcoreop() · core::submissionloop 自调用：recv() -> match Op::UserInput
 
 ### 关键代码文件与方法
 
@@ -481,50 +438,13 @@ pub(crate) fn for_prompt(mut self, input_modalities) -> Vec<ResponseItem> {
 
 ### 上下文管理关键流程图
 
-```
-用户输入
-    │
-    ├─ run_pre_sampling_compact() ──── 检查/执行压缩
-    │       │
-    │       └─ total_tokens >= auto_compact_limit？
-    │               └─ run_auto_compact() → 生成摘要，替换历史
-    │
-    ├─ record_context_updates_and_set_reference_context_item()
-    │       └─ reference_context_item 为空？
-    │               └─ 是 → build_initial_context() 注入完整上下文
-    │               └─ 否 → build_settings_update_items() 追加 diff
-    │
-    ├─ collect_explicit_plugin_mentions() ──── 解析 plugin:// 引用
-    ├─ collect_explicit_skill_mentions() ──── 解析 skill:// 引用
-    │
-    ├─ build_skill_injections() ──── 生成技能注入项
-    ├─ build_plugin_injections() ──── 生成插件注入项
-    │
-    ├─ run_pending_session_start_hooks() ──── 可能会中断
-    ├─ run_user_prompt_submit_hooks() ──── 记录用户消息
-    │
-    └─ record_conversation_items() ──── 写入历史
-            │
-            ▼
-    ┌─────────────────────────────┐
-    │      回合循环开始            │
-    └─────────────────────────────┘
-            │
-            ├─ clone_history().for_prompt()
-            │       └─ normalize_history() 修复 call/output 对、剥离图片
-            │
-            ├─ build_prompt() ──── 组装 Prompt
-            ├─ run_sampling_request() ──── 调用 LLM
-            │
-            └─ 工具调用结果 → record_conversation_items() → 写入历史
-                    │
-                    ▼
-            ┌─────────────────────────────┐
-            │ needs_follow_up?            │
-            │   ├─ 是 → 继续循环            │
-            │   └─ 否 → 返回结果            │
-            └─────────────────────────────┘
-```
+![上下文管理关键流程图](diagrams/03-agent-loop-diagram-03.svg)
+
+**上下文管理关键流程图** — [交互版](diagrams/03-agent-loop-diagram-03.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-diagram-03.architecture.json)
+
+- **组成**：画布 14 个节点 · 源图共 27 个节点，其余见正文
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：用户输入 · 末节点：runpendingsessionstarthooks()…
 
 ## 第三层：run_sampling_request（LLM 编排与重试）
 

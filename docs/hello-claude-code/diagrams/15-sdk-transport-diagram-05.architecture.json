@@ -1,0 +1,323 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "核心功能",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      690
+    ]
+  },
+  "components": [
+    {
+      "id": "A1",
+      "type": "messagebus",
+      "label": "enqueue(items)",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "A2",
+      "type": "messagebus",
+      "label": "队列满?",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "A3",
+      "type": "backend",
+      "label": "drain()",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "A4",
+      "type": "messagebus",
+      "label": "加入队列",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B1",
+      "type": "backend",
+      "label": "flush()",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B2",
+      "type": "messagebus",
+      "label": "队列非空?",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B3",
+      "type": "backend",
+      "label": "sendWithRetry()",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B4",
+      "type": "backend",
+      "label": "完成",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B5",
+      "type": "backend",
+      "label": "shift()",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B6",
+      "type": "backend",
+      "label": "超过最大失败?",
+      "pos": [
+        1083,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B7",
+      "type": "backend",
+      "label": "dropBatch()",
+      "pos": [
+        1429,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B8",
+      "type": "backend",
+      "label": "指数退避",
+      "pos": [
+        1775,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Enqueue",
+      "type": "backend",
+      "label": "入队",
+      "pos": [
+        45,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Drain",
+      "type": "backend",
+      "label": "发送",
+      "pos": [
+        391,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "A1",
+      "to": "A2",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "A2",
+      "to": "A3",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "A3",
+      "to": "A4",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "A4",
+      "to": "B1",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "B1",
+      "to": "B2",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "B3",
+      "to": "B4",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "B4",
+      "to": "B5",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge8",
+      "from": "B5",
+      "to": "B6",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge9",
+      "from": "B6",
+      "to": "B7",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge10",
+      "from": "B7",
+      "to": "B8",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge11",
+      "from": "Enqueue",
+      "to": "Drain",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "14 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 13 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "enqueue(items) → 队列满?",
+        "队列满? → drain()（是）",
+        "队列满? → 加入队列（否）"
+      ]
+    }
+  ]
+}

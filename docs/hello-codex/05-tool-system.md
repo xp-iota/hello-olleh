@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "工具调用机制：工具注册、权限控制、执行闭环与结果回传"
 ---
 # 工具调用机制：工具注册、权限控制、执行闭环与结果回传
@@ -24,32 +23,13 @@ title: "工具调用机制：工具注册、权限控制、执行闭环与结果
 
 ## 工具系统目录结构
 
-```
-codex-rs/core/src/tools/
-├── mod.rs                 # 模块导出 & 输出格式化
-├── spec.rs                # 工具注册 & handler 实例化
-├── registry.rs            # Handler 存储 & 分发（652 行）
-├── router.rs              # ToolCall 构建 & 路由（254 行）
-├── context.rs             # 调用载荷 & 上下文类型（17 KB）
-├── orchestrator.rs        # 审批 + 沙箱 + 重试流程（16 KB）
-├── sandboxing.rs          # 审批/沙箱 trait（13 KB）
-├── network_approval.rs    # 网络访问审批（22 KB）
-├── parallel.rs            # 并行执行协调
-├── events.rs              # 工具事件发射
-├── handlers/              # 30+ handler 实现
-│   ├── shell.rs           # Shell 执行
-│   ├── mcp.rs             # MCP 工具分发
-│   ├── apply_patch.rs     # 文件 patch
-│   ├── unified_exec.rs    # 高级执行
-│   ├── dynamic.rs         # 动态工具
-│   ├── js_repl.rs         # JavaScript REPL
-│   ├── multi_agents_v2.rs # 多代理管理
-│   └── [20+ 其他]
-└── runtimes/              # 运行时实现
-    ├── shell.rs           # Shell 运行时（审批/沙箱）
-    ├── apply_patch.rs     # Patch 运行时
-    └── unified_exec.rs    # 统一执行运行时
-```
+![工具系统目录结构](diagrams/05-tool-system-diagram.svg)
+
+**工具系统目录结构** — [交互版](diagrams/05-tool-system-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/05-tool-system-diagram.architecture.json)
+
+- **组成**：画布 14 个节点 · 源图共 24 个节点，其余见正文
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：codex-rs/core/src/tools/ · 末节点：mcp.rs # MCP 工具分发
 
 ## 工具注册机制
 
@@ -86,15 +66,13 @@ for handler in plan.handlers {
 
 ## 工具调用生命周期（4 阶段）
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    A["模型输出<br/>ResponseItem"] --> B["Phase 1: 解析<br/>ToolRouter::build_tool_call()"]
-    B --> C["Phase 2: 路由<br/>ToolRouter::dispatch_tool_call_*()"]
-    C --> D["Phase 3: 注册表分发<br/>ToolRegistry::dispatch_any()"]
-    D --> E["Phase 4: 编排执行<br/>ToolOrchestrator::run()"]
-    E --> F["结果回传<br/>ResponseInputItem"]
-```
+![工具调用生命周期（4 阶段）](diagrams/05-tool-system-4.svg)
+
+**工具调用生命周期（4 阶段）** — [交互版](diagrams/05-tool-system-4.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/05-tool-system-4.architecture.json)
+
+- **组成**：6 个节点
+- **关系**：源图 5 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：模型输出 / ResponseItem → Phase 1: 解析 / ToolRoute… · Phase 1: 解析 / ToolRoute… → Phase 2: 路由 / ToolRoute… · Phase 2: 路由 / ToolRoute… → Phase 3: 注册表分发 / Too…
 
 ### Phase 1：解析模型输出为 ToolCall
 

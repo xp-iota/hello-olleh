@@ -2,6 +2,8 @@
 """校验仓库内 Markdown 的本地链接与 DSH 文档的 `§ N.M` 引用是否都能解析。
 
 - 跳过 ``` 代码围栏内的内容（里面的 `x](y)` 是代码，不是链接）。
+- 同时校验 HTML `<a href="...">`；仓库不使用任何静态站点生成器，因此链接必须直接指向
+  真实存在的文件，不再接受依赖生成器 URL 语义的无扩展名写法。
 - 跳过 `sources/` 下的上游快照目录（由 sync_repos.sh 拉取，可能不在工作副本里）。
 
 用法：python3 scripts/check_doc_links.py [根目录]
@@ -12,6 +14,7 @@ ROOT = sys.argv[1] if len(sys.argv) > 1 else '.'
 LINK = re.compile(r'\[[^\]\[]*\]\(([^)\s]+?)(?:\s+"[^"]*")?\)')
 HEAD = re.compile(r'^#{2,3} (\d+\.\d+)\b')
 SEC_REF = re.compile(r'§\s*(\d+\.\d+)')
+HTML_LINK = re.compile(r'<a\s[^>]*href="([^"]+)"')
 
 
 def strip_fences(text):
@@ -25,7 +28,7 @@ def strip_fences(text):
 
 
 TARGETS = []
-for pattern in ('README.md', 'docs/**/*.md', 'dsh-example/**/*.md', 'iota-example/**/*.md', 'pages/*.md'):
+for pattern in ('README.md', 'docs/**/*.md', 'dsh-example/**/*.md', 'iota-example/**/*.md'):
     TARGETS += glob.glob(os.path.join(ROOT, pattern), recursive=True)
 TARGETS = sorted({os.path.normpath(t) for t in TARGETS if 'node_modules' not in t})
 
@@ -40,10 +43,10 @@ for path in TARGETS:
     text = prose[path]
     base = os.path.dirname(path)
     linked = set()
-    for target in LINK.findall(text):
+    for target in LINK.findall(text) + HTML_LINK.findall(text):
         if target.startswith(('http://', 'https://', 'mailto:', '#', '{{', '{%')):
             continue
-        clean = target.split('#')[0]
+        clean = target.split('#')[0].split('?')[0]
         if not clean:
             continue
         resolved = os.path.normpath(os.path.join(base, clean))

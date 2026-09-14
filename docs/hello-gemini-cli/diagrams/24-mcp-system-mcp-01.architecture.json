@@ -1,0 +1,367 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "MCP 系统概述",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      690
+    ]
+  },
+  "components": [
+    {
+      "id": "Config",
+      "type": "backend",
+      "label": "配置层",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Manager",
+      "type": "external",
+      "label": "McpClientManager",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "D",
+      "type": "external",
+      "label": "Server A Client",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "E",
+      "type": "external",
+      "label": "Server B Client",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "F",
+      "type": "external",
+      "label": "Server C Client",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "G",
+      "type": "backend",
+      "label": "StdioTransport",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "H",
+      "type": "external",
+      "label": "SSEClientTransport",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "I",
+      "type": "messagebus",
+      "label": "StreamableHTTPTransport",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "J",
+      "type": "backend",
+      "label": "本地进程",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "K",
+      "type": "backend",
+      "label": "远程 HTTP",
+      "pos": [
+        1083,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "A",
+      "type": "cloud",
+      "label": "MCPServerConfig JSON",
+      "pos": [
+        1429,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B",
+      "type": "external",
+      "label": "McpClientManager",
+      "pos": [
+        1775,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "C",
+      "type": "security",
+      "label": "Auth Provider",
+      "pos": [
+        45,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Clients",
+      "type": "external",
+      "label": "McpClient 实例池",
+      "pos": [
+        391,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Transport",
+      "type": "backend",
+      "label": "传输层",
+      "pos": [
+        737,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "MCP",
+      "type": "cloud",
+      "label": "MCP Server",
+      "pos": [
+        1083,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "Config",
+      "to": "Manager",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Manager",
+      "to": "D",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "D",
+      "to": "E",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "E",
+      "to": "F",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "F",
+      "to": "G",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "H",
+      "to": "I",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "I",
+      "to": "J",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge8",
+      "from": "J",
+      "to": "K",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge9",
+      "from": "K",
+      "to": "A",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge10",
+      "from": "A",
+      "to": "B",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge11",
+      "from": "C",
+      "to": "Clients",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge12",
+      "from": "Clients",
+      "to": "Transport",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge13",
+      "from": "Transport",
+      "to": "MCP",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "16 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 10 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "配置层 → McpClientManager",
+        "McpClientManager → Server A Client",
+        "McpClientManager → Server B Client"
+      ]
+    }
+  ]
+}

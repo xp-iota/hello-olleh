@@ -1,8 +1,7 @@
 ---
-layout: content
 title: "src 工程架构全景"
 ---
-# `src` 工程架构全景
+# src 工程架构全景
 
 本篇给出 `src/` 目录的分层结构、主执行链路和核心抽象，用于建立整套源码的总地图。
 
@@ -36,68 +35,13 @@ title: "src 工程架构全景"
 
 ## 1. 架构分层图
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    subgraph Entry[入口与启动]
-        A1[main.tsx]
-        A2[setup.ts]
-        A3[entrypoints/init.ts]
-        A4[interactiveHelpers.tsx]
-    end
+![架构分层图](diagrams/01-architecture-diagram.svg)
 
-    subgraph UI[TUI/交互层]
-        B1[replLauncher.tsx]
-        B2[components/App.tsx]
-        B3[screens/REPL.tsx]
-        B4[components/*]
-        B5[hooks/*]
-    end
+**架构分层图** — [交互版](diagrams/01-architecture-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/01-architecture-diagram.architecture.json)
 
-    subgraph State[状态层]
-        C1[state/store.ts]
-        C2[state/AppState.tsx]
-        C3[state/compact/]
-        C4[utils/messageQueueManager.ts]
-        C5[utils/QueryGuard.ts]
-    end
-
-    subgraph Input[输入编排层]
-        D1[utils/handlePromptSubmit.ts]
-        D2[utils/processUserInput.ts]
-        D3[utils/processUserInputBase.ts]
-        D4[utils/processSlashCommand.tsx]
-    end
-
-    subgraph Runtime[主循环与运行时]
-        E1[query.ts]
-        E2[services/api/claude.ts]
-        E3[services/tools/*]
-        E4[services/compact/*]
-        E5[utils/queryContext.ts]
-    end
-
-    subgraph Ext[扩展层]
-        F1[commands.ts]
-        F2[skills/loadSkillsDir.ts]
-        F3[utils/plugins/loadPluginCommands.ts]
-        F4[services/mcp/client.ts]
-        F5[tools/AgentTool/*]
-    end
-
-    A1 --> A2 --> A4 --> B1 --> B2 --> B3
-    B3 --> D1 --> D2 --> E1
-    B3 --> C2
-    C2 --> C1
-    D4 --> F1
-    E1 --> E2
-    E1 --> E3
-    E1 --> E4
-    E3 --> F4
-    E3 --> F5
-    F1 --> F2
-    F1 --> F3
-```
+- **组成**：画布 16 个节点 · 源图共 34 个节点，其余见正文
+- **关系**：源图 14 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：main.tsx → setup.ts · setup.ts → interactiveHelpers.tsx · interactiveHelpers.tsx → replLauncher.tsx
 
 ## 2. 架构主线
 

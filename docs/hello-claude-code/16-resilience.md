@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "韧性机制：重试策略、Provider 故障转移与长会话稳定性"
 ---
 # 韧性机制：重试策略、Provider 故障转移与长会话稳定性
@@ -104,17 +103,13 @@ throw new AllProvidersFailedError();
 
 当上下文接近 Token 上限时，Claude Code 自动触发 Compaction：
 
-```
-上下文使用量
-  ↓ 超过阈值（约 70%）
-自动触发 /compact
-  ↓
-生成上下文摘要（调用 LLM）
-  ↓
-用摘要替换详细历史
-  ↓
-释放 Token 空间，继续会话
-```
+![Context 溢出自愈](diagrams/16-resilience-context.svg)
+
+**Context 溢出自愈** — [交互版](diagrams/16-resilience-context.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/16-resilience-context.architecture.json)
+
+- **组成**：6 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：上下文使用量 · 末节点：释放 Token 空间，继续会话
 
 这个机制确保长会话不会因 Token 溢出而中断。
 

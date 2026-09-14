@@ -1,17 +1,16 @@
 ---
-layout: default
 title: "Codex 源码分析 README"
 ---
-
 # Codex 源码分析 README
 
-本目录记录 OpenAI Codex `rust-v0.141.0` 的源码阅读结果。分析对象是 `sources/codex/` 上游快照，重点不是复述 Rust workspace 目录，而是追踪 Codex 如何把 CLI/TUI/SDK 输入收束到同一套 Rust runtime、thread protocol、tool execution、sandbox approval 和 session state。
+本目录记录 OpenAI Codex `rust-v0.154.0`（`6b9826e3`）的源码分析，覆盖当前 Rust workspace、skills 扩展、command safety、会话运行时和工具系统。
+
+> **Source baseline:** Codex `rust-v0.154.0` (`6b9826e3`). Source references are validated against this checkout; historical line-number notes are identified in their chapters.
 
 ## 阅读入口
 
-- 网页索引：[index.md](./index.md)
 - 总览版报告：[22-project-init-analysis.md](./22-project-init-analysis.md)
-- 根项目说明与当前源码快照版本：[../../README.md](../../README.md)
+- 根项目说明：[../../README.md](../../README.md)
 
 ## 推荐阅读顺序
 
@@ -65,5 +64,5 @@ Codex 应按“Rust runtime 为中心、TypeScript 只做分发和协议消费�
 
 ## 维护注意
 
-- 新增源码锚点后运行 `powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/check_doc_refs.ps1 -DocDirs hello-codex`。
-- 若行号来自旧快照或反编译结果，应在正文中标注版本来源，避免和 `rust-v0.141.0` 混淆。
+- 从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check_doc_refs.ps1 -DocDirs hello-codex`。
+- 源码路径以当前 `rust-v0.154.0` checkout 为准；易漂移位置优先引用文件和符号而不是固定行号。

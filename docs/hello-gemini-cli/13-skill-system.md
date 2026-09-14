@@ -1,8 +1,7 @@
 ---
-layout: content
-title: "Gemini CLI Skill 系统：SKILL.md、加载优先级与 `activate_skill`"
+title: "Gemini CLI Skill 系统：SKILL.md、加载优先级与 activateskill"
 ---
-# Gemini CLI Skill 系统：SKILL.md、加载优先级与 `activate_skill`
+# Gemini CLI Skill 系统：SKILL.md、加载优先级与 activateskill
 
 Gemini CLI 当前的 skill 机制很明确：skill 是一个带 frontmatter 的 `SKILL.md`，先被发现，再由模型按需激活。它不是关键词自动匹配器，也不是独立的插件 DSL。
 

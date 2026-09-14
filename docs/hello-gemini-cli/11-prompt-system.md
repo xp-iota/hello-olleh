@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Gemini CLI Prompt 系统：PromptProvider、片段组合与技能注入"
 ---
 # Gemini CLI Prompt 系统：PromptProvider、片段组合与技能注入

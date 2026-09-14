@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "19 - 入口、传输与 UI 状态横向对比"
+title: "入口、传输与 UI 状态横向对比"
 ---
 <!-- markdownlint-disable MD060, MD024 -->
 
@@ -33,24 +32,17 @@ title: "19 - 入口、传输与 UI 状态横向对比"
 | Claude Code | `sources/claude-code/src/query.ts:241`, `sources/claude-code/src/hooks` | `sources/claude-code/src/query.ts:323`, `sources/claude-code/src/services/tools/toolOrchestration.ts` | `sources/claude-code/src/query.ts:337`, `sources/claude-code/src/services/tools/StreamingToolExecutor.ts` |
 | Codex | `sources/codex/codex-rs/tui/src/app.rs`, `sources/codex/codex-rs/app-server/src/request_processors/turn_processor.rs:99` | `sources/codex/codex-rs/core/src/session/mod.rs:698`, `sources/codex/codex-rs/core/src/session/handlers.rs:698` | `sources/codex/codex-rs/tui/src/app_server_session.rs:397`, `sources/codex/codex-rs/core/src/session/turn.rs:137` |
 | Gemini CLI | `sources/gemini-cli/packages/cli/src/ui/hooks/useMcpStatus.ts:15`, `sources/gemini-cli/packages/core/src/core/client.ts:868` | `sources/gemini-cli/packages/core/src/core/client.ts:585`, `sources/gemini-cli/packages/core/src/core/turn.ts:257` | `sources/gemini-cli/packages/core/src/core/client.ts:925`, `sources/gemini-cli/packages/core/src/core/turn.ts:404` |
-| OpenCode | `sources/opencode/packages/opencode/src/server/routes/instance/session.ts:846`, `sources/opencode/packages/opencode/src/session/prompt.ts:162` | `sources/opencode/packages/opencode/src/session/prompt.ts:278`, `sources/opencode/packages/opencode/src/session/processor.ts:548` | `sources/opencode/packages/opencode/src/session/processor.ts:46`, `sources/opencode/packages/opencode/src/server/routes/instance/session.ts` |
+| OpenCode | `sources/opencode/packages/server/src`, `sources/opencode/packages/core/src/session/prompt.ts` | `sources/opencode/packages/core/src/session/prompt.ts`, `sources/opencode/packages/core/src/session/runner/step.ts` | `sources/opencode/packages/core/src/session/runner/step.ts`, `sources/opencode/packages/server/src` |
 
 ## 4. 生命周期合并图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-  U["user input"] --> I["CLI/TUI/Web input layer"]
-  I --> Q["command queue / parser"]
-  Q --> R["runtime request"]
-  R --> L["agent loop"]
-  L --> E["event stream"]
-  E --> S["state projection"]
-  S --> V["UI render / SDK consumer"]
-```
+![生命周期合并图](diagrams/19-runtime-surface-comparison-diagram.svg)
+
+**生命周期合并图** — [交互版](diagrams/19-runtime-surface-comparison-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/19-runtime-surface-comparison-diagram.architecture.json)
+
+- **组成**：8 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：user input → CLI/TUI/Web input layer · CLI/TUI/Web input layer → command queue / parser · command queue / parser → runtime request
 
 ## 5. 统一章节要求
 

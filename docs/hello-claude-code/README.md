@@ -1,15 +1,12 @@
 ---
-layout: default
 title: "Claude Code 源码分析 README"
 ---
-
 # Claude Code 源码分析 README
 
 本目录记录 Claude Code `v2.1.87` 反编译快照的源码分析。由于输入是反编译版，阅读时需要特别区分“真实运行链路”“反编译残留/stub”“文件行号漂移”三类内容。本文档的目标是给 `docs/hello-claude-code/` 提供稳定导航：从启动、REPL、`query()` 主循环、工具、MCP、prompt、memory 到桥接和多代理。
 
 ## 阅读入口
 
-- 网页索引：[index.md](./index.md)
 - 总览版报告：[22-project-init-analysis.md](./22-project-init-analysis.md)
 - 根项目说明与当前源码快照版本：[../../README.md](../../README.md)
 

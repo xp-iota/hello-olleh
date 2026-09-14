@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "分层架构",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1474,
+      480
+    ]
+  },
+  "components": [
+    {
+      "id": "L1",
+      "type": "messagebus",
+      "label": "submissionloop()",
+      "sublabel": "session/handlers.rs:698 · 事件分发层",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "L2",
+      "type": "backend",
+      "label": "runturn()",
+      "sublabel": "session/turn.rs:137 · Turn 编排层",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "L3",
+      "type": "backend",
+      "label": "runsamplingrequest()",
+      "sublabel": "session/turn.rs:1036 · 重试/容错层",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "L4",
+      "type": "backend",
+      "label": "tryrunsamplingrequest()",
+      "sublabel": "session/turn.rs:1815 · 流消费+…",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "L1",
+      "to": "L2",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "L2",
+      "to": "L3",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "L3",
+      "to": "L4",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "4 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 4 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "submissionloop() / sessio… → runturn() / session/turn.…",
+        "runturn() / session/turn.… → runsamplingrequest() / se…",
+        "runsamplingrequest() / se… → tryrunsamplingrequest()…"
+      ]
+    }
+  ]
+}

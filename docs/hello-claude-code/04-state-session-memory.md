@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Claude Code 的状态、会话与记忆系统"
 ---
 # Claude Code 的状态、会话与记忆系统
@@ -28,40 +27,13 @@ Claude Code 的运行时持久化能力由三个正交子系统共同构成：
 
 三者的协作边界如下：
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    subgraph Runtime["运行时层"]
-        A["AppState\n全局状态"]
-        B["Store / Selector\n订阅与派生"]
-    end
+![概述](diagrams/04-state-session-memory-diagram-01.svg)
 
-    subgraph Context["上下文治理层"]
-        C["compact boundary\n模型视图切断点"]
-        D["snip / microcompact\n细粒度裁剪"]
-        E["autocompact\n重型重写"]
-        F["SessionMemory\n当前会话续航"]
-    end
+**概述** — [交互版](diagrams/04-state-session-memory-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-diagram-01.architecture.json)
 
-    subgraph Memory["持久化层"]
-        G["durable memory\nMEMORY.md + topic files"]
-        H["KAIROS daily log\nappend-only 日志"]
-        I["dream / consolidation\n蒸馏回长期记忆"]
-    end
-
-    A --> B --> C
-    C --> D --> E
-    E --> F
-    F --> G
-    H --> I --> G
-```
-
-- AppState 是进程内唯一可信状态源，不持久化到磁盘。
-- 上下文管理决定每轮模型看到什么，结果写入 transcript 供 resume 恢复。
-- 记忆系统负责跨会话的长期知识，通过系统提示或 attachment 注入当前上下文。
+- **组成**：12 个节点
+- **关系**：源图 8 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：AppState / 全局状态 → Store / Selector / 订阅与… · Store / Selector / 订阅与… → compact boundary / 模型视… · compact boundary / 模型视… → snip / microcompact / 细…
 
 ---
 
@@ -163,29 +135,13 @@ export function createStore<S>(initialState: S): Store<S> {
 
 Store 架构示意：
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    subgraph Store["AppStateStore"]
-        A1["AppState\n全局唯一状态"]
-        A2["createStore\n状态仓库"]
-    end
-    subgraph Subscribe["订阅层"]
-        B1["React Components\n订阅状态变化"]
-        B2["Selectors\n派生状态计算"]
-    end
-    subgraph Middleware["中间件层"]
-        C1["onChangeAppState\n变更钩子"]
-        C2["Persistence\n状态持久化"]
-    end
-    A1 --> A2 --> B1
-    B1 --> B2
-    B2 --> C1
-    C1 --> C2
-```
+![Store 实现](diagrams/04-state-session-memory-store.svg)
+
+**Store 实现** — [交互版](diagrams/04-state-session-memory-store.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-store.architecture.json)
+
+- **组成**：9 个节点
+- **关系**：源图 5 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：AppState / 全局唯一状态 → createStore / 状态仓库 · createStore / 状态仓库 → React Components / 订阅状… · React Components / 订阅状… → Selectors / 派生状态计算
 
 #### 2.1.3 AppStateStore 初始状态
 
@@ -296,25 +252,13 @@ setAppState(prev => ({
 
 #### 2.1.7 React 集成
 
-```mermaid
----
-config:
-  theme: neutral
----
-sequenceDiagram
-    participant Component as React Component
-    participant Store as AppStateStore
-    participant Selector as Selector
+![React 集成](diagrams/04-state-session-memory-react.svg)
 
-    Component->>Selector: useAppState(selector)
-    Selector->>Store: getState()
-    Store-->>Selector: state
-    Selector-->>Component: value
-    Note over Component: 首次渲染
-    Store->>Component: 状态变化
-    Component->>Selector: 重新计算
-    Selector-->>Component: 新值
-```
+**React 集成** — [交互版](diagrams/04-state-session-memory-react.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-react.sequence.json)
+
+- **组成**：5 个参与方
+- **关系**：源图 7 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：未上画布的调用：重新计算 · 未上画布的调用：新值
 
 #### 2.1.8 持久化
 
@@ -366,52 +310,25 @@ export function enableStateLogging(): void {
 
 `query()` 在每轮发请求前，不是直接把全部消息原样送给模型，而是经过以下流水线：
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[REPL 全量消息视图] --> B[getMessagesAfterCompactBoundary]
-    B --> C[tool result budget]
-    C --> D[snip]
-    D --> E[microcompact]
-    E --> F[context collapse]
-    F --> G[autocompact]
-    G --> H[full system prompt + API request]
-    H --> I{overflow?}
-    I -- 否 --> J[继续正常回合]
-    I -- 是 --> K[reactive compact / overflow recovery]
-```
+![主链路位置](diagrams/04-state-session-memory-diagram-04.svg)
+
+**主链路位置** — [交互版](diagrams/04-state-session-memory-diagram-04.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-diagram-04.architecture.json)
+
+- **组成**：11 个节点
+- **关系**：源图 10 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：REPL 全量消息视图 → getMessagesAfterCompactBo… · getMessagesAfterCompactBo… → tool result budget · tool result budget → snip
 
 #### 2.2.2 梯度体系
 
 这不是"四层同时工作"，而是按需逐层升级：
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[开始组装本轮模型视图] --> B[tool result budget]
-    B --> C{尺寸仍偏大?}
-    C -- 否 --> Z[直接进入请求拼装]
-    C -- 是 --> D[snip]
-    D --> E{仍需收缩?}
-    E -- 否 --> Z
-    E -- 是 --> F[microcompact]
-    F --> G{仍需收缩?}
-    G -- 否 --> Z
-    G -- 是 --> H[context collapse]
-    H --> I{collapse 已接管?}
-    I -- 是 --> Z
-    I -- 否 --> J[autocompact]
-    J --> Z
-    Z --> K{请求后仍 overflow?}
-    K -- 否 --> L[正常继续]
-    K -- 是 --> M[reactive compact]
-```
+![梯度体系](diagrams/04-state-session-memory-diagram-05.svg)
+
+**梯度体系** — [交互版](diagrams/04-state-session-memory-diagram-05.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-diagram-05.architecture.json)
+
+- **组成**：14 个节点
+- **关系**：源图 17 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：开始组装本轮模型视图 → tool result budget · tool result budget → 尺寸仍偏大? · 尺寸仍偏大? → 直接进入请求拼装（否）
 
 #### 2.2.3 compact boundary：模型视图的切断点
 
@@ -442,26 +359,13 @@ flowchart LR
 
 microcompact 有两条明确不同的实现路径：
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[microcompact] --> B{走哪条路径?}
-    B --> C[time-based]
-    B --> D[cached]
-    C --> C1[直接改本地 messages]
-    C1 --> C2[旧 tool_result.content 清为空壳占位]
-    C2 --> C3[后续请求看到已瘦身内容]
-    D --> D1[本地 messages 保持不变]
-    D1 --> D2[microCompact.ts 收集 tool_use_id]
-    D2 --> D3[claude.ts 注入 cache_edits / cache_reference]
-    D3 --> D4[服务端返回 cache_deleted_input_tokens]
-```
+![microcompact：对 tool result 做细粒度压缩](diagrams/04-state-session-memory-microcompact-tool-result.svg)
 
-- **time-based microcompact**：服务端 prompt cache 大概率已冷时触发，直接把旧 `tool_result.content` 清成 `[Old tool result content cleared]`，属于内容级压缩。
-- **cached microcompact**：只在主线程、支持模型、feature 打开时可用，本地消息不改，通过 `cache_edits` 在 API 层编辑 cache，属于 cache-layer editing。
+**microcompact：对 tool result 做细粒度压缩** — [交互版](diagrams/04-state-session-memory-microcompact-tool-result.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-microcompact-tool-result.architecture.json)
+
+- **组成**：11 个节点
+- **关系**：源图 10 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：microcompact → 走哪条路径? · 走哪条路径? → time-based · 走哪条路径? → cached
 
 #### 2.2.7 context collapse：维护投影视图
 
@@ -486,23 +390,13 @@ autoCompactThreshold = effectiveContextWindow - 13_000
 
 autocompact 命中后先试 `SessionMemory compact`，只有快路径走不通时才回退到 `compactConversation()`：
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[达到 autocompact gate] --> B{先试 SessionMemory compact}
-    B -- 成功 --> C[生成更短的 post-compact 视图]
-    B -- 失败 --> D[回退到 compactConversation]
-    D --> E[compact prompt 重写历史]
-    E --> F[生成 summary messages]
-    F --> G[建立新的 compact boundary]
-    G --> H[保留继续执行所需附件 / hook 结果]
-    C --> I[写回 transcript / 内存状态]
-    H --> I
-    I --> J[后续请求从新 boundary 之后继续]
-```
+![autocompact：最后的重型上下文重写](diagrams/04-state-session-memory-autocompact.svg)
+
+**autocompact：最后的重型上下文重写** — [交互版](diagrams/04-state-session-memory-autocompact.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-autocompact.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图 10 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：达到 autocompact gate → 先试 SessionMemory compact · 先试 SessionMemory compact → 生成更短的 post-compact…（成功） · 先试 SessionMemory compact → 回退到 compactConversation（失败）
 
 传统 compact 路径下，`NO_TOOLS_PREAMBLE` 进入 compact prompt，强制 compaction agent 只输出 `<analysis> + <summary>`，不调用任何工具。
 
@@ -516,19 +410,13 @@ flowchart LR
 - **transcript** 不是单纯聊天记录，而是长会话上下文治理结果的持久化底座：compact boundary、snip 删除记录、context collapse commit/snapshot 都写入 transcript，供 resume 时重建正确视图。
 - **compact prompt**（`src/services/compact/prompt.ts`）是上下文管理系统中的重型重写器，要求模型输出结构化 summary 并为继续执行做准备。
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[REPL / transcript 中的全量会话历史] --> B[compact boundary 切出当前模型视图]
-    B --> C[snip / microcompact / collapse / autocompact]
-    C --> D[本轮真正送给模型的上下文]
-    C --> E[SessionMemory notes]
-    C --> F[transcript 中的 boundary / snip / collapse 记录]
-    F --> G[resume 时重建正确视图]
-```
+![与 SessionMemory、transcript、compact prompt 的对接](diagrams/04-state-session-memory-sessionmemory-transcript-compact-prompt.svg)
+
+**与 SessionMemory、transcript、compact prompt 的对接** — [交互版](diagrams/04-state-session-memory-sessionmemory-transcript-compact-prompt.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-sessionmemory-transcript-compact-prompt.architecture.json)
+
+- **组成**：7 个节点
+- **关系**：源图 6 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：REPL / transcript 中的全… → compact boundary 切出当前… · compact boundary 切出当前… → snip / microcompact / col… · snip / microcompact / col… → 本轮真正送给模型的上下文
 
 ---
 
@@ -549,26 +437,13 @@ flowchart LR
 | agent memory | `src/tools/AgentTool/agentMemory.ts` | 每类 agent 自己的 `MEMORY.md` | agent 级 | 给子代理保留跨会话、跨任务经验 |
 | `remember` skill | `src/skills/bundled/remember.ts` | 审阅报告 | 人工治理 | 审查 memory、`CLAUDE.md`、`CLAUDE.local.md` 的边界与提升路径 |
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[主系统提示中的 memory policy] --> B[query 主回合]
-    B --> C[读取 durable memory]
-    B --> D[主回合直接写 memory]
-    B --> E[后台 extractMemories 补写]
-    B --> F[SessionMemory 维护当前会话 notes]
-    B --> G[agent memory 维护子代理经验]
-    C --> H[MEMORY.md + topic files]
-    D --> H
-    E --> H
-    I[KAIROS daily log] --> J[dream / consolidation]
-    J --> H
-    K[remember skill] --> H
-    K --> L[CLAUDE.md / CLAUDE.local.md / team memory]
-```
+![八类子系统总图](diagrams/04-state-session-memory-diagram-09.svg)
+
+**八类子系统总图** — [交互版](diagrams/04-state-session-memory-diagram-09.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-diagram-09.architecture.json)
+
+- **组成**：12 个节点
+- **关系**：源图 13 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：主系统提示中的 memory pol… → query 主回合 · query 主回合 → 读取 durable memory · query 主回合 → 主回合直接写 memory
 
 #### 2.3.2 durable memory 主线
 
@@ -602,21 +477,13 @@ durable memory 的核心原则：只保存未来仍有价值、又不能从当�
 
 **实验路径：按需召回**（`src/memdir/findRelevantMemories.ts`）：
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[用户 query] --> B[startRelevantMemoryPrefetch]
-    B --> C[scanMemoryFiles]
-    C --> D[只读 frontmatter manifest]
-    D --> E[sideQuery 选择相关 memory]
-    E --> F[最多选 5 个]
-    F --> G[读取正文时继续截断]
-    G --> H[注入 relevant_memories attachment]
-    H --> I[query 主回合]
-```
+![查询时读取 durable memory](diagrams/04-state-session-memory-durable-memory.svg)
+
+**查询时读取 durable memory** — [交互版](diagrams/04-state-session-memory-durable-memory.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-durable-memory.architecture.json)
+
+- **组成**：9 个节点
+- **关系**：源图 8 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：用户 query → startRelevantMemoryPrefet… · startRelevantMemoryPrefet… → scanMemoryFiles · scanMemoryFiles → 只读 frontmatter manifest
 
 三个关键设计：
 1. 精确度优先于召回率：只选明显有用的 memory，最多 5 个，不确定就不选。
@@ -652,19 +519,13 @@ KAIROS 核心特征：append-only、按时间顺序累积、不在主回合里�
 | 是否与 TEAMMEM 组合 | 可以 | 不组合，KAIROS 优先 |
 | 后续整理方式 | 直接维护 topic files | 依赖后续 consolidation / `/dream` |
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[KAIROS active] --> B[buildAssistantDailyLogPrompt]
-    B --> C[写入当天 daily log]
-    C --> D["logs/YYYY/MM/YYYY-MM-DD.md"]
-    D --> E[dream / consolidation]
-    E --> F[topic files]
-    E --> G[MEMORY.md index]
-```
+![KAIROS：把长期写入改成 daily log 模式](diagrams/04-state-session-memory-kairos-daily-log.svg)
+
+**KAIROS：把长期写入改成 daily log 模式** — [交互版](diagrams/04-state-session-memory-kairos-daily-log.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-kairos-daily-log.architecture.json)
+
+- **组成**：7 个节点
+- **关系**：源图 6 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：KAIROS active → buildAssistantDailyLogPro… · buildAssistantDailyLogPro… → 写入当天 daily log · 写入当天 daily log → logs/YYYY/MM/YYYY-MM-DD.md
 
 #### 2.3.5 dream / consolidation：把日志蒸馏回 durable memory
 

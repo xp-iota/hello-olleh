@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "安全审批流 (Confirmation Flow)",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      550
+    ]
+  },
+  "components": [
+    {
+      "id": "Start",
+      "type": "backend",
+      "label": "Agent 下发指令",
+      "sublabel": "Turn.run() @ gemini-cli/packages/core/sr…",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Check",
+      "type": "security",
+      "label": "PolicyEngine.check()",
+      "sublabel": "@ policy-engine.ts:492",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Safe",
+      "type": "external",
+      "label": "审批结果",
+      "sublabel": "allow · deny · askuser",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Run",
+      "type": "backend",
+      "label": "ToolExecutor.execute()",
+      "sublabel": "@ tool-executor.ts",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "ErrorResp",
+      "type": "external",
+      "label": "返回 Error ToolResponse",
+      "sublabel": "模型收到错误提示",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Ask",
+      "type": "messagebus",
+      "label": "MessageBus 广播",
+      "sublabel": "UI 弹窗等待确认",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Cancel",
+      "type": "backend",
+      "label": "中止回合并",
+      "sublabel": "返回 Deny 状态",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "Start",
+      "to": "Check",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Check",
+      "to": "Safe",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "Safe",
+      "to": "Run",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "Run",
+      "to": "ErrorResp",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "ErrorResp",
+      "to": "Ask",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "7 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 7 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "Agent 下发指令 / Turn.run… → PolicyEngine.check() / @…",
+        "PolicyEngine.check() / @… → 审批结果 / allow / deny…",
+        "审批结果 / allow / deny… → ToolExecutor.execute()…（Allow）"
+      ]
+    }
+  ]
+}

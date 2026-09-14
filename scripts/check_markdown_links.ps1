@@ -1,5 +1,5 @@
 param(
-  [string[]]$Roots = @("README.md", "docs", "pages")
+  [string[]]$Roots = @("README.md", "docs")
 )
 
 $ErrorActionPreference = "Stop"

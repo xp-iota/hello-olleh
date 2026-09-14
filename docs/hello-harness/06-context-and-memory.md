@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "06 - 上下文、状态与记忆"
+title: "上下文、状态与记忆工程对比"
 ---
 # 上下文、状态与记忆工程对比
 
@@ -64,7 +63,7 @@ Gemini CLI 采用 **JIT context 分层注入**策略，而非全量预注入：`
 
 ### OpenCode
 
-`sources/opencode/packages/opencode/src/skill/index.ts:143-157` 通过 `Config.directories()` 扫描目录来发现 Skill 文件。Context 分层不是显式定义的，而是通过目录结构隐式表达的：越靠近项目的目录里的 Skill，优先级越高。这是声明式的分层，但对不熟悉约定的工程师来说，需要先理解目录扫描逻辑才能推断优先级。
+`sources/opencode/packages/core/src/plugin/skill.ts` 通过 `Config.directories()` 扫描目录来发现 Skill 文件。Context 分层不是显式定义的，而是通过目录结构隐式表达的：越靠近项目的目录里的 Skill，优先级越高。这是声明式的分层，但对不熟悉约定的工程师来说，需要先理解目录扫描逻辑才能推断优先级。
 
 OpenCode 的上下文来自六个来源：用户原始输入、文件/MCP/agent 附件展开、provider/agent 基础提示、环境/技能/指令文件、运行时提醒、durable history 投影。这六个来源经过三层编译：**输入编译**（`createUserMessage()` 把文件展开成 synthetic text、把 `@agent` 改写成上下文提示）→ **system 编译**（`system.ts` 四层叠加：agent.prompt + 运行时片段 + user.system）→ **历史投影**（`toModelMessages()` 把 durable history 转成 AI SDK `ModelMessage[]`）。OpenCode 的上下文不是"message string + system string"，而是一份 runtime 编译产物。
 
@@ -146,7 +145,7 @@ memories pipeline 采用**两阶段 consolidation**：phase1（`memories/phase1.
 
 ### OpenCode
 
-`sources/opencode/packages/opencode/src/skill/index.ts:71-102` 的 Skill 解析通过 Zod Schema 验证 frontmatter 结构：
+`sources/opencode/packages/core/src/plugin/skill.ts` 的 Skill 解析通过 Effect Schema 验证 frontmatter 结构：
 
 ```typescript
 const parsed = Info.pick({ name: true, description: true }).safeParse(md.data)
@@ -228,42 +227,13 @@ OpenCode 的 **InstructionPrompt loaded/claim 机制**（`instruction.ts:168-190
 - **Gemini CLI** 的重点是让 session 和 memory 都保持文件化、透明、易修改。
 - **OpenCode** 的重点是把多前端共享的事实源压到 durable session 对象里。
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
+![概念模型：四个工具到底在管理什么](diagrams/06-context-and-memory-diagram.svg)
 
-    subgraph Claude["Claude Code"]
-        direction LR
-        C1["Runtime State\nAppState / Store"]
-        C2["Session Boundary\ntranscript + compact boundary"]
-        C3["Memory\nMEMORY.md / KAIROS / SessionMemory"]
-        C1 --> C2 --> C3
-    end
+**概念模型：四个工具到底在管理什么** — [交互版](diagrams/06-context-and-memory-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/06-context-and-memory-diagram.architecture.json)
 
-    subgraph Codex["Codex"]
-        direction LR
-        X1["Runtime State\nSessionState / ActiveTurn"]
-        X2["Session Boundary\nThread / Turn / ThreadItem"]
-        X3["Memory\nAGENTS.md + memories pipeline"]
-        X1 --> X2 --> X3
-    end
-
-    subgraph Gemini["Gemini CLI"]
-        direction LR
-        G1["Runtime State\nScheduler / MessageBus / UIState"]
-        G2["Session Boundary\nChatRecording JSON"]
-        G3["Memory\nHierarchical GEMINI.md"]
-        G1 --> G2 --> G3
-    end
-
-    subgraph OpenCode["OpenCode"]
-        direction LR
-        O1["Runtime State\nSessionStatus"]
-        O2["Session Boundary\nSession / MessageV2 / Part"]
-        O3["Memory\nsession_diff / summary"]
-        O1 --> O2 --> O3
-    end
-```
+- **组成**：16 个节点
+- **关系**：源图 8 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：Runtime State / AppState… → Session Boundary / transc… · Session Boundary / transc… → Memory / MEMORY.md / KAIR… · Runtime State / SessionSt… → Session Boundary / Thread…
 
 ### 5.2 实现模型：写入、恢复、压缩、分叉如何落地
 
@@ -301,45 +271,13 @@ flowchart LR
 | Gemini CLI | `ChatRecording.turns[]` | 录制服务更新会话对象，再整体重写 JSON | 一份 recording |
 | OpenCode | `user message` 先入库，assistant skeleton 预分配 | `part` 按流持续写入，Bus/SSE 同步投影 | `Session / Message / Part` 可回放链 |
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    User["同一条用户请求"]
+![场景 A：同一轮输入如何落盘](diagrams/06-context-and-memory-a.svg)
 
-    subgraph Claude["Claude Code"]
-        C1["AppState 更新"]
-        C2["TranscriptManager.append()"]
-        C3["history/<session>.jsonl"]
-        C1 --> C2 --> C3
-    end
+**场景 A：同一轮输入如何落盘** — [交互版](diagrams/06-context-and-memory-a.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/06-context-and-memory-a.architecture.json)
 
-    subgraph Codex["Codex"]
-        X1["start turn"]
-        X2["ThreadItem / rollout 记录"]
-        X3["state_5.sqlite + rollout jsonl"]
-        X1 --> X2 --> X3
-    end
-
-    subgraph Gemini["Gemini CLI"]
-        G1["ChatRecording 更新"]
-        G2["toJSON()"]
-        G3["sessions/<id>.json"]
-        G1 --> G2 --> G3
-    end
-
-    subgraph OpenCode["OpenCode"]
-        O1["Session.updateMessage(user)"]
-        O2["assistant skeleton"]
-        O3["Session.updatePart(stream)"]
-        O4["SQLite + Bus/SSE"]
-        O1 --> O2 --> O3 --> O4
-    end
-
-    User --> C1
-    User --> X1
-    User --> G1
-    User --> O1
-```
+- **组成**：画布 16 个节点 · 源图共 18 个节点，其余见正文
+- **关系**：源图 13 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：AppState 更新 → TranscriptManager.append() · TranscriptManager.append() → history/<session>.jsonl · start turn → ThreadItem / rollout 记录
 
 这个图最能说明 OpenCode 和其他三个的根本区别：OpenCode 不是"响应结束后记账"，而是**先分配 durable 宿主，再持续写入流事件**。
 
@@ -354,21 +292,13 @@ flowchart LR
 | Gemini CLI | `ChatCompressionService` + `ToolOutputMaskingService` | 保留最近约 30%，旧大输出落盘 |
 | OpenCode | `CompactionTask` → summary agent → `filterCompacted()` | 用 durable summary 显式替换旧历史，后续只投影活动历史 |
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart TB
-    Pressure["历史过长 / token 压力升高"]
+![场景 B：长会话如何控长又保形](diagrams/06-context-and-memory-b.svg)
 
-    Pressure --> ClaudePath["Claude Code\nbudget → snip → microcompact → collapse → autocompact"]
-    Pressure --> CodexPath["Codex\nContextManager compaction\n+ memories pipeline"]
-    Pressure --> GeminiPath["Gemini CLI\ncompress(50%) + masking\n+ spill large outputs to disk"]
-    Pressure --> OpenPath["OpenCode\nCompactionTask → summary agent\n→ compacted messages filtered"]
+**场景 B：长会话如何控长又保形** — [交互版](diagrams/06-context-and-memory-b.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/06-context-and-memory-b.architecture.json)
 
-    ClaudePath --> ClaudeOut["boundary 后的有效视图"]
-    CodexPath --> CodexOut["规范化历史 + 新基线"]
-    GeminiPath --> GeminiOut["summary + 最近 30%"]
-    OpenPath --> OpenOut["summary 投影 + 活动 durable history"]
-```
+- **组成**：9 个节点
+- **关系**：源图 8 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：历史过长 / token 压力升高 → Claude Code / budget → sn… · 历史过长 / token 压力升高 → Codex / ContextManager co… · 历史过长 / token 压力升高 → Gemini CLI / compress(50%…
 
 这里的关键差异是：
 
@@ -388,40 +318,13 @@ flowchart TB
 | Gemini CLI | global / extension / project `GEMINI.md` | global 进 system，extension / project 进会话内容 | 文件系统透明，但越久越容易膨胀 |
 | OpenCode | `AGENTS.md` / `CLAUDE.md` / `CONTEXT.md` 栈 + `session_diff` / summary | instruction stack + durable history 投影 + reminder | 更像 session 续航，不像独立长期知识库 |
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart TB
-    subgraph Claude["Claude Code"]
-        direction LR
-        C1["MEMORY.md / KAIROS / SessionMemory"]
-        C2["relevant recall + system prompt"]
-        C1 --> C2
-    end
+![场景 C：跨会话知识如何回流到下一轮 prompt](diagrams/06-context-and-memory-c-prompt.svg)
 
-    subgraph Codex["Codex"]
-        direction LR
-        X1["AGENTS.md + memories pipeline"]
-        X2["project_doc + build_prompt()"]
-        X1 --> X2
-    end
+**场景 C：跨会话知识如何回流到下一轮 prompt** — [交互版](diagrams/06-context-and-memory-c-prompt.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/06-context-and-memory-c-prompt.architecture.json)
 
-    subgraph Gemini["Gemini CLI"]
-        direction LR
-        G1["GEMINI.md\n(global / extension / project)"]
-        G2["system memory + session memory"]
-        G1 --> G2
-    end
-
-    subgraph OpenCode["OpenCode"]
-        direction LR
-        O1["Instruction files + session_diff + summary"]
-        O2["instruction stack + toModelMessages()"]
-        O1 --> O2
-    end
-
-    G1 ~~~ O2    
-    C1 ~~~ X2
-```
+- **组成**：12 个节点
+- **关系**：源图 4 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：MEMORY.md / KAIROS / Sess… → relevant recall + system… · AGENTS.md + memories pipe… → projectdoc + buildprompt() · GEMINI.md / (global / ext… → system memory + session m…
 
 这一节最重要的结论是：**OpenCode 当前的 memory 更偏会话记忆，而不是长期知识记忆**。如果不先把概念拆开，就会误以为四个工具都在实现同一种 memory backend。
 
@@ -461,5 +364,5 @@ flowchart TB
 - Claude Code 状态、会话与记忆系统：[../hello-claude-code/04-state-session-memory.md](../hello-claude-code/04-state-session-memory.md)
 - Codex 状态、会话与记忆系统：[../hello-codex/04-state-session-memory.md](../hello-codex/04-state-session-memory.md)
 - Gemini CLI 状态、会话与记忆系统：[../hello-gemini-cli/04-state-session-memory.md](../hello-gemini-cli/04-state-session-memory.md)
-- OpenCode 状态、会话与记忆系统：[../hello-opencode/04-state-session-memory.md](../hello-opencode/04-state-session-memory.md)
+- OpenCode 状态、会话与记忆系统：[../hello-opencode/04-context-and-state.md](../hello-opencode/04-context-and-state.md)
 - 四工具 state / session / memory 对比：[本章第 5 节](#5-四工具-state--session--memory-详细对比)

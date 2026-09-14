@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "配置与设置：分层 settings、工作区信任与运行时装配"
 ---
 # 配置与设置：分层 settings、工作区信任与运行时装配
@@ -201,18 +200,13 @@ Gemini CLI 的 `Config` 同时承担配置读取、服务初始化、ToolRegistr
 
 ## Config 初始化顺序与职责拆分
 
-```mermaid
-flowchart TD
-    Flags[CLI flags] --> Settings[settings/env/project/global merge]
-    Env[.gemini/.env] --> Settings
-    Settings --> Config[Config instance]
-    Config --> Storage[Storage paths]
-    Config --> Trust[Workspace trust]
-    Config --> Policy[PolicyEngine]
-    Config --> Tools[ToolRegistry]
-    Config --> Prompt[PromptProvider]
-    Config --> MCP[MCP manager]
-```
+![Config 初始化顺序与职责拆分](diagrams/17-settings-config-config.svg)
+
+**Config 初始化顺序与职责拆分** — [交互版](diagrams/17-settings-config-config.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/17-settings-config-config.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图 9 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：CLI flags → settings/env/project/glob… · .gemini/.env → settings/env/project/glob… · settings/env/project/glob… → Config instance
 
 | 类别 | 代表字段/服务 | 生命周期 | 风险 |
 | --- | --- | --- | --- |

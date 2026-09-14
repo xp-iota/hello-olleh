@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "调试指南"
 ---
 # 调试指南

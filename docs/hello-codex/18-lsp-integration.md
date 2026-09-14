@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "LSP 集成：代码语义理解的工具化路径"
 ---
 # LSP 集成：代码语义理解的工具化路径
@@ -25,7 +24,7 @@ title: "LSP 集成：代码语义理解的工具化路径"
 | 能力 | 实现方式 | 位置 |
 | :------| :---------| :------|
 | **文件读取** | Shell / apply_patch / dynamic tools | `sources/codex/codex-rs/tools/src/tool_spec.rs:22` |
-| **符号搜索** | `grep` / `rg`（ripgrep） | `sources/codex/codex-rs/shell-command/src/command_safety/is_safe_command.rs:114` |
+| **符号搜索** | `grep` / `rg`（ripgrep） | `sources/codex/codex-rs/shell-command/src/command_safety/mod.rs` |
 | **结构分析** | Shell 工具：`tree`, `find` | shell command |
 | **类型信息** | 编译器输出（`cargo check`, `tsc`） | shell command |
 | **诊断** | 编译器/Lint/测试/feedback diagnostics | `sources/codex/codex-rs/feedback/src/feedback_diagnostics.rs:14` |
@@ -110,19 +109,15 @@ server.registerTool("find_references", async ({ symbol }) => {
 
 Codex 最常用的"LSP 替代方案"是**编译器验证循环**：
 
-```
-修改文件
-  ↓
-运行编译器（cargo check / tsc / python -m mypy）
-  ↓
-解析错误输出
-  ↓
-修复错误
-  ↓
-再次编译验证
-```
+![编译器验证闭环](diagrams/18-lsp-integration-diagram.svg)
 
-这种方式虽然比 LSP 慢（每次需要完整编译），但对于 Rust 等强类型语言，编译器提供的诊断信息往往比 LSP hover 更权威。注意它仍然受工具治理影响：`cargo check` 在安全命令分类里不是自动安全命令（`sources/codex/codex-rs/shell-command/src/command_safety/is_safe_command.rs:426`），因此可能进入 approval/sandbox 流程。
+**编译器验证闭环** — [交互版](diagrams/18-lsp-integration-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/18-lsp-integration-diagram.architecture.json)
+
+- **组成**：5 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：修改文件 · 末节点：再次编译验证
+
+这种方式虽然比 LSP 慢（每次需要完整编译），但对于 Rust 等强类型语言，编译器提供的诊断信息往往比 LSP hover 更权威。注意它仍然受工具治理影响：`cargo check` 在安全命令分类里不是自动安全命令（`sources/codex/codex-rs/shell-command/src/command_safety/mod.rs`），因此可能进入 approval/sandbox 流程。
 
 ## 6. 与其他系统的对比
 
@@ -145,8 +140,8 @@ Codex 以"工具链即 LSP"的方式处理代码语义理解：通过 Shell 命�
 | :----------| :------| :------|
 | `ToolSpec` | `sources/codex/codex-rs/tools/src/tool_spec.rs:22` | Codex 工具集合抽象，不包含原生 LSP tool |
 | `create_local_shell_tool()` | `sources/codex/codex-rs/tools/src/tool_spec.rs:83` | 暴露 shell 能力，间接调用编译器/搜索工具 |
-| `is_known_safe_command()` 的 `rg` 分支 | `sources/codex/codex-rs/shell-command/src/command_safety/is_safe_command.rs:114` | 将常见只读搜索命令纳入安全判断 |
-| `cargo_check_is_not_safe()` | `sources/codex/codex-rs/shell-command/src/command_safety/is_safe_command.rs:426` | 说明编译器验证不等于免审批 |
+| `is_known_safe_command()` 的 `rg` 分支 | `sources/codex/codex-rs/shell-command/src/command_safety/mod.rs` | 将常见只读搜索命令纳入安全判断 |
+| `cargo_check_is_not_safe()` | `sources/codex/codex-rs/shell-command/src/command_safety/mod.rs` | 说明编译器验证不等于免审批 |
 | `DynamicToolSpec` | `sources/codex/codex-rs/protocol/src/dynamic_tools.rs:10` | 外部 bridge 可通过 dynamic tools 暴露 LSP 类能力 |
 | `validate_dynamic_tools()` | `sources/codex/codex-rs/app-server/src/message_processor.rs:1400` | app-server 校验外部动态工具 schema |
 

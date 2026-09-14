@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "UI 提交链（简述）",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "Composer",
+      "type": "backend",
+      "label": "Composer()"
+    },
+    {
+      "id": "Prompt",
+      "type": "backend",
+      "label": "InputPrompt.handleI…"
+    },
+    {
+      "id": "Submit",
+      "type": "backend",
+      "label": "InputPrompt.handleS…"
+    },
+    {
+      "id": "History",
+      "type": "database",
+      "label": "useInputHistory.han…"
+    },
+    {
+      "id": "Clear",
+      "type": "backend",
+      "label": "InputPrompt.handleS…"
+    },
+    {
+      "id": "Final",
+      "type": "backend",
+      "label": "AppContainer.handle…"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "Composer",
+      "to": "Prompt",
+      "y": 180,
+      "label": "onSubmit={uiActions.handleFinalSubmit",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "Prompt",
+      "to": "Submit",
+      "y": 225,
+      "label": "handleSubmit(buffer.text)",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "Submit",
+      "to": "History",
+      "y": 270,
+      "label": "inputHistory.handleSubmit(trimmedMessage)",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "History",
+      "to": "Clear",
+      "y": 315,
+      "label": "onSubmit(trimmedValue)",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "Clear",
+      "to": "Final",
+      "y": 360,
+      "label": "onSubmit(processedValue)",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "6 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 5 条消息"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "消息标签保留源图中的调用名"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "OAuth 2.0 流程",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "CLI",
+      "type": "backend",
+      "label": "Claude Code"
+    },
+    {
+      "id": "MCP",
+      "type": "cloud",
+      "label": "MCP Server"
+    },
+    {
+      "id": "Auth",
+      "type": "security",
+      "label": "OAuth Provider"
+    },
+    {
+      "id": "MCP-",
+      "type": "cloud",
+      "label": "MCP-"
+    },
+    {
+      "id": "Auth-",
+      "type": "security",
+      "label": "Auth-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "CLI",
+      "to": "MCP",
+      "y": 180,
+      "label": "连接请求（需要 OAuth）",
+      "variant": "security"
+    },
+    {
+      "id": "message2",
+      "from": "MCP-",
+      "to": "CLI",
+      "y": 225,
+      "label": "401 + OAuth 授权 URL",
+      "variant": "security"
+    },
+    {
+      "id": "message3",
+      "from": "CLI",
+      "to": "Auth",
+      "y": 270,
+      "label": "打开浏览器 / 启动本地服务器",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "Auth-",
+      "to": "CLI",
+      "y": 315,
+      "label": "授权码 / 回调",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "CLI",
+      "to": "Auth",
+      "y": 360,
+      "label": "用授权码换取 Access Token",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "5 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 8 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "未上画布的调用：Access Token + Refresh Token",
+        "未上画布的调用：重试请求（带 Bearer Token）",
+        "未上画布的调用：200 连接成功"
+      ]
+    }
+  ]
+}

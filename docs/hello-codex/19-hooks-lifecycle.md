@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Hooks 与生命周期：Codex 的事件拦截与扩展点"
 ---
 # Hooks 与生命周期：Codex 的事件拦截与扩展点
@@ -19,20 +18,13 @@ title: "Hooks 与生命周期：Codex 的事件拦截与扩展点"
 
 Codex 的执行生命周期由 `submission_loop` 统一编排，关键阶段如下：
 
-```
-进程启动
-  → config 加载 & MCP 工具发现
-  → ThreadManager 初始化
-  → TUI/非交互模式选择
-  → submission_loop 进入
-      → 接收 Op::UserInput
-      → run_turn()
-          → run_sampling_request()
-          → 工具执行
-          → 结果写回
-      → 循环等待下一个 Op
-  → Op::Shutdown → 清理退出
-```
+![Codex 生命周期概览](diagrams/19-hooks-lifecycle-codex.svg)
+
+**Codex 生命周期概览** — [交互版](diagrams/19-hooks-lifecycle-codex.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/19-hooks-lifecycle-codex.architecture.json)
+
+- **组成**：13 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：进程启动 · 末节点：清理退出
 
 ## 2. Op 事件总线
 
@@ -157,9 +149,9 @@ Codex 的 hook 生命周期分成两类：运行时治理 hook 和 app-server �
 | app-server 投影 | `sources/codex/codex-rs/app-server/src/bespoke_event_handling.rs:1590` | `HookStarted` 转换成 app-server notification |
 | 完成事件投影 | `sources/codex/codex-rs/app-server/src/bespoke_event_handling.rs:1602` | `HookCompleted` 同样作为通知给外部宿主 |
 | hook prompt 持久化 | `sources/codex/codex-rs/app-server/src/bespoke_event_handling.rs:2215` | hook prompt message 可被解析成 `ThreadItem::HookPrompt` |
-| Permission hook | `sources/codex/codex-rs/core/src/tools/runtimes/shell/unix_escalation.rs:409` | shell escalation 先跑 `run_permission_request_hooks()`，可直接 allow、deny 或继续 prompt |
+| Permission hook | `sources/codex/codex-rs/core/src/tools/runtimes/zsh_fork/unix_escalation.rs` | shell escalation 先跑 `run_permission_request_hooks()`，可直接 allow、deny 或继续 prompt |
 
-失败策略上，permission hook 不只是“记录一个事件”：它能短路后续交互审批。`sources/codex/codex-rs/core/src/tools/runtimes/shell/unix_escalation.rs:418`、`sources/codex/codex-rs/core/src/tools/runtimes/shell/unix_escalation.rs:425` 对 hook decision 做分支，失败或拒绝会改变 shell 执行路径。输出是否进入 prompt 要看事件类型：hook notification 面向宿主可见性，hook prompt item 才会进入 thread item 语义。
+失败策略上，permission hook 不只是“记录一个事件”：它能短路后续交互审批。`sources/codex/codex-rs/core/src/tools/runtimes/zsh_fork/unix_escalation.rs`、`sources/codex/codex-rs/core/src/tools/runtimes/zsh_fork/unix_escalation.rs` 对 hook decision 做分支，失败或拒绝会改变 shell 执行路径。输出是否进入 prompt 要看事件类型：hook notification 面向宿主可见性，hook prompt item 才会进入 thread item 语义。
 
 ### 与其他项目的边界
 

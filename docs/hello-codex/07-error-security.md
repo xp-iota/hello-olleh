@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "错误处理与安全性：异常捕获、重试策略、沙箱隔离与敏感文件防泄漏"
 ---
 # 错误处理与安全性：异常捕获、重试策略、沙箱隔离与敏感文件防泄漏
@@ -239,26 +238,13 @@ Windows: 原始命令 + restricted token + job object
 
 ### 沙箱拒绝升级流程
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    participant T as Tool
-    participant O as Orchestrator
-    participant S as Sandbox
-    participant U as User
+![沙箱拒绝升级流程](diagrams/07-error-security-diagram.svg)
 
-    O->>S: 首次尝试（平台沙箱）
-    S-->>O: SandboxErr::Denied
-    O->>O: 检查 escalate_on_failure()
-    alt 允许升级
-        O->>U: 请求无沙箱执行审批
-        U-->>O: Approved
-        O->>T: 以 SandboxType::None 重试
-        T-->>O: 执行结果
-    else 不允许升级
-        O-->>T: 返回 Denied 错误
-    end
-```
+**沙箱拒绝升级流程** — [交互版](diagrams/07-error-security-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/07-error-security-diagram.sequence.json)
+
+- **组成**：8 个参与方
+- **关系**：源图 7 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：Orchestrator 自调用：检查 escalateonfailure() · 未上画布的调用：执行结果 · 未上画布的调用：返回 Denied 错误
 
 ## 路径安全
 

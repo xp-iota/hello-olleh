@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "工具系统与权限机制"
 ---
 # 工具系统与权限机制
@@ -339,26 +338,13 @@ async (tool, input, toolUseContext, assistantMessage, toolUseID, forceDecision?)
 
 ## 11. 权限与工具执行的完整图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[assistant tool_use] --> B[runToolUse]
-    B --> C[按名称解析 Tool]
-    C --> D[inputSchema 校验]
-    D --> E[tool.validateInput]
-    E --> F[useCanUseTool / PermissionDecision]
-    F --> G{allow?}
-    G -- 否 --> H[生成拒绝型 tool_result]
-    G -- 是 --> I[执行 tool.call]
-    I --> J[progress 消息]
-    I --> K[格式化结果]
-    K --> L[生成 tool_result]
-    J --> M[query 消费 update]
-    L --> M
-```
+![权限与工具执行的完整图](diagrams/05-tool-system-diagram.svg)
+
+**权限与工具执行的完整图** — [交互版](diagrams/05-tool-system-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/05-tool-system-diagram.architecture.json)
+
+- **组成**：13 个节点
+- **关系**：源图 13 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：assistant tooluse → runToolUse · runToolUse → 按名称解析 Tool · 按名称解析 Tool → inputSchema 校验
 
 ## 12. MCP 工具与普通工具是如何统一的
 

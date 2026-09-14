@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "沙箱拒绝升级流程",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1580,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "T",
+      "type": "backend",
+      "label": "Tool"
+    },
+    {
+      "id": "O",
+      "type": "backend",
+      "label": "Orchestrator"
+    },
+    {
+      "id": "S",
+      "type": "database",
+      "label": "Sandbox"
+    },
+    {
+      "id": "U",
+      "type": "external",
+      "label": "User"
+    },
+    {
+      "id": "S-",
+      "type": "backend",
+      "label": "S-"
+    },
+    {
+      "id": "U-",
+      "type": "backend",
+      "label": "U-"
+    },
+    {
+      "id": "T-",
+      "type": "backend",
+      "label": "T-"
+    },
+    {
+      "id": "O-",
+      "type": "backend",
+      "label": "O-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "O",
+      "to": "S",
+      "y": 180,
+      "label": "首次尝试（平台沙箱）",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "S-",
+      "to": "O",
+      "y": 225,
+      "label": "SandboxErr::Denied",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "O",
+      "to": "U",
+      "y": 270,
+      "label": "请求无沙箱执行审批",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "U-",
+      "to": "O",
+      "y": 315,
+      "label": "Approved",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "O",
+      "to": "T",
+      "y": 360,
+      "label": "以 SandboxType::None 重试",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "8 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 7 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "Orchestrator 自调用：检查 escalateonfailure()",
+        "未上画布的调用：执行结果",
+        "未上画布的调用：返回 Denied 错误"
+      ]
+    }
+  ]
+}

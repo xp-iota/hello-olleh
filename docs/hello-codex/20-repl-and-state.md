@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "REPL 与交互层：TUI、非交互模式与输入分发"
 ---
 # REPL 与交互层：TUI、非交互模式与输入分发
@@ -19,11 +18,13 @@ title: "REPL 与交互层：TUI、非交互模式与输入分发"
 
 Codex 支持两种运行模式，在启动时根据 CLI 参数选择：
 
-```
-codex [prompt]
-  ├─ 有 prompt 且无 tty → 非交互模式（headless）
-  └─ 无 prompt 或有 tty → 交互 TUI 模式
-```
+![双模式入口](diagrams/20-repl-and-state-diagram.svg)
+
+**双模式入口** — [交互版](diagrams/20-repl-and-state-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/20-repl-and-state-diagram.architecture.json)
+
+- **组成**：5 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：codex [prompt · 末节点：交互 TUI 模式
 
 ```rust
 // codex-rs/tui/src/main.rs
@@ -38,15 +39,13 @@ if args.prompt.is_some() && !atty::is(Stream::Stdin) {
 
 Codex TUI 基于 `ratatui`（Rust TUI 框架）实现，核心组件：
 
-```
-App（顶层状态）
-  ├── ChatView（对话历史渲染）
-  │     ├── MessageList（消息列表）
-  │     └── ToolCallView（工具调用展示）
-  ├── InputBox（用户输入框）
-  │     └── 键盘事件处理
-  └── StatusBar（状态栏：模型/token/审批状态）
-```
+![TUI 模式](diagrams/20-repl-and-state-tui.svg)
+
+**TUI 模式** — [交互版](diagrams/20-repl-and-state-tui.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/20-repl-and-state-tui.architecture.json)
+
+- **组成**：7 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：App（顶层状态） · 末节点：StatusBar（状态栏：模型/token…
 
 ### 2.1 输入事件循环
 
@@ -174,21 +173,13 @@ Codex 的 TUI/REPL 层主要消费和投影 Rust core 产生的 thread/session e
 
 Codex 的 REPL/TUI 状态不能只看 Ratatui widget。用户动作进入 core 的主链路是：
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    participant TUI as tui/app.rs
-    participant APP as app-server session/client
-    participant MSP as codex_message_processor
-    participant CORE as CodexThread
-    participant LOOP as submission_loop
+![状态同步：TUI 到 core 的最短路径](diagrams/20-repl-and-state-tui-core.svg)
 
-    TUI->>APP: submit thread op
-    APP->>MSP: turn/start or command request
-    MSP->>CORE: submit_core_op()
-    CORE->>LOOP: Op::UserInput / Op::Interrupt / approval
-    LOOP-->>TUI: thread events projected back
-```
+**状态同步：TUI 到 core 的最短路径** — [交互版](diagrams/20-repl-and-state-tui-core.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/20-repl-and-state-tui-core.sequence.json)
+
+- **组成**：6 个参与方
+- **关系**：源图 5 条消息
+- **要点**：消息标签保留源图中的调用名
 
 | 状态面 | 源码锚点 | 说明 |
 | --- | --- | --- |

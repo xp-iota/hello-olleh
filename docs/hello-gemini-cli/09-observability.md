@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Gemini CLI 可观测性：日志、MessageBus 与 UI 状态追踪"
 ---
 # Gemini CLI 可观测性：日志、MessageBus 与 UI 状态追踪

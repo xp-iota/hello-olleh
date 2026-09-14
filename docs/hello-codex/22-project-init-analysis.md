@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Codex 项目初始化分析报告"
 ---
 # Codex 项目初始化分析报告
@@ -70,19 +69,13 @@ Codex CLI 的核心目标不是“再做一个聊天终端”，而是把本地�
 
 ### 初始化顺序
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    A[codex-cli/bin/codex.js] --> B[codex-rs/cli::main]
-    B --> C[cli_main 解析子命令]
-    C --> D[run_interactive_tui]
-    D --> E[tui::run_main]
-    E --> F[启动内嵌或远程 app-server]
-    F --> G[App::run]
-    G --> H[app_server.bootstrap]
-    H --> I[start/resume/fork thread]
-    I --> J[ChatWidget + 主事件循环]
-```
+![初始化顺序](diagrams/22-project-init-analysis-diagram-01.svg)
+
+**初始化顺序** — [交互版](diagrams/22-project-init-analysis-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/22-project-init-analysis-diagram-01.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图 9 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：codex-cli/bin/codex.js → codex-rs/cli::main · codex-rs/cli::main → climain 解析子命令 · climain 解析子命令 → runinteractivetui
 
 ### 关键函数清单
 
@@ -228,30 +221,13 @@ Prompt 构建和模型调用都在 `codex-rs/core/src/codex.rs`。
 
 ### 9.5 生命周期顺序图
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    participant U as User
-    participant TUI as App::run / ChatWidget
-    participant AS as app-server
-    participant CORE as core::Codex
-    participant LLM as ModelClientSession
-    participant TOOL as ToolRouter + ToolOrchestrator
+![生命周期顺序图](diagrams/22-project-init-analysis-diagram-02.svg)
 
-    U->>TUI: 输入 prompt
-    TUI->>AS: start/resume thread + submit turn
-    AS->>CORE: 线程接收用户消息
-    CORE->>CORE: get_user_instructions + build_prompt
-    CORE->>LLM: stream(prompt)
-    LLM-->>CORE: 输出文本 / FunctionCall
-    CORE->>TOOL: build_tool_call + dispatch
-    TOOL->>TOOL: approval + sandbox + execute
-    TOOL-->>CORE: FunctionCallOutput
-    CORE->>LLM: follow-up turn
-    CORE-->>AS: thread events
-    AS-->>TUI: session/thread events
-    TUI-->>U: 增量渲染结果与状态
-```
+**生命周期顺序图** — [交互版](diagrams/22-project-init-analysis-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/22-project-init-analysis-diagram-02.sequence.json)
+
+- **组成**：画布 10 个参与方 · 源图共 11 个参与方，其余见正文
+- **关系**：源图 10 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：core::Codex 自调用：getuserinstructions + buildprompt · ToolRouter + ToolOrchestrator 自调用：approval + sandbox + execute · 未上画布的调用：buildtoolcall + dispatch
 
 ## 10. 工程健壮性专项分析
 

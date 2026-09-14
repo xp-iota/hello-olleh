@@ -118,7 +118,8 @@ def main():
         json.dump({'sec': secmap, 'file': filemap}, f, ensure_ascii=False, indent=1)
 
     for new_num, new_name, new_title, blurbs, parts, body in outputs:
-        head = ['---', 'layout: content', 'parent_url: /docs/hello-deepseek-harness/', '---', '', '# ' + new_title, '']
+        # No static site generator: front matter carries the title only.
+        head = ['---', 'title: "' + new_title.replace('"', '\\"') + '"', '---', '', '# ' + new_title, '']
         head += blurbs
         if len(parts) > 1:
             head.append('>')

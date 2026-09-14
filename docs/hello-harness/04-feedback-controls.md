@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "04 - 反馈控制"
+title: "反馈控制横向对比"
 ---
 # 反馈控制横向对比
 
@@ -24,7 +23,7 @@ title: "04 - 反馈控制"
 
 **Gemini CLI**：更准确的反馈主链路不在 eval，而在 `sources/gemini-cli/packages/core/src/core/client.ts`、`sources/gemini-cli/packages/core/src/scheduler/tool-executor.ts` 和 `sources/gemini-cli/packages/core/src/core/geminiChat.ts`。工具执行结果会以结构化的 tool result 回注到对话历史，模型能基于这些结果继续决策。`hookSystem.ts` 提供的是额外的事件拦截点，适合在 Before/After 阶段追加反馈，但 eval 文件属于仓库验证资产，不是运行时反馈回路本身。
 
-**OpenCode**：`sources/opencode/packages/opencode/src/permission/index.ts:260-264` 的 `Permission.list()` 返回待处理的权限请求列表。这是有限的结构化反馈：它告诉调用者"有哪些权限决策在等待"，但不提供任务执行质量的反馈。
+**OpenCode**：`sources/opencode/packages/core/src/permission.ts` 的 `Permission.list()` 返回待处理的权限请求列表。这是有限的结构化反馈：它告诉调用者"有哪些权限决策在等待"，但不提供任务执行质量的反馈。
 
 ### Lint 报告 Remediation 指令
 
@@ -36,7 +35,7 @@ title: "04 - 反馈控制"
 
 **Gemini CLI**：没有内建的 Lint remediation 子系统。更贴近现实的说法是：它能把测试、lint 或 shell 输出通过工具结果重新交给模型，再由模型自己推断修复策略；必要时 Hook 可以在执行前后补充额外约束，但仓库里没有一个专门负责“读 lint 结果并生成修复建议”的独立模块。
 
-**OpenCode**：`sources/opencode/packages/opencode/src/permission/index.ts:83-103` 定义了三种错误类型（`RejectedError`、`CorrectedError`、`DeniedError`）。`CorrectedError` 特别有意义：它携带了"应该是什么"的信息，而不只是"不对"的信号——这是 remediation 指令的一种形式。
+**OpenCode**：`sources/opencode/packages/core/src/permission.ts` 定义了三种错误类型（`RejectedError`、`CorrectedError`、`DeniedError`）。`CorrectedError` 特别有意义：它携带了"应该是什么"的信息，而不只是"不对"的信号——这是 remediation 指令的一种形式。
 
 ### Hooks 的阻断与回调机制
 
@@ -48,7 +47,7 @@ Hook 是反馈控制里最直接的干预机制：它允许在 Agent 执行流�
 
 **Gemini CLI**：`hookSystem.ts` 的 Before/After 事件确实提供了显式阻断路径；同时 `LoopDetectionService` 和 `GeminiClient` 还负责检测重复工具调用、内容循环，并在必要时向模型注入恢复反馈。这意味着 Gemini CLI 的反馈控制不只是一套 Hook 回调，而是“Hook 拦截 + 运行时循环自愈”两层共同作用。
 
-**OpenCode**：`sources/opencode/packages/opencode/src/permission/index.ts:166-201` 的 `ask()` 方法通过 `Deferred.await()` 挂起执行，等待用户决策。这本质上是一个"挂起 + 回调"的 Hook 模式，由 Effect-ts 管理竞争条件。区别在于：这是人工审批型 Hook，不是自动化检查型 Hook。
+**OpenCode**：`sources/opencode/packages/core/src/permission.ts` 的 `ask()` 方法通过 `Deferred.await()` 挂起执行，等待用户决策。这本质上是一个"挂起 + 回调"的 Hook 模式，由 Effect-ts 管理竞争条件。区别在于：这是人工审批型 Hook，不是自动化检查型 Hook。
 
 ---
 

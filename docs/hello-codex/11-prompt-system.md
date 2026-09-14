@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Prompt 系统：一次请求中的指令、上下文与工具声明"
 ---
 # Prompt 系统：一次请求中的指令、上下文与工具声明
@@ -39,30 +38,13 @@ Codex 的 Prompt 系统是 `run_turn()` 内部的请求输入编译层，而不�
 
 下面以用户输入“帮我修一个测试”为例，不关心具体模型回答，而关心各类 prompt/control text 的注入时机。
 
-```mermaid
-sequenceDiagram
-    participant UI as CLI/TUI/App
-    participant Turn as run_turn()
-    participant Ctx as Context/History
-    participant Tools as ToolRouter
-    participant Client as ModelClientSession
-    participant Model as Model Provider
+![一次请求流：Prompt 在哪里发挥作用](diagrams/11-prompt-system-prompt.svg)
 
-    UI->>Turn: UserInput
-    Turn->>Turn: pre-sampling compact check
-    Turn->>Turn: scan $skills / plugins / app mentions
-    Turn->>Turn: user-prompt-submit hooks
-    Turn->>Ctx: record user message, skill/plugin injections
-    Turn->>Ctx: build initial context if needed
-    Turn->>Tools: built_tools()
-    Turn->>Ctx: clone_history().for_prompt()
-    Turn->>Turn: build_prompt(input, router, turn_context, base_instructions)
-    Turn->>Client: stream(&Prompt)
-    Client->>Model: instructions + input + tools + parallel_tool_calls
-    Model-->>Turn: assistant text or tool call
-    Turn->>Ctx: record assistant/tool output
-    Turn->>Client: follow-up sampling if tool output needs model continuation
-```
+**一次请求流：Prompt 在哪里发挥作用** — [交互版](diagrams/11-prompt-system-prompt.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/11-prompt-system-prompt.sequence.json)
+
+- **组成**：7 个参与方
+- **关系**：源图 10 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：runturn() 自调用：pre-sampling compact check · runturn() 自调用：scan $skills / plugins / app mentions · runturn() 自调用：user-prompt-submit hooks
 
 关键点在于：Codex 不是在用户输入到达时一次性拼一个大 system prompt，而是在 turn 中逐步把“规则、上下文、能力面、历史”写入不同通道。`run_turn()` 的入口在 `sources/codex/codex-rs/core/src/session/turn.rs:138`；正式采样前会克隆历史并调用 `for_prompt()`，对应 `sources/codex/codex-rs/core/src/session/turn.rs:433` 和 `sources/codex/codex-rs/core/src/context_manager/history.rs:120`。
 

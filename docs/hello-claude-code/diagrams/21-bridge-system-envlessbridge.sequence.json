@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "EnvLessBridge 初始化流程",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "CLI",
+      "type": "backend",
+      "label": "Claude Code CLI"
+    },
+    {
+      "id": "API",
+      "type": "external",
+      "label": "Session API"
+    },
+    {
+      "id": "Bridge",
+      "type": "backend",
+      "label": "Bridge Endpoint"
+    },
+    {
+      "id": "Transport",
+      "type": "backend",
+      "label": "HybridTransport"
+    },
+    {
+      "id": "API-",
+      "type": "backend",
+      "label": "API-"
+    },
+    {
+      "id": "Bridge-",
+      "type": "backend",
+      "label": "Bridge-"
+    },
+    {
+      "id": "Transport-",
+      "type": "backend",
+      "label": "Transport-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "CLI",
+      "to": "API",
+      "y": 180,
+      "label": "POST /v1/code/sessions",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "API-",
+      "to": "CLI",
+      "y": 225,
+      "label": "sessionId",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "CLI",
+      "to": "Bridge",
+      "y": 270,
+      "label": "POST /bridge",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "Bridge-",
+      "to": "CLI",
+      "y": 315,
+      "label": "workerjwt, expiresin",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "CLI",
+      "to": "Transport",
+      "y": 360,
+      "label": "createV2ReplTransport()",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "7 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 7 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "HybridTransport 自调用：创建 WebSocket + HTTP",
+        "未上画布的调用：transport.connect()",
+        "未上画布的调用：连接就绪"
+      ]
+    }
+  ]
+}

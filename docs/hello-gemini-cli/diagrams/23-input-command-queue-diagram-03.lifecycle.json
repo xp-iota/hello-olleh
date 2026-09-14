@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "状态机",
+    "quality_profile": "showcase",
+    "animation": "none",
+    "viewBox": [
+      1600,
+      660
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "主生命周期"
+    }
+  ],
+  "states": [
+    {
+      "id": "lifecycle-start",
+      "type": "start",
+      "label": "开始",
+      "lane": "main",
+      "col": 0
+    },
+    {
+      "id": "Idle",
+      "type": "active",
+      "label": "Idle",
+      "lane": "main",
+      "col": 1
+    },
+    {
+      "id": "Busy",
+      "type": "active",
+      "label": "Busy",
+      "lane": "main",
+      "col": 2
+    },
+    {
+      "id": "Queueing",
+      "type": "active",
+      "label": "Queueing",
+      "lane": "main",
+      "col": 3
+    }
+  ],
+  "transitions": [
+    {
+      "id": "transition1",
+      "from": "lifecycle-start",
+      "to": "Idle",
+      "route": "straight"
+    },
+    {
+      "id": "transition2",
+      "from": "Idle",
+      "to": "Busy",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "4 个状态"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 6 条状态迁移",
+        "画布绘制 2 条主迁移，跨节点与回边列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "lifecycle-start → Idle: 初始化",
+        "Idle → Busy: 用户提交输入",
+        "Busy → Idle: 模型响应完成"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Plugin 系统：MCP 作为 Codex 的主要插件机制"
 ---
 # Plugin 系统：MCP 作为 Codex 的主要插件机制
@@ -89,17 +88,13 @@ MCP 工具以 `<server_name>:<tool_name>` 格式注册，避免命名冲突。
 
 MCP 服务器作为独立进程运行，通过 stdin/stdout 进行 JSON-RPC 通信：
 
-```
-Codex Agent
-    │
-    │ JSON-RPC over stdio
-    ▼
-MCP Server Process（独立进程）
-    │
-    │ 访问外部资源
-    ▼
-文件系统 / API / 数据库
-```
+![工具执行与隔离](diagrams/14-plugin-system-diagram.svg)
+
+**工具执行与隔离** — [交互版](diagrams/14-plugin-system-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/14-plugin-system-diagram.architecture.json)
+
+- **组成**：5 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：Codex Agent · 末节点：文件系统 / API / 数据库
 
 **进程级隔离**：MCP 服务器崩溃不影响 Codex 主进程，仅该工具不可用。
 

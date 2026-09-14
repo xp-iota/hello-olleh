@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "自适应分块策略状态机",
+    "quality_profile": "showcase",
+    "animation": "none",
+    "viewBox": [
+      1600,
+      660
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "主生命周期"
+    }
+  ],
+  "states": [
+    {
+      "id": "lifecycle-start",
+      "type": "start",
+      "label": "开始",
+      "lane": "main",
+      "col": 0
+    },
+    {
+      "id": "Smooth",
+      "type": "active",
+      "label": "Smooth",
+      "lane": "main",
+      "col": 1
+    },
+    {
+      "id": "CatchUp",
+      "type": "active",
+      "label": "CatchUp",
+      "lane": "main",
+      "col": 2
+    },
+    {
+      "id": "lifecycle-end",
+      "type": "success",
+      "label": "结束",
+      "lane": "main",
+      "col": 3
+    }
+  ],
+  "transitions": [
+    {
+      "id": "transition1",
+      "from": "lifecycle-start",
+      "to": "Smooth",
+      "route": "straight"
+    },
+    {
+      "id": "transition2",
+      "from": "Smooth",
+      "to": "CatchUp",
+      "route": "straight"
+    },
+    {
+      "id": "transition4",
+      "from": "CatchUp",
+      "to": "lifecycle-end",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "4 个状态"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 5 条状态迁移",
+        "画布绘制 3 条主迁移，跨节点与回边列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "lifecycle-start → Smooth",
+        "Smooth → CatchUp: 队列 >= 8 或 age >= 120ms",
+        "CatchUp → Smooth: 队列 <= 2 且 age <= 40ms"
+      ]
+    }
+  ]
+}

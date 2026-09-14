@@ -1,0 +1,375 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "沙箱决策流程",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      690
+    ]
+  },
+  "components": [
+    {
+      "id": "Entry",
+      "type": "database",
+      "label": "main() 检查 !SANDBOX",
+      "sublabel": "gemini.tsx:389",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Direct",
+      "type": "backend",
+      "label": "直接在宿主进程运行",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Resolve",
+      "type": "database",
+      "label": "getSandboxCommand() 解析",
+      "sublabel": "gemini-cli/packages/cli/src/…",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Env",
+      "type": "database",
+      "label": "GEMINISANDBOX 环境变量?",
+      "sublabel": "gemini-cli/packages/cli/src/con…",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "EnvVal",
+      "type": "backend",
+      "label": "取 toLowerCase().trim() 值",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "ArgVal",
+      "type": "database",
+      "label": "取 argv.sandbox 或 settings.tools.sandb…",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Normalize",
+      "type": "database",
+      "label": "类型归一化",
+      "sublabel": "gemini-cli/packages/cli/src/config/sandboxCon…",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Explicit",
+      "type": "database",
+      "label": "显式指定命令",
+      "sublabel": "gemini-cli/packages/cli/src/config/sandboxCo…",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Auto",
+      "type": "database",
+      "label": "自动检测",
+      "sublabel": "gemini-cli/packages/cli/src/config/sandboxConf…",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Validate",
+      "type": "backend",
+      "label": "命令存在性 & 平台支持",
+      "sublabel": "gemini-cli/packages/cli/src/config/san…",
+      "pos": [
+        1083,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Error",
+      "type": "database",
+      "label": "抛出 FatalSandboxError",
+      "pos": [
+        1429,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "ReturnCmd",
+      "type": "backend",
+      "label": "返回命令字符串",
+      "pos": [
+        1775,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Darwin",
+      "type": "backend",
+      "label": "Darwin",
+      "pos": [
+        45,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "darwin",
+      "type": "backend",
+      "label": "darwin",
+      "pos": [
+        391,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "br",
+      "type": "backend",
+      "label": "br",
+      "pos": [
+        737,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "gemini-cli",
+      "type": "backend",
+      "label": "gemini-cli",
+      "pos": [
+        1083,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "Entry",
+      "to": "Direct",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Direct",
+      "to": "Resolve",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "Resolve",
+      "to": "Env",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "Env",
+      "to": "EnvVal",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "EnvVal",
+      "to": "ArgVal",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "Normalize",
+      "to": "Explicit",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "Explicit",
+      "to": "Auto",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge8",
+      "from": "Auto",
+      "to": "Validate",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge9",
+      "from": "Validate",
+      "to": "Error",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge10",
+      "from": "Error",
+      "to": "ReturnCmd",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge11",
+      "from": "Darwin",
+      "to": "darwin",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge12",
+      "from": "darwin",
+      "to": "br",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge13",
+      "from": "br",
+      "to": "gemini-cli",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "画布 16 个节点",
+        "源图共 36 个节点，其余见正文"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 17 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "main() 检查 !SANDBOX / ge… → 直接在宿主进程运行（已在沙箱）",
+        "main() 检查 !SANDBOX / ge… → getSandboxCommand() 解析…（首次启动）",
+        "getSandboxCommand() 解析… → GEMINISANDBOX 环境变量?…"
+      ]
+    }
+  ]
+}

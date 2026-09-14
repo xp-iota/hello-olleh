@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "18 - 扩展与 MCP 横向对比"
+title: "扩展与 MCP 横向对比"
 ---
 <!-- markdownlint-disable MD060, MD024 -->
 
@@ -11,7 +10,7 @@ title: "18 - 扩展与 MCP 横向对比"
 - `docs/hello-claude-code/06-extension-mcp.md`, `13-skill-system.md`, `14-plugin-system.md`, `24-mcp-system.md`
 - `docs/hello-codex/06-extension-mcp.md`, `13-skill-system.md`, `14-plugin-system.md`, `24-mcp-system.md`
 - `docs/hello-gemini-cli/06-extension-mcp.md`, `13-skill-system.md`, `14-plugin-system.md`, `24-mcp-system.md`
-- `docs/hello-opencode/06-extension-mcp.md`, `13-skill-system.md`, `14-plugin-system.md`, `24-mcp-system.md`, `33-mcp-details.md`
+- `docs/hello-opencode/05-tools-and-extensions.md`
 
 ## 1. 扩展面分层
 
@@ -39,7 +38,7 @@ title: "18 - 扩展与 MCP 横向对比"
 | Claude Code | `sources/claude-code/src/services/mcp/config.ts`, `sources/claude-code/src/services/mcp/client.ts` | `sources/claude-code/src/services/mcp/mcpHub.ts`, `sources/claude-code/src/services/mcp/auth.ts:847` | `sources/claude-code/src/services/mcp/mcpHub.ts` |
 | Codex | `sources/codex/codex-rs/config/src/mcp_types.rs:118` | `sources/codex/codex-rs/codex-mcp/src/connection_manager.rs:107`, `sources/codex/codex-rs/codex-mcp/src/connection_manager.rs:448` | `sources/codex/codex-rs/core/src/mcp_tool_call.rs`, `sources/codex/codex-rs/core/src/tools/handlers/mcp.rs` |
 | Gemini CLI | `sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts`, `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | `sources/gemini-cli/packages/core/src/mcp/auth-provider.ts`, `sources/gemini-cli/packages/core/src/mcp/oauth-provider.ts` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts`, `sources/gemini-cli/packages/core/src/tools/tool-registry.ts` |
-| OpenCode | `sources/opencode/packages/opencode/src/mcp/index.ts:28`, `sources/opencode/packages/opencode/src/config/config.ts:565` | `sources/opencode/packages/opencode/src/cli/cmd/mcp.ts:55`, `sources/opencode/packages/opencode/src/cli/cmd/mcp.ts:140` | `sources/opencode/packages/opencode/src/tool/registry.ts:155`, `sources/opencode/packages/opencode/src/command/index.ts:117` |
+| OpenCode | `sources/opencode/packages/core/src/mcp/index.ts`, `sources/opencode/packages/core/src/config.ts` | `sources/opencode/packages/cli/src/commands/handlers/mcp`, `sources/opencode/packages/cli/src/commands/handlers/mcp` | `sources/opencode/packages/core/src/tool.ts`, `sources/opencode/packages/core/src/config/plugin/command.ts` |
 
 ## 4. 合并策略
 

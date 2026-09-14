@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "基于工具的代码理解",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1820,
+      480
+    ]
+  },
+  "components": [
+    {
+      "id": "A",
+      "type": "external",
+      "label": "用户请求",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B",
+      "type": "backend",
+      "label": "Glob",
+      "sublabel": "Grep · 搜索文件",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "C",
+      "type": "backend",
+      "label": "Read",
+      "sublabel": "读取内容",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "D",
+      "type": "external",
+      "label": "模型理解",
+      "sublabel": "代码结构",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "E",
+      "type": "backend",
+      "label": "编辑/执行",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "A",
+      "to": "B",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "B",
+      "to": "C",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "C",
+      "to": "D",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "D",
+      "to": "E",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "5 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 4 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "用户请求 → Glob / Grep / 搜索文件",
+        "Glob / Grep / 搜索文件 → Read / 读取内容",
+        "Read / 读取内容 → 模型理解 / 代码结构"
+      ]
+    }
+  ]
+}

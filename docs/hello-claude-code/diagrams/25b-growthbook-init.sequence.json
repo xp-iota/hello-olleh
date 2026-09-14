@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Init 流程",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "App",
+      "type": "backend",
+      "label": "App (main.tsx)"
+    },
+    {
+      "id": "GB",
+      "type": "backend",
+      "label": "GrowthBook SDK"
+    },
+    {
+      "id": "Server",
+      "type": "backend",
+      "label": "api.anthropic.com"
+    },
+    {
+      "id": "Disk",
+      "type": "backend",
+      "label": "~/.claude.json"
+    },
+    {
+      "id": "Server-",
+      "type": "cloud",
+      "label": "Server-"
+    },
+    {
+      "id": "Subscribers",
+      "type": "backend",
+      "label": "Subscribers"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "App",
+      "to": "GB",
+      "y": 180,
+      "label": "new GrowthBook({ attributes, remoteEval })",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "App",
+      "to": "GB",
+      "y": 225,
+      "label": "init({ timeout: 5000 })",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "GB",
+      "to": "Server",
+      "y": 270,
+      "label": "GET /sdk/features (含 auth headers)",
+      "variant": "security"
+    },
+    {
+      "id": "message4",
+      "from": "Server-",
+      "to": "GB",
+      "y": 315,
+      "label": "features: {...}, experiments: {...",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "GB",
+      "to": "Disk",
+      "y": 360,
+      "label": "syncRemoteEvalToDisk()",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "6 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 6 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "GrowthBook SDK 自调用：processRemoteEvalPayload()",
+        "GrowthBook SDK 自调用：transform {value} → {defaultValue",
+        "未上画布的调用：refreshed.emit()"
+      ]
+    }
+  ]
+}

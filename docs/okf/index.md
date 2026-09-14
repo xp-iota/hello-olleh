@@ -1,13 +1,11 @@
 ---
-layout: content
 type: Bundle Index
-title: dsh-example 知识包
+title: "dsh-example 知识包"
 description: 用 OKF v0.2 记录 DeepSeek Harness 示例工程里可复用的结论，附 graphify 结构证据与 archify 图。
 tags: [okf, dsh, dsh-example]
 status: stable
 generated: { by: kiro/gpt-5.6-sol, at: 2026-09-12T12:25:04Z }
 ---
-
 # dsh-example 知识包
 
 本目录是一个 [OKF v0.2](../../tools/okf/SPEC-v0.2.md) bundle，记录 `dsh-example/`
@@ -23,14 +21,14 @@ generated: { by: kiro/gpt-5.6-sol, at: 2026-09-12T12:25:04Z }
 
 ## Concepts
 
-- [装配枢纽 createHarness](concepts/assembly-hub.md) — 12 个方向模块为什么仍能保持细粒度步骤：装配成本一次性付在 runtime 层。
-- [能力缝的三角色](concepts/capability-seam.md) — Definition、Provider、Consumer 如何切分，以及为什么故意留两个缝不装。
-- [推理服务可替换](concepts/provider-swap.md) — 从 mock 换到真实 MiniMax，业务代码为什么一行都不用改。
-- [一次工具调用等于两步](concepts/tool-call-round-trip.md) — 工具调用回路的步数从哪里来，怎么用会话日志验证。
+- [装配枢纽 createHarness](concepts/01-assembly-hub.md) — 12 个方向模块为什么仍能保持细粒度步骤：装配成本一次性付在 runtime 层。
+- [能力缝的三角色](concepts/02-capability-seam.md) — Definition、Provider、Consumer 如何切分，以及为什么故意留两个缝不装。
+- [推理服务可替换](concepts/03-provider-swap.md) — 从 mock 换到真实 MiniMax，业务代码为什么一行都不用改。
+- [一次工具调用等于两步](concepts/04-tool-call-round-trip.md) — 工具调用回路的步数从哪里来，怎么用会话日志验证。
 
 ## References
 
-- [graphify 对 dsh-example 的建图结果](references/graphify-dsh-example.md) — 本包所有结构性断言的数字来源。
+- [graphify 对 dsh-example 的建图结果](references/01-graphify-dsh-example.md) — 本包所有结构性断言的数字来源。
 
 ## 本包的约定
 

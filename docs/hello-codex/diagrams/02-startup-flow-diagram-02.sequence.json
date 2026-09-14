@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "详细时序",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1940,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "JS",
+      "type": "backend",
+      "label": "codex.js"
+    },
+    {
+      "id": "OS",
+      "type": "backend",
+      "label": "Kernel/Loader"
+    },
+    {
+      "id": "M",
+      "type": "backend",
+      "label": "main()"
+    },
+    {
+      "id": "A0",
+      "type": "backend",
+      "label": "arg0dispatch"
+    },
+    {
+      "id": "CLI",
+      "type": "backend",
+      "label": "climain()"
+    },
+    {
+      "id": "TUI",
+      "type": "frontend",
+      "label": "runinteractivetui()"
+    },
+    {
+      "id": "RM",
+      "type": "frontend",
+      "label": "tui::runmain()"
+    },
+    {
+      "id": "APP",
+      "type": "backend",
+      "label": "App::run()"
+    },
+    {
+      "id": "OS-",
+      "type": "backend",
+      "label": "OS-"
+    },
+    {
+      "id": "A0-",
+      "type": "backend",
+      "label": "A0-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "JS",
+      "to": "OS",
+      "y": 180,
+      "label": "spawn(binary, argv, env, stdio)",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "OS-",
+      "to": "OS",
+      "y": 225,
+      "label": "装载原生二进制 / 传递 argv/env/stdio",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "OS",
+      "to": "M",
+      "y": 270,
+      "label": "进入 Rust main()",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "M",
+      "to": "A0",
+      "y": 315,
+      "label": "arg0dispatchorelse()",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "A0-",
+      "to": "A0",
+      "y": 360,
+      "label": "加载 .env / 创建 PATH / 构建 Tokio",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "画布 10 个参与方",
+        "源图共 14 个参与方，其余见正文"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 9 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "未上画布的调用：climain(arg0paths)",
+        "未上画布的调用：runinteractivetui()",
+        "未上画布的调用：codextui::runmain()"
+      ]
+    }
+  ]
+}

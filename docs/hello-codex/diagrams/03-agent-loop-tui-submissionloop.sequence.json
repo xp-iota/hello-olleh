@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "TUI 请求如何进入 submissionloop",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "TUI",
+      "type": "frontend",
+      "label": "tui/src/app.rs"
+    },
+    {
+      "id": "SESSION",
+      "type": "frontend",
+      "label": "appserversession.rs",
+      "sublabel": "tui/src/"
+    },
+    {
+      "id": "CLIENT",
+      "type": "external",
+      "label": "app-server-client"
+    },
+    {
+      "id": "MSP",
+      "type": "cloud",
+      "label": "codexmessageprocess…",
+      "sublabel": "app-server/"
+    },
+    {
+      "id": "THREAD",
+      "type": "backend",
+      "label": "core::CodexThread"
+    },
+    {
+      "id": "SL",
+      "type": "backend",
+      "label": "core::submissionloop"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "TUI",
+      "to": "SESSION",
+      "y": 180,
+      "label": "submitthreadop() / trysubmitactivethreadopviaappserver()",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "SESSION",
+      "to": "CLIENT",
+      "y": 225,
+      "label": "turnstart(ClientRequest::TurnStart)",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "CLIENT",
+      "to": "MSP",
+      "y": 270,
+      "label": "turn/start request",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "MSP",
+      "to": "THREAD",
+      "y": 315,
+      "label": "submitwithtrace(Op::UserInput)",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "THREAD",
+      "to": "SL",
+      "y": 360,
+      "label": "txsub.send(Submission)",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "6 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 5 条消息"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "app-server/codexmessageprocessor.rs 自调用：turnstart() -> submitcoreop()",
+        "core::submissionloop 自调用：recv() -> match Op::UserInput"
+      ]
+    }
+  ]
+}

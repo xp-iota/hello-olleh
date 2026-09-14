@@ -1,9 +1,6 @@
 ---
-layout: default
-title: "Cordis 源代码全面分析"
-permalink: /docs/hello-cordis/
+title: "cordis 源代码全面分析（中文）"
 ---
-
 # cordis 源代码全面分析（中文）
 
 本目录是对 [cordiverse/cordis](https://github.com/cordiverse/cordis) 的系统性源码分析。所有结论均基于源码实读，文中引用的路径均相对于源码根目录。
@@ -13,20 +10,24 @@ permalink: /docs/hello-cordis/
 > 它最重要的下游是 **[DeepSeek Harness](../hello-dsh/README.md)**（`dsh`，52912 stars）——DSH 的"Everything is a Plugin"架构完全建立在 cordis 之上。**想读懂 DSH，必须先读懂 cordis 的 Fiber 与 Service 模型。**
 >
 
-## 一、快照与版本
+## 一、当前同步快照与分析基线
 
-> 后续更新本分析时，请以下表的 commit 为基准做 `git diff`，即可知道哪些结论需要复核。
+> **Source baseline:** Cordis `v4.0.0-rc.10` (`f8ea3cd5`): `cordis@4.0.0-rc.10`, loader `1.0.0-rc.7`, and HMR `1.1.0`.
+
+### 历史分析基线
+
+> 以下表格记录正文形成时的基线，用于判断哪些结论需要重新验证。
 
 | 项 | 值 |
 |---|---|
 | 仓库 | `https://github.com/cordiverse/cordis` |
 | 分支 | `main` |
-| **快照 Commit（完整）** | `8cc9e33fab69e2d0476d126baaf2acb24e6a6ab4` |
-| **快照 Commit（短）** | `8cc9e33f` |
+| **快照 Commit（完整）** | `f8ea3cd5ab69e2d0476d126baaf2acb24e6a6ab4` |
+| **快照 Commit（短）** | `f8ea3cd5` |
 | 快照提交时间 | `2026-08-13T13:48:18Z` |
 | 快照提交标题 | `chore: update readme (#45)` |
-| Commit 链接 | https://github.com/cordiverse/cordis/commit/8cc9e33fab69e2d0476d126baaf2acb24e6a6ab4 |
-| 核心包版本 | **`cordis@4.0.0-rc.8`** |
+| Commit 链接 | https://github.com/cordiverse/cordis/commit/f8ea3cd5ab69e2d0476d126baaf2acb24e6a6ab4 |
+| 核心包版本 | **`cordis@4.0.0-rc.10`** |
 | 仓库 tag | **无**（版本管理靠 package.json） |
 | 语言 / 许可证 | TypeScript / MIT |
 | 创建时间 | 2022-05-17（已迭代 4 年） |
@@ -54,13 +55,13 @@ permalink: /docs/hello-cordis/
 | **测试**（`*/tests/*`） | 30 文件 / **4340 行** |
 | 测试 / 实现比 | **1.08**（测试多于实现） |
 
-各包实现行数见 [01 § 1.2](01-项目概览与设计哲学.md)；核心包 9 个文件的逐文件行数与对应篇目见 [02 § 2.3](02-代码结构与包边界.md)。本索引不重复这两张表。
+各包实现行数见 [01 § 1.2](01-overview-and-design-philosophy.md)；核心包 9 个文件的逐文件行数与对应篇目见 [02 § 2.3](02-code-structure-and-package-boundaries.md)。本索引不重复这两张表。
 
 ### 项目状态与风险
 
 | 事实 | 含义 |
 |---|---|
-| 核心包 `4.0.0-rc.8` | 第 4 个大版本仍在 rc 阶段 |
+| 核心包 `4.0.0-rc.10` | 第 4 个大版本仍在 rc 阶段 |
 | `loader@1.0.0-rc.5` | 关键外围包同样是 rc |
 | **仓库无任何 git tag** | 版本靠 package.json，无发布快照可对照 |
 | README 明示 API 不稳定 | 会不通知即变更 |
@@ -68,29 +69,29 @@ permalink: /docs/hello-cordis/
 | 4 年迭代（2022-05 起） | 不是新玩具，但也未定型 |
 | 源码里有 `FIXME internal/fiber-info` | `fiber.ts:359` —— `internal/status` 事件形态待改 |
 
-⚠️ **一个重要观察**：DSH 的 `dsh-base` bundle 里引用的是 **`@deepseek-ai/cordis-plugin-timer`** 与 **`@deepseek-ai/cordis-plugin-hmr`** —— **`@deepseek-ai/` 作用域**，说明 DSH **fork 了 cordis 的插件包**。读 DSH 时要留意两者可能已有分叉（见 [DSH 05 篇](../hello-dsh/05-启动与Cordis落地.md)）。本文档集分析的是 **cordiverse 上游版本**。
+⚠️ **一个重要观察**：DSH 的 `dsh-base` bundle 里引用的是 **`@deepseek-ai/cordis-plugin-timer`** 与 **`@deepseek-ai/cordis-plugin-hmr`** —— **`@deepseek-ai/` 作用域**，说明 DSH **fork 了 cordis 的插件包**。读 DSH 时要留意两者可能已有分叉（见 [DSH 05 篇](../hello-dsh/05-startup-and-cordis-runtime.md)）。本文档集分析的是 **cordiverse 上游版本**。
 
 ## 二、术语约定
 
 | 术语 | 一句话解释 | 展开 |
 |---|---|---|
-| **db** | 本系列统一的**示例服务名**（虚构的数据库服务），用于讲解 service / inject / isolate 等机制；cordis 源码中并不存在名为 `db` 的服务（其测试里用的是 `foo` / `bar` / `logger` / `counter` 等占位名）。凡文中出现 `ctx.db`、`inject: ['db']`、`id: db` 均属举例，可替换为任意服务名 | [01 § 1.3](01-项目概览与设计哲学.md)、[04 § 4.1](04-Context与Reflect代理.md) |
-| **HMR** | Hot Module Replacement（模块热替换）：文件变化时只替换受影响的插件、进程尽量不退出；在 cordis 里由 `@cordisjs/plugin-hmr` 实现，依赖框架的可逆生命周期 | [08 HMR 热重载](08-HMR热重载.md) |
-| **trap** | JavaScript `Proxy` handler 上拦截 `get` / `set` / `has` 等操作的方法，中文常译「代理陷阱」；本系列统一写作 `get` / `set` / `has` trap，与 bug 无关 | [04 § 4.1](04-Context与Reflect代理.md) |
+| **db** | 本系列统一的**示例服务名**（虚构的数据库服务），用于讲解 service / inject / isolate 等机制；cordis 源码中并不存在名为 `db` 的服务（其测试里用的是 `foo` / `bar` / `logger` / `counter` 等占位名）。凡文中出现 `ctx.db`、`inject: ['db']`、`id: db` 均属举例，可替换为任意服务名 | [01 § 1.3](01-overview-and-design-philosophy.md)、[04 § 4.1](04-context-and-reflect-proxy.md) |
+| **HMR** | Hot Module Replacement（模块热替换）：文件变化时只替换受影响的插件、进程尽量不退出；在 cordis 里由 `@cordisjs/plugin-hmr` 实现，依赖框架的可逆生命周期 | [08 HMR 热重载](08-hmr.md) |
+| **trap** | JavaScript `Proxy` handler 上拦截 `get` / `set` / `has` 等操作的方法，中文常译「代理陷阱」；本系列统一写作 `get` / `set` / `has` trap，与 bug 无关 | [04 § 4.1](04-context-and-reflect-proxy.md) |
 
 ## 三、篇目表
 
 | # | 篇目 | 行数 | 关键内容 |
 |---|---|---|---|
-| 01 | [项目概览与设计哲学](01-项目概览与设计哲学.md) | 238 | 元框架定位、时空可组合性、四个核心抽象、与其它插件系统的对比、读源码前必知的六件事 |
-| 02 | [代码结构与包边界](02-代码结构与包边界.md) | 270 | 9 个包的依赖方向、core 的 9 文件、四服务自举顺序、三种"树"的关系、为什么只要 1848 行 |
-| 03 | [Fiber 模型](03-Fiber模型.md) ⭐ | 430 | `effect()` 的双重身份、四种有效返回形态 + 两种边界、**epoch 字符串**、6 态机与 `inertia` 锁、子 Fiber 是父的 effect、长堆栈 |
-| 04 | [Context 与 Reflect 代理](04-Context与Reflect代理.md) ⭐ | 438 | Proxy 的 `get` / `set` / `has` trap、`then` 保留字、三种派生、沿 fiber 链查找的三种失败、Symbol 作键的隔离、**traceable 与 shadow**、mixin |
-| 05 | [服务注册与依赖解析](05-服务注册与依赖解析.md) | 359 | 四种插件形态、`@Inject()` 双目标装饰器、`provide` 的 setup/teardown 顺序、**`notify()` 级联引擎**、Service 七符号 |
-| 06 | [事件系统与 Waterfall](06-事件系统与Waterfall.md) | 275 | 5 种派发模式、`isBailed` 的坑、**waterfall 原理全解（§ 6.3：契约 / 逐行解剖 / 执行语义 / 轨迹 / Koa 与责任链对照）**、`internal/listener` 劫持、8 个 internal 事件 |
-| 07 | [Loader 与配置树](07-Loader与配置树.md) | 431 | `EntryOptions` 全字段、`update()` 决策树、**`applyPatches` 三条语义**、原子写、**isolate realm 7 步算法**、6 case 自卸载判定 |
-| 08 | [HMR 热重载](08-HMR热重载.md) | 278 | HMR 定义、三条变更路径、**accepted/declined 传播**、五阶段 partialReload、**Node 22/24 缓存差异**、双层回滚 |
-| 09 | [关键调用链速查](09-关键调用链速查.md) | 469 | 五条核心链、symbols 全表、逐文件符号表、**错误消息对照表**、配置速查、症状路由、spec 映射 |
+| 01 | [项目概览与设计哲学](01-overview-and-design-philosophy.md) | 238 | 元框架定位、时空可组合性、四个核心抽象、与其它插件系统的对比、读源码前必知的六件事 |
+| 02 | [代码结构与包边界](02-code-structure-and-package-boundaries.md) | 270 | 9 个包的依赖方向、core 的 9 文件、四服务自举顺序、三种"树"的关系、为什么只要 1848 行 |
+| 03 | [Fiber 模型](03-fiber-model.md) ⭐ | 430 | `effect()` 的双重身份、四种有效返回形态 + 两种边界、**epoch 字符串**、6 态机与 `inertia` 锁、子 Fiber 是父的 effect、长堆栈 |
+| 04 | [Context 与 Reflect 代理](04-context-and-reflect-proxy.md) ⭐ | 438 | Proxy 的 `get` / `set` / `has` trap、`then` 保留字、三种派生、沿 fiber 链查找的三种失败、Symbol 作键的隔离、**traceable 与 shadow**、mixin |
+| 05 | [服务注册与依赖解析](05-service-registration-and-dependency-resolution.md) | 359 | 四种插件形态、`@Inject()` 双目标装饰器、`provide` 的 setup/teardown 顺序、**`notify()` 级联引擎**、Service 七符号 |
+| 06 | [事件系统与 Waterfall](06-event-system-and-waterfall.md) | 275 | 5 种派发模式、`isBailed` 的坑、**waterfall 原理全解（§ 6.3：契约 / 逐行解剖 / 执行语义 / 轨迹 / Koa 与责任链对照）**、`internal/listener` 劫持、8 个 internal 事件 |
+| 07 | [Loader 与配置树](07-loader-and-configuration-tree.md) | 431 | `EntryOptions` 全字段、`update()` 决策树、**`applyPatches` 三条语义**、原子写、**isolate realm 7 步算法**、6 case 自卸载判定 |
+| 08 | [HMR 热重载](08-hmr.md) | 278 | HMR 定义、三条变更路径、**accepted/declined 传播**、五阶段 partialReload、**Node 22/24 缓存差异**、双层回滚 |
+| 09 | [关键调用链速查](09-call-chain-reference.md) | 469 | 五条核心链、symbols 全表、逐文件符号表、**错误消息对照表**、配置速查、症状路由、spec 映射 |
 
 ## 四、阅读路线
 
@@ -106,16 +107,16 @@ permalink: /docs/hello-cordis/
 
 | 你是 | 建议路线 |
 |---|---|
-| **想读懂 DSH，被迫先学 cordis** | [03](03-Fiber模型.md) + [04](04-Context与Reflect代理.md) + [05](05-服务注册与依赖解析.md) 精读，[06](06-事件系统与Waterfall.md) § 6.3（waterfall）必读，[07](07-Loader与配置树.md) § 7.5（applyPatches）必读，其余略读 |
-| **要写 cordis 插件** | [03 § 3.2-3.3](03-Fiber模型.md)（effect 用法）+ [05 § 5.7](05-服务注册与依赖解析.md)（Service 基类）+ [06](06-事件系统与Waterfall.md) |
-| **在排查插件不启动/不卸载** | [09 § 9.4](09-关键调用链速查.md) 错误对照表 → [03 § 3.5](03-Fiber模型.md) 状态机 |
-| **要改 cordis 本体** | 全读，且**先读对应的 spec**（[09 § 9.9](09-关键调用链速查.md) 有映射表） |
-| **只想理解设计思想** | [01](01-项目概览与设计哲学.md) + [03 § 3.4](03-Fiber模型.md)（epoch）+ [04 § 4.4-4.5](04-Context与Reflect代理.md)（Symbol 作键） |
-| **在做配置驱动的应用** | [07](07-Loader与配置树.md) 全读 + [08](08-HMR热重载.md) |
+| **想读懂 DSH，被迫先学 cordis** | [03](03-fiber-model.md) + [04](04-context-and-reflect-proxy.md) + [05](05-service-registration-and-dependency-resolution.md) 精读，[06](06-event-system-and-waterfall.md) § 6.3（waterfall）必读，[07](07-loader-and-configuration-tree.md) § 7.5（applyPatches）必读，其余略读 |
+| **要写 cordis 插件** | [03 § 3.2-3.3](03-fiber-model.md)（effect 用法）+ [05 § 5.7](05-service-registration-and-dependency-resolution.md)（Service 基类）+ [06](06-event-system-and-waterfall.md) |
+| **在排查插件不启动/不卸载** | [09 § 9.4](09-call-chain-reference.md) 错误对照表 → [03 § 3.5](03-fiber-model.md) 状态机 |
+| **要改 cordis 本体** | 全读，且**先读对应的 spec**（[09 § 9.9](09-call-chain-reference.md) 有映射表） |
+| **只想理解设计思想** | [01](01-overview-and-design-philosophy.md) + [03 § 3.4](03-fiber-model.md)（epoch）+ [04 § 4.4-4.5](04-context-and-reflect-proxy.md)（Symbol 作键） |
+| **在做配置驱动的应用** | [07](07-loader-and-configuration-tree.md) 全读 + [08](08-hmr.md) |
 
 ## 五、配套示例工程
 
-本仓库的 [`dsh-example/`](../../dsh-example/README.md) 虽以 DSH 为主，也包含直接验证 cordis 原语的最小程序。示例精确锁定 `@deepseek-ai/*@0.1.5-rc.2`；因此它们验证的是 DSH 发布包所携带的 cordis 契约，与本文分析的 cordiverse 上游快照 `8cc9e33f` 需按“双版本口径”对照阅读。
+本仓库的 [`dsh-example/`](../../dsh-example/README.md) 虽以 DSH 为主，也包含直接验证 cordis 原语的最小程序。示例精确锁定 `@deepseek-ai/*@0.1.5-rc.2`；因此它们验证的是 DSH 发布包所携带的 cordis 契约，与本文分析的 cordiverse 上游快照 `f8ea3cd5` 需按“双版本口径”对照阅读。
 
 | Cordis 主题 | 配套示例 | 观察点 |
 |---|---|---|
@@ -131,12 +132,12 @@ permalink: /docs/hello-cordis/
 
 | 统一主题 | Cordis | DeepSeek Harness | 可跑示例 |
 |---|---|---|---|
-| 定位与代码地图 | [01](01-项目概览与设计哲学.md) · [02](02-代码结构与包边界.md) | [DSH 01](../hello-dsh/01-项目概览.md) · [02](../hello-dsh/02-代码结构地图.md) | [`cordis.yml`](../../dsh-example/cordis.yml) |
-| 生命周期与服务 | [03 Fiber](03-Fiber模型.md) · [04 Context](04-Context与Reflect代理.md) · [05 Service](05-服务注册与依赖解析.md) | [DSH 03 Seam](../hello-dsh/03-能力缝与服务全景.md) · [05 启动](../hello-dsh/05-启动与Cordis落地.md) | [M03 · adapter](../../dsh-example/M03-inference-service-access/README.md) · [M12 · timer](../../dsh-example/M12-framework-mechanisms/README.md) |
-| 事件与扩展 | [06 Events](06-事件系统与Waterfall.md) | [DSH 04 扩展](../hello-dsh/04-扩展与生态.md) · [06 Agent](../hello-dsh/06-Agent循环与会话日志.md) · [07 请求管线](../hello-dsh/07-请求管线-LLM工具与提示.md) | [M04 · lifecycle](../../dsh-example/M04-agent-loop-intervention/README.md) · [M12 · dispatch](../../dsh-example/M12-framework-mechanisms/README.md) · [M03 · stream](../../dsh-example/M03-inference-service-access/README.md) |
-| 配置、装配与热更新 | [07 Loader](07-Loader与配置树.md) · [08 HMR](08-HMR热重载.md) | [DSH 05 启动与 Cordis](../hello-dsh/05-启动与Cordis落地.md) | [`cordis.yml`](../../dsh-example/cordis.yml) · [M12 · timer](../../dsh-example/M12-framework-mechanisms/README.md) |
-| 执行与安全边界 | [03](03-Fiber模型.md) · [05](05-服务注册与依赖解析.md) · [06](06-事件系统与Waterfall.md) | [DSH 08 执行侧服务](../hello-dsh/08-执行侧服务-文件Shell沙箱子代理压缩.md) | [M06 · approval](../../dsh-example/M06-human-in-the-loop/README.md) · [M07 · side-effects](../../dsh-example/M07-execution-backends/README.md) · [M07 · sandbox](../../dsh-example/M07-execution-backends/README.md) |
-| 测试、速查与排障 | [09 速查](09-关键调用链速查.md) | [DSH 10 测试](../hello-dsh/10-测试与工程实践.md) · [11 速查](../hello-dsh/11-关键调用链速查.md) | [示例索引与批量运行](../../dsh-example/README.md) |
+| 定位与代码地图 | [01](01-overview-and-design-philosophy.md) · [02](02-code-structure-and-package-boundaries.md) | [DSH 01](../hello-dsh/01-overview.md) · [02](../hello-dsh/02-codebase-map.md) | [`cordis.yml`](../../dsh-example/cordis.yml) |
+| 生命周期与服务 | [03 Fiber](03-fiber-model.md) · [04 Context](04-context-and-reflect-proxy.md) · [05 Service](05-service-registration-and-dependency-resolution.md) | [DSH 03 Seam](../hello-dsh/03-capability-seams-and-services.md) · [05 启动](../hello-dsh/05-startup-and-cordis-runtime.md) | [M03 · adapter](../../dsh-example/M03-inference-service-access/README.md) · [M12 · timer](../../dsh-example/M12-framework-mechanisms/README.md) |
+| 事件与扩展 | [06 Events](06-event-system-and-waterfall.md) | [DSH 04 扩展](../hello-dsh/04-extensions-and-ecosystem.md) · [06 Agent](../hello-dsh/06-agent-loop-and-session-log.md) · [07 请求管线](../hello-dsh/07-request-pipeline-llm-tools-and-prompts.md) | [M04 · lifecycle](../../dsh-example/M04-agent-loop-intervention/README.md) · [M12 · dispatch](../../dsh-example/M12-framework-mechanisms/README.md) · [M03 · stream](../../dsh-example/M03-inference-service-access/README.md) |
+| 配置、装配与热更新 | [07 Loader](07-loader-and-configuration-tree.md) · [08 HMR](08-hmr.md) | [DSH 05 启动与 Cordis](../hello-dsh/05-startup-and-cordis-runtime.md) | [`cordis.yml`](../../dsh-example/cordis.yml) · [M12 · timer](../../dsh-example/M12-framework-mechanisms/README.md) |
+| 执行与安全边界 | [03](03-fiber-model.md) · [05](05-service-registration-and-dependency-resolution.md) · [06](06-event-system-and-waterfall.md) | [DSH 08 执行侧服务](../hello-dsh/08-execution-services.md) | [M06 · approval](../../dsh-example/M06-human-in-the-loop/README.md) · [M07 · side-effects](../../dsh-example/M07-execution-backends/README.md) · [M07 · sandbox](../../dsh-example/M07-execution-backends/README.md) |
+| 测试、速查与排障 | [09 速查](09-call-chain-reference.md) | [DSH 10 测试](../hello-dsh/10-testing-and-engineering.md) · [11 速查](../hello-dsh/11-call-chain-reference.md) | [示例索引与批量运行](../../dsh-example/README.md) |
 
 ## 七、Mermaid 配色图例
 
@@ -158,11 +159,11 @@ permalink: /docs/hello-cordis/
 | 约定 | 说明 |
 |---|---|
 | **路径缩写** | `C/` = `packages/core/src/`，`L/` = `packages/loader/src/`，`I/` = `packages/include/src/`，`H/` = `packages/hmr/src/` |
-| **行号** | `文件:行号` 对应快照 `8cc9e33f`，**已逐条比对源码核实**（个别边界如函数结束行可能 ±1）。上游演进后会整体偏移，建议以符号名检索；统一行号索引见 [09 § 9.3](09-关键调用链速查.md) |
+| **行号** | `文件:行号` 对应快照 `f8ea3cd5`，**已逐条比对源码核实**（个别边界如函数结束行可能 ±1）。上游演进后会整体偏移，建议以符号名检索；统一行号索引见 [09 § 9.3](09-call-chain-reference.md) |
 | **章节编号** | `N.M`，N 为篇号（如 § 3.4 在第 03 篇） |
 | **💡 提示块** | 点出反直觉事实、设计取舍、常见踩坑 |
 | **📐 配套示例块** | 该节对应的可跑示例（`dsh-example/`），用于对照发布包的实际契约 |
-| **测试 spec** | 「想确认什么 → 读哪个 spec」映射表统一在 [09 § 9.9](09-关键调用链速查.md) |
+| **测试 spec** | 「想确认什么 → 读哪个 spec」映射表统一在 [09 § 9.9](09-call-chain-reference.md) |
 | **导航行** | 每篇末尾有上/下篇链接 |
 | **⭐ 标记** | 全系列最核心的两篇（03、04） |
 
@@ -173,18 +174,18 @@ permalink: /docs/hello-cordis/
 | 层次 | 回答的问题 | 入口 |
 |---|---|---|
 | 官方 primer | API 怎么用、基础概念是什么 | [cordis-primer](https://deepseek-harness.github.io/deepseek-harness/reference/cordis-primer) |
-| 本文档集 | 机制如何落到 Fiber / Context / Service / Event 源码 | [01 项目概览](01-项目概览与设计哲学.md) |
+| 本文档集 | 机制如何落到 Fiber / Context / Service / Event 源码 | [01 项目概览](01-overview-and-design-philosophy.md) |
 | 配套示例 | 发布包里的实际契约怎么跑 | [`dsh-example`](../../dsh-example/README.md) |
 
-本文档集也是阅读 DSH 的地基层：先掌握 [03 Fiber](03-Fiber模型.md)、[04 Context](04-Context与Reflect代理.md)、[05 Service](05-服务注册与依赖解析.md)，再进入 [DeepSeek Harness 文档集](../hello-dsh/README.md)。
+本文档集也是阅读 DSH 的地基层：先掌握 [03 Fiber](03-fiber-model.md)、[04 Context](04-context-and-reflect-proxy.md)、[05 Service](05-service-registration-and-dependency-resolution.md)，再进入 [DeepSeek Harness 文档集](../hello-dsh/README.md)。
 
 ## 十、这套文档不做什么
 
 - **不替代官方 primer**。[cordis-primer](https://deepseek-harness.github.io/deepseek-harness/reference/cordis-primer) 讲"怎么用"；本系列讲"怎么实现的、为什么这样实现、代码在哪一行"。
-- **不覆盖 `create` 与 `logger-console`**。前者是脚手架（314 行），后者是日志导出器（137 行），都不涉及核心机制。`logger.ts` 的 246 行也只在 [02](02-代码结构与包边界.md) 略提。
+- **不覆盖 `create` 与 `logger-console`**。前者是脚手架（314 行），后者是日志导出器（137 行），都不涉及核心机制。`logger.ts` 的 246 行也只在 [02](02-code-structure-and-package-boundaries.md) 略提。
 - **不做性能基准**。文中提到的复杂度（如 `notify` 的 O(总 Fiber 数)）来自代码结构分析，不是实测。
 - **不追踪上游每日变化**。快照式分析，靠 § 一 的 commit 做增量复核。
 
 ---
 
-**开始阅读** → [01 项目概览与设计哲学](01-项目概览与设计哲学.md)
+**开始阅读** → [01 项目概览与设计哲学](01-overview-and-design-philosophy.md)

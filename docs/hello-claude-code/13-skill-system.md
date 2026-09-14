@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Skill 系统：Markdown 定义、命令总线注入与执行语义"
 ---
 # Skill 系统：Markdown 定义、命令总线注入与执行语义

@@ -1,0 +1,230 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "三层链路",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      550
+    ]
+  },
+  "components": [
+    {
+      "id": "Doc",
+      "type": "external",
+      "label": "projectdoc.rs",
+      "sublabel": "Config::userinstructions + AGENTS.md",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Prompt",
+      "type": "frontend",
+      "label": "buildprompt()",
+      "sublabel": "baseinstructions",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Hist",
+      "type": "database",
+      "label": "ContextManager",
+      "sublabel": "normalized history + referencecontex…",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Tools",
+      "type": "external",
+      "label": "ToolRouter",
+      "sublabel": "modelvisiblespecs()",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Model",
+      "type": "external",
+      "label": "ModelClientSession.stream()",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Parse",
+      "type": "messagebus",
+      "label": "streameventsutils.rs",
+      "sublabel": "parsememorycitation()",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Thread",
+      "type": "backend",
+      "label": "Thread",
+      "sublabel": "Turn · ThreadItem",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "MemoryJobs",
+      "type": "backend",
+      "label": "memories/start.rs",
+      "sublabel": "phase1 + phase2 startup jobs",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "MemoryFiles",
+      "type": "backend",
+      "label": "~/.codex/memories/",
+      "sublabel": "rawmemories.md · memorysummary.md",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "Doc",
+      "to": "Prompt",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Prompt",
+      "to": "Hist",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "Hist",
+      "to": "Tools",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "Tools",
+      "to": "Model",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "Model",
+      "to": "Parse",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "Thread",
+      "to": "MemoryJobs",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "MemoryJobs",
+      "to": "MemoryFiles",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "9 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 8 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "projectdoc.rs / Config::u… → buildprompt() / baseinstr…",
+        "ContextManager / normaliz… → buildprompt() / baseinstr…",
+        "ToolRouter / modelvisible… → buildprompt() / baseinstr…"
+      ]
+    }
+  ]
+}

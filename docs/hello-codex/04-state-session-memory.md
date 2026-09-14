@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Codex 的状态、会话与记忆系统"
 ---
 # Codex 的状态、会话与记忆系统
@@ -24,22 +23,13 @@ title: "Codex 的状态、会话与记忆系统"
 
 Codex 的状态、会话与记忆三个子系统形成一条完整的"输入到模型"链路：
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    DB["双 SQLite\nstate_5.sqlite\nlogs_2.sqlite"] --> TM["ThreadManager\nThread/Turn/ThreadItem"]
-    TM --> CM["ContextManager\n历史规范化 + token 估算"]
-    Doc["project_doc.rs\nConfig::user_instructions\n+ AGENTS.md"] --> BP["build_prompt()"]
-    CM --> BP
-    Tools["ToolRouter\nmodel_visible_specs()"] --> BP
-    BP --> Model["ModelClientSession\n.stream()"]
-    Model --> Mem["memories pipeline\nphase1 + phase2\n~/.codex/memories/"]
-    Mem --> DB
-```
+![概述](diagrams/04-state-session-memory-diagram-01.svg)
 
-- **状态管理**负责线程的创建、恢复、分叉与持久化，是整个系统的数据基础。
-- **上下文管理**决定每一轮请求中模型实际看到的历史与指令边界。
-- **记忆系统**从已落盘的 rollout 中异步提取长期知识，并通过 AGENTS.md 实现跨会话持久化。
+**概述** — [交互版](diagrams/04-state-session-memory-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-diagram-01.architecture.json)
+
+- **组成**：8 个节点
+- **关系**：源图 8 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：双 SQLite / state5.sqlite… → ThreadManager / Thread/Tu… · ThreadManager / Thread/Tu… → ContextManager / 历史规范… · projectdoc.rs / Config::u… → buildprompt()
 
 ---
 
@@ -51,14 +41,13 @@ flowchart LR
 
 Codex 的状态模型分为三层：Thread（线程）、Turn（回合）、ThreadItem（回合内容项）。这不是"当前 prompt"为中心的设计，而是"线程协议"为中心的设计。
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    T["Thread<br/>id, preview, model_provider<br/>status, cwd, source"]
-    TN["Turn<br/>id, status, error<br/>items: Vec&lt;ThreadItem&gt;"]
-    TI["ThreadItem<br/>UserMessage | AgentMessage<br/>CommandExecution | FileChange<br/>McpToolCall | Reasoning | Plan"]
-    T --> TN --> TI
-```
+![三层状态模型](diagrams/04-state-session-memory-diagram-02.svg)
+
+**三层状态模型** — [交互版](diagrams/04-state-session-memory-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-diagram-02.architecture.json)
+
+- **组成**：3 个节点
+- **关系**：源图 2 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：Thread / id, preview, mod… → Turn / id, status, error… · Turn / id, status, error… → ThreadItem / UserMessage…
 
 **Thread**（`v2.rs:3575-3612`）保存线程级元信息：
 
@@ -252,35 +241,13 @@ pub fn apply_rollout_item(
 
 **线程生命周期流转**：
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    participant C as Client
-    participant TM as ThreadManager
-    participant ST as spawn_thread()
-    participant RR as RolloutRecorder
-    participant DB as StateRuntime
+![Rollout 记录与回放](diagrams/04-state-session-memory-rollout.svg)
 
-    alt START
-        C->>TM: start_thread(config)
-        TM->>ST: spawn(InitialHistory::New)
-        ST->>RR: RolloutRecorder::new()
-        ST->>DB: persist_thread_metadata()
-    end
+**Rollout 记录与回放** — [交互版](diagrams/04-state-session-memory-rollout.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-rollout.sequence.json)
 
-    alt RESUME
-        C->>TM: resume_thread(params)
-        TM->>TM: 优先级: history > path > thread_id
-        TM->>RR: get_rollout_history()
-        TM->>ST: spawn(InitialHistory::Existing)
-    end
-
-    alt FORK
-        C->>TM: fork_thread(source, snapshot)
-        TM->>TM: ForkSnapshot 策略截断
-        TM->>ST: spawn(truncated_history)
-    end
-```
+- **组成**：5 个参与方
+- **关系**：源图 9 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：ThreadManager 自调用：优先级: history > path > threadid · ThreadManager 自调用：ForkSnapshot 策略截断 · 未上画布的调用：getrollouthistory()
 
 **ForkSnapshot 策略**（`thread_manager.rs:147-166`）：
 
@@ -328,18 +295,13 @@ pub struct ThreadMetadata {
 | 会话上下文层 | `sources/codex/codex-rs/core/src/context_manager/history.rs` | 维护模型可见历史、做规范化、估算 token、处理 compaction 与 rollback 基线 |
 | 轻量记忆层 | `sources/codex/codex-rs/core/src/memories/*` | 从 rollout 抽取 raw memories、做两阶段 consolidation，并把 memory citation 写回线程结果 |
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    Doc["project_doc.rs<br/>Config::user_instructions + AGENTS.md"] --> Prompt["build_prompt()<br/>base_instructions"]
-    Hist["ContextManager<br/>normalized history + reference_context_item"] --> Prompt
-    Tools["ToolRouter<br/>model_visible_specs()"] --> Prompt
-    Prompt --> Model["ModelClientSession.stream()"]
-    Model --> Parse["stream_events_utils.rs<br/>parse_memory_citation()"]
-    Parse --> Thread["Thread / Turn / ThreadItem"]
-    Thread --> MemoryJobs["memories/start.rs<br/>phase1 + phase2 startup jobs"]
-    MemoryJobs --> MemoryFiles["~/.codex/memories/<br/>raw_memories.md / memory_summary.md"]
-```
+![三层链路](diagrams/04-state-session-memory-diagram-04.svg)
+
+**三层链路** — [交互版](diagrams/04-state-session-memory-diagram-04.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-diagram-04.architecture.json)
+
+- **组成**：9 个节点
+- **关系**：源图 8 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：projectdoc.rs / Config::u… → buildprompt() / baseinstr… · ContextManager / normaliz… → buildprompt() / baseinstr… · ToolRouter / modelvisible… → buildprompt() / baseinstr…
 
 #### build_prompt() 的四类输入收束
 
@@ -413,15 +375,13 @@ pub async fn extract_memories(rollout: &[ThreadItem]) -> Vec<RawMemory> {
 
 **两阶段 Consolidation 流程**：
 
-```
-新会话 memories
-    ↓ 阶段一：去重与合并
-合并后的 memories
-    ↓ 阶段二：重要性评分与筛选
-精简 memory 列表
-    ↓ 注入当前 Prompt
-模型可见的 memory 上下文
-```
+![会话内记忆管道](diagrams/04-state-session-memory-diagram.svg)
+
+**会话内记忆管道** — [交互版](diagrams/04-state-session-memory-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-diagram.architecture.json)
+
+- **组成**：7 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：新会话 memories · 末节点：模型可见的 memory 上下文
 
 ```rust
 // codex-rs/core/src/memories/consolidator.rs

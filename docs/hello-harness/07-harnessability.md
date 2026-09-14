@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "07 - 可驾驭性"
+title: "可驾驭性对比"
 ---
 # 可驾驭性对比
 
@@ -36,7 +35,7 @@ Rust 的 Ambient Affordance 是此次对比中最强的：
 
 ### OpenCode
 
-`sources/opencode/packages/opencode/src/permission/index.ts:14` 的 `import z from "zod"` 表明 OpenCode 选择了运行时验证而非编译期验证。Zod 的 Ambient Affordance 是运行时的——它在数据实际传入时才检测不合规，而不是在代码编写时。Effect-ts 的类型系统提供了一定的编译期保证，但总体上，OpenCode 的 Ambient Affordance 强度处于运行时验证的水平。
+`sources/opencode/packages/core/src/permission.ts` 的 `import z from "zod"` 表明 OpenCode 选择了运行时验证而非编译期验证。Effect Schema 的 Ambient Affordance 是运行时的——它在数据实际传入时才检测不合规，而不是在代码编写时。Effect-ts 的类型系统提供了一定的编译期保证，但总体上，OpenCode 的 Ambient Affordance 强度处于运行时验证的水平。
 
 ---
 
@@ -70,7 +69,7 @@ pub mod codex_message_processor;
 
 ### OpenCode
 
-`sources/opencode/packages/opencode/src/permission/index.ts:138` 的 Effect Layer 定义：
+`sources/opencode/packages/core/src/permission.ts` 的 Effect Layer 定义：
 
 ```typescript
 export class Service extends ServiceMap.Service<Service, Interface>()("@opencode/Permission") {}
@@ -154,7 +153,7 @@ Ashby 定律在工程实践里有一个推论：**有意识地约束操作空间
 
 | 维度 | Claude Code | Codex | Gemini CLI | OpenCode |
 | :------| :-------------| :-------| :------------| :----------|
-| 隐式传感器强度 | **1** — 类型系统因反编译失效，归零 | **5** — Rust borrow checker，编译期内存安全 | **3** — TypeScript 中等严格度，有效但可逃逸 | **2** — Zod 运行时验证，非编译期 |
+| 隐式传感器强度 | **1** — 类型系统因反编译失效，归零 | **5** — Rust borrow checker，编译期内存安全 | **3** — TypeScript 中等严格度，有效但可逃逸 | **2** — Effect Schema 运行时验证，非编译期 |
 | 模块边界执行 | **1** — 仅目录约定，无机械执行 | **5** — Rust crate 边界，编译期强制 | **2** — TypeScript export + 注册表，可逃逸 | **4** — Effect Layer 强制依赖注入，运行时执行 |
 | Template 潜力 | **3** — Snippet 机制存在，但 feature flag 体系失效 | **5** — 丰富模板目录，添加功能只需加文件 | **4** — Snippet 函数组合，可独立测试 | **1** — 无模板系统，每个控制点需从零建立 |
 | 拓扑承诺程度 | **3** — 工具 Allowlist 有效约束行为空间 | **4** — Policy 四变体 + execpolicy 双层约束 | **3** — 模式切换 + 模型约束 | **2** — 配置 Schema 间接约束，无系统性工具约束 |

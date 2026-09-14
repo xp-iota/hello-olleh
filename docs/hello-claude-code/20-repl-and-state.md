@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "REPL 与状态管理"
 ---
 # REPL 与状态管理
@@ -59,20 +58,13 @@ title: "REPL 与状态管理"
 
 整体装配大致如下：
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[launchRepl] --> B[App]
-    B --> C[FpsMetricsProvider]
-    C --> D[StatsProvider]
-    D --> E[AppStateProvider]
-    E --> F[MailboxProvider]
-    F --> G[VoiceProvider]
-    G --> H[REPL]
-```
+![最外层组件树](diagrams/20-repl-and-state-diagram.svg)
+
+**最外层组件树** — [交互版](diagrams/20-repl-and-state-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/20-repl-and-state-diagram.architecture.json)
+
+- **组成**：8 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：launchRepl → App · App → FpsMetricsProvider · FpsMetricsProvider → StatsProvider
 
 ### 2.1 `App.tsx` 的作用
 
@@ -374,26 +366,13 @@ REPL 可以接受：
 
 ## 15. 一次完整交互在 REPL 中的流动图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[PromptInput 回车] --> B[REPL.onSubmit]
-    B --> C[awaitPendingHooks]
-    C --> D[handlePromptSubmit]
-    D --> E[processUserInput / processSlashCommand]
-    E --> F{shouldQuery?}
-    F -- 否 --> G[本地命令/UI更新]
-    F -- 是 --> H[onQueryImpl]
-    H --> I[getToolUseContext]
-    I --> J[加载 system/user/system context]
-    J --> K[buildEffectiveSystemPrompt]
-    K --> L["query()"]
-    L --> M[onQueryEvent]
-    M --> N[setMessages / setStreamingState]
-```
+![一次完整交互在 REPL 中的流动图](diagrams/20-repl-and-state-repl.svg)
+
+**一次完整交互在 REPL 中的流动图** — [交互版](diagrams/20-repl-and-state-repl.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/20-repl-and-state-repl.architecture.json)
+
+- **组成**：14 个节点
+- **关系**：源图 13 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：PromptInput 回车 → REPL.onSubmit · REPL.onSubmit → awaitPendingHooks · awaitPendingHooks → handlePromptSubmit
 
 ## 16. REPL 上还挂着几套容易被低估的前台子系统
 

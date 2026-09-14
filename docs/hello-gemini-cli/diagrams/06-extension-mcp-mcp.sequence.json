@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "MCP 工具执行流",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "LLM",
+      "type": "external",
+      "label": "模型"
+    },
+    {
+      "id": "Reg",
+      "type": "backend",
+      "label": "ToolRegistry",
+      "sublabel": "getFunctionDeclarations()"
+    },
+    {
+      "id": "MCP",
+      "type": "external",
+      "label": "McpClient",
+      "sublabel": "DiscoveredMCPTool · callTool() @…"
+    },
+    {
+      "id": "Srv",
+      "type": "cloud",
+      "label": "MCP Server",
+      "sublabel": "JSON-RPC tools/call"
+    },
+    {
+      "id": "Srv-",
+      "type": "backend",
+      "label": "Srv-"
+    },
+    {
+      "id": "MCP-",
+      "type": "cloud",
+      "label": "MCP-"
+    },
+    {
+      "id": "Reg-",
+      "type": "backend",
+      "label": "Reg-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "LLM",
+      "to": "Reg",
+      "y": 180,
+      "label": "发起 MCP 工具调用",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "Reg",
+      "to": "MCP",
+      "y": 225,
+      "label": "callTool(name, args)",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "MCP",
+      "to": "Srv",
+      "y": 270,
+      "label": "JSON-RPC: tools/call",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "Srv-",
+      "to": "MCP",
+      "y": 315,
+      "label": "工具执行结果",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "MCP-",
+      "to": "Reg",
+      "y": 360,
+      "label": "包装为 FunctionResponse",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "7 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 6 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "未上画布的调用：回传给模型"
+      ]
+    }
+  ]
+}

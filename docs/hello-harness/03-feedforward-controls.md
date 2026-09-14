@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "03 - 前馈控制"
+title: "前馈控制横向对比"
 ---
 # 前馈控制横向对比
 
@@ -34,9 +33,9 @@ Rust 类型系统作为前馈控制的有效性是毋庸置疑的：如果一段
 
 #### OpenCode
 
-OpenCode 使用 Zod 进行运行时验证，见 `sources/opencode/packages/opencode/src/permission/index.ts:19-24`。Zod 的关键区别在于：它是**运行时**验证，不是编译期验证。这意味着类型不合法的数据在被 Zod 检测到之前，仍然可以在代码里流动。Effect-ts 的类型系统提供了一定的编译期保证，但 `z.record(z.string(), z.any())` 这类宽松 schema 在实践中削弱了严格性。
+OpenCode 使用 Effect Schema 进行运行时验证，见 `sources/opencode/packages/core/src/permission.ts`。Effect Schema 的关键区别在于：它是**运行时**验证，不是编译期验证。这意味着类型不合法的数据在被 Effect Schema 检测到之前，仍然可以在代码里流动。Effect-ts 的类型系统提供了一定的编译期保证，但 `z.record(z.string(), z.any())` 这类宽松 schema 在实践中削弱了严格性。
 
-**横向对比**：类型系统严格度排序为 Codex（Rust，编译期保证）> Gemini CLI（TypeScript，中等）≈ OpenCode（Zod，运行时）>> Claude Code（TypeScript 失效，~1341 错误）。这个排序向后渗透：越靠前的工程，harness 代码的维护摩擦越低。
+**横向对比**：类型系统严格度排序为 Codex（Rust，编译期保证）> Gemini CLI（TypeScript，中等）≈ OpenCode（Effect Schema，运行时）>> Claude Code（TypeScript 失效，~1341 错误）。这个排序向后渗透：越靠前的工程，harness 代码的维护摩擦越低。
 
 ### Linter 配置
 
@@ -87,7 +86,7 @@ export const ASYNC_AGENT_ALLOWED_TOOLS = new Set([
 
 #### OpenCode
 
-`sources/opencode/packages/opencode/src/permission/index.ts:292-307` 的 `Permission.disabled()` 函数静态分析工具列表，是 OpenCode 里最接近机械执行的架构约束，但粒度限于工具级，不覆盖模块服务依赖。
+`sources/opencode/packages/core/src/permission.ts` 的 `Permission.disabled()` 函数静态分析工具列表，是 OpenCode 里最接近机械执行的架构约束，但粒度限于工具级，不覆盖模块服务依赖。
 
 ---
 
@@ -105,7 +104,7 @@ Skill 是推断型前馈的核心载体：它告诉 Agent"遇到这类任务要�
 
 **Gemini CLI**：`activate-skill.ts` 的 `ActivateSkillTool` 把 Skill 建模为"Agent 可主动激活的工具"，而不是"隐式注入的上下文"（`snippets.ts:107-115`）。这要求 Agent 先识别需要哪个 Skill 再调用 `ActivateSkillTool`，增加了一层推断，但也让 Skill 的使用在对话记录里更可见、可审计。
 
-**OpenCode**：`skill/index.ts:1-262` 是四个工程里最完整的 Skill 系统实现：Zod Schema 验证结构合法性，glob 目录扫描支持多种约定路径，URL 远程拉取支持跨仓库 Skill 共享，且有失效回退逻辑（`add()` 函数里的 try-catch）。URL pull 是特别值得注意的能力：它允许团队把 Skill 库独立维护在另一个仓库，实现 Skill 版本化和跨项目复用。
+**OpenCode**：`skill/index.ts:1-262` 是四个工程里最完整的 Skill 系统实现：Effect Schema 验证结构合法性，glob 目录扫描支持多种约定路径，URL 远程拉取支持跨仓库 Skill 共享，且有失效回退逻辑（`add()` 函数里的 try-catch）。URL pull 是特别值得注意的能力：它允许团队把 Skill 库独立维护在另一个仓库，实现 Skill 版本化和跨项目复用。
 
 ### AGENTS.md 的 ToC vs 百科全书结构
 
@@ -117,7 +116,7 @@ Skill 是推断型前馈的核心载体：它告诉 Agent"遇到这类任务要�
 
 **Gemini CLI**：`snippets.ts` 的 Snippet 函数组合是更激进的 ToC 结构：每个主题是独立的函数，有独立参数类型。不同主题的规则在代码层面完全隔离，可以独立修改和测试。这是"把 prompt 当代码"的极致实现。
 
-**OpenCode**：Skill 文件有强制的 frontmatter 结构（由 Zod Schema 验证），保证了基本格式一致性。但 Skill 文件内容结构没有约定，工程师仍然可以写成散文格式。
+**OpenCode**：Skill 文件有强制的 frontmatter 结构（由 Effect Schema 验证），保证了基本格式一致性。但 Skill 文件内容结构没有约定，工程师仍然可以写成散文格式。
 
 ### 文档即规约的完备程度
 
@@ -129,7 +128,7 @@ Skill 是推断型前馈的核心载体：它告诉 Agent"遇到这类任务要�
 
 **Gemini CLI**：`snippets.ts:188-191` 的关键权衡注释（`// ⚠️ IMPORTANT: the Context Efficiency changes strike a delicate balance...`）解释了为什么这段代码必须保持现状，以及改动的前置条件。这是部分规约——覆盖了"为什么"，但没有专门的规约文档。
 
-**OpenCode**：`permission/index.ts` 的 Zod Schema 和类型定义把规约写进了代码里，避免了文档和代码不同步的问题。但对不熟悉 Effect-ts 的工程师来说，读代码比读文档更难快速理解规约的全貌。
+**OpenCode**：`permission/index.ts` 的 Effect Schema 和类型定义把规约写进了代码里，避免了文档和代码不同步的问题。但对不熟悉 Effect-ts 的工程师来说，读代码比读文档更难快速理解规约的全貌。
 
 ---
 
@@ -140,6 +139,6 @@ Skill 是推断型前馈的核心载体：它告诉 Agent"遇到这类任务要�
 | Claude Code | **3** — 分层文件体系完整，但类型系统失效，百科全书结构削弱规约清晰度 | **3** — Feature flag + 工具 Allowlist，但 feature() 始终 false | **2** — VerifyPlanExecutionTool 存在但 feature-flagged |
 | Codex | **4** — Rust 类型 + Clippy + AGENTS.md 规范完备 | **4** — Approval policy + Exec policy 双层机械执行 | **4** — 两阶段记忆管道 + outcome 标签实现持续行为约束 |
 | Gemini CLI | **4** — vitest + 29+ eval 文件全覆盖 | **3** — Snippet 函数边界清晰，但无跨模块机械执行约束 | **3** — Hook System 提供生命周期约束 |
-| OpenCode | **3** — Effect-ts + Zod 结构验证 | **3** — Effect Layer 强制依赖注入，Permission Schema 清晰 | **3** — Permission 即代码，但无持续漂移检测 |
+| OpenCode | **3** — Effect-ts + Effect Schema 结构验证 | **3** — Effect Layer 强制依赖注入，Permission Schema 清晰 | **3** — Permission 即代码，但无持续漂移检测 |
 
 **核心发现**：前馈机制的有效性上限由[控制平面](./02-control-plane.md)的显式度决定。Codex 控制平面最透明，四个前馈维度都有实质性实现；Claude Code 控制平面的 feature flag 体系因反编译失效，直接导致 Behaviour 维度的前馈评分最低。接下来的[反馈控制](./04-feedback-controls.md)，关注的是当前馈防线被穿透之后，工程如何发现和纠正。

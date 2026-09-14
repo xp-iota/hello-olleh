@@ -1,8 +1,7 @@
 ---
-layout: content
 title: "query() 主循环与请求构造"
 ---
-# `query()` 主循环与请求构造
+# query() 主循环与请求构造
 
 本篇将 `query()` 视为多轮状态机来拆解，覆盖请求前上下文治理、流式模型调用、工具回流与错误恢复。
 
@@ -56,21 +55,13 @@ title: "query() 主循环与请求构造"
 
 下图展示“**从用户输入到终端渲染**”的调用链；这一视角与后文 `queryLoop()` 的内部状态机不同。
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["User Input<br/>用户输入<br/>REPL.onSubmit"] --> B["Message Parse<br/>消息解析<br/>handlePromptSubmit / processUserInput"]
-    B --> C["Context Assembly<br/>上下文组装<br/>onQueryImpl -> query() -> queryLoop"]
-    C --> D["API Client (Streaming)<br/>API 调用<br/>deps.callModel -> services/api/claude.ts"]
-    D --> E["Tool Detection<br/>工具检测<br/>stream 中解析 tool_use"]
-    E --> F["Permission Check<br/>权限校验<br/>runToolUse -> checkPermissionsAndCallTool"]
-    F --> G["Tool Execute<br/>工具执行<br/>StreamingToolExecutor / runTools / tool.call"]
-    G --> H["Ink Render<br/>终端渲染<br/>REPL state -> Messages -> Ink"]
-    G -. "tool_result 回写<br/>Multi-turn 多轮" .-> D
-```
+![请求生命周期调用链示意图](diagrams/03-agent-loop-diagram.svg)
+
+**请求生命周期调用链示意图** — [交互版](diagrams/03-agent-loop-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-diagram.architecture.json)
+
+- **组成**：8 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：User Input / 用户输入 / R… → Message Parse / 消息解析… · Message Parse / 消息解析… → Context Assembly / 上下文… · Context Assembly / 上下文… → API Client (Streaming)…
 
 补充说明如下：
 
@@ -79,27 +70,13 @@ flowchart LR
 
 ### 2.2 `query()` 内部状态机图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["query(params)"] --> B[queryLoop]
-    B --> C[截取 compact boundary 后消息]
-    C --> D[tool result budget]
-    D --> E[snip]
-    E --> F[microcompact]
-    F --> G[context collapse]
-    G --> H[autocompact]
-    H --> I[build full system prompt]
-    I --> J[callModel / services/api/claude.ts]
-    J --> K{流中是否出现 tool_use}
-    K -- 否 --> L[stop hooks / token budget / 结束]
-    K -- 是 --> M[runTools / StreamingToolExecutor]
-    M --> N[tool_result 回写消息]
-    N --> B
-```
+![query() 内部状态机图](diagrams/03-agent-loop-query.svg)
+
+**query() 内部状态机图** — [交互版](diagrams/03-agent-loop-query.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-query.architecture.json)
+
+- **组成**：14 个节点
+- **关系**：源图 14 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：query(params) → queryLoop · queryLoop → 截取 compact boundary 后… · 截取 compact boundary 后… → tool result budget
 
 ## 3. `query()` 与 `queryLoop()` 的关系
 

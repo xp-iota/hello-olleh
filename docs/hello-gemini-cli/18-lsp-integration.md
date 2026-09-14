@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "LSP 集成：代码理解能力的现状与设计取向"
 ---
 # LSP 集成：代码理解能力的现状与设计取向
@@ -33,12 +32,13 @@ title: "LSP 集成：代码理解能力的现状与设计取向"
 
 Gemini CLI 通过以下内置工具组合来弥补缺少 LSP 的不足：
 
-```
-read_file          → 读取源码文件
-grep_search        → 模式搜索（符号、引用）
-list_directory     → 目录结构探索
-run_shell_command  → 执行编译/测试命令获取语言服务器输出
-```
+![工具层面的代码理解](diagrams/18-lsp-integration-diagram.svg)
+
+**工具层面的代码理解** — [交互版](diagrams/18-lsp-integration-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/18-lsp-integration-diagram.architecture.json)
+
+- **组成**：8 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：readfile · 末节点：执行编译/测试命令获取语言服务…
 
 对于需要 LSP 级别信息的场景（如"找出所有 Foo 类的子类"），Gemini CLI 会让模型生成一个 `grep_search` 或 `run_shell_command`（调用 `jq`/语言 CLI 工具）来间接获取。
 
@@ -46,32 +46,33 @@ run_shell_command  → 执行编译/测试命令获取语言服务器输出
 
 ### Claude Code（LSP 原生集成）
 
-```
-claude-code lsp-integration
-├── 启动 LSP 服务器进程
-├── 注册 document/open, definition, references 等能力
-├── 获取精确跳转位置（go-to-definition）
-└── 获取实时诊断（错误/警告）
-```
+![Claude Code（LSP 原生集成）](diagrams/18-lsp-integration-claude-code-lsp.svg)
+
+**Claude Code（LSP 原生集成）** — [交互版](diagrams/18-lsp-integration-claude-code-lsp.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/18-lsp-integration-claude-code-lsp.architecture.json)
+
+- **组成**：5 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：claude-code lsp-integration · 末节点：获取实时诊断（错误/警告）
 
 ### OpenCode（LSP 原生集成）
 
-```
-opencode lsp
-├── LSP 客户端（src/lsp/）
-├── 多语言服务器管理
-├── diagnostics → tool call context
-└── 符号索引供 Agent 查询
-```
+![OpenCode（LSP 原生集成）](diagrams/18-lsp-integration-opencode-lsp.svg)
+
+**OpenCode（LSP 原生集成）** — [交互版](diagrams/18-lsp-integration-opencode-lsp.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/18-lsp-integration-opencode-lsp.architecture.json)
+
+- **组成**：6 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：opencode lsp · 末节点：符号索引供 Agent 查询
 
 ### Gemini CLI（工具组合模拟）
 
-```
-gemini-cli
-├── grep_search（符号搜索替代）
-├── read_file（内容理解替代）
-└── 模型语义理解（类型/结构推断替代）
-```
+![Gemini CLI（工具组合模拟）](diagrams/18-lsp-integration-gemini-cli.svg)
+
+**Gemini CLI（工具组合模拟）** — [交互版](diagrams/18-lsp-integration-gemini-cli.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/18-lsp-integration-gemini-cli.architecture.json)
+
+- **组成**：4 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：gemini-cli · 末节点：模型语义理解（类型/结构推断替…
 
 ## 4. MCP 作为桥接路径
 

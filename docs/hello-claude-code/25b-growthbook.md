@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Claude Code 的 GrowthBook 远程配置门控系统"
 ---
 # Claude Code 的 GrowthBook 远程配置门控系统
@@ -20,32 +19,13 @@ Claude Code 使用 **GrowthBook** 作为远程 feature flag 平台，通过 `ten
 
 ## 1. 系统架构总览
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart TD
-    subgraph Server["GrowthBook Server<br/>api.anthropic.com"]
-        GB["Feature Definitions<br/>+ Experiment Rules"]
-    end
+![系统架构总览](diagrams/25b-growthbook-diagram-01.svg)
 
-    subgraph Client["Claude Code Client"]
-        GBClient["GrowthBook SDK Client<br/>growthbook.ts"]
-        Disk["~/.claude.json<br/>cachedGrowthBookFeatures"]
-        Subscribers["onGrowthBookRefresh<br/>subscribers"]
-    end
+**系统架构总览** — [交互版](diagrams/25b-growthbook-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/25b-growthbook-diagram-01.architecture.json)
 
-    subgraph Reads["读取路径"]
-        C1["getFeatureValue_CACHED_MAY_BE_STALE()"]
-        C2["checkGate_CACHED_OR_BLOCKING()"]
-        C3["checkSecurityRestrictionGate()"]
-    end
-
-    GB -->|"remoteEval<br/>HTTPS 5s timeout"| GBClient
-    GBClient -->|"syncRemoteEvalToDisk()"| Disk
-    Disk -->|"disk cache"| C1
-    GBClient -->|"in-memory"| C1
-    GBClient -->|"refresh() every 20min/6h"| GBClient
-    GBClient --> Subscribers
-```
+- **组成**：10 个节点
+- **关系**：源图 5 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：Feature Definitions / + E… → GrowthBook SDK Client / g…（remoteEval / HTTPS 5s t… · GrowthBook SDK Client / g… → ~/.claude.json / cachedGr…（syncRemoteEvalToDisk()） · ~/.claude.json / cachedGr… → getFeatureValueCACHEDMAYB…（disk cache）
 
 ### 核心文件
 
@@ -200,14 +180,13 @@ Claude Code 正在从 Statsig 迁移到 GrowthBook，此函数在过渡期内提
 
 ## 4. 覆盖机制：三层优先级
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart TD
-    A["1. CLAUDE_INTERNAL_FC_OVERRIDES<br/>环境变量（最优先）"] --> B["2. growthBookOverrides<br/>Ant 用户 /config Gates 页面"]
-    B --> C["3. GrowthBook Server<br/>remoteEval（网络）"]
-    C --> D["4. 磁盘缓存<br/>~/.claude.json"]
-    D --> E["5. defaultValue<br/>代码默认值（兜底）"]
-```
+![覆盖机制：三层优先级](diagrams/25b-growthbook-diagram-02.svg)
+
+**覆盖机制：三层优先级** — [交互版](diagrams/25b-growthbook-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/25b-growthbook-diagram-02.architecture.json)
+
+- **组成**：5 个节点
+- **关系**：源图 4 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：1. CLAUDEINTERNALFCOVERRI… → 2. growthBookOverrides… · 2. growthBookOverrides… → 3. GrowthBook Server / re… · 3. GrowthBook Server / re… → 4. 磁盘缓存 / ~/.claude.j…
 
 ### 4.1 环境变量覆盖（ANT 用户）
 
@@ -259,23 +238,13 @@ export function onGrowthBookRefresh(listener: GrowthBookRefreshListener): () => 
 
 ### 5.1 Init 流程
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    participant App as App (main.tsx)
-    participant GB as GrowthBook SDK
-    participant Server as api.anthropic.com
-    participant Disk as ~/.claude.json
+![Init 流程](diagrams/25b-growthbook-init.svg)
 
-    App->>GB: new GrowthBook({ attributes, remoteEval })
-    App->>GB: init({ timeout: 5000 })
-    GB->>Server: GET /sdk/features (含 auth headers)
-    Server-->>GB: { features: {...}, experiments: {...} }
-    GB->>GB: processRemoteEvalPayload()
-    GB->>GB: transform {value} → {defaultValue}
-    GB->>Disk: syncRemoteEvalToDisk()
-    GB->>Subscribers: refreshed.emit()
-```
+**Init 流程** — [交互版](diagrams/25b-growthbook-init.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/25b-growthbook-init.sequence.json)
+
+- **组成**：6 个参与方
+- **关系**：源图 6 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：GrowthBook SDK 自调用：processRemoteEvalPayload() · GrowthBook SDK 自调用：transform {value} → {defaultValue · 未上画布的调用：refreshed.emit()
 
 ### 5.2 定期刷新
 

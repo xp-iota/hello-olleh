@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "这条链的收束点不在 CLI，而在统一线程参数",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      550
+    ]
+  },
+  "components": [
+    {
+      "id": "CLI",
+      "type": "backend",
+      "label": "cli/src/main.rs",
+      "sublabel": "root flags + subcommand flags",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Config",
+      "type": "backend",
+      "label": "config/mod.rs",
+      "sublabel": "load + resolve",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Params",
+      "type": "backend",
+      "label": "ThreadStart",
+      "sublabel": "Resume · Fork Params",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "TM",
+      "type": "backend",
+      "label": "ThreadManager",
+      "sublabel": "startthread · resumethread · forkthre…",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Spawn",
+      "type": "backend",
+      "label": "spawnthread()",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Turn",
+      "type": "external",
+      "label": "TurnContext",
+      "sublabel": "approvalpolicy + sandbox + model + cwd",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Exec",
+      "type": "backend",
+      "label": "exec.rs",
+      "sublabel": "tools::orchestrator",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Sandbox",
+      "type": "database",
+      "label": "SandboxManager.selectinitial()",
+      "sublabel": "transform()",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "CLI",
+      "to": "Config",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Config",
+      "to": "Params",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "Params",
+      "to": "TM",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "TM",
+      "to": "Spawn",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "Spawn",
+      "to": "Turn",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "Exec",
+      "to": "Sandbox",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "8 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 7 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "cli/src/main.rs / root fl… → config/mod.rs / load + re…",
+        "config/mod.rs / load + re… → ThreadStart / Resume / Fo…",
+        "ThreadStart / Resume / Fo… → ThreadManager / startthre…"
+      ]
+    }
+  ]
+}

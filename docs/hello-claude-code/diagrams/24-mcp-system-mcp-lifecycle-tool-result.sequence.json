@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "MCP 调用链：Lifecycle 到 Tool Result",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1580,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "Config",
+      "type": "backend",
+      "label": "Settings",
+      "sublabel": "Plugin · SDK control"
+    },
+    {
+      "id": "Hub",
+      "type": "cloud",
+      "label": "McpHub",
+      "sublabel": "reconciliation"
+    },
+    {
+      "id": "Auth",
+      "type": "security",
+      "label": "OAuth",
+      "sublabel": "XAA"
+    },
+    {
+      "id": "Perm",
+      "type": "security",
+      "label": "Permission rules"
+    },
+    {
+      "id": "Tool",
+      "type": "cloud",
+      "label": "MCP tool call"
+    },
+    {
+      "id": "Loop",
+      "type": "backend",
+      "label": "queryLoop tool resu…"
+    },
+    {
+      "id": "Perm-",
+      "type": "backend",
+      "label": "Perm-"
+    },
+    {
+      "id": "Tool-",
+      "type": "backend",
+      "label": "Tool-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "Config",
+      "to": "Hub",
+      "y": 180,
+      "label": "register or reconcile MCP server",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "Hub",
+      "to": "Auth",
+      "y": 225,
+      "label": "resolve credential when remote auth is required",
+      "variant": "security"
+    },
+    {
+      "id": "message3",
+      "from": "Loop",
+      "to": "Perm",
+      "y": 270,
+      "label": "match MCP permission rule before execution",
+      "variant": "security"
+    },
+    {
+      "id": "message4",
+      "from": "Perm-",
+      "to": "Loop",
+      "y": 315,
+      "label": "allow / deny / ask",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "Loop",
+      "to": "Tool",
+      "y": 360,
+      "label": "callTool(name, input)",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "8 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 6 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "McpHub / reconciliation 自调用：discover tools/resources/prompts",
+        "未上画布的调用：tool result or tool error"
+      ]
+    }
+  ]
+}

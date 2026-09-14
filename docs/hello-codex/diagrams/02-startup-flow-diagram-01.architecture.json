@@ -1,0 +1,374 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "总体流程图",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      690
+    ]
+  },
+  "components": [
+    {
+      "id": "JS",
+      "type": "backend",
+      "label": "2] 平台检测",
+      "sublabel": "二进制定位 · PATH 补丁",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "SP",
+      "type": "backend",
+      "label": "3] spawn(binaryPath, argv, env, stdio)",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "TUI",
+      "type": "frontend",
+      "label": "7] 无子命令 -> TUI 路径",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "TUIRUN",
+      "type": "frontend",
+      "label": "7.2/7.3] tui::runmain()",
+      "sublabel": "runratatuiapp()",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "EXEC",
+      "type": "frontend",
+      "label": "8] exec",
+      "sublabel": "review -> 非交互路径",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "EXEC2",
+      "type": "messagebus",
+      "label": "8] 内嵌 app-server -> JSON 事件流输出",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "APP",
+      "type": "cloud",
+      "label": "9] app-server -> 服务路径",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "APP2",
+      "type": "backend",
+      "label": "9] stdio",
+      "sublabel": "WebSocket -> JSON-RPC 循环",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "U",
+      "type": "external",
+      "label": "用户在 shell 中执行 codex ...",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "OS",
+      "type": "backend",
+      "label": "4] OS 创建 Rust 子进程并装载原生二进制",
+      "pos": [
+        1083,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "M",
+      "type": "backend",
+      "label": "5] main()",
+      "pos": [
+        1429,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "A0",
+      "type": "backend",
+      "label": "6] arg0dispatchorelse()",
+      "sublabel": ".env · PATH alias · Tokio",
+      "pos": [
+        1775,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "CLI",
+      "type": "backend",
+      "label": "6.1/6.3] MultitoolCli 解析与分支决策",
+      "pos": [
+        45,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "APPLOOP",
+      "type": "messagebus",
+      "label": "7.4] App::run()",
+      "sublabel": "bootstrap · 事件主循环",
+      "pos": [
+        391,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "JSFILE",
+      "type": "backend",
+      "label": "codex-cli/bin/codex.js",
+      "pos": [
+        737,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "CLIFILE",
+      "type": "backend",
+      "label": "codex-rs/cli/src/main.rs",
+      "pos": [
+        1083,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "JS",
+      "to": "SP",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "SP",
+      "to": "TUI",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "TUI",
+      "to": "TUIRUN",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "TUIRUN",
+      "to": "EXEC",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "EXEC",
+      "to": "EXEC2",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "APP",
+      "to": "APP2",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "APP2",
+      "to": "U",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge8",
+      "from": "U",
+      "to": "OS",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge9",
+      "from": "OS",
+      "to": "M",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge10",
+      "from": "M",
+      "to": "A0",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge11",
+      "from": "CLI",
+      "to": "APPLOOP",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge12",
+      "from": "APPLOOP",
+      "to": "JSFILE",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge13",
+      "from": "JSFILE",
+      "to": "CLIFILE",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "画布 16 个节点",
+        "源图共 21 个节点，其余见正文"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 13 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "2] 平台检测 / 二进制定位… → 3] spawn(binaryPath, argv…",
+        "7] 无子命令 -> TUI 路径 → 7.2/7.3] tui::runmain()…",
+        "8] exec / review -> 非交… → 8] 内嵌 app-server -> JSO…"
+      ]
+    }
+  ]
+}

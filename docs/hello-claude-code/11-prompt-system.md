@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Claude Code 的提示词系统"
 ---
 # Claude Code 的提示词系统
@@ -213,32 +212,13 @@ Claude Code 的真正“上下文前缀”不是单一 system prompt，而是：
 
 如果以用户输入“修复一个失败测试”为例，Claude Code 的 prompt 不是在一个节点完成拼接，而是在请求流中多次改变模型可见输入：
 
-```mermaid
-sequenceDiagram
-    participant UI as REPL/Print/SDK
-    participant QE as QueryEngine
-    participant Q as queryLoop()
-    participant Ctx as context/queryContext
-    participant API as services/api/claude.ts
-    participant Model as Anthropic API
-    participant Tools as Tool runtime
+![一次请求流中的提示词作用点](diagrams/11-prompt-system-diagram.svg)
 
-    UI->>QE: prompt / slash command / SDK command
-    QE->>QE: processUserInput()
-    QE->>Ctx: fetchSystemPromptParts()
-    Ctx-->>QE: defaultSystemPrompt + userContext + systemContext
-    QE->>Q: messages + systemPrompt + toolUseContext
-    Q->>Q: getMessagesAfterCompactBoundary()
-    Q->>Q: appendSystemContext(systemPrompt, systemContext)
-    Q->>Q: prependUserContext(messages, userContext)
-    Q->>API: callModel(messages, fullSystemPrompt, tools)
-    API->>API: normalize messages, build system blocks, serialize tool schemas
-    API->>Model: messages + system + tools + cache_control
-    Model-->>Q: assistant text / tool_use
-    Q->>Tools: execute tool_use
-    Tools-->>Q: tool_result user message
-    Q->>Model: follow-up request with tool_result in history
-```
+**一次请求流中的提示词作用点** — [交互版](diagrams/11-prompt-system-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/11-prompt-system-diagram.sequence.json)
+
+- **组成**：10 个参与方
+- **关系**：源图 10 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：QueryEngine 自调用：processUserInput() · queryLoop() 自调用：getMessagesAfterCompactBoundary() · queryLoop() 自调用：appendSystemContext(systemPrompt, systemContext)
 
 对应的源码证据如下：
 

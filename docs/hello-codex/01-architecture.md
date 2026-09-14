@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "架构全景：仓库形态、Crate/Package 拓扑、分层模型与核心抽象"
 ---
 # 架构全景：仓库形态、Crate/Package 拓扑、分层模型与核心抽象
@@ -47,72 +46,13 @@ JS/TS 层则由 pnpm monorepo 管理，包含 3 个 package：
 
 ### 自底向上的依赖分层模型
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    subgraph L0["Layer 0: 基础工具"]
-        direction TB
-        utils["codex-utils-* (26)"]
-        secrets["codex-secrets"]
-        protocol["codex-protocol"]
-        utils ~~~ secrets
-        secrets ~~~ protocol
-    end
-    subgraph L1["Layer 1: 底层基础设施"]
-        direction TB
-        client["codex-client"]
-        execpolicy["codex-execpolicy"]
-        termdet["codex-terminal-detection"]
-        client ~~~ execpolicy
-        execpolicy ~~~ termdet
-    end
-    subgraph L2["Layer 2: 配置与认证"]
-        direction TB
-        config["codex-config"]
-        login["codex-login"]
-        codemode["codex-code-mode"]
-        config ~~~ login
-        login ~~~ codemode
-    end
-    subgraph L3["Layer 3: 抽象层"]
-        direction TB
-        api["codex-api"]
-        asprot["app-server-protocol"]
-        sandbox["codex-sandboxing"]
-        shellcmd["codex-shell-command"]
-        api ~~~ asprot
-        asprot ~~~ sandbox
-        sandbox ~~~ shellcmd
-    end
-    subgraph L4["Layer 4: 执行基础设施"]
-        direction TB
-        execsrv["codex-exec-server"]
-    end
-    subgraph L5["Layer 5: 内核"]
-        direction TB
-        core["codex-core ★"]
-    end
-    subgraph L6["Layer 6: 应用服务"]
-        direction TB
-        appsrv["codex-app-server"]
-        mcpsrv["codex-mcp-server"]
-        appsrv ~~~ mcpsrv
-    end
-    subgraph L7["Layer 7: 客户端库"]
-        direction TB
-        appcli["app-server-client"]
-    end
-    subgraph L8["Layer 8: 顶层二进制"]
-        direction TB
-        cli["cli"]
-        tui["tui"]
-        exec["exec"]
-        cli ~~~ tui
-        tui ~~~ exec
-    end
+![自底向上的依赖分层模型](diagrams/01-architecture-diagram-01.svg)
 
-    L0 --> L1 --> L2 --> L3 --> L4 --> L5 --> L6 --> L7 --> L8
-```
+**自底向上的依赖分层模型** — [交互版](diagrams/01-architecture-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/01-architecture-diagram-01.architecture.json)
+
+- **组成**：画布 16 个节点 · 源图共 30 个节点，其余见正文
+- **关系**：源图 8 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：Layer 0: 基础工具 → Layer 1: 底层基础设施 · Layer 1: 底层基础设施 → Layer 2: 配置与认证 · Layer 2: 配置与认证 → Layer 3: 抽象层
 
 **读图方式**：这张图表达的是 crate 依赖分层，不是用户请求时序；因此应从 `L0 → L8` 阅读谁被谁复用。若按用户入口或调用链理解，则应反向看作 `L8 → L0`，也就是从 `tui/cli/exec` 逐步下钻到 `core`、执行基础设施与底层协议。
 
@@ -120,13 +60,13 @@ flowchart LR
 
 ### 核心依赖扇入
 
-```
-codex-protocol     ← 20+ crate 引用（序列化、消息类型、数据结构）
-codex-core         ← cli, tui, exec, mcp-server, app-server, app-server-client
-app-server-protocol ← app-server, tui, exec, app-server-client
-codex-config       ← app-server, mcp-server, codex-mcp, core
-codex-state        ← app-server, core, tui
-```
+![核心依赖扇入](diagrams/01-architecture-diagram-02.svg)
+
+**核心依赖扇入** — [交互版](diagrams/01-architecture-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/01-architecture-diagram-02.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：codex-protocol · 末节点：app-server, core, tui
 
 ## IPC/FFI 边界：纯协议通信，无 N-API/WASM
 
@@ -172,23 +112,13 @@ export interface ResponseEvent {
 
 ### 进程边界与协议契约
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    subgraph Rust Runtime
-        AS["app-server<br/>(axum)"]
-        CORE["codex-core"]
-        PROT["codex-protocol<br/>(ts-rs)"]
-    end
-    subgraph TypeScript Client
-        CLI["codex-cli/bin/codex.js"]
-        SDK["@openai/codex-sdk"]
-        TYPES[" bindings/typescript/"]
-    end
-    AS <-->|"HTTP/WebSocket JSON"| CLI
-    PROT -->|"ts_rs::TS 宏"| TYPES
-    CORE -->|"Serialize"| AS
-```
+![进程边界与协议契约](diagrams/01-architecture-diagram-03.svg)
+
+**进程边界与协议契约** — [交互版](diagrams/01-architecture-diagram-03.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/01-architecture-diagram-03.architecture.json)
+
+- **组成**：6 个节点
+- **关系**：源图 1 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：codex-protocol / (ts-rs) → bindings/typescript/（tsrs::TS 宏）
 
 **协议版本不匹配的处理**：
 
@@ -209,13 +139,13 @@ flowchart LR
 
 从调用关系看，进程层级大致是：
 
-```
-codex (CLI binary)
-├─ spawns → app-server (HTTP/WebSocket)
-│   ├─ spawns → exec-server (WebSocket daemon)
-│   └─ spawns → mcp-server (if enabled)
-└─ connects to → TUI (via WebSocket/in-process)
-```
+![进程边界与协议契约](diagrams/01-architecture-diagram-04.svg)
+
+**进程边界与协议契约** — [交互版](diagrams/01-architecture-diagram-04.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/01-architecture-diagram-04.architecture.json)
+
+- **组成**：7 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：codex (CLI binary) · 末节点：TUI (via WebSocket/in-process)
 
 ## 六层分层模型
 

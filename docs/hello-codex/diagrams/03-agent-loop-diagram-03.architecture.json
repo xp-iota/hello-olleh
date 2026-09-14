@@ -1,0 +1,314 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "上下文管理关键流程图",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      690
+    ]
+  },
+  "components": [
+    {
+      "id": "node1",
+      "type": "external",
+      "label": "用户输入",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node2",
+      "type": "backend",
+      "label": "runpresamplingcompact() 检查/执行压缩",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node3",
+      "type": "backend",
+      "label": "totaltokens >= autocompactlimit？",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node4",
+      "type": "backend",
+      "label": "runautocompact()",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node5",
+      "type": "backend",
+      "label": "生成摘要，替换历史",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node6",
+      "type": "backend",
+      "label": "recordcontextupdatesandsetreferencecont…",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node7",
+      "type": "backend",
+      "label": "referencecontextitem 为空？",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node8",
+      "type": "frontend",
+      "label": "buildinitialcontext() 注入完整上下文",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node9",
+      "type": "frontend",
+      "label": "buildsettingsupdateitems() 追加 diff",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node10",
+      "type": "backend",
+      "label": "引用",
+      "sublabel": "collectexplicitpluginmentions() 解析 plugin://",
+      "pos": [
+        1083,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node11",
+      "type": "backend",
+      "label": "引用",
+      "sublabel": "collectexplicitskillmentions() 解析 skill://",
+      "pos": [
+        1429,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node12",
+      "type": "frontend",
+      "label": "buildskillinjections() 生成技能注入项",
+      "pos": [
+        1775,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node13",
+      "type": "frontend",
+      "label": "buildplugininjections() 生成插件注入项",
+      "pos": [
+        45,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node14",
+      "type": "backend",
+      "label": "runpendingsessionstarthooks() 可能会中断",
+      "pos": [
+        391,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "node1",
+      "to": "node2",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "node2",
+      "to": "node3",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "node3",
+      "to": "node4",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "node4",
+      "to": "node5",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "node5",
+      "to": "node6",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "node7",
+      "to": "node8",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "node8",
+      "to": "node9",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge8",
+      "from": "node9",
+      "to": "node10",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge9",
+      "from": "node10",
+      "to": "node11",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge10",
+      "from": "node11",
+      "to": "node12",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge11",
+      "from": "node13",
+      "to": "node14",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "画布 14 个节点",
+        "源图共 27 个节点，其余见正文"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图为文本框图，未提供可解析的有向关系",
+        "画布按源图中的出现顺序串联，供顺序阅读"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "首节点：用户输入",
+        "末节点：runpendingsessionstarthooks()…"
+      ]
+    }
+  ]
+}

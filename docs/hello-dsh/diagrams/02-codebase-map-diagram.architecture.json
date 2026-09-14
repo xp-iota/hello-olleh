@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "仓库全貌",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      690
+    ]
+  },
+  "components": [
+    {
+      "id": "node1",
+      "type": "backend",
+      "label": "deepseek-harness/",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node2",
+      "type": "backend",
+      "label": "packages/ 37 M · 49 个组",
+      "sublabel": "219 个包（二级结构）",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node3",
+      "type": "backend",
+      "label": "apps/ 2.7 M",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node4",
+      "type": "backend",
+      "label": "cli/",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node5",
+      "type": "backend",
+      "label": "@deepseek-ai/dsh，提供 dsh 二进制",
+      "sublabel": "bin: lib/bin.js",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node6",
+      "type": "backend",
+      "label": "web/",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node7",
+      "type": "frontend",
+      "label": "@deepseek-ai/dsh-web-frontend",
+      "sublabel": "Vite + React",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node8",
+      "type": "backend",
+      "label": "vendor/ 572 K · vendored cordis 全家桶",
+      "sublabel": "9 个包，见 [01 § 1.…",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node9",
+      "type": "backend",
+      "label": "docs/ 4.1 M · 215 md",
+      "sublabel": "105 中文版",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node10",
+      "type": "backend",
+      "label": "examples/ 4.9 M · acp-agent",
+      "sublabel": "headless-agent · json…",
+      "pos": [
+        1083,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node11",
+      "type": "backend",
+      "label": "生成脚本",
+      "sublabel": "scripts/ 2.1 M · 145 个构建/校验/",
+      "pos": [
+        1429,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node12",
+      "type": "security",
+      "label": "288 K · Linux Landlock 沙箱启动器",
+      "sublabel": "native/landlock-run/",
+      "pos": [
+        1775,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node13",
+      "type": "backend",
+      "label": "python/ 336 K · sdk + sdk-runtime",
+      "pos": [
+        45,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "node14",
+      "type": "backend",
+      "label": "website/ 80 K",
+      "pos": [
+        391,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "node1",
+      "to": "node2",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "node2",
+      "to": "node3",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "node3",
+      "to": "node4",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "node4",
+      "to": "node5",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "node5",
+      "to": "node6",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "node7",
+      "to": "node8",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "node8",
+      "to": "node9",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge8",
+      "from": "node9",
+      "to": "node10",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge9",
+      "from": "node10",
+      "to": "node11",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge10",
+      "from": "node11",
+      "to": "node12",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge11",
+      "from": "node13",
+      "to": "node14",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "画布 14 个节点",
+        "源图共 18 个节点，其余见正文"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图为文本框图，未提供可解析的有向关系",
+        "画布按源图中的出现顺序串联，供顺序阅读"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "首节点：deepseek-harness/",
+        "末节点：website/ 80 K"
+      ]
+    }
+  ]
+}

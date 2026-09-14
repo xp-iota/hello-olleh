@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Gemini CLI 多代理与远程模式：本地子代理、A2A 远程代理与调度器"
 ---
 # Gemini CLI 多代理与远程模式：本地子代理、A2A 远程代理与调度器

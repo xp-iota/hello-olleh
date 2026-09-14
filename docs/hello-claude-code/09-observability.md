@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "可观测性：日志、遥测与运行时状态追踪"
 ---
 # 可观测性：日志、遥测与运行时状态追踪
@@ -147,10 +146,13 @@ claude --debug
 
 可以通过 Slash 命令查看当前会话状态：
 
-```
-/status   → 显示当前 token 用量、会话 ID、模型版本
-/cost     → 显示本次会话的 API 费用估算
-```
+![会话状态导出](diagrams/09-observability-diagram.svg)
+
+**会话状态导出** — [交互版](diagrams/09-observability-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/09-observability-diagram.architecture.json)
+
+- **组成**：4 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：/status · 末节点：显示本次会话的 API 费用估算
 
 ### 6.2 Transcript 作为可观测性记录
 

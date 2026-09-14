@@ -1,11 +1,9 @@
 ---
-layout: content
 title: "可插拔上下文与记忆模块：跨运行时内核的统一抽象"
 ---
-
 # 可插拔上下文与记忆模块：跨运行时内核的统一抽象
 
-> 基于 OpenCode v1.4.14 和 Hermes Agent v0.16.0 架构分析
+> 基于 OpenCode v2.0.2 和 Hermes Agent 0.21.2 架构分析
 
 本文档设计一个可插拔的上下文与记忆定制化模块，使其能够在 **OpenCode** 和 **Hermes Agent** 两个不同的运行时内核上完成相同的工作，实现真正的运行时无关性。
 
@@ -50,22 +48,20 @@ title: "可插拔上下文与记忆模块：跨运行时内核的统一抽象"
 
 | 维度 | OpenCode 实现 |
 | :------| :--------------|
-| **状态持久化** | SQLite（SessionTable / MessageTable / PartTable）+ JSON Storage |
-| **上下文编译** | `SessionPrompt.prompt()` → `toModelMessages()` 投影 |
-| **记忆系统** | Session 级文件变更追踪（`SessionSummary.computeDiff()`） |
-| **事件机制** | `Bus` + `GlobalBus`（SSE 推送） |
-| **工具集成** | `ToolRegistry` + MCP + Plugin |
+| **状态持久化** | Core durable events + SQLite projections |
+| **上下文编译** | Session inbox → runner Step → projected history |
+| **记忆系统** | durable history + instruction deltas + compaction summary |
+| **事件机制** | Core events + Server EventFeed（SSE） |
+| **工具集成** | scoped Core tool registry + MCP + Plugin `Tool.make` |
 | **语言/运行时** | TypeScript + Bun |
 
 **核心流程**：
 
-```
-用户输入 → createUserMessage() → 写 SQLite
-  → toModelMessages() 投影历史
-  → LLM.stream()
-  → SessionProcessor.process() 写 part
-  → Bus.publish() → SSE → UI
-```
+1. `Session.prompt` 先把输入持久化到 Session inbox。
+2. `SessionExecution` 在安全边界唤醒 Location-scoped runner。
+3. runner 从权威投影重建历史、指令和 request-scoped tools。
+4. tool/assistant 终态以 durable events 发布并更新 projections。
+5. Server EventFeed 将公开事件编码一次后分发到独立 SSE 队列。
 
 ### 2.2 Hermes Agent 架构特点
 
@@ -80,13 +76,13 @@ title: "可插拔上下文与记忆模块：跨运行时内核的统一抽象"
 
 **核心流程**：
 
-```
-用户输入 → MemoryManager.prefetch_all()
-  → PromptBuilder.build_system_prompt()
-  → API 调用
-  → MemoryManager.sync_all()
-  → ContextEngine.compress() (if needed)
-```
+![Hermes Agent 架构特点](diagrams/40-pluggable-context-memory-module-hermes-agent.svg)
+
+**Hermes Agent 架构特点** — [交互版](diagrams/40-pluggable-context-memory-module-hermes-agent.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/40-pluggable-context-memory-module-hermes-agent.architecture.json)
+
+- **组成**：6 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：用户输入 · 末节点：ContextEngine.compress() (if…
 
 ### 2.3 关键差异
 
@@ -103,34 +99,13 @@ title: "可插拔上下文与记忆模块：跨运行时内核的统一抽象"
 
 ### 3.1 分层架构
 
-```
-┌─────────────────────────────────────────────────────────┐
-│          业务逻辑层（Runtime-Agnostic）                    │
-│  - 自定义压缩策略                                          │
-│  - 记忆检索算法                                            │
-│  - 上下文优先级规则                                        │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│          统一抽象层（Unified Abstraction）                 │
-│  - IContextManager                                       │
-│  - IMemoryProvider                                       │
-│  - ICompressionEngine                                    │
-│  - IMessageStore                                         │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌──────────────────────┬──────────────────────────────────┐
-│  OpenCode Adapter    │  Hermes Agent Adapter            │
-│  - OpenCodeContext   │  - HermesContextEngine           │
-│  - OpenCodeMemory    │  - HermesMemoryProvider          │
-│  - OpenCodeStore     │  - HermesSessionDB               │
-└──────────────────────┴──────────────────────────────────┘
-                          ↓
-┌──────────────────────┬──────────────────────────────────┐
-│  OpenCode Runtime    │  Hermes Agent Runtime            │
-│  (TypeScript/Bun)    │  (Python)                        │
-└──────────────────────┴──────────────────────────────────┘
-```
+![分层架构](diagrams/40-pluggable-context-memory-module-diagram.svg)
+
+**分层架构** — [交互版](diagrams/40-pluggable-context-memory-module-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/40-pluggable-context-memory-module-diagram.architecture.json)
+
+- **组成**：画布 14 个节点 · 源图共 15 个节点，其余见正文
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：业务逻辑层（Runtime-Agnostic） · 末节点：OpenCode Runtime Hermes Agent…
 
 ### 3.2 核心抽象
 

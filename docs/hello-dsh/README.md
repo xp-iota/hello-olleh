@@ -1,12 +1,11 @@
 ---
-layout: default
-title: "DeepSeek Harness 源代码全面分析"
-permalink: /docs/hello-deepseek-harness/
+title: "DeepSeek Harness 源代码全面分析（中文）"
 ---
-
 # DeepSeek Harness 源代码全面分析（中文）
 
-本目录是对 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的系统性源码分析。所有结论均基于源码实读，文中引用的路径均相对于源码根目录。
+本目录是对 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的系统性源码分析。正文形成于 `0.1.5-rc.2` 历史快照；当前 `sources/deepseek-harness/` 已同步到 `dsh-v0.1.5-rc.2`（`fb2c4b9e`），根包和四个发布 manifest 均声明 `0.1.5-rc.2`。
+
+> **Source baseline:** DeepSeek Harness `dsh-v0.1.5-rc.2` (`fb2c4b9e`), matching the package versions locked by `dsh-example/`.
 
 ## 零基础先跑：15 分钟建立直觉
 
@@ -28,12 +27,12 @@ npm run learn -- --tour
 
 | 我现在想做什么 | 直接运行 | 跑完读 |
 |---|---|---|
-| 给模型加工具或策略 Hook | `npm run learn -- --module M01` | [07 § 7.10–7.14](07-请求管线-LLM工具与提示.md) |
-| 修改 System Prompt 与上下文预算 | `npm run learn -- --module M02` | [07 § 7.18](07-请求管线-LLM工具与提示.md) |
-| 接自己的模型 | `npm run learn -- --module M03` | [03 § 3.1](03-能力缝与服务全景.md) |
-| 看懂一次 Agent turn | `npm run learn -- --module M04` | [06 § 6.4](06-Agent循环与会话日志.md) |
-| 不写 TypeScript 做 Skill | `npm run learn -- --module M10` | [04 § 4.1](04-扩展与生态.md) |
-| 理解 Cordis 事件与 Fiber | `npm run learn -- --module M12` | [05 § 5.17](05-启动与Cordis落地.md) |
+| 给模型加工具或策略 Hook | `npm run learn -- --module M01` | [07 § 7.10–7.14](07-request-pipeline-llm-tools-and-prompts.md) |
+| 修改 System Prompt 与上下文预算 | `npm run learn -- --module M02` | [07 § 7.18](07-request-pipeline-llm-tools-and-prompts.md) |
+| 接自己的模型 | `npm run learn -- --module M03` | [03 § 3.1](03-capability-seams-and-services.md) |
+| 看懂一次 Agent turn | `npm run learn -- --module M04` | [06 § 6.4](06-agent-loop-and-session-log.md) |
+| 不写 TypeScript 做 Skill | `npm run learn -- --module M10` | [04 § 4.1](04-extensions-and-ecosystem.md) |
+| 理解 Cordis 事件与 Fiber | `npm run learn -- --module M12` | [05 § 5.17](05-startup-and-cordis-runtime.md) |
 
 完整命令与 12 个方向模块索引见 [`dsh-example/README.md`](../../dsh-example/README.md)。建议形成固定循环：**先跑 → 对照 `index.ts` → 回读对应章节 → 改一个值再跑**。
 
@@ -65,43 +64,33 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 > ⚠️ **读这套文档前请先读 [cordis 文档集](../hello-cordis/README.md)**（至少 03 Fiber + 04 Context + 05 Service 三篇）。DSH 完全建立在 cordis 之上——不懂 cordis 读 DSH 会处处卡住。
 >
 
-## 一、快照与版本
+## 一、当前同步快照与分析基线
 
-| 项 | 值 |
+| 当前项 | 值 |
 |---|---|
-| 仓库 | `https://github.com/deepseek-ai/deepseek-harness` |
-| 分支 | `master` |
-| **快照 Commit（完整）** | `47f943859bef60e4160492346772ded9b24f765a` |
-| **快照 Commit（短）** | `47f94385` |
-| 快照提交时间 | `2026-08-13T11:38:46Z` |
-| 快照提交标题 | `Merge pull request #2519 from deepseek-harness/feat/npm-public` |
-| Commit 链接 | https://github.com/deepseek-ai/deepseek-harness/commit/47f943859bef60e4160492346772ded9b24f765a |
-| **仓库创建时间（API 采集值）** | **2026-08-13T11:56:32Z**（晚于上列快照提交时间 17 分 46 秒，时间关系异常） |
-| Stars / Forks / Open Issues | **52912** / 4275 / **0** |
-| 源码快照版本 | **`0.1.0-rc.5`**（221 个发布包统一版本 = `packages/` 下 219 个 + `apps/cli`、`apps/web`，见 [02 § 2.1](02-代码结构地图.md)） |
-| 示例锁定的 npm 版本 | **`0.1.5-rc.2`**（[配套示例工程](../../dsh-example/README.md)精确锁定） |
-| 仓库 tag | **无** |
-| 语言 / 许可证 | TypeScript / MIT |
-| Node 要求 | `^22.19.0 \|\| >=24.0.0` |
-| 包管理 | pnpm **11.7.0** |
-| 官网 | https://deepseek.com/harness |
-| topics | `cordis`、`dsh`、`dsh-plugin` |
+| 当前 tag | `dsh-v0.1.5-rc.2` |
+| 当前 commit | `fb2c4b9e698e30edb738bca4cf0618587db7d203` |
+| 当前源码版本 | `0.1.5-rc.2` |
+| 示例 npm 版本 | `0.1.5-rc.2` |
 
-> **双版本口径**：正文、源码路径与行号基于快照 `47f94385`（`0.1.0-rc.5`）；所有 `📐` 配套示例编译并运行在精确锁定的 npm `0.1.5-rc.2` 上。两者契约不一致时，正文解释快照实现，示例 README 记录发布包的实际行为。
+### 当前仓库事实
 
-💡 Stars / Forks / Open Issues 与仓库创建时间来自快照采集时的网络元数据，无法从源码快照复核；创建时间与 commit 时间的先后关系异常，因此本文不据此推断仓库年龄。其余各项均可在 `sources/deepseek-harness` 快照内自行验证——该快照体积大且不随本仓库提交，需按下述方式自行获取。
-
-**下载方式**：环境策略拦截 `git clone`，源码通过 `api.github.com/repos/deepseek-ai/deepseek-harness/tarball/<sha>` 归档下载（13.7 MB，解压 69 MB）。URL 里锁定完整 SHA，快照精确。
+- 当前 commit：`fb2c4b9e698e30edb738bca4cf0618587db7d203`
+- 工作区共有 290 个 package manifests；272 个发布包声明 `0.1.5-rc.2`，其余工具和 vendored 包使用各自版本。
+- Node.js 要求：`^22.19.0 || >=24.0.0`
+- Package manager：`pnpm@11.7.0`
+- Vendored Cordis：`4.0.2`
+- 配套 `dsh-example/` 精确锁定同一 `0.1.5-rc.2` 发布线。
 
 ⚠️ **README 首屏的声明**：
 
 > DeepSeek Harness is currently in _developer preview_ and is iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
 
-`AGENTS.md` 更进一步（[10 § 10.9](10-测试与工程实践.md)）：**后端拒绝旧的磁盘格式，`SESSION_FORMAT_VERSION` 保持 `0` 且无兼容承诺**。
+`AGENTS.md` 更进一步（[10 § 10.9](10-testing-and-engineering.md)）：**后端拒绝旧的磁盘格式，`SESSION_FORMAT_VERSION` 保持 `0` 且无兼容承诺**。
 
-> 规模统计（56 万行代码、测试占 45%、49 个包组的逐组行数）见 [01 § 1.3](01-项目概览.md)；
-> 五分钟看懂一次对话的流转见 [01 § 1.4](01-项目概览.md)；
-> vendored cordis 分叉的量化见 [01 § 1.6](01-项目概览.md) 与 [05 § 5.14](05-启动与Cordis落地.md)。
+> 规模统计（56 万行代码、测试占 45%、49 个包组的逐组行数）见 [01 § 1.3](01-overview.md)；
+> 五分钟看懂一次对话的流转见 [01 § 1.4](01-overview.md)；
+> vendored cordis 分叉的量化见 [01 § 1.6](01-overview.md) 与 [05 § 5.14](05-startup-and-cordis-runtime.md)。
 > 本索引不重复这三处。
 
 ### 项目状态与风险
@@ -110,22 +99,19 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 |---|---|
 | 官方标记为 developer preview | API 与磁盘格式仍会发生破坏性变化 |
 | `SESSION_FORMAT_VERSION` 仍为 `0` | 后端不承诺兼容旧的会话格式 |
-| 源码快照 `0.1.0-rc.5`，示例使用 `0.1.5-rc.2` | 阅读正文与运行示例时必须区分两套契约 |
-| 仓库无 tag、迭代速度快 | 后续复核应以完整 commit SHA 为基线，而不是只看版本名 |
 
-因此本系列采用**双版本口径**：源码判断只引用 `47f94385`；动手验证只引用示例工程锁定的 npm `0.1.5-rc.2`，差异显式记录而不互相覆盖。
 
 ## 二、术语约定
 
 | 术语 | 一句话解释 | 展开 |
 |---|---|---|
-| **Cordis** | DSH 的插件运行时；提供 Context、Fiber、Service、Event 与配置树 | [05 启动与 Cordis 落地](05-启动与Cordis落地.md) |
-| **seam（能力接缝）** | 由 Definition、Provider、Consumer 三个角色组成的可替换能力边界 | [03 § 3.1](03-能力缝与服务全景.md) |
-| **Definition / Provider / Consumer** | 分别定义契约、提供实现、消费能力；换 Provider 即可改变产品行为 | [03 § 3.1–3.2](03-能力缝与服务全景.md) |
-| **Profile / Bundle** | Profile 是最终运行配置，Bundle 是可叠加的能力包；二者通过 cordis patch 合成 | [05 § 5.1–5.3](05-启动与Cordis落地.md) |
-| **turn / step** | turn 是一次用户轮次，包含零个或多个 step；step 是一次模型请求及其工具调用 | [06 § 6.1](06-Agent循环与会话日志.md) |
-| **surface / `surfaceOp`** | 会话日志投影给模型或 UI 的有序表面，以及 append/replace 等变换操作 | [06 § 6.15](06-Agent循环与会话日志.md) |
-| **fail-closed** | 权限、沙箱或能力缺失时默认拒绝，而不是静默放行 | [08 § 8.23](08-执行侧服务-文件Shell沙箱子代理压缩.md) |
+| **Cordis** | DSH 的插件运行时；提供 Context、Fiber、Service、Event 与配置树 | [05 启动与 Cordis 落地](05-startup-and-cordis-runtime.md) |
+| **seam（能力接缝）** | 由 Definition、Provider、Consumer 三个角色组成的可替换能力边界 | [03 § 3.1](03-capability-seams-and-services.md) |
+| **Definition / Provider / Consumer** | 分别定义契约、提供实现、消费能力；换 Provider 即可改变产品行为 | [03 § 3.1–3.2](03-capability-seams-and-services.md) |
+| **Profile / Bundle** | Profile 是最终运行配置，Bundle 是可叠加的能力包；二者通过 cordis patch 合成 | [05 § 5.1–5.3](05-startup-and-cordis-runtime.md) |
+| **turn / step** | turn 是一次用户轮次，包含零个或多个 step；step 是一次模型请求及其工具调用 | [06 § 6.1](06-agent-loop-and-session-log.md) |
+| **surface / `surfaceOp`** | 会话日志投影给模型或 UI 的有序表面，以及 append/replace 等变换操作 | [06 § 6.15](06-agent-loop-and-session-log.md) |
+| **fail-closed** | 权限、沙箱或能力缺失时默认拒绝，而不是静默放行 | [08 § 8.23](08-execution-services.md) |
 
 ## 三、篇目表
 
@@ -133,18 +119,18 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 
 | # | 篇目 | 回答什么 |
 |---|---|---|
-| 01 | [项目概览](01-项目概览.md) | DSH 是什么、整体规模与读前必知事实 |
-| 02 | [代码结构地图](02-代码结构地图.md) | 包如何组织、依赖如何分层、想改一项能力应从哪里进入 |
-| 03 | [能力缝 Seam 与服务全景](03-能力缝与服务全景.md) ⭐ | Definition / Provider / Consumer 三角色与 seam 全表 |
-| 04 | [扩展与生态](04-扩展与生态.md) | Skill、Hook、插件、MCP/ACP 与 SDK 怎样扩展系统 |
-| 05 | [启动流程与 Cordis 落地](05-启动与Cordis落地.md) | profile/bundle、配置树、Fiber 与服务装配 |
-| 06 | [Agent 循环与会话日志](06-Agent循环与会话日志.md) ⭐ | turn/step 如何推进，模型可见事实如何写入日志 |
-| 07 | [请求管线](07-请求管线-LLM工具与提示.md) ⭐ | LLM、工具与 System Prompt 如何组装、发出和返回 |
-| 08 | [执行侧服务](08-执行侧服务-文件Shell沙箱子代理压缩.md) | 文件、Shell、沙箱、子代理与压缩的契约和安全边界 |
-| 09 | [宿主与运行面](09-宿主与运行面-Web网关编排存储类型.md) | Web、网关、编排、存储与类型系统 |
-| 10 | [测试与工程实践](10-测试与工程实践.md) | 覆盖率、快照回放、CI 与工程纪律 |
-| 11 | [关键调用链速查](11-关键调用链速查.md) | 核心链路、事件、符号、配置与症状路由 |
-| 12 | [与 iota 跨框架对照](12-跨框架对照-iota.md) | M01–M12 的可迁移语义、教学补齐和结构性边界 |
+| 01 | [项目概览](01-overview.md) | DSH 是什么、整体规模与读前必知事实 |
+| 02 | [代码结构地图](02-codebase-map.md) | 包如何组织、依赖如何分层、想改一项能力应从哪里进入 |
+| 03 | [能力缝 Seam 与服务全景](03-capability-seams-and-services.md) ⭐ | Definition / Provider / Consumer 三角色与 seam 全表 |
+| 04 | [扩展与生态](04-extensions-and-ecosystem.md) | Skill、Hook、插件、MCP/ACP 与 SDK 怎样扩展系统 |
+| 05 | [启动流程与 Cordis 落地](05-startup-and-cordis-runtime.md) | profile/bundle、配置树、Fiber 与服务装配 |
+| 06 | [Agent 循环与会话日志](06-agent-loop-and-session-log.md) ⭐ | turn/step 如何推进，模型可见事实如何写入日志 |
+| 07 | [请求管线](07-request-pipeline-llm-tools-and-prompts.md) ⭐ | LLM、工具与 System Prompt 如何组装、发出和返回 |
+| 08 | [执行侧服务](08-execution-services.md) | 文件、Shell、沙箱、子代理与压缩的契约和安全边界 |
+| 09 | [宿主与运行面](09-host-runtime-and-storage.md) | Web、网关、编排、存储与类型系统 |
+| 10 | [测试与工程实践](10-testing-and-engineering.md) | 覆盖率、快照回放、CI 与工程纪律 |
+| 11 | [关键调用链速查](11-call-chain-reference.md) | 核心链路、事件、符号、配置与症状路由 |
+| 12 | [与 iota 跨框架对照](12-iota-cross-framework-comparison.md) | M01–M12 的可迁移语义、教学补齐和结构性边界 |
 
 ## 四、阅读路线
 
@@ -160,16 +146,16 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 
 | 你是 | 建议路线 |
 |---|---|
-| **想给 DSH 写插件** | [03](03-能力缝与服务全景.md)（seam 全表）+ [07](07-请求管线-LLM工具与提示.md)（工具与提示）+ [配套示例工程](../../dsh-example/README.md) + 官方 `docs/cookbook/` |
-| **想改 agent 主循环** | [06](06-Agent循环与会话日志.md) 精读；但更可能应该用 `agent/*` 事件（[06 § 6.8](06-Agent循环与会话日志.md)） |
-| **在排查线上问题** | [11 § 11.10](11-关键调用链速查.md) 症状路由表 |
-| **关心"上下文怎么管的"** | [06 § 6.12](06-Agent循环与会话日志.md) → [07 § 7.18](07-请求管线-LLM工具与提示.md) → [08 § 8.32](08-执行侧服务-文件Shell沙箱子代理压缩.md) → [09 § 9.28](09-宿主与运行面-Web网关编排存储类型.md) |
-| **关心安全边界** | [08 § 8.17](08-执行侧服务-文件Shell沙箱子代理压缩.md) → [08 § 8.11](08-执行侧服务-文件Shell沙箱子代理压缩.md) → [08 § 8.4](08-执行侧服务-文件Shell沙箱子代理压缩.md) |
-| **想接自己的模型 / 沙箱 / 文件系统** | [07 § 7.2](07-请求管线-LLM工具与提示.md)（1 个方法）/ [08 § 8.18](08-执行侧服务-文件Shell沙箱子代理压缩.md)（1 个）/ [08 § 8.2](08-执行侧服务-文件Shell沙箱子代理压缩.md)（13 个），各配一个可跑示例 |
-| **做前端集成** | [09 § 9.1](09-宿主与运行面-Web网关编排存储类型.md) 起读整篇 |
-| **用程序驱动 dsh** | [04 § 4.18](04-扩展与生态.md)（Python SDK）或 [04 § 4.13](04-扩展与生态.md)（ACP） |
-| **只想看工程实践** | [10](10-测试与工程实践.md)（100% 覆盖率门禁、agent 笔记） |
-| **想比较 DSH 与 iota** | [12](12-跨框架对照-iota.md) → 两侧同编号模块 → 稳定符号证据表 |
+| **想给 DSH 写插件** | [03](03-capability-seams-and-services.md)（seam 全表）+ [07](07-request-pipeline-llm-tools-and-prompts.md)（工具与提示）+ [配套示例工程](../../dsh-example/README.md) + 官方 `docs/cookbook/` |
+| **想改 agent 主循环** | [06](06-agent-loop-and-session-log.md) 精读；但更可能应该用 `agent/*` 事件（[06 § 6.8](06-agent-loop-and-session-log.md)） |
+| **在排查线上问题** | [11 § 11.10](11-call-chain-reference.md) 症状路由表 |
+| **关心"上下文怎么管的"** | [06 § 6.12](06-agent-loop-and-session-log.md) → [07 § 7.18](07-request-pipeline-llm-tools-and-prompts.md) → [08 § 8.32](08-execution-services.md) → [09 § 9.28](09-host-runtime-and-storage.md) |
+| **关心安全边界** | [08 § 8.17](08-execution-services.md) → [08 § 8.11](08-execution-services.md) → [08 § 8.4](08-execution-services.md) |
+| **想接自己的模型 / 沙箱 / 文件系统** | [07 § 7.2](07-request-pipeline-llm-tools-and-prompts.md)（1 个方法）/ [08 § 8.18](08-execution-services.md)（1 个）/ [08 § 8.2](08-execution-services.md)（13 个），各配一个可跑示例 |
+| **做前端集成** | [09 § 9.1](09-host-runtime-and-storage.md) 起读整篇 |
+| **用程序驱动 dsh** | [04 § 4.18](04-extensions-and-ecosystem.md)（Python SDK）或 [04 § 4.13](04-extensions-and-ecosystem.md)（ACP） |
+| **只想看工程实践** | [10](10-testing-and-engineering.md)（100% 覆盖率门禁、agent 笔记） |
+| **想比较 DSH 与 iota** | [12](12-iota-cross-framework-comparison.md) → 两侧同编号模块 → 稳定符号证据表 |
 
 ## 五、配套示例工程
 
@@ -180,22 +166,22 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 
 | 文档章节 | 配套示例 |
 |---|---|
-| [03 § 3.1](03-能力缝与服务全景.md) seam 三角色 | 05 llm-adapter-mock |
-| [03 § 3.8](03-能力缝与服务全景.md) seam 全表 | 05 · 13 · 14 · 15 · 16 · 21 · 22 · 23 · 24 · 25 |
-| [04 § 4.1](04-扩展与生态.md) 扩展路径 · [§ 4.3](04-扩展与生态.md) hooks | 08 skill · 09 lifecycle-steering |
-| [05 § 5.1](05-启动与Cordis落地.md) profile/bundle · [§ 5.17](05-启动与Cordis落地.md) cordis 原语 | `cordis.yml` · 17 dispatch-modes · 26 cordis-timer |
-| [06 § 6.4](06-Agent循环与会话日志.md) `turn()` · [§ 6.8](06-Agent循环与会话日志.md) `agent/*` · [§ 6.9](06-Agent循环与会话日志.md) Inbox | 06 telemetry · 09 steering · 19 inbox |
-| [06 § 6.12](06-Agent循环与会话日志.md) 不变量 · [§ 6.15](06-Agent循环与会话日志.md) `surfaceOp` · [§ 6.19](06-Agent循环与会话日志.md) fork | 18 session-log |
-| [07 § 7.2](07-请求管线-LLM工具与提示.md) `LlmAdapter` · [§ 7.3](07-请求管线-LLM工具与提示.md) `llm/stream` | 05 adapter · 20 stream-intercept |
-| [07 § 7.10](07-请求管线-LLM工具与提示.md) `ToolDefinition` · [§ 7.11](07-请求管线-LLM工具与提示.md) 三段 waterfall · [§ 7.14](07-请求管线-LLM工具与提示.md) 注册表 | 01 tool · 03 gate · 07 transform · 12 guard · 11 restrict |
-| [07 § 7.18](07-请求管线-LLM工具与提示.md) 四类注册 · [§ 7.26](07-请求管线-LLM工具与提示.md) assemble waterfall | 02 prompt-section · 10 variable-assemble |
-| [08 § 8.2](08-执行侧服务-文件Shell沙箱子代理压缩.md) `FileSystem` · [§ 8.11](08-执行侧服务-文件Shell沙箱子代理压缩.md) `ShellExecutor` | 16 fs/subprocess · 24 shell |
-| [08 § 8.18](08-执行侧服务-文件Shell沙箱子代理压缩.md) `confine` · [§ 8.21](08-执行侧服务-文件Shell沙箱子代理压缩.md) 审批链 | 25 sandbox · 13 approval |
-| [08 § 8.27](08-执行侧服务-文件Shell沙箱子代理压缩.md) 子代理驱动 · [§ 8.33](08-执行侧服务-文件Shell沙箱子代理压缩.md) · [§ 8.34](08-执行侧服务-文件Shell沙箱子代理压缩.md) 压缩 | 15 subagent · 14 compaction |
-| [09 § 9.17](09-宿主与运行面-Web网关编排存储类型.md) settings · [§ 9.20](09-宿主与运行面-Web网关编排存储类型.md) Jobs · [§ 9.23](09-宿主与运行面-Web网关编排存储类型.md) Goal | 23 settings · 21 jobs · 22 goals |
+| [03 § 3.1](03-capability-seams-and-services.md) seam 三角色 | 05 llm-adapter-mock |
+| [03 § 3.8](03-capability-seams-and-services.md) seam 全表 | 05 · 13 · 14 · 15 · 16 · 21 · 22 · 23 · 24 · 25 |
+| [04 § 4.1](04-extensions-and-ecosystem.md) 扩展路径 · [§ 4.3](04-extensions-and-ecosystem.md) hooks | 08 skill · 09 lifecycle-steering |
+| [05 § 5.1](05-startup-and-cordis-runtime.md) profile/bundle · [§ 5.17](05-startup-and-cordis-runtime.md) cordis 原语 | `cordis.yml` · 17 dispatch-modes · 26 cordis-timer |
+| [06 § 6.4](06-agent-loop-and-session-log.md) `turn()` · [§ 6.8](06-agent-loop-and-session-log.md) `agent/*` · [§ 6.9](06-agent-loop-and-session-log.md) Inbox | 06 telemetry · 09 steering · 19 inbox |
+| [06 § 6.12](06-agent-loop-and-session-log.md) 不变量 · [§ 6.15](06-agent-loop-and-session-log.md) `surfaceOp` · [§ 6.19](06-agent-loop-and-session-log.md) fork | 18 session-log |
+| [07 § 7.2](07-request-pipeline-llm-tools-and-prompts.md) `LlmAdapter` · [§ 7.3](07-request-pipeline-llm-tools-and-prompts.md) `llm/stream` | 05 adapter · 20 stream-intercept |
+| [07 § 7.10](07-request-pipeline-llm-tools-and-prompts.md) `ToolDefinition` · [§ 7.11](07-request-pipeline-llm-tools-and-prompts.md) 三段 waterfall · [§ 7.14](07-request-pipeline-llm-tools-and-prompts.md) 注册表 | 01 tool · 03 gate · 07 transform · 12 guard · 11 restrict |
+| [07 § 7.18](07-request-pipeline-llm-tools-and-prompts.md) 四类注册 · [§ 7.26](07-request-pipeline-llm-tools-and-prompts.md) assemble waterfall | 02 prompt-section · 10 variable-assemble |
+| [08 § 8.2](08-execution-services.md) `FileSystem` · [§ 8.11](08-execution-services.md) `ShellExecutor` | 16 fs/subprocess · 24 shell |
+| [08 § 8.18](08-execution-services.md) `confine` · [§ 8.21](08-execution-services.md) 审批链 | 25 sandbox · 13 approval |
+| [08 § 8.27](08-execution-services.md) 子代理驱动 · [§ 8.33](08-execution-services.md) · [§ 8.34](08-execution-services.md) 压缩 | 15 subagent · 14 compaction |
+| [09 § 9.17](09-host-runtime-and-storage.md) settings · [§ 9.20](09-host-runtime-and-storage.md) Jobs · [§ 9.23](09-host-runtime-and-storage.md) Goal | 23 settings · 21 jobs · 22 goals |
 
-💡 写这套示例的过程本身是一次**保真度审计**：真实 `0.1.5-rc.2` 与快照 `47f94385` 之间的若干 API 差异
-（`{% raw %}{{name}}{% endraw %}` 占位语法、`approval.request()` 的轮内约束、`ctx.tools.execute` 取代 `call`、
+💡 写这套示例的过程本身是一次**保真度审计**：真实 `0.1.5-rc.2` 与快照 `fb2c4b9e` 之间的若干 API 差异
+（`{{name}}` 占位语法、`approval.request()` 的轮内约束、`ctx.tools.execute` 取代 `call`、
 `SubagentRun` 是句柄而非结果、`assistant/message` 必须带 model 来源……）
 都记在[示例工程 README 的"常见误解"对照表](../../dsh-example/README.md)里。
 
@@ -203,13 +189,13 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 
 | 统一主题 | Cordis 地基 | DeepSeek Harness | 可跑示例 |
 |---|---|---|---|
-| 定位与代码地图 | [Cordis 01](../hello-cordis/01-项目概览与设计哲学.md) · [02](../hello-cordis/02-代码结构与包边界.md) | [01 项目概览](01-项目概览.md) · [02 代码结构地图](02-代码结构地图.md) | [`cordis.yml`](../../dsh-example/cordis.yml) |
-| 生命周期与服务 | [Cordis 03 Fiber](../hello-cordis/03-Fiber模型.md) · [04 Context](../hello-cordis/04-Context与Reflect代理.md) · [05 Service](../hello-cordis/05-服务注册与依赖解析.md) | [03 Seam](03-能力缝与服务全景.md) · [05 启动](05-启动与Cordis落地.md) | [M03 · adapter](../../dsh-example/M03-inference-service-access/README.md) · [M12 · timer](../../dsh-example/M12-framework-mechanisms/README.md) |
-| 事件与扩展 | [Cordis 06 Events](../hello-cordis/06-事件系统与Waterfall.md) | [04 扩展](04-扩展与生态.md) · [06 Agent](06-Agent循环与会话日志.md) · [07 请求管线](07-请求管线-LLM工具与提示.md) | [M04 · lifecycle](../../dsh-example/M04-agent-loop-intervention/README.md) · [M12 · dispatch](../../dsh-example/M12-framework-mechanisms/README.md) · [M03 · stream](../../dsh-example/M03-inference-service-access/README.md) |
-| 配置、装配与热更新 | [Cordis 07 Loader](../hello-cordis/07-Loader与配置树.md) · [08 HMR](../hello-cordis/08-HMR热重载.md) | [05 启动与 Cordis](05-启动与Cordis落地.md) | [`cordis.yml`](../../dsh-example/cordis.yml) · [M12 · timer](../../dsh-example/M12-framework-mechanisms/README.md) |
-| Agent 状态与请求管线 | [Cordis 03–06](../hello-cordis/03-Fiber模型.md) | [06 Agent 与会话](06-Agent循环与会话日志.md) · [07 LLM/工具/提示](07-请求管线-LLM工具与提示.md) | [M04 · telemetry](../../dsh-example/M04-agent-loop-intervention/README.md) · [M05 · session](../../dsh-example/M05-session-surface/README.md) · [M03 · stream](../../dsh-example/M03-inference-service-access/README.md) |
-| 执行、安全与宿主 | [Cordis 03–07](../hello-cordis/03-Fiber模型.md) | [08 执行侧](08-执行侧服务-文件Shell沙箱子代理压缩.md) · [09 宿主与运行面](09-宿主与运行面-Web网关编排存储类型.md) | [M06 · approval](../../dsh-example/M06-human-in-the-loop/README.md) · [M07 · side-effects](../../dsh-example/M07-execution-backends/README.md) · [M07 · sandbox](../../dsh-example/M07-execution-backends/README.md) |
-| 测试、速查与排障 | [Cordis 09](../hello-cordis/09-关键调用链速查.md) | [10 测试](10-测试与工程实践.md) · [11 速查](11-关键调用链速查.md) | [示例索引与批量运行](../../dsh-example/README.md) |
+| 定位与代码地图 | [Cordis 01](../hello-cordis/01-overview-and-design-philosophy.md) · [02](../hello-cordis/02-code-structure-and-package-boundaries.md) | [01 项目概览](01-overview.md) · [02 代码结构地图](02-codebase-map.md) | [`cordis.yml`](../../dsh-example/cordis.yml) |
+| 生命周期与服务 | [Cordis 03 Fiber](../hello-cordis/03-fiber-model.md) · [04 Context](../hello-cordis/04-context-and-reflect-proxy.md) · [05 Service](../hello-cordis/05-service-registration-and-dependency-resolution.md) | [03 Seam](03-capability-seams-and-services.md) · [05 启动](05-startup-and-cordis-runtime.md) | [M03 · adapter](../../dsh-example/M03-inference-service-access/README.md) · [M12 · timer](../../dsh-example/M12-framework-mechanisms/README.md) |
+| 事件与扩展 | [Cordis 06 Events](../hello-cordis/06-event-system-and-waterfall.md) | [04 扩展](04-extensions-and-ecosystem.md) · [06 Agent](06-agent-loop-and-session-log.md) · [07 请求管线](07-request-pipeline-llm-tools-and-prompts.md) | [M04 · lifecycle](../../dsh-example/M04-agent-loop-intervention/README.md) · [M12 · dispatch](../../dsh-example/M12-framework-mechanisms/README.md) · [M03 · stream](../../dsh-example/M03-inference-service-access/README.md) |
+| 配置、装配与热更新 | [Cordis 07 Loader](../hello-cordis/07-loader-and-configuration-tree.md) · [08 HMR](../hello-cordis/08-hmr.md) | [05 启动与 Cordis](05-startup-and-cordis-runtime.md) | [`cordis.yml`](../../dsh-example/cordis.yml) · [M12 · timer](../../dsh-example/M12-framework-mechanisms/README.md) |
+| Agent 状态与请求管线 | [Cordis 03–06](../hello-cordis/03-fiber-model.md) | [06 Agent 与会话](06-agent-loop-and-session-log.md) · [07 LLM/工具/提示](07-request-pipeline-llm-tools-and-prompts.md) | [M04 · telemetry](../../dsh-example/M04-agent-loop-intervention/README.md) · [M05 · session](../../dsh-example/M05-session-surface/README.md) · [M03 · stream](../../dsh-example/M03-inference-service-access/README.md) |
+| 执行、安全与宿主 | [Cordis 03–07](../hello-cordis/03-fiber-model.md) | [08 执行侧](08-execution-services.md) · [09 宿主与运行面](09-host-runtime-and-storage.md) | [M06 · approval](../../dsh-example/M06-human-in-the-loop/README.md) · [M07 · side-effects](../../dsh-example/M07-execution-backends/README.md) · [M07 · sandbox](../../dsh-example/M07-execution-backends/README.md) |
+| 测试、速查与排障 | [Cordis 09](../hello-cordis/09-call-chain-reference.md) | [10 测试](10-testing-and-engineering.md) · [11 速查](11-call-chain-reference.md) | [示例索引与批量运行](../../dsh-example/README.md) |
 
 ## 七、Mermaid 配色图例
 
@@ -229,17 +215,17 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 | 约定 | 说明 |
 |---|---|
 | **路径缩写** | `P/` = `packages/`；各篇篇首声明自己用到的专用缩写（`AL/`=`P/core/agent-loop/src/`、`AG/`=`P/core/agent/src/`、`S/`=`P/core/session/src/`、`T/`=`P/core/tools/src/`、`SP/`=`P/core/system-prompt/src/`、`SC/`=`P/core/scope/src/`、`AB/`=`P/boot/app-boot/src/`、`L/`=`P/llm/llm/src/`、`V/`=`vendor/cordis/src/`…） |
-| **行号** | 对应快照 `47f94385`，**已逐条比对源码核实**（267 处 `文件:行号` 引用全部复核，个别区间端点可能 ±1）。上游迭代极快，建议以符号名检索；统一符号行号索引见 [11 § 11.6](11-关键调用链速查.md) |
+| **行号** | 对应快照 `fb2c4b9e`，**已逐条比对源码核实**（267 处 `文件:行号` 引用全部复核，个别区间端点可能 ±1）。上游迭代极快，建议以符号名检索；统一符号行号索引见 [11 § 11.6](11-call-chain-reference.md) |
 | **章节编号** | `N.M`，N 为篇号 |
 | **💡 提示块** | 反直觉事实、设计取舍、常见踩坑 |
 | **📐 配套示例块** | 该节对应的可跑示例（`dsh-example/`），含关键代码片段与实测输出 |
-| **测试** | 测试与工程机制以 [10](10-测试与工程实践.md) 为主篇；各篇只保留与主题直接相关的测试描述 |
+| **测试** | 测试与工程机制以 [10](10-testing-and-engineering.md) 为主篇；各篇只保留与主题直接相关的测试描述 |
 | **⭐ 标记** | 全系列最核心的 5 篇（03、06、07 + cordis 的 03、04） |
 | **交叉引用** | 篇内相对链接；跨文档集用 `../hello-cordis/`。只引用本仓库内实际存在的文档，可用 `python3 scripts/check_doc_links.py` 校验 |
 
 ## 九、文档集定位
 
-DSH **自带极完整的一手文档**：`docs/` 下 215 篇 md（含 105 篇 `.zh.md` 中文版）、`AGENTS.md` = `CLAUDE.md`（149 行）、`.agents/notes/` 1372 篇设计笔记。**完整清单与优先阅读顺序见 [01 § 1.8](01-项目概览.md)。**
+DSH **自带极完整的一手文档**：`docs/` 下 215 篇 md（含 105 篇 `.zh.md` 中文版）、`AGENTS.md` = `CLAUDE.md`（149 行）、`.agents/notes/` 1372 篇设计笔记。**完整清单与优先阅读顺序见 [01 § 1.8](01-overview.md)。**
 
 ![官方文档、本文档集与示例工程的分工](diagrams/00-docs-division.svg)
 
@@ -259,4 +245,4 @@ DSH **自带极完整的一手文档**：`docs/` 下 215 篇 md（含 105 篇 `.
 
 ---
 
-**开始阅读** → [01 项目概览](01-项目概览.md) ｜ **想直接动手** → [配套示例工程](../../dsh-example/README.md)
+**开始阅读** → [01 项目概览](01-overview.md) ｜ **想直接动手** → [配套示例工程](../../dsh-example/README.md)

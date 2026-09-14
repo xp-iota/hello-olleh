@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "10 - 人类引导"
+title: "人类引导机制对比"
 ---
 # 人类引导机制对比
 
@@ -42,7 +41,7 @@ title: "10 - 人类引导"
 
 ### OpenCode
 
-`sources/opencode/packages/opencode/src/permission/index.ts:19-24` 的 `Action` 枚举（allow/deny/ask）加上路径模式匹配，提供了最细粒度的权限表达：每条权限规则明确对应一个路径模式和一个操作类型。`ask` 状态把决策权推给用户，但用户在决策时有具体的上下文（"你要求读取 `/etc/passwd`，是否允许？"），而不是模糊的"工具 X 请求权限"。
+`sources/opencode/packages/core/src/permission.ts` 的 `Action` 枚举（allow/deny/ask）加上路径模式匹配，提供了最细粒度的权限表达：每条权限规则明确对应一个路径模式和一个操作类型。`ask` 状态把决策权推给用户，但用户在决策时有具体的上下文（"你要求读取 `/etc/passwd`，是否允许？"），而不是模糊的"工具 X 请求权限"。
 
 **粒度**：细，Pattern + Action 的组合。
 **透明度**：中。Schema 定义清晰，但运行时的审批请求是否携带足够上下文取决于实现。

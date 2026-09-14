@@ -1,0 +1,273 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "OpenCode 的 LSP 工作原理",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      550
+    ]
+  },
+  "components": [
+    {
+      "id": "Boot",
+      "type": "backend",
+      "label": "InstanceBootstrap()",
+      "sublabel": "LSP.init()",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Registry",
+      "type": "cloud",
+      "label": "配置与注册表",
+      "sublabel": "Config.lsp + LSPServer",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Trigger",
+      "type": "backend",
+      "label": "触发点",
+      "sublabel": "read · write · edit · applypatch",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Match",
+      "type": "external",
+      "label": "LSP.getClients(file)",
+      "sublabel": "按扩展名和 root 匹配",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Spawn",
+      "type": "external",
+      "label": "spawn language server",
+      "sublabel": "LSPClient.create()",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Client",
+      "type": "external",
+      "label": "LSP client",
+      "sublabel": "stdio JSON-RPC",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Server",
+      "type": "cloud",
+      "label": "Language Server",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Diag",
+      "type": "backend",
+      "label": "publishDiagnostics",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Cache",
+      "type": "database",
+      "label": "诊断缓存与聚合",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "FixLoop",
+      "type": "external",
+      "label": "write/edit",
+      "sublabel": "把错误回喂模型",
+      "pos": [
+        1083,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Reuse",
+      "type": "external",
+      "label": "已有同 root + serverID client?",
+      "pos": [
+        1429,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "Boot",
+      "to": "Registry",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Registry",
+      "to": "Trigger",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "Trigger",
+      "to": "Match",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "Match",
+      "to": "Spawn",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "Spawn",
+      "to": "Client",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "Server",
+      "to": "Diag",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "Diag",
+      "to": "Cache",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge8",
+      "from": "Cache",
+      "to": "FixLoop",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge9",
+      "from": "FixLoop",
+      "to": "Reuse",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "11 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 10 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "InstanceBootstrap() / LSP… → 配置与注册表 / Config.lsp…",
+        "配置与注册表 / Config.lsp… → 触发点 / read / write / e…",
+        "触发点 / read / write / e… → LSP.getClients(file) / 按…"
+      ]
+    }
+  ]
+}

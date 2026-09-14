@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "架构全景：多宿主外壳、Core 组合根与 Agent 执行闭环"
 ---
 # 架构全景：多宿主外壳、Core 组合根与 Agent 执行闭环
@@ -62,57 +61,13 @@ Gemini CLI 很容易被误读成“CLI 调 `core`，`core` 再起个服务”。
 
 ### 3.1 总体结构图
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    subgraph Hosts["宿主层"]
-        CLI["packages/cli<br/>interactive / headless / ACP"]
-        SDK["packages/sdk<br/>GeminiCliSession"]
-        A2A["packages/a2a-server<br/>CoderAgentExecutor"]
-        IDE["packages/vscode-ide-companion<br/>IDEServer / Diff bridge"]
-    end
+![总体结构图](diagrams/01-architecture-diagram.svg)
 
-    subgraph Core["Core Runtime (`packages/core`)"]
-        Config["Config<br/>组合根 + AgentLoopContext"]
-        Client["GeminiClient"]
-        Turn["Turn"]
-        Chat["GeminiChat"]
-        Scheduler["Scheduler"]
-    end
+**总体结构图** — [交互版](diagrams/01-architecture-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/01-architecture-diagram.architecture.json)
 
-    subgraph Capability["能力层"]
-        Tools["ToolRegistry<br/>内建工具 / discovered / MCP"]
-        Prompts["PromptProvider<br/>PromptRegistry / ResourceRegistry"]
-        Ext["McpClientManager<br/>SkillManager / AgentRegistry"]
-        Safe["PolicyEngine<br/>MessageBus / HookSystem"]
-        Route["ModelRouterService<br/>ContextManager"]
-    end
-
-    subgraph Infra["基础设施层"]
-        Storage["Storage<br/>ChatRecordingService"]
-        FS["Sandbox / FileSystem<br/>Git / FileDiscovery"]
-        Telemetry["coreEvents / telemetry"]
-    end
-
-    CLI --> Config
-    SDK --> Config
-    A2A --> Config
-    IDE -. IDE context / diff .-> Route
-
-    Config --> Client
-    Client --> Turn
-    Turn --> Chat
-    Client -. "ToolCallRequest<br/>事件流" .-> Scheduler
-
-    Config --> Tools
-    Config --> Prompts
-    Config --> Ext
-    Config --> Safe
-    Config --> Route
-    Config --> Storage
-    Config --> FS
-    Config --> Telemetry
-```
+- **组成**：画布 16 个节点 · 源图共 21 个节点，其余见正文
+- **关系**：源图 14 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：packages/cli / interactiv… → Config / 组合根 + AgentLo… · packages/sdk / GeminiCliS… → Config / 组合根 + AgentLo… · packages/a2a-server / Cod… → Config / 组合根 + AgentLo…
 
 ### 3.2 六层职责表
 

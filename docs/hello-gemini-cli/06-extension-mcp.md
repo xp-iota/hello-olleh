@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "扩展性：MCP 与扩展机制的加载与隔离"
 ---
 # 扩展性：MCP 与扩展机制的加载与隔离
@@ -31,21 +30,13 @@ MCP 是 Gemini CLI 扩展能力的基石。它将外部服务的工具能力映�
 
 ### 1.2 MCP 工具执行流
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    participant LLM as 模型
-    participant Reg as ToolRegistry<br/>getFunctionDeclarations()
-    participant MCP as McpClient / DiscoveredMCPTool<br/>callTool() @ gemini-cli/packages/core/src/tools/mcp-client.ts:1372
-    participant Srv as MCP Server<br/>JSON-RPC tools/call
+![MCP 工具执行流](diagrams/06-extension-mcp-mcp.svg)
 
-    LLM->>Reg: 发起 MCP 工具调用
-    Reg->>MCP: callTool(name, args)
-    MCP->>Srv: JSON-RPC: tools/call
-    Srv-->>MCP: 工具执行结果
-    MCP-->>Reg: 包装为 FunctionResponse
-    Reg-->>LLM: 回传给模型
-```
+**MCP 工具执行流** — [交互版](diagrams/06-extension-mcp-mcp.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/06-extension-mcp-mcp.sequence.json)
+
+- **组成**：7 个参与方
+- **关系**：源图 6 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：未上画布的调用：回传给模型
 
 ## 2. 核心函数清单 (Function List)
 

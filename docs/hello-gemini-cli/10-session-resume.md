@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Gemini CLI Session 持久化与会话恢复"
 ---
 # Gemini CLI Session 持久化与会话恢复

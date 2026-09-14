@@ -1,15 +1,12 @@
 ---
-layout: default
 title: "Gemini CLI 源码分析 README"
 ---
-
 # Gemini CLI 源码分析 README
 
 本目录记录 Gemini CLI `v0.47.0` 的源码分析。分析对象是 `sources/gemini-cli/` 上游快照，技术栈是 TypeScript monorepo：`packages/core` 承载 Agent runtime，`packages/cli` 承载 Ink TUI 和非交互入口，扩展面包括 MCP、Extensions、Skills、A2A 和 IDE 集成。
 
 ## 阅读入口
 
-- 网页索引：[index.md](./index.md)
 - 总览版报告：[22-project-init-analysis.md](./22-project-init-analysis.md)
 - 根项目说明与当前源码快照版本：[../../README.md](../../README.md)
 

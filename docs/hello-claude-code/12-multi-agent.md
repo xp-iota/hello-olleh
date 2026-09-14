@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "多代理、后台任务与远程会话"
 ---
 # 多代理、后台任务与远程会话
@@ -508,28 +507,13 @@ agent 不是单纯“换个 prompt”，而是能带自己的技能与外部能�
 
 ## 13. 多代理体系总图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    A[主线程 query] --> B[AgentTool]
-    B --> C{spawn mode}
-    C -- teammate --> D[spawnTeammate]
-    C -- local async/sync --> E[runAgent]
-    C -- remote --> F[teleportToRemote]
+![多代理体系总图](diagrams/12-multi-agent-diagram.svg)
 
-    E --> G[registerAsyncAgent / foreground]
-    E --> H[createSubagentContext]
-    E --> I["query()"]
-    I --> J[sidechain transcript]
+**多代理体系总图** — [交互版](diagrams/12-multi-agent-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/12-multi-agent-diagram.architecture.json)
 
-    F --> K[registerRemoteAgentTask]
-    K --> L[RemoteSessionManager]
-    L --> M[WS SDK messages]
-    L --> N[permission control flow]
-```
+- **组成**：14 个节点
+- **关系**：源图 13 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：主线程 query → AgentTool · AgentTool → spawn mode · spawn mode → spawnTeammate（teammate）
 
 ## 14. 架构观察
 

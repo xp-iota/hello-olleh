@@ -1,8 +1,7 @@
 ---
-layout: content
 title: "配置与设置：config.toml、环境变量与运行时策略"
 ---
-# 配置与设置：`config.toml`、环境变量与运行时策略
+# 配置与设置：config.toml、环境变量与运行时策略
 
 本文分析 Codex 的配置系统，包括配置文件结构、环境变量、优先级规则和运行时策略注入。
 
@@ -20,17 +19,13 @@ title: "配置与设置：config.toml、环境变量与运行时策略"
 
 ## 1. 配置来源与优先级
 
-```
-CLI 参数 (--model, --sandbox, --approval-policy)
-    ↓ 覆写（最高优先级）
-环境变量 (CODEX_RS_MODEL, OPENAI_API_KEY, ...)
-    ↓ 覆写
-.codex/config.toml（项目级）
-    ↓ 覆写
-~/.config/codex/config.toml（用户全局）
-    ↓ 覆写
-内置默认值（最低优先级）
-```
+![配置来源与优先级](diagrams/17-settings-config-diagram.svg)
+
+**配置来源与优先级** — [交互版](diagrams/17-settings-config-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/17-settings-config-diagram.architecture.json)
+
+- **组成**：7 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：CLI 参数 (--model, --sandbox,… · 末节点：内置默认值（最低优先级）
 
 ## 2. config.toml 完整结构
 
@@ -120,13 +115,13 @@ Codex 的配置加载不是一个单独 `load_config()` 函数，而是 `Config`
 
 ## 6. 项目级配置（`.codex/` 目录）
 
-```
-project/
-├── .codex/
-│   ├── config.toml    # 项目级配置覆写
-│   └── instructions/  # 可选：结构化 AGENTS.md 分片
-└── AGENTS.md          # 主项目指令文件
-```
+![项目级配置（.codex/ 目录）](diagrams/17-settings-config-codex.svg)
+
+**项目级配置（.codex/ 目录）** — [交互版](diagrams/17-settings-config-codex.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/17-settings-config-codex.architecture.json)
+
+- **组成**：5 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：project/ · 末节点：AGENTS.md # 主项目指令文件
 
 项目级 `config.toml` 通常只覆写少数字段，如：
 

@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Codex 的 MCP/RMCP 系统"
 ---
 # Codex 的 MCP/RMCP 系统
@@ -27,41 +26,13 @@ title: "Codex 的 MCP/RMCP 系统"
 
 ## 1. MCP 系统概述
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    subgraph CodexCore["Codex Core"]
-        A[McpConnectionManager]
-        B[McpToolCall]
-        C[ToolHandler]
-    end
+![MCP 系统概述](diagrams/24-mcp-system-mcp.svg)
 
-    subgraph RMCP["RMCP Client"]
-        D[RmcpClient]
-        E[Transport Recipe]
-        F[OAuth]
-    end
+**MCP 系统概述** — [交互版](diagrams/24-mcp-system-mcp.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-mcp.architecture.json)
 
-    subgraph Transport["传输层"]
-        G[StdioTransport]
-        H[StreamableHttp]
-    end
-
-    subgraph MCPServer["MCP Server"]
-        I[本地进程]
-        J[远程服务]
-    end
-
-    A --> D
-    D --> E
-    E --> G
-    E --> H
-    G --> I
-    H --> J
-```
+- **组成**：14 个节点
+- **关系**：源图 6 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：McpConnectionManager → RmcpClient · RmcpClient → Transport Recipe · Transport Recipe → StdioTransport
 
 ## 2. 核心组件
 
@@ -141,24 +112,13 @@ struct AsyncManagedClient {
 
 ### 4.2 连接流程
 
-```mermaid
----
-config:
-  theme: neutral
----
-sequenceDiagram
-    participant MCM as McpConnectionManager
-    participant RMCP as RmcpClient
-    participant Server as MCP Server
+![连接流程](diagrams/24-mcp-system-diagram-02.svg)
 
-    MCM->>RMCP: new(transport_recipe)
-    RMCP->>Server: initialize (protocol 2025-06-18)
-    Server-->>RMCP: capabilities
-    RMCP->>Server: tools/list
-    Server-->>RMCP: tools[]
-    RMCP-->>MCM: tools cached
-    MCM->>MCM: cache Codex Apps tools
-```
+**连接流程** — [交互版](diagrams/24-mcp-system-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-diagram-02.sequence.json)
+
+- **组成**：5 个参与方
+- **关系**：源图 6 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：McpConnectionManager 自调用：cache Codex Apps tools · 未上画布的调用：tools cached
 
 ## 5. 工具管理
 
@@ -221,23 +181,13 @@ pub async fn list_tools_with_connector_ids(
 
 ### 6.1 调用流程
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[Codex] --> B[McpToolCall]
-    B --> C{MCP Tool?}
-    C -->|是| D[McpConnectionManager]
-    D --> E[RmcpClient]
-    E --> F[MCP Server]
-    F --> G[CallToolResult]
-    G --> H{Elicitation?}
-    H -->|需要| I[AskForApproval]
-    H -->|不需要| J[返回结果]
-    I --> K[用户批准/拒绝]
-```
+![调用流程](diagrams/24-mcp-system-diagram-03.svg)
+
+**调用流程** — [交互版](diagrams/24-mcp-system-diagram-03.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-diagram-03.architecture.json)
+
+- **组成**：11 个节点
+- **关系**：源图 10 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：Codex → McpToolCall · McpToolCall → MCP Tool? · MCP Tool? → McpConnectionManager（是）
 
 ### 6.2 McpToolCall
 
@@ -305,29 +255,13 @@ impl OAuthTokenStorage {
 
 ### 7.2 OAuth 流程
 
-```mermaid
----
-config:
-  theme: neutral
----
-sequenceDiagram
-    participant Client as RmcpClient
-    participant OAuth as OAuthTokenStorage
-    participant Store as Keyring
-    participant Server as MCP Server
+![OAuth 流程](diagrams/24-mcp-system-oauth.svg)
 
-    Client->>OAuth: get_token(server)
-    OAuth->>Store: get(key)
-    Store-->>OAuth: token?
-    OAuth-->>Client: token or None
+**OAuth 流程** — [交互版](diagrams/24-mcp-system-oauth.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-oauth.sequence.json)
 
-    alt token expired
-        Client->>Server: refresh token
-        Server-->>Client: new token
-        Client->>OAuth: store token
-        OAuth->>Store: set key, value
-    end
-```
+- **组成**：7 个参与方
+- **关系**：源图 8 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：未上画布的调用：new token · 未上画布的调用：store token · 未上画布的调用：set key, value
 
 ## 8. MCP 协议类型
 
@@ -404,20 +338,13 @@ const TOOLS_CACHE_DIR: &str = "cache/codex_apps_tools/";
 
 ### 11.2 连接流程
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    A[启动] --> B[检查缓存]
-    B --> C{缓存存在?}
-    C -->|是| D[加载缓存工具]
-    C -->|否| E[连接 Codex Apps MCP]
-    E --> F[list_tools]
-    F --> G[缓存工具]
-    G --> D
-```
+![连接流程](diagrams/24-mcp-system-diagram-05.svg)
+
+**连接流程** — [交互版](diagrams/24-mcp-system-diagram-05.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-diagram-05.architecture.json)
+
+- **组成**：7 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：启动 → 检查缓存 · 检查缓存 → 缓存存在? · 缓存存在? → 加载缓存工具（是）
 
 ## 12. 与 Claude Code 的差异
 
@@ -503,26 +430,13 @@ Codex 的 MCP 不只是“连接外部 server 并发现工具”。真正的横�
 
 ## MCP Tool Call 到 Turn Loop 的调用链
 
-```mermaid
-sequenceDiagram
-    participant Config as config / mcp_types
-    participant Manager as mcp_connection_manager
-    participant Prompt as turn prompt builder
-    participant Model as model request
-    participant Orch as tools orchestrator
-    participant Handler as MCP handler
-    participant Thread as thread item / next turn
+![MCP Tool Call 到 Turn Loop 的调用链](diagrams/24-mcp-system-mcp-tool-call-turn-loop.svg)
 
-    Config->>Manager: start configured MCP server
-    Manager-->>Prompt: expose tool/resource state
-    Prompt->>Model: include MCP tool specs with built-ins
-    Model-->>Orch: function/tool call
-    Orch->>Orch: approval / sandbox / network policy
-    Orch->>Handler: dispatch MCP tool call
-    Handler->>Manager: call target server
-    Manager-->>Handler: MCP result
-    Handler-->>Thread: normalized tool output
-```
+**MCP Tool Call 到 Turn Loop 的调用链** — [交互版](diagrams/24-mcp-system-mcp-tool-call-turn-loop.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-mcp-tool-call-turn-loop.sequence.json)
+
+- **组成**：10 个参与方
+- **关系**：源图 8 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：tools orchestrator 自调用：approval / sandbox / network policy · 未上画布的调用：call target server · 未上画布的调用：MCP result
 
 这个链路说明 MCP 在 Codex 中不是旁路：tool spec 暴露、模型调用、审批沙箱、结果回注都进入同一套 turn/tool runtime。
 

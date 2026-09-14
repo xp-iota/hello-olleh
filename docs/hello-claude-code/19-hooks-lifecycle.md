@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Hooks 生命周期与运行时语义"
 ---
 # Hooks 生命周期与运行时语义
@@ -315,30 +314,13 @@ hook 在系统里也是可观测对象，而不是“黑盒外部进程”。
 
 ## 15. 一张总图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[settings hooks] --> D[hooks snapshot]
-    B[plugin/builtin hooks] --> E[groupHooksByEventAndMatcher]
-    C[session hooks] --> E
-    D --> E
-    E --> F{trust established?}
-    F -- 否 --> G[skip hook execution]
-    F -- 是 --> H[executeHooks / executeHooksOutsideREPL]
-    H --> I{hook type}
-    I -- command --> J[shell process]
-    I -- http --> K[allowlist + SSRF guard + POST]
-    I -- prompt --> L[prompt hook runtime]
-    I -- agent --> M[subagent evaluation]
-    J --> N[parse stdout as text or JSON]
-    K --> N
-    L --> N
-    M --> N
-    N --> O[blocking / retry / additionalContext / watchPaths / permissionDecision]
-```
+![一张总图](diagrams/19-hooks-lifecycle-diagram.svg)
+
+**一张总图** — [交互版](diagrams/19-hooks-lifecycle-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/19-hooks-lifecycle-diagram.architecture.json)
+
+- **组成**：15 个节点
+- **关系**：源图 17 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：settings hooks → hooks snapshot · plugin/builtin hooks → groupHooksByEventAndMatch… · session hooks → groupHooksByEventAndMatch…
 
 ## 16. 关键源码锚点
 

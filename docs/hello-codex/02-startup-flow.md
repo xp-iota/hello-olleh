@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "启动链路：入口点、CLI 参数解析、初始化顺序与 Subcommand 分发"
 ---
 # 启动链路：入口点、CLI 参数解析、初始化顺序与 Subcommand 分发
@@ -25,65 +24,13 @@ title: "启动链路：入口点、CLI 参数解析、初始化顺序与 Subcomm
 
 先看整条启动链，再看每一段细节。下面各节按这个顺序展开：
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    U["用户在 shell 中执行 codex ..."]
-    OS["[4] OS 创建 Rust 子进程并装载原生二进制"]
+![总体流程图](diagrams/02-startup-flow-diagram-01.svg)
 
-    subgraph JSFILE["codex-cli/bin/codex.js"]
-        direction TB
-        JS["[2] 平台检测 / 二进制定位 / PATH 补丁"]
-        SP["[3] spawn(binaryPath, argv, env, stdio)"]
-        JS --> SP
-    end
+**总体流程图** — [交互版](diagrams/02-startup-flow-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-startup-flow-diagram-01.architecture.json)
 
-    subgraph CLIFILE["codex-rs/cli/src/main.rs"]
-        direction TB
-        M["[5] main()"]
-        CLI["[6.1/6.3] MultitoolCli 解析与分支决策"]
-        M ~~~ CLI
-    end
-
-    subgraph ARG0FILE["codex-rs/arg0/src/lib.rs"]
-        direction TB
-        A0["[6] arg0_dispatch_or_else()<br/>.env / PATH alias / Tokio"]
-    end
-
-    subgraph TUILIB["codex-rs/tui/src/lib.rs"]
-        direction TB
-        TUI["[7] 无子命令 -> TUI 路径"]
-        TUIRUN["[7.2/7.3] tui::run_main()<br/>run_ratatui_app()"]
-        TUI --> TUIRUN
-    end
-
-    subgraph TUIAPP["codex-rs/tui/src/app.rs"]
-        direction TB
-        APPLOOP["[7.4] App::run()<br/>bootstrap / 事件主循环"]
-    end
-
-    subgraph EXECFILE["codex-rs/exec/src/lib.rs"]
-        direction TB
-        EXEC["[8] exec / review -> 非交互路径"]
-        EXEC2["[8] 内嵌 app-server -> JSON 事件流输出"]
-        EXEC --> EXEC2
-    end
-
-    subgraph APPSRVFILE["codex-rs/app-server/src/lib.rs"]
-        direction TB
-        APP["[9] app-server -> 服务路径"]
-        APP2["[9] stdio / WebSocket -> JSON-RPC 循环"]
-        APP --> APP2
-    end
-
-    U --> JS
-    SP --> OS --> M
-    M --> A0 --> CLI
-    CLI --> TUI
-    TUIRUN --> APPLOOP
-    CLI --> EXEC
-    CLI --> APP
-```
+- **组成**：画布 16 个节点 · 源图共 21 个节点，其余见正文
+- **关系**：源图 13 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：2] 平台检测 / 二进制定位… → 3] spawn(binaryPath, argv… · 7] 无子命令 -> TUI 路径 → 7.2/7.3] tui::runmain()… · 8] exec / review -> 非交… → 8] 内嵌 app-server -> JSO…
 
 ## 2. 双层入口
 
@@ -245,32 +192,13 @@ struct MultitoolCli {
 
 ### 7.1 详细时序
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    participant JS as codex.js
-    participant OS as Kernel/Loader
-    participant M as main()
-    participant A0 as arg0_dispatch
-    participant CLI as cli_main()
-    participant TUI as run_interactive_tui()
-    participant RM as tui::run_main()
-    participant APP as App::run()
+![详细时序](diagrams/02-startup-flow-diagram-02.svg)
 
-    JS->>OS: spawn(binary, argv, env, stdio)
-    OS-->>OS: 装载原生二进制\n传递 argv/env/stdio
-    OS->>M: 进入 Rust main()
-    M->>A0: arg0_dispatch_or_else()
-    A0-->>A0: 加载 .env / 创建 PATH / 构建 Tokio
-    A0->>CLI: cli_main(arg0_paths)
-    CLI-->>CLI: 解析 MultitoolCli
-    CLI->>TUI: run_interactive_tui()
-    TUI-->>TUI: 规范化 prompt / 加载认证
-    TUI->>RM: codex_tui::run_main()
-    RM-->>RM: Config / 日志 / Onboarding
-    RM->>APP: App::run()
-    APP-->>APP: bootstrap → start_thread → 事件主循环
-```
+**详细时序** — [交互版](diagrams/02-startup-flow-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-startup-flow-diagram-02.sequence.json)
+
+- **组成**：画布 10 个参与方 · 源图共 14 个参与方，其余见正文
+- **关系**：源图 9 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：未上画布的调用：climain(arg0paths) · 未上画布的调用：runinteractivetui() · 未上画布的调用：codextui::runmain()
 
 ### 7.2 `tui::run_main()` 初始化序列
 

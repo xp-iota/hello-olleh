@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "13 - Agent Loop 闭环拓扑"
+title: "Agent Loop 闭环拓扑对比"
 ---
 <!-- markdownlint-disable MD060, MD024 -->
 
@@ -11,7 +10,7 @@ title: "13 - Agent Loop 闭环拓扑"
 - [`../hello-claude-code/03-agent-loop.md`](../hello-claude-code/03-agent-loop.md)
 - [`../hello-codex/03-agent-loop.md`](../hello-codex/03-agent-loop.md)
 - [`../hello-gemini-cli/03-agent-loop.md`](../hello-gemini-cli/03-agent-loop.md)
-- [`../hello-opencode/03-agent-loop.md`](../hello-opencode/03-agent-loop.md)
+- [`../hello-opencode/03-session-runtime.md`](../hello-opencode/03-session-runtime.md)
 
 ---
 
@@ -33,63 +32,13 @@ Harness 视角下，Agent Loop 不只是"模型调用然后执行工具"的 whil
 
 ## 2. 四种闭环拓扑总览
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    subgraph Row1[" "]
-        direction LR
-        SP1[" "]:::ghost
-        subgraph CC["Claude Code — 单核 queryLoop"]
-            direction TB
-            CC1["while(true)<br/>query.ts:309"] --> CC2["callModel() 流式消费"]
-            CC2 --> CC3["StreamingToolExecutor<br/>工具执行"]
-            CC3 --> CC4["toolResults 注回 messages"]
-            CC4 --> CC1
-        end
-        SP2[" "]:::ghost
-    end
+![四种闭环拓扑总览](diagrams/13-agent-loop-diagram-01.svg)
 
-    subgraph Row2[" "]
-        direction LR
-        subgraph CX["Codex — 四层分治"]
-            direction TB
-            CX1["submission_loop()<br/>session/handlers.rs:698"] --> CX2["run_turn()<br/>session/turn.rs:137"]
-            CX2 --> CX3["run_sampling_request()<br/>重试封装"]
-            CX3 --> CX4["try_run_sampling_request()<br/>流事件+工具 future"]
-            CX4 -->|"needs_follow_up"| CX2
-        end
-        SP3[" "]:::ghost
-        subgraph GM["Gemini CLI — 跨层闭环"]
-            direction TB
-            GM1["sendMessageStream()<br/>client.ts:910"] --> GM2["processTurn()<br/>client.ts:614"]
-            GM2 --> GM3["Turn.run()<br/>turn.ts:257"]
-            GM3 --> GM4["Scheduler 三阶段<br/>scheduler.ts:405"]
-            GM4 --> GM5["handleCompletedTools()<br/>useGeminiStream.ts:1865"]
-            GM5 -->|"submitQuery(isContinuation)"| GM1
-        end
-    end
+**四种闭环拓扑总览** — [交互版](diagrams/13-agent-loop-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/13-agent-loop-diagram-01.architecture.json)
 
-    subgraph Row3[" "]
-        direction LR
-        SP4[" "]:::ghost
-        subgraph OC["OpenCode — durable session"]
-            direction TB
-            OC1["loop()<br/>prompt.ts:278"] --> OC2["SessionProcessor.process()<br/>processor.ts:49"]
-            OC2 --> OC3["LLM.stream()<br/>llm.ts:41"]
-            OC3 --> OC4["工具结果写 SQLite"]
-            OC4 --> OC1
-        end
-        SP5[" "]:::ghost
-    end
-
-    classDef ghost fill:transparent,stroke:transparent,color:transparent;
-    style Row1 fill:transparent,stroke:transparent
-    style Row2 fill:transparent,stroke:transparent
-    style Row3 fill:transparent,stroke:transparent
-```
+- **组成**：画布 16 个节点 · 源图共 30 个节点，其余见正文
+- **关系**：源图 15 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：while(true) / query.ts:309 → callModel() 流式消费 · callModel() 流式消费 → StreamingToolExecutor… · StreamingToolExecutor… → toolResults 注回 messages
 
 ---
 
@@ -277,22 +226,17 @@ while (attemptWithFallback) {
 
 Codex 是四个工程中层次最分明的。整条执行链在当前快照中拆分到 `sources/codex/codex-rs/core/src/session/handlers.rs` 与 `session/turn.rs`，仍可按四层阅读：
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    L1["submission_loop()<br/>session/handlers.rs:698<br/>事件分发层"] --> L2["run_turn()<br/>session/turn.rs:137<br/>Turn 编排层"]
-    L2 --> L3["run_sampling_request()<br/>session/turn.rs:1036<br/>重试/容错层"]
-    L3 --> L4["try_run_sampling_request()<br/>session/turn.rs:1815<br/>流消费+工具派发层"]
-    L4 -->|"needs_follow_up = true"| L2
-    L3 -->|"retryable error"| L3
-```
+![分层架构](diagrams/13-agent-loop-diagram-02.svg)
+
+**分层架构** — [交互版](diagrams/13-agent-loop-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/13-agent-loop-diagram-02.architecture.json)
+
+- **组成**：4 个节点
+- **关系**：源图 4 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：submissionloop() / sessio… → runturn() / session/turn.… · runturn() / session/turn.… → runsamplingrequest() / se… · runsamplingrequest() / se… → tryrunsamplingrequest()…
 
 ### 4.2 第一层：submission_loop() — 事件分发
 
-**位置** — `sources/codex/codex-rs/core/src/session/handlers.rs:698-921`
+**位置** — `sources/codex/codex-rs/core/src/session/handlers.rs`
 
 ```rust
 async fn submission_loop(
@@ -514,31 +458,13 @@ Codex 的审批不在 loop 内部轮询，而是通过 `Op::ExecApproval` 和 `O
 
 Gemini CLI 的闭环跨越三个层次的异步生成器，加上一个 UI hook 层完成闭合：
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    subgraph Core["Core 层"]
-        direction TB
-        A["sendMessageStream()<br/>client.ts:910"] --> B["processTurn()<br/>client.ts:614"]
-        B --> C["Turn.run()<br/>turn.ts:257"]
-    end
-    subgraph Sched["Scheduler 层"]
-        direction TB
-        D["schedule()<br/>scheduler.ts:312"] --> E["_processQueue()<br/>while loop"]
-        E --> F["_execute()<br/>ToolExecutor"]
-    end
-    subgraph UI["UI Hook 层"]
-        direction TB
-        G["processGeminiStreamEvents()<br/>useGeminiStream.ts:1459"] --> H["handleCompletedTools()<br/>useGeminiStream.ts:1865"]
-    end
-    C --> G
-    G -->|"ToolCallRequest 事件"| D
-    F -->|"完成/错误"| H
-    H -->|"submitQuery(isContinuation)"| A
-```
+![三层异步生成器栈](diagrams/13-agent-loop-diagram-03.svg)
+
+**三层异步生成器栈** — [交互版](diagrams/13-agent-loop-diagram-03.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/13-agent-loop-diagram-03.architecture.json)
+
+- **组成**：12 个节点
+- **关系**：源图 9 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：sendMessageStream() / cli… → processTurn() / client.ts… · processTurn() / client.ts… → Turn.run() / turn.ts:257 · schedule() / scheduler.ts… → processQueue() / while lo…
 
 ### 5.2 sendMessageStream() — 编排入口
 
@@ -736,15 +662,13 @@ const handleCompletedTools = useCallback(
 
 ### 5.7 工具状态机
 
-```
-ToolCallRequestInfo
-    │
-    ▼
-Validating ──→ AwaitingApproval ──→ Scheduled ──→ Executing ──→ Terminal
-    │                                     │              │        (success/error/cancelled)
-    │                                     │              │
-    └──→ Error (验证失败)                  └──→ Error     └──→ Cancelled
-```
+![工具状态机](diagrams/13-agent-loop-diagram-04.svg)
+
+**工具状态机** — [交互版](diagrams/13-agent-loop-diagram-04.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/13-agent-loop-diagram-04.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：ToolCallRequestInfo · 末节点：Cancelled
 
 ### 5.8 关键函数清单
 
@@ -769,28 +693,17 @@ Validating ──→ AwaitingApproval ──→ Scheduled ──→ Executing �
 
 OpenCode 的闭环由 `prompt.ts` 的外层 `loop()` 和 `processor.ts` 的内层 `process()` 组成：
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    A["loop() while(true)<br/>prompt.ts:299"] --> B["检查退出条件<br/>lastAssistant.finish"]
-    B -->|"需要继续"| C["SessionProcessor.create()"]
-    C --> D["process() while(true)<br/>processor.ts:50"]
-    D --> E["LLM.stream()<br/>llm.ts:41"]
-    E --> F["for await fullStream<br/>处理流事件"]
-    F --> G{"结果判定"}
-    G -->|"continue"| A
-    G -->|"compact"| H["SessionCompaction.create()"]
-    H --> A
-    G -->|"stop"| I["退出"]
-    D -->|"重试"| D
-```
+![双层循环结构](diagrams/13-agent-loop-diagram-05.svg)
+
+**双层循环结构** — [交互版](diagrams/13-agent-loop-diagram-05.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/13-agent-loop-diagram-05.architecture.json)
+
+- **组成**：9 个节点
+- **关系**：源图 10 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：loop() while(true) / prom… → 检查退出条件 / lastAssist… · 检查退出条件 / lastAssist… → SessionProcessor.create()（需要继续） · SessionProcessor.create() → process() while(true) / p…
 
 ### 6.2 外层 loop() — 状态驱动
 
-**位置** — `sources/opencode/packages/opencode/src/session/prompt.ts:278-715`
+**位置** — `sources/opencode/packages/core/src/session/prompt.ts`
 
 ```typescript
 export const loop = fn(LoopInput, async (input) => {
@@ -834,7 +747,7 @@ export const loop = fn(LoopInput, async (input) => {
 
 ### 6.3 内层 process() — 流处理 + 重试
 
-**位置** — `sources/opencode/packages/opencode/src/session/processor.ts:27-384`
+**位置** — `sources/opencode/packages/core/src/session/runner/step.ts`
 
 `SessionProcessor.create()` 返回一个闭包对象，持有以下状态：
 
@@ -904,7 +817,7 @@ async process(streamInput) {
 
 ### 6.4 Doom Loop 检测
 
-**位置** — `sources/opencode/packages/opencode/src/session/processor.ts:21, 103-117`
+**位置** — `sources/opencode/packages/core/src/session/runner/step.ts, 103-117`
 
 ```typescript
 const DOOM_LOOP_THRESHOLD = 3
@@ -923,7 +836,7 @@ if (lastThree.length === DOOM_LOOP_THRESHOLD &&
 
 ### 6.5 工具执行与 AI SDK 集成
 
-**位置** — `sources/opencode/packages/opencode/src/session/prompt.ts:766-951`
+**位置** — `sources/opencode/packages/core/src/session/prompt.ts`
 
 OpenCode 使用 Vercel AI SDK 的 `streamText()` + `tool()` 原语。工具执行由 SDK 自动调度——当模型返回 `tool_use` 时，SDK 会自动调用注册的 `execute` 函数：
 
@@ -959,16 +872,15 @@ async ask(req) {
 
 ### 6.6 SQLite 持久化
 
-**Schema** — `sources/opencode/packages/opencode/src/session/session.sql.ts`
+**Schema** — `sources/opencode/packages/core/src/session/sql.ts`
 
-```
-SessionTable────────┬──────MessageTable──────┬──────PartTable
-  id (PK)          │      id (PK)           │     id (PK)
-  project_id (FK)  │      session_id (FK)   │     message_id (FK)
-  title            │      data (JSON)       │     session_id (FK)
-  permission       │      time_created      │     data (JSON)
-  time_created     │                        │     time_created
-```
+![SQLite 持久化](diagrams/13-agent-loop-sqlite.svg)
+
+**SQLite 持久化** — [交互版](diagrams/13-agent-loop-sqlite.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/13-agent-loop-sqlite.architecture.json)
+
+- **组成**：6 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：SessionTable MessageTable Par… · 末节点：timecreated timecreated
 
 **写入时机**：
 
@@ -985,7 +897,7 @@ SessionTable────────┬──────MessageTable───�
 
 ### 6.7 Bus 事件系统
 
-**位置** — `sources/opencode/packages/opencode/src/bus/index.ts:41-65`
+**位置** — `sources/opencode/packages/core/src/event.ts`
 
 ```typescript
 export async function publish<Def extends BusEvent.Definition>(
@@ -1003,7 +915,7 @@ Bus 是 OpenCode 的**观察者层**——TUI、LSP 客户端、外部工具都�
 
 ### 6.8 重试策略
 
-**位置** — `sources/opencode/packages/opencode/src/session/retry.ts:26-98`
+**位置** — `sources/opencode/packages/core/src/session/runner/retry.ts`
 
 ```typescript
 export function delay(attempt: number, error?: MessageV2.APIError) {

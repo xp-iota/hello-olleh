@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Claude Code MCP 深度专题：OAuth 认证、生命周期钩子与渠道权限"
 ---
 # Claude Code MCP 深度专题：OAuth 认证、生命周期钩子与渠道权限
@@ -33,24 +32,13 @@ Claude Code 的 MCP 认证支持四种模式，复杂度从低到高：
 
 ### OAuth 2.0 流程
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    participant CLI as Claude Code
-    participant MCP as MCP Server
-    participant Auth as OAuth Provider
+![OAuth 2.0 流程](diagrams/24b-mcp-deep-oauth-2-0.svg)
 
-    CLI->>MCP: 连接请求（需要 OAuth）
-    MCP-->>CLI: 401 + OAuth 授权 URL
-    CLI->>Auth: 打开浏览器 / 启动本地服务器
-    Auth-->>用户: 授权页面
-    用户->>Auth: 同意授权
-    Auth-->>CLI: 授权码 / 回调
-    CLI->>Auth: 用授权码换取 Access Token
-    Auth-->>CLI: Access Token + Refresh Token
-    CLI->>MCP: 重试请求（带 Bearer Token）
-    MCP-->>CLI: 200 连接成功
-```
+**OAuth 2.0 流程** — [交互版](diagrams/24b-mcp-deep-oauth-2-0.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24b-mcp-deep-oauth-2-0.sequence.json)
+
+- **组成**：5 个参与方
+- **关系**：源图 8 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：未上画布的调用：Access Token + Refresh Token · 未上画布的调用：重试请求（带 Bearer Token） · 未上画布的调用：200 连接成功
 
 ### URL Elicitation 协议
 
@@ -119,22 +107,13 @@ XAA 是 Anthropic 对 OAuth 的扩展，增加了：
 
 ### 挂载流程
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart TD
-    A["App 挂载"] --> B["读取 MCP 配置"]
-    B --> C{"配置了 servers?"}
-    C -->|是| D["for each server: create transport"]
-    C -->|否| E["什么都不做"]
-    D --> F["建立连接 (stdio/http/websocket)"]
-    F --> G{"连接成功?"}
-    G -->|是| H["更新 AppState: connected"]
-    G -->|否| I["更新 AppState: error + 重试"]
-    H --> J["注册 permission 回调"]
-    I --> J
-    J --> K["注册 notification 监听"]
-    K --> L["连接就绪，可被 query 使用"]
-```
+![挂载流程](diagrams/24b-mcp-deep-diagram.svg)
+
+**挂载流程** — [交互版](diagrams/24b-mcp-deep-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24b-mcp-deep-diagram.architecture.json)
+
+- **组成**：12 个节点
+- **关系**：源图 12 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：App 挂载 → 读取 MCP 配置 · 读取 MCP 配置 → 配置了 servers? · 配置了 servers? → for each server: create t…（是）
 
 ### 连接状态转换
 

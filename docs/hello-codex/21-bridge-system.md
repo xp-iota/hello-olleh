@@ -1,8 +1,7 @@
 ---
-layout: content
 title: "宿主桥接：app-server 协议与多宿主复用"
 ---
-# 宿主桥接：`app-server` 协议与多宿主复用
+# 宿主桥接：app-server 协议与多宿主复用
 
 本文分析 Codex 如何通过 `app-server-protocol` 将 Rust runtime 暴露给多种宿主（CLI、SDK、Web 服务），实现跨平台复用。
 
@@ -17,20 +16,13 @@ title: "宿主桥接：app-server 协议与多宿主复用"
 
 ## 1. 多宿主架构
 
-```
-┌──────────────────────────────────────────┐
-│           宿主层（Host）                  │
-│  CLI (codex-cli)  │  TS SDK  │ Web App  │
-└─────────┬─────────┴────┬─────┴────┬─────┘
-          │              │          │
-          └──────────────┴──────────┘
-                         │ app-server-protocol
-                         ▼
-          ┌──────────────────────────────┐
-          │     Rust Runtime Core        │
-          │  ThreadManager + Agent Loop  │
-          └──────────────────────────────┘
-```
+![多宿主架构](diagrams/21-bridge-system-diagram.svg)
+
+**多宿主架构** — [交互版](diagrams/21-bridge-system-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/21-bridge-system-diagram.architecture.json)
+
+- **组成**：5 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：宿主层（Host） · 末节点：ThreadManager + Agent Loop
 
 所有宿主通过统一的 `app-server-protocol` 与 Rust 核心交互，核心逻辑不重复实现。
 

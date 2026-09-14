@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "扩展体系：技能、插件与 MCP"
 ---
 # 扩展体系：技能、插件与 MCP
@@ -301,31 +300,13 @@ MCP 客户端层不仅接协议，还负责连接生命周期治理。
 
 ## 10. 扩展体系总图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    A[commands.ts] --> B[built-in commands]
-    A --> C[skill dir commands]
-    A --> D[plugin commands]
-    A --> E[plugin skills]
-    A --> F[dynamic skills]
+![扩展体系总图](diagrams/06-extension-mcp-diagram.svg)
 
-    C --> G[skills/loadSkillsDir.ts]
-    D --> H[loadPluginCommands.ts]
-    E --> H
-    F --> G
+**扩展体系总图** — [交互版](diagrams/06-extension-mcp-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/06-extension-mcp-diagram.architecture.json)
 
-    I[tools.ts] --> J[base tools]
-    I --> K[MCP tools]
-    K --> L[services/mcp/client.ts]
-
-    G --> A
-    H --> A
-    L --> I
-```
+- **组成**：12 个节点
+- **关系**：源图 15 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：commands.ts → built-in commands · commands.ts → skill dir commands · commands.ts → plugin commands
 
 ## 11. 这套扩展体系的设计优点
 

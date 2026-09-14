@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "关闭流程",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "Stop",
+      "type": "external",
+      "label": "stopMCPClients()"
+    },
+    {
+      "id": "Client",
+      "type": "external",
+      "label": "MCPClient"
+    },
+    {
+      "id": "State",
+      "type": "backend",
+      "label": "AppState"
+    },
+    {
+      "id": "Client-",
+      "type": "external",
+      "label": "Client-"
+    },
+    {
+      "id": "State-",
+      "type": "backend",
+      "label": "State-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "Stop",
+      "to": "Client",
+      "y": 180,
+      "label": "client.close()",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "Client-",
+      "to": "Stop",
+      "y": 225,
+      "label": "完成",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "Stop",
+      "to": "State",
+      "y": 270,
+      "label": "setAppState() 清空 mcp.clients 与 mcp.tools",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "State-",
+      "to": "Stop",
+      "y": 315,
+      "label": "状态已重置",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "5 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 4 条消息"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "消息标签保留源图中的调用名"
+      ]
+    }
+  ]
+}

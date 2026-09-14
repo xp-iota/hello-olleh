@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "05 - 工具治理"
+title: "工具治理对比"
 ---
 # 工具治理对比
 
@@ -55,7 +54,7 @@ export class ToolRegistry {
 
 ### OpenCode
 
-`sources/opencode/packages/opencode/src/permission/index.ts:296-307` 通过 Permission 系统过滤工具列表，而不是直接管理工具注册：
+`sources/opencode/packages/core/src/permission.ts` 通过 Permission 系统过滤工具列表，而不是直接管理工具注册：
 
 ```typescript
 const EDIT_TOOLS = ["edit", "write", "apply_patch", "multiedit"]
@@ -101,7 +100,7 @@ OpenCode 的架构把工具注册和权限过滤分离——工具注册在其�
 
 ### OpenCode
 
-`sources/opencode/packages/opencode/src/permission/index.ts:19-24` 的 `Action` 枚举（allow/deny/ask）加上路径模式匹配，提供了细粒度的权限表达：
+`sources/opencode/packages/core/src/permission.ts` 的 `Action` 枚举（allow/deny/ask）加上路径模式匹配，提供了细粒度的权限表达：
 
 ```typescript
 export const Action = z.enum(["allow", "deny", "ask"]).meta({

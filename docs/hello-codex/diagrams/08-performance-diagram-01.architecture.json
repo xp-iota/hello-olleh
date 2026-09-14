@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "五阶段管线",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1820,
+      480
+    ]
+  },
+  "components": [
+    {
+      "id": "A",
+      "type": "messagebus",
+      "label": "1. MarkdownStreamCollector",
+      "sublabel": "原始 delta 累积",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "B",
+      "type": "messagebus",
+      "label": "2. StreamState (VecDeque)",
+      "sublabel": "换行门控 + 时间戳",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "C",
+      "type": "messagebus",
+      "label": "3. StreamController",
+      "sublabel": "Header 管理 + commit tick",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "D",
+      "type": "security",
+      "label": "4. AdaptiveChunkingPolicy",
+      "sublabel": "Smooth vs CatchUp 模式",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "E",
+      "type": "database",
+      "label": "5. HistoryCell -> ChatWidget",
+      "sublabel": "-> Terminal",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "A",
+      "to": "B",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "B",
+      "to": "C",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "C",
+      "to": "D",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "D",
+      "to": "E",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "5 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 4 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "1. MarkdownStreamCollecto… → 2. StreamState (VecDeque)…",
+        "2. StreamState (VecDeque)… → 3. StreamController / Hea…",
+        "3. StreamController / Hea… → 4. AdaptiveChunkingPolicy…"
+      ]
+    }
+  ]
+}

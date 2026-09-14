@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "15 - 篇章主题对齐矩阵"
+title: "篇章主题对齐矩阵"
 ---
 <!-- markdownlint-disable MD060, MD024 -->
 
@@ -68,5 +67,3 @@ title: "15 - 篇章主题对齐矩阵"
 | `docs/hello-gemini-cli/` | Gemini CLI 单项目源码笔记 | Ink TUI、GeminiClient、ToolRegistry/Scheduler、extensions、checkpoint |
 | `docs/hello-opencode/` | OpenCode 单项目源码笔记 | Hono server、durable state、session loop、processor、LSP、MCP |
 | `docs/hello-harness/` | 横向验收与综合层 | 主题对齐、术语统一、证据等级、维护风险 |
-
-最终验收入口见 `docs/hello-harness/21-final-audit.md`。

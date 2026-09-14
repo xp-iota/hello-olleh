@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "设置系统、托管策略与环境变量注入"
 ---
 # 设置系统、托管策略与环境变量注入
@@ -254,25 +253,13 @@ settings 并不是单纯消费 merge 结果，而是：
 
 ## 11. 一张总图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["CLI flags / disk / policy / plugin"] --> B[eagerLoadSettings]
-    B --> C[loadSettingsFromDisk]
-    C --> D[user + project + local + flag deep merge]
-    C --> E[policy first-source-wins]
-    D --> F[merged settings]
-    E --> F
-    F --> G[applySafeConfigEnvironmentVariables]
-    G --> H[trust established]
-    H --> I[applyConfigEnvironmentVariables]
-    F --> J[changeDetector watcher + MDM poll]
-    J --> K[ConfigChange hooks]
-    K --> L[reset cache / subscribe updates]
-```
+![一张总图](diagrams/17-settings-config-diagram.svg)
+
+**一张总图** — [交互版](diagrams/17-settings-config-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/17-settings-config-diagram.architecture.json)
+
+- **组成**：12 个节点
+- **关系**：源图 12 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：CLI flags / disk / policy… → eagerLoadSettings · eagerLoadSettings → loadSettingsFromDisk · loadSettingsFromDisk → user + project + local +…
 
 ## 12. 一组常见 env 配置的源码解读
 

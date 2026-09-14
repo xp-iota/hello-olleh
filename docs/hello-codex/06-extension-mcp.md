@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "扩展性：MCP Server 集成、Plugin/Skill 加载与新增工具的修改点"
 ---
 # 扩展性：MCP Server 集成、Plugin/Skill 加载与新增工具的修改点
@@ -31,29 +30,13 @@ Codex 的扩展体系分为五层：
 | 动态工具层 | 运行时注册的工具 | Session 内 `dynamic_tools` | 程序化注册 |
 | 内建工具层 | 硬编码的 30+ handler | `ToolRegistry` | 代码修改 |
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    subgraph 外部
-        MCP["MCP Servers<br/>(rmcp)"]
-        PLG["Plugins<br/>(marketplace)"]
-        SKL["Skills<br/>(声明式)"]
-    end
-    subgraph 运行时
-        DYN["Dynamic Tools<br/>(运行时注册)"]
-        BLT["Built-in Tools<br/>(30+ handlers)"]
-    end
-    MCP --> MCM["McpConnectionManager"]
-    PLG --> PM["PluginsManager"]
-    SKL --> SM["SkillsManager"]
-    PM --> MCM
-    PM --> SM
-    MCM --> TR["ToolRegistry"]
-    SM --> TR
-    DYN --> TR
-    BLT --> TR
-    TR --> ROUTER["ToolRouter"]
-```
+![扩展机制总览](diagrams/06-extension-mcp-diagram-01.svg)
+
+**扩展机制总览** — [交互版](diagrams/06-extension-mcp-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/06-extension-mcp-diagram-01.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图 10 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：MCP Servers / (rmcp) → McpConnectionManager · Plugins / (marketplace) → PluginsManager · Skills / (声明式) → SkillsManager
 
 ## MCP Server 集成
 
@@ -179,14 +162,13 @@ pub struct PluginsManager {
 
 每个插件的目录结构：
 
-```
-<plugin_root>/
-├── .codex-plugin/
-│   └── plugin.json          # 插件清单
-├── skills/                   # 技能目录（默认路径）
-├── .mcp.json                 # MCP server 配置
-└── .app.json                 # App/Connector 配置
-```
+![插件清单结构](diagrams/06-extension-mcp-diagram-02.svg)
+
+**插件清单结构** — [交互版](diagrams/06-extension-mcp-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/06-extension-mcp-diagram-02.architecture.json)
+
+- **组成**：6 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：<pluginroot>/ · 末节点：.app.json # App/Connector 配置
 
 ### 插件加载管线（行 1390-1487）
 

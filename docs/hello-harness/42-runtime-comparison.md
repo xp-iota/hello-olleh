@@ -1,8 +1,6 @@
 ---
-layout: content
 title: "OpenCode vs Hermes Agent: 运行时对比分析"
 ---
-
 # OpenCode vs Hermes Agent: 运行时对比分析
 
 > 为可插拔模块设计提供决策依据
@@ -13,50 +11,29 @@ title: "OpenCode vs Hermes Agent: 运行时对比分析"
 
 ## 1. 核心架构对比
 
-| 维度 | OpenCode v1.4.14 | Hermes Agent v0.16.0 |
+| 维度 | OpenCode v2.0.2 | Hermes Agent 0.21.2 |
 | :------| :-----------------| :---------------------|
 | **语言** | TypeScript | Python 3.11+ |
 | **运行时** | Bun (原生 HTTP/SQLite) | CPython (标准库) |
 | **并发模型** | 单线程事件循环 + Worker | 多线程 (gateway) / 单线程 (CLI) |
-| **HTTP 服务器** | Bun.serve (原生) | Flask/Werkzeug (gateway) |
+| **HTTP 服务器** | Effect HTTP handler graph in Server | Flask/Werkzeug (gateway) |
 | **数据库** | SQLite (Bun 内置) | SQLite (sqlite3 标准库) |
-| **事件机制** | Bus + GlobalBus (SSE) | 生命周期钩子 (同步回调) |
+| **事件机制** | Core durable events + Server EventFeed (SSE) | 生命周期钩子 (同步回调) |
 
 ---
 
 ## 2. 消息模型对比
 
-### 2.1 OpenCode: Message + Part 分离模型
+### 2.1 OpenCode: durable message and tool-event model
 
-```typescript
-// Message 是 envelope/header
-interface Message.Info {
-  id: string
-  sessionID: string
-  role: 'user' | 'assistant'
-  agent?: string
-  model?: string
-  tokens?: TokenUsage
-  finish?: FinishReason
-}
-
-// Part 是 body/typed nodes
-type Part = 
-  | TextPart
-  | ReasoningPart
-  | ToolPart
-  | StepPart
-  | PatchPart
-  | SubtaskPart
-  | CompactionPart
-```
+OpenCode v2 的公共消息形状由 `packages/schema` 管理，Core 通过 durable Session events 和 projections 维护消息、pending input、context 与 tool outcome。每次工具调用携带 Session、agent、assistant message 和 call ID，调用终态先持久化，再由下一 Step 重载投影历史。
 
 **特点**：
 
-- 细粒度节点：一个 message 可以包含多个 part
-- 实时流式更新：part 可以增量写入（`updatePartDelta`）
-- 类型安全：每种 part 有独立的 schema
-- 适合 IDE 集成：可以精确定位到某个 tool call 或 reasoning 块
+- durable identity：工具调用归属到具体 assistant message；
+- canonical outcome：成功只有一份 model-facing content，失败只有一份 error 和可选 partial snapshot；
+- projection boundary：客户端读取权威投影，replay consumer 读取 durable Session log；
+- transport separation：Server SSE 只负责公开事件选择、编码和连接交付。
 
 ### 2.2 Hermes Agent: 扁平消息列表
 
@@ -333,25 +310,14 @@ interface IMessageStore {
 
 ## 7. 事件机制对比
 
-### 7.1 OpenCode: Bus + GlobalBus
+### 7.1 OpenCode: Core events and Server EventFeed
 
-```typescript
-// 实例级 Bus
-Bus.publish('message.updated', data)
-Bus.subscribe('message.updated', handler)
+Core owns event meaning, durable publication, persistence, replay, and transactional projection. Server installs one global Core listener, filters and encodes each public event once, then offers the immutable SSE frame to an independent bounded queue for each connection.
 
-// 进程级 GlobalBus
-GlobalBus.emit('session.created', data)
-
-// SSE 推送
-/event → 实例级事件流
-/global/event → 跨实例聚合流
-
-// 特点
-- 异步事件驱动
-- 支持跨实例通信
-- 前端通过 SSE 订阅
-```
+- 每个连接的容量为 4,096 个公开 frame；
+- 慢连接溢出只终止该连接，不阻塞健康连接或 Core publication；
+- `server.connected` 与 heartbeat 是连接本地事件，不占 EventFeed 队列；
+- 编码失败终止当前订阅者以避免静默缺口，但不会毒化后续连接。
 
 ### 7.2 Hermes Agent: 生命周期钩子
 

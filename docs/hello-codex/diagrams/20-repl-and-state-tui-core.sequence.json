@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "状态同步：TUI 到 core 的最短路径",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "TUI",
+      "type": "frontend",
+      "label": "tui/app.rs"
+    },
+    {
+      "id": "APP",
+      "type": "external",
+      "label": "client",
+      "sublabel": "app-server session/"
+    },
+    {
+      "id": "MSP",
+      "type": "backend",
+      "label": "codexmessageprocess…"
+    },
+    {
+      "id": "CORE",
+      "type": "backend",
+      "label": "CodexThread"
+    },
+    {
+      "id": "LOOP",
+      "type": "backend",
+      "label": "submissionloop"
+    },
+    {
+      "id": "LOOP-",
+      "type": "backend",
+      "label": "LOOP-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "TUI",
+      "to": "APP",
+      "y": 180,
+      "label": "submit thread op",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "APP",
+      "to": "MSP",
+      "y": 225,
+      "label": "turn/start or command request",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "MSP",
+      "to": "CORE",
+      "y": 270,
+      "label": "submitcoreop()",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "CORE",
+      "to": "LOOP",
+      "y": 315,
+      "label": "Op::UserInput / Op::Interrupt / approval",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "LOOP-",
+      "to": "TUI",
+      "y": 360,
+      "label": "thread events projected back",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "6 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 5 条消息"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "消息标签保留源图中的调用名"
+      ]
+    }
+  ]
+}

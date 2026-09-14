@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "性能与代码质量：大文件处理、流式传输、优缺点分析与潜在改进点"
 ---
 # 性能与代码质量：大文件处理、流式传输、优缺点分析与潜在改进点
@@ -24,27 +23,23 @@ title: "性能与代码质量：大文件处理、流式传输、优缺点分析
 
 ### 五阶段管线
 
-```mermaid
-flowchart LR
-    A["1. MarkdownStreamCollector\n原始 delta 累积"] --> B["2. StreamState (VecDeque)\n换行门控 + 时间戳"]
-    B --> C["3. StreamController\nHeader 管理 + commit tick"]
-    C --> D["4. AdaptiveChunkingPolicy\nSmooth vs CatchUp 模式"]
-    D --> E["5. HistoryCell -> ChatWidget\n-> Terminal"]
-```
+![五阶段管线](diagrams/08-performance-diagram-01.svg)
+
+**五阶段管线** — [交互版](diagrams/08-performance-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/08-performance-diagram-01.architecture.json)
+
+- **组成**：5 个节点
+- **关系**：源图 4 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：1. MarkdownStreamCollecto… → 2. StreamState (VecDeque)… · 2. StreamState (VecDeque)… → 3. StreamController / Hea… · 3. StreamController / Hea… → 4. AdaptiveChunkingPolicy…
 
 ### 自适应分块策略状态机
 
-```mermaid
-stateDiagram-v2
-    [*] --> Smooth
-    Smooth --> CatchUp: 队列 >= 8 或 age >= 120ms
-    CatchUp --> Smooth: 队列 <= 2 且 age <= 40ms
-    CatchUp --> [*]
-    Smooth --> [*]
-    note right of CatchUp
-        严重绕过: 队列 > 64 或 age > 300ms
-    end note
-```
+![自适应分块策略状态机](diagrams/08-performance-diagram-02.svg)
+
+**自适应分块策略状态机** — [交互版](diagrams/08-performance-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/08-performance-diagram-02.lifecycle.json)
+
+- **组成**：4 个状态
+- **关系**：源图 5 条状态迁移 · 画布绘制 3 条主迁移，跨节点与回边列在要点
+- **要点**：lifecycle-start → Smooth · Smooth → CatchUp: 队列 >= 8 或 age >= 120ms · CatchUp → Smooth: 队列 <= 2 且 age <= 40ms
 
 ## TUI 事件循环架构
 
@@ -85,13 +80,13 @@ tokio::select! {
 
 ### 五阶段管线
 
-```mermaid
-flowchart LR
-    A["1. MarkdownStreamCollector\n原始 delta 累积"] --> B["2. StreamState (VecDeque)\n换行门控 + 时间戳"]
-    B --> C["3. StreamController\nHeader 管理 + commit tick"]
-    C --> D["4. AdaptiveChunkingPolicy\nSmooth vs CatchUp 模式"]
-    D --> E["5. HistoryCell -> ChatWidget\n-> Terminal"]
-```
+![五阶段管线](diagrams/08-performance-diagram-03.svg)
+
+**五阶段管线** — [交互版](diagrams/08-performance-diagram-03.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/08-performance-diagram-03.architecture.json)
+
+- **组成**：5 个节点
+- **关系**：源图 4 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：1. MarkdownStreamCollecto… → 2. StreamState (VecDeque)… · 2. StreamState (VecDeque)… → 3. StreamController / Hea… · 3. StreamController / Hea… → 4. AdaptiveChunkingPolicy…
 
 ### 阶段 1：MarkdownStreamCollector
 

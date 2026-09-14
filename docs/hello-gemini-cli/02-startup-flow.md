@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "启动链路：从入口到运行模式的分发"
 ---
 # 启动链路：从入口到运行模式的分发
@@ -18,27 +17,13 @@ Gemini CLI 的启动不仅仅是加载 UI，它包含了一个复杂的环境预
 
 ## 1. 启动全景图
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    Main["gemini-cli/packages/cli/src/gemini.tsx<br/>main() @ 186"] --> Parse["config.ts<br/>parseArguments() @ 155"]
-    Parse --> Setup["加载 settings /<br/>trustedFolders / auth"]
-    Setup --> Sandbox{沙箱<br/>需要?}
-    Sandbox -->|是| StartSandbox["start_sandbox()<br/>重启进容器/受限进程"]
-    Sandbox -->|否| LoadCfg["loadCliConfig()<br/>创建 Config @ gemini-cli/packages/core/src/config/config.ts:885"]
-    StartSandbox -. "子进程重新<br/>从 main() 开始" .-> Main
-    LoadCfg --> InitApp["initializer.ts<br/>initializeApp() @ 38"]
-    InitApp --> Mode{交互<br/>模式?}
-    Mode -->|是| UI["interactiveCli.tsx<br/>startInteractiveUI() @ 53"]
-    Mode -->|否| Headless["nonInteractiveCli.ts<br/>runNonInteractive() @ 58"]
+![启动全景图](diagrams/02-startup-flow-diagram-01.svg)
 
-    LoadCfg --> ConfigInit["config.initialize()<br/>@ gemini-cli/packages/core/src/config/config.ts:1289"]
-    UI -. "useEffect 中调用<br/>config.initialize()" .-> ConfigInit
-    Headless -. "直接调用<br/>config.initialize()" .-> ConfigInit
-    ConfigInit --> TOOL_INIT["ToolRegistry.discoverAllTools()<br/>@ tool-registry.ts:219"]
-    ConfigInit --> MCP_INIT["McpClientManager.startConfiguredMcpServers()<br/>@ mcp-client-manager.ts:34"]
-    ConfigInit --> SKILL_INIT["SkillManager.discoverSkills()<br/>@ skillManager.ts:17"]
-```
+**启动全景图** — [交互版](diagrams/02-startup-flow-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-startup-flow-diagram-01.architecture.json)
+
+- **组成**：14 个节点
+- **关系**：源图 13 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：gemini-cli/packages/cli/s… → config.ts / parseArgument… · config.ts / parseArgument… → 加载 settings / / trusted… · 加载 settings / / trusted… → 沙箱 / 需要?
 
 ## 2. 核心函数清单 (Function List)
 
@@ -72,41 +57,13 @@ flowchart LR
 
 #### 沙箱决策流程
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart TD
-    Entry["main() 检查 !SANDBOX<br/>gemini.tsx:389"]
-    Entry -->|已在沙箱| Direct["直接在宿主进程运行"]
-    Entry -->|首次启动| Resolve["getSandboxCommand() 解析<br/>gemini-cli/packages/cli/src/config/sandboxConfig.ts:43"]
-    Resolve --> Env["GEMINI_SANDBOX 环境变量?<br/>gemini-cli/packages/cli/src/config/sandboxConfig.ts:52-57"]
-    Env -->|有值| EnvVal["取 toLowerCase().trim() 值"]
-    Env -->|无值| ArgVal["取 argv.sandbox 或 settings.tools.sandbox"]
-    EnvVal --> Normalize["类型归一化<br/>gemini-cli/packages/cli/src/config/sandboxConfig.ts:58-59"]
-    ArgVal --> Normalize
-    Normalize -->|false| Direct
-    Normalize -->|字符串| Explicit["显式指定命令<br/>gemini-cli/packages/cli/src/config/sandboxConfig.ts:65-98"]
-    Normalize -->|true| Auto["自动检测<br/>gemini-cli/packages/cli/src/config/sandboxConfig.ts:101-123"]
-    Explicit --> Validate["命令存在性 & 平台支持<br/>gemini-cli/packages/cli/src/config/sandboxConfig.ts:74-97"]
-    Validate -->|失败| Error["抛出 FatalSandboxError"]
-    Validate -->|成功| ReturnCmd["返回命令字符串"]
-    Auto --> Darwin?["平台 darwin?<br/>gemini-cli/packages/cli/src/config/sandboxConfig.ts:104"]
-    Darwin? -->|是| SB?["sandbox-exec 存在?<br/>gemini-cli/packages/cli/src/config/sandboxConfig.ts:104"]
-    Darwin? -->|否| Docker?["docker 存在?<br/>gemini-cli/packages/cli/src/config/sandboxConfig.ts:106"]
-    SB? -->|是| ReturnSeatbelt["返回 sandbox-exec"]
-    SB? -->|否| Docker?
-    Docker? -->|是| ReturnDocker["返回 docker"]
-    Docker? -->|否| Podman?["podman 存在?<br/>gemini-cli/packages/cli/src/config/sandboxConfig.ts:108"]
-    Podman? -->|是| ReturnPodman["返回 podman"]
-    Podman? -->|否| NoCmd["sandbox=true 但无容器命令<br/>gemini-cli/packages/cli/src/config/sandboxConfig.ts:113-118"]
-    Direct --> MainFlow["loadCliConfig() 正常启动"]
-    ReturnCmd --> LoadCfg["loadSandboxConfig() 组装完整配置<br/>gemini-cli/packages/cli/src/config/sandboxConfig.ts:126"]
-    ReturnSeatbelt --> LoadCfg
-    ReturnDocker --> LoadCfg
-    ReturnPodman --> LoadCfg
-    LoadCfg -->|有 image 或原生沙箱| Spawn["start_sandbox() 重启进容器<br/>sandbox.ts:46"]
-    Spawn -. "子进程重新从 main() 开始" .-> Entry
-    Error --> H["程序退出"]
-```
+![沙箱决策流程](diagrams/02-startup-flow-diagram-02.svg)
+
+**沙箱决策流程** — [交互版](diagrams/02-startup-flow-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-startup-flow-diagram-02.architecture.json)
+
+- **组成**：画布 16 个节点 · 源图共 36 个节点，其余见正文
+- **关系**：源图 17 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：main() 检查 !SANDBOX / ge… → 直接在宿主进程运行（已在沙箱） · main() 检查 !SANDBOX / ge… → getSandboxCommand() 解析…（首次启动） · getSandboxCommand() 解析… → GEMINISANDBOX 环境变量?…
 
 #### 沙箱内外：实际差异对比
 
@@ -146,16 +103,13 @@ TERM_PROGRAM
 
 沙箱内可见的路径是明确挂载的：
 
-```
-宿主机路径              →  容器内路径
-─────────────────────────────────────────
-当前工作目录 (cwd)      →  相同绝对路径（读写）
-~/.gemini (用户配置)    →  /home/node/.gemini（读写）
-os.tmpdir()            →  相同路径（读写）
-~/.config/gcloud       →  只读挂载
-$GOOGLE_APPLICATION_CREDENTIALS → 只读挂载
-sandbox.venv/          →  替换 VIRTUAL_ENV（若工作目录内）
-```
+![关键机制：文件系统挂载（Docker/Podman）](diagrams/02-startup-flow-docker-podman.svg)
+
+**关键机制：文件系统挂载（Docker/Podman）** — [交互版](diagrams/02-startup-flow-docker-podman.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-startup-flow-docker-podman.architecture.json)
+
+- **组成**：13 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：宿主机路径 · 末节点：替换 VIRTUALENV（若工作目录内…
 
 `config.allowedPaths` 中的路径以**只读**方式额外挂载。
 

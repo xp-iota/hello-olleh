@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "11 - 扩展机制"
+title: "扩展性与 Harness 生态对比"
 ---
 # 扩展性与 Harness 生态对比
 
@@ -20,7 +19,7 @@ MCP（Model Context Protocol）是 AI 工具生态里的一个重要标准，它
 
 **Gemini CLI**：`sources/gemini-cli/packages/core/src/tools/mcp-client.ts` 的 `McpClient` 和 `mcp-client-manager.ts` 的 `McpClientManager` 构成了完整的 MCP 客户端。Client Manager 负责管理多个 MCP Server 连接的生命周期，这是四个工程里 MCP 接入最完整的实现—— MCP 不只是"能用"，而是有完整的连接管理和生命周期控制。
 
-**OpenCode**：`sources/opencode/packages/opencode/src/mcp/index.ts` 的 `MCP` 命名空间提供了 MCP 支持。实现存在，但没有 Gemini CLI 的 Manager 层，多个 MCP Server 的连接管理需要调用方自行处理。
+**OpenCode**：`sources/opencode/packages/core/src/mcp/index.ts` 的 `MCP` 命名空间提供了 MCP 支持。实现存在，但没有 Gemini CLI 的 Manager 层，多个 MCP Server 的连接管理需要调用方自行处理。
 
 ---
 
@@ -80,8 +79,8 @@ Rust 的学习曲线和编译时间是实质性的成本。任何 Rust 代码修
 
 **OpenCode**：最小修改点也是 2 处：
 
-1. `packages/opencode/src/permission/index.ts` — 新 Permission 规则（如果新工具需要特殊权限）
-2. `packages/opencode/src/skill/index.ts` — 新 Skill 定义（如果新工具需要说明指令）
+1. `packages/core/src/permission.ts` — 新 Permission 规则（如果新工具需要特殊权限）
+2. `packages/core/src/plugin/skill.ts` — 新 Skill 定义（如果新工具需要说明指令）
 
 在 Effect-ts Layer 模式下，新工具通常不需要修改核心代码，只需在正确的 Layer 添加实现。但 Effect-ts 的概念（Fiber、Layer、ServiceMap、Effect）是额外的学习成本，对不熟悉的工程师来说入门门槛高。低成本（熟悉 Effect-ts 后）或高成本（学习期）。
 
@@ -97,7 +96,7 @@ Rust 的学习曲线和编译时间是实质性的成本。任何 Rust 代码修
 
 **Gemini CLI**：GEMINI.md 文件可以迁移，但 Snippet 函数（TypeScript 代码）需要目标工程也使用 TypeScript 环境。如果迁移目标是非 TypeScript 工程，Snippet 的形式价值消失（需要重写为目标环境的格式）。中等迁移性（取决于目标技术栈）。
 
-**OpenCode**：Skill 文件（Markdown + frontmatter）可以迁移。Permission Schema（TypeScript + Zod）和 Effect-ts Layer 深度绑定 OpenCode 的架构，无法直接迁移。中等迁移性（Skill 可迁，架构绑定不可迁）。
+**OpenCode**：Skill 文件（Markdown + frontmatter）可以迁移。Permission Schema（TypeScript + Effect Schema）和 Effect-ts Layer 深度绑定 OpenCode 的架构，无法直接迁移。中等迁移性（Skill 可迁，架构绑定不可迁）。
 
 ---
 

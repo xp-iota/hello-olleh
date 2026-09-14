@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Claude Code 的桥接系统"
 ---
 # Claude Code 的桥接系统
@@ -25,39 +24,13 @@ title: "Claude Code 的桥接系统"
 
 桥接直接建立在底层 transport 之上；网络通道与事件上传器的细节见 [17-sdk-transport.md](./15-sdk-transport.md)。
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    subgraph Local["本地 CLI"]
-        A1["REPL<br/>本地命令行"]
-    end
+![桥接系统概述](diagrams/21-bridge-system-diagram-01.svg)
 
-    subgraph Bridge["Bridge 系统"]
-        B1["HybridTransport<br/>WebSocket + HTTP"]
-        B2["FlushGate<br/>写入缓冲"]
-        B3["TokenRefreshScheduler<br/>JWT 刷新"]
-    end
+**桥接系统概述** — [交互版](diagrams/21-bridge-system-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/21-bridge-system-diagram-01.architecture.json)
 
-    subgraph Remote["远程服务器"]
-        C1["Session Ingress"]
-        C2["Bridge Endpoint"]
-        C3["Worker JWT"]
-    end
-
-    subgraph Client["Remote Client"]
-        D1["移动端/网页"]
-    end
-
-    A1 <--> B1
-    B1 <-->|SSE/POST| C1
-    D1 <-->|WebSocket| C1
-
-    B2 --> B1
-    B3 --> B1
-```
+- **组成**：12 个节点
+- **关系**：源图 5 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：REPL / 本地命令行 → HybridTransport / WebSock… · HybridTransport / WebSock… → Session Ingress（SSE/POST） · 移动端/网页 → Session Ingress（WebSocket）
 
 ## 2. 远程桥接核心
 
@@ -65,31 +38,13 @@ flowchart LR
 
 ### 2.1 EnvLessBridge 初始化流程
 
-```mermaid
----
-config:
-  theme: neutral
----
-sequenceDiagram
-    participant CLI as Claude Code CLI
-    participant API as Session API
-    participant Bridge as Bridge Endpoint
-    participant Transport as HybridTransport
+![EnvLessBridge 初始化流程](diagrams/21-bridge-system-envlessbridge.svg)
 
-    CLI->>API: POST /v1/code/sessions
-    API-->>CLI: sessionId
+**EnvLessBridge 初始化流程** — [交互版](diagrams/21-bridge-system-envlessbridge.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/21-bridge-system-envlessbridge.sequence.json)
 
-    CLI->>Bridge: POST /bridge
-    Bridge-->>CLI: worker_jwt, expires_in
-
-    CLI->>Transport: createV2ReplTransport()
-    Transport->>Transport: 创建 WebSocket + HTTP
-
-    CLI->>Transport: transport.connect()
-    Transport-->>CLI: 连接就绪
-
-    Note over CLI: 启动 JWT 刷新调度器
-```
+- **组成**：7 个参与方
+- **关系**：源图 7 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：HybridTransport 自调用：创建 WebSocket + HTTP · 未上画布的调用：transport.connect() · 未上画布的调用：连接就绪
 
 ### 2.2 凭证获取
 
@@ -131,25 +86,13 @@ async function fetchRemoteCredentials(
 
 混合传输：WebSocket 用于读取，HTTP POST 用于写入。
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["write(stream_event)"] --> B["缓冲队列<br/>100ms 定时器"]
-    A1["write(other)"] --> C["立即 flush"]
+![HybridTransport](diagrams/21-bridge-system-hybridtransport.svg)
 
-    B -->|定时触发| D["SerialBatchEventUploader"]
-    C --> D
+**HybridTransport** — [交互版](diagrams/21-bridge-system-hybridtransport.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/21-bridge-system-hybridtransport.architecture.json)
 
-    D -->|批量| E["POST /events"]
-    D -->|重试| D
-
-    E -->|成功| F["继续"]
-    E -->|429/5xx| D
-    E -->|4xx| G["丢弃"]
-```
+- **组成**：8 个节点
+- **关系**：源图 8 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：write(streamevent) → 缓冲队列 / 100ms 定时器 · write(other) → 立即 flush · 缓冲队列 / 100ms 定时器 → SerialBatchEventUploader（定时触发）
 
 ### 3.2 SerialBatchEventUploader
 
@@ -195,26 +138,13 @@ export class SerialBatchEventUploader<T> {
 
 **位置**: `src/bridge/bridgeMessaging.ts`
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["SSE/WebSocket 消息"] --> B{"消息类型?"}
+![入口消息处理](diagrams/21-bridge-system-diagram-04.svg)
 
-    B -->|user| C["onInboundMessage"]
-    B -->|control_request| D{"子类型?"}
-    B -->|control_response| E["onPermissionResponse"]
-    B -->|control_cancel| F["处理取消"]
+**入口消息处理** — [交互版](diagrams/21-bridge-system-diagram-04.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/21-bridge-system-diagram-04.architecture.json)
 
-    D -->|can_use_tool| G["权限请求"]
-    D -->|其他| H["控制请求"]
-
-    C --> I["去重检查"]
-    G --> I
-    H --> I
-```
+- **组成**：9 个节点
+- **关系**：源图 10 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：SSE/WebSocket 消息 → 消息类型? · 消息类型? → onInboundMessage（user） · 消息类型? → 子类型?（controlrequest）
 
 ### 4.2 服务器控制请求
 
@@ -257,29 +187,13 @@ export async function handleServerControlRequest(
 
 **位置**: `src/bridge/jwtUtils.ts`
 
-```mermaid
----
-config:
-  theme: neutral
----
-sequenceDiagram
-    participant Scheduler as TokenRefreshScheduler
-    participant Auth as Auth Server
-    participant Transport as Transport
+![Token 刷新调度](diagrams/21-bridge-system-token.svg)
 
-    Note over Scheduler: 启动时设置定时器
-    Note over Scheduler: expiresIn - refreshBufferMs 后触发
+**Token 刷新调度** — [交互版](diagrams/21-bridge-system-token.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/21-bridge-system-token.sequence.json)
 
-    Scheduler->>Auth: 获取新 OAuth Token
-    Auth-->>Scheduler: oauthToken
-
-    Scheduler->>Transport: rebuildTransport(fresh)
-    Transport->>Transport: 关闭旧连接
-    Transport->>Transport: 创建新连接
-    Transport-->>Scheduler: 完成
-
-    Note over Scheduler: 重新调度下一次刷新
-```
+- **组成**：5 个参与方
+- **关系**：源图 4 条消息
+- **要点**：Transport 自调用：关闭旧连接 · Transport 自调用：创建新连接
 
 ### 5.2 认证失败恢复
 
@@ -319,26 +233,13 @@ async function recoverFromAuthFailure(): Promise<void> {
 
 ### 6.1 重建流程
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["JWT 刷新/401 错误"] --> B["flushGate.start()"]
+![重建流程](diagrams/21-bridge-system-diagram-06.svg)
 
-    B --> C["暂停写入"]
-    C --> D["获取当前序列号"]
+**重建流程** — [交互版](diagrams/21-bridge-system-diagram-06.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/21-bridge-system-diagram-06.architecture.json)
 
-    D --> E["关闭旧传输"]
-    E --> F["创建新传输"]
-
-    F --> G["重新连接回调"]
-    G --> H["transport.connect()"]
-
-    H --> I["刷新缓冲队列"]
-    I --> J["flushGate.drop()"]
-```
+- **组成**：10 个节点
+- **关系**：源图 9 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：JWT 刷新/401 错误 → flushGate.start() · flushGate.start() → 暂停写入 · 暂停写入 → 获取当前序列号
 
 ### 6.2 FlushGate
 
@@ -391,21 +292,13 @@ export type BridgeState =
 
 ### 7.2 状态转换
 
-```mermaid
----
-config:
-  theme: neutral
----
-stateDiagram-v2
-    [*] --> idle: 启动
-    idle --> ready: createCodeSession
-    ready --> connected: transport.connect()
-    connected --> reconnecting: JWT refresh / 401
-    reconnecting --> connected: 成功
-    reconnecting --> failed: 失败
-    connected --> [*]: 关闭
-    failed --> [*]: 关闭
-```
+![状态转换](diagrams/21-bridge-system-diagram-07.svg)
+
+**状态转换** — [交互版](diagrams/21-bridge-system-diagram-07.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/21-bridge-system-diagram-07.lifecycle.json)
+
+- **组成**：7 个状态
+- **关系**：源图 8 条状态迁移 · 画布绘制 7 条主迁移，跨节点与回边列在要点
+- **要点**：lifecycle-start → idle: 启动 · idle → ready: createCodeSession · ready → connected: transport.connect()
 
 ## 8. 历史记录同步
 

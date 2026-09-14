@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "CCR 客户端",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "CCR",
+      "type": "external",
+      "label": "CCRClient"
+    },
+    {
+      "id": "Transport",
+      "type": "backend",
+      "label": "Transport"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "CCR",
+      "to": "Transport",
+      "y": 180,
+      "label": "initialize()",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "CCR",
+      "to": "Transport",
+      "y": 225,
+      "label": "sendEvents()",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "CCR",
+      "to": "Transport",
+      "y": 270,
+      "label": "reportState()",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "2 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 3 条消息"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "消息标签保留源图中的调用名"
+      ]
+    }
+  ]
+}

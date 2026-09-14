@@ -1,8 +1,7 @@
 ---
-layout: content
 title: "Transcript 持久化、会话恢复与 resume 语义"
 ---
-# Transcript 持久化、会话恢复与 `resume` 语义
+# Transcript 持久化、会话恢复与 resume 语义
 
 本篇拆解会话如何写入磁盘，以及 `--resume` / `--continue` 如何把磁盘状态重新恢复为 live runtime。
 
@@ -290,22 +289,13 @@ transcript 恢复不是“相信磁盘一定完美”，而是默认：
 
 ## 12. 一张总图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[insertMessageChain / appendEntry] --> B[append-only JSONL]
-    B --> C[metadata entries + snapshots + sidechains]
-    C --> D[loadTranscriptFile]
-    D --> E[chain rebuild + leaf selection + metadata restore]
-    E --> F[loadConversationForResume]
-    F --> G[deserializeMessagesWithInterruptDetection]
-    G --> H[processSessionStartHooks resume]
-    H --> I[sessionRestore]
-    I --> J[AppState / bootstrap / worktree / agent restored]
-```
+![一张总图](diagrams/10-session-resume-diagram.svg)
+
+**一张总图** — [交互版](diagrams/10-session-resume-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/10-session-resume-diagram.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图 9 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：insertMessageChain / appe… → append-only JSONL · append-only JSONL → metadata entries + snapsh… · metadata entries + snapsh… → loadTranscriptFile
 
 ## 13. 关键源码锚点
 

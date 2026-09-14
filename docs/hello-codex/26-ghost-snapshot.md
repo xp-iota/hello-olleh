@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Codex GhostSnapshot 机制：Git 快照、Undo 恢复与 Compaction 存活"
 ---
 # Codex GhostSnapshot 机制：Git 快照、Undo 恢复与 Compaction 存活
@@ -102,22 +101,13 @@ or disabling `undo` in your config."
 
 核心流程：
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart TD
-    A["开始 ghost_snapshot 任务"] --> B["扫描工作目录"]
-    B --> C{"发现未跟踪大文件?"}
-    C -->|是 (>ignore_large_untracked_files)| D["跳过该文件"]
-    C -->|否| E["git add <file>"]
-    D --> F{"发现大未跟踪目录?"}
-    F -->|是 (>ignore_large_untracked_dirs)| G["跳过整个目录"]
-    F -->|否| H["git add <directory>"]
-    E --> I["git commit -m 'ghost-snapshot-<timestamp>'"]
-    H --> I
-    I --> J["生成 GhostSnapshotReport"]
-    J --> K["ResponseItem::GhostSnapshot 写入历史"]
-    K --> L["向 session 发送 warning（如有）"]
-```
+![Git 提交机制](diagrams/26-ghost-snapshot-git.svg)
+
+**Git 提交机制** — [交互版](diagrams/26-ghost-snapshot-git.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/26-ghost-snapshot-git.architecture.json)
+
+- **组成**：12 个节点
+- **关系**：源图 12 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：开始 ghostsnapshot 任务 → 扫描工作目录 · 扫描工作目录 → 发现未跟踪大文件? · 发现未跟踪大文件? → 跳过该文件（是 (>ignorelargeuntrackedfiles)）
 
 ### GhostSnapshotReport
 
@@ -195,21 +185,13 @@ match item {
 
 Undo 的恢复流程：
 
-```
-用户触发 /undo
-    ↓
-从历史中找到最近的 ResponseItem::GhostSnapshot
-    ↓
-RestoreGhostCommitOptions::new(&repo_path)
-    .ghost_snapshot(ghost_snapshot_config)
-    .restore(commit_hash)
-    ↓
-git checkout <ghost_commit_hash>
-    ↓
-工作目录恢复到快照状态
-    ↓
-将本次 Undo 记录为新的 GhostSnapshot
-```
+![与 Undo 系统的关系](diagrams/26-ghost-snapshot-undo.svg)
+
+**与 Undo 系统的关系** — [交互版](diagrams/26-ghost-snapshot-undo.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/26-ghost-snapshot-undo.architecture.json)
+
+- **组成**：8 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：用户触发 /undo · 末节点：将本次 Undo 记录为新的 GhostS…
 
 ### 清理策略
 

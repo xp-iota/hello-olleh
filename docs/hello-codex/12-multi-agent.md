@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "多代理与并行：Codex 的单代理架构与 child-agents 机制"
 ---
 # 多代理与并行：Codex 的单代理架构与 child-agents 机制

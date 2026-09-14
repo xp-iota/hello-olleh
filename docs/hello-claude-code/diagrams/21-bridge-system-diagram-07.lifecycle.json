@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "状态转换",
+    "quality_profile": "showcase",
+    "animation": "none",
+    "viewBox": [
+      1600,
+      660
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "主生命周期"
+    },
+    {
+      "id": "terminal",
+      "label": "恢复与失败"
+    }
+  ],
+  "states": [
+    {
+      "id": "lifecycle-start",
+      "type": "start",
+      "label": "开始",
+      "lane": "main",
+      "col": 0
+    },
+    {
+      "id": "idle",
+      "type": "active",
+      "label": "idle",
+      "lane": "main",
+      "col": 1
+    },
+    {
+      "id": "ready",
+      "type": "active",
+      "label": "ready",
+      "lane": "main",
+      "col": 2
+    },
+    {
+      "id": "connected",
+      "type": "active",
+      "label": "connected",
+      "lane": "main",
+      "col": 3
+    },
+    {
+      "id": "lifecycle-end",
+      "type": "success",
+      "label": "结束",
+      "lane": "main",
+      "col": 4
+    },
+    {
+      "id": "reconnecting",
+      "type": "waiting",
+      "label": "reconnecting",
+      "lane": "terminal",
+      "col": 0
+    },
+    {
+      "id": "failed",
+      "type": "failure",
+      "label": "failed",
+      "lane": "terminal",
+      "col": 1
+    }
+  ],
+  "transitions": [
+    {
+      "id": "transition1",
+      "from": "lifecycle-start",
+      "to": "idle",
+      "route": "straight"
+    },
+    {
+      "id": "transition2",
+      "from": "idle",
+      "to": "ready",
+      "route": "straight"
+    },
+    {
+      "id": "transition3",
+      "from": "ready",
+      "to": "connected",
+      "route": "straight"
+    },
+    {
+      "id": "transition4",
+      "from": "connected",
+      "to": "reconnecting",
+      "route": "auto",
+      "variant": "security"
+    },
+    {
+      "id": "transition6",
+      "from": "reconnecting",
+      "to": "failed",
+      "route": "straight",
+      "variant": "security"
+    },
+    {
+      "id": "transition7",
+      "from": "connected",
+      "to": "lifecycle-end",
+      "route": "straight"
+    },
+    {
+      "id": "transition8",
+      "from": "failed",
+      "to": "lifecycle-end",
+      "route": "auto"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "7 个状态"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 8 条状态迁移",
+        "画布绘制 7 条主迁移，跨节点与回边列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "lifecycle-start → idle: 启动",
+        "idle → ready: createCodeSession",
+        "ready → connected: transport.connect()"
+      ]
+    }
+  ]
+}

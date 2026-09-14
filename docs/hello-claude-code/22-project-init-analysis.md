@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "项目初始化分析报告：面向首次进入 Claude Code 仓库的总览"
 ---
 # 项目初始化分析报告：面向首次进入 Claude Code 仓库的总览
@@ -32,23 +31,13 @@ title: "项目初始化分析报告：面向首次进入 Claude Code 仓库的�
 
 Claude Code 是一个典型的"分层 AI Agent 系统"，从外到内分为：
 
-```
-用户 / IDE 集成
-    ↓
-TUI 层（Ink 渲染）
-    ↓
-REPL 主循环（src/repl.ts）
-    ↓
-Query 引擎（src/query.ts）
-    ↓
-API Provider（Anthropic / Bedrock / Vertex）
-    ↑↓
-工具系统（src/tools/）
-    ↑↓
-扩展体系（Skills / Plugins / MCP）
-    ↑
-存储层（Transcript / Memory / Settings）
-```
+![核心架构速览](diagrams/22-project-init-analysis-diagram.svg)
+
+**核心架构速览** — [交互版](diagrams/22-project-init-analysis-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/22-project-init-analysis-diagram.architecture.json)
+
+- **组成**：9 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：用户 / IDE 集成 · 末节点：存储层（Transcript / Memory…
 
 ## 3. 关键模块索引
 

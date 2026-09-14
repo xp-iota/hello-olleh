@@ -1,0 +1,230 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "上下文分层注入示意（Mermaid）",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      550
+    ]
+  },
+  "components": [
+    {
+      "id": "MD",
+      "type": "backend",
+      "label": "GEMINI.md 文件",
+      "sublabel": "（global · extension · project）",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Discovery",
+      "type": "backend",
+      "label": "memoryDiscovery.ts",
+      "sublabel": "扫描、去重、分类",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "CM",
+      "type": "backend",
+      "label": "ContextManager",
+      "sublabel": "三层记忆",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "SP",
+      "type": "backend",
+      "label": "System Prompt",
+      "sublabel": "getSystemInstructionMemory()",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "SC",
+      "type": "backend",
+      "label": "首条会话内容",
+      "sublabel": "getSessionMemory()",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "GC",
+      "type": "external",
+      "label": "GeminiClient.startChat()",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Compress",
+      "type": "cloud",
+      "label": "ChatCompressionService",
+      "sublabel": "历史压缩",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Mask",
+      "type": "cloud",
+      "label": "ToolOutputMaskingService",
+      "sublabel": "工具输出遮罩",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Loop",
+      "type": "cloud",
+      "label": "LoopDetectionService",
+      "sublabel": "循环检测",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "MD",
+      "to": "Discovery",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Discovery",
+      "to": "CM",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "CM",
+      "to": "SP",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "SP",
+      "to": "SC",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "SC",
+      "to": "GC",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "Compress",
+      "to": "Mask",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "Mask",
+      "to": "Loop",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "9 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 9 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "GEMINI.md 文件 / （global… → memoryDiscovery.ts / 扫描…",
+        "memoryDiscovery.ts / 扫描… → ContextManager / 三层记忆",
+        "ContextManager / 三层记忆 → System Prompt / getSystem…（global memory）"
+      ]
+    }
+  ]
+}

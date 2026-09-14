@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "MCP 状态机",
+    "quality_profile": "showcase",
+    "animation": "none",
+    "viewBox": [
+      1600,
+      660
+    ]
+  },
+  "lanes": [
+    {
+      "id": "main",
+      "label": "主生命周期"
+    },
+    {
+      "id": "terminal",
+      "label": "恢复与失败"
+    }
+  ],
+  "states": [
+    {
+      "id": "lifecycle-start",
+      "type": "start",
+      "label": "开始",
+      "lane": "main",
+      "col": 0
+    },
+    {
+      "id": "NOT_STARTED",
+      "type": "active",
+      "label": "NOTSTARTED",
+      "lane": "main",
+      "col": 1
+    },
+    {
+      "id": "IN_PROGRESS",
+      "type": "active",
+      "label": "INPROGRESS",
+      "lane": "main",
+      "col": 2
+    },
+    {
+      "id": "COMPLETED",
+      "type": "active",
+      "label": "COMPLETED",
+      "lane": "main",
+      "col": 3
+    },
+    {
+      "id": "ERROR",
+      "type": "failure",
+      "label": "ERROR",
+      "lane": "main",
+      "col": 4
+    },
+    {
+      "id": "DISCONNECTED",
+      "type": "active",
+      "label": "DISCONNECTED",
+      "lane": "terminal",
+      "col": 0
+    },
+    {
+      "id": "CONNECTING",
+      "type": "active",
+      "label": "CONNECTING",
+      "lane": "terminal",
+      "col": 1
+    },
+    {
+      "id": "CONNECTED",
+      "type": "active",
+      "label": "CONNECTED",
+      "lane": "terminal",
+      "col": 2
+    }
+  ],
+  "transitions": [
+    {
+      "id": "transition1",
+      "from": "lifecycle-start",
+      "to": "NOT_STARTED",
+      "route": "straight"
+    },
+    {
+      "id": "transition2",
+      "from": "NOT_STARTED",
+      "to": "IN_PROGRESS",
+      "route": "straight"
+    },
+    {
+      "id": "transition3",
+      "from": "IN_PROGRESS",
+      "to": "COMPLETED",
+      "route": "straight"
+    },
+    {
+      "id": "transition7",
+      "from": "DISCONNECTED",
+      "to": "CONNECTING",
+      "route": "straight"
+    },
+    {
+      "id": "transition8",
+      "from": "CONNECTING",
+      "to": "CONNECTED",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "8 个状态"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 10 条状态迁移",
+        "画布绘制 5 条主迁移，跨节点与回边列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "lifecycle-start → NOTSTARTED",
+        "NOTSTARTED → INPROGRESS: 启动",
+        "INPROGRESS → COMPLETED: 发现完成"
+      ]
+    }
+  ]
+}

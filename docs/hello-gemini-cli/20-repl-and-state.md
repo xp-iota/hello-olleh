@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "REPL 与交互层：Ink TUI、非交互模式与输入分发"
 ---
 # REPL 与交互层：Ink TUI、非交互模式与输入分发
@@ -18,26 +17,25 @@ title: "REPL 与交互层：Ink TUI、非交互模式与输入分发"
 
 ## 1. 双模式架构
 
-```
-gemini [--prompt "..."] [--no-interactive]
-  ├─ 交互模式（默认）→ Ink TUI
-  └─ 非交互模式      → 标准输入/输出
-```
+![双模式架构](diagrams/20-repl-and-state-diagram.svg)
+
+**双模式架构** — [交互版](diagrams/20-repl-and-state-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/20-repl-and-state-diagram.architecture.json)
+
+- **组成**：5 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：gemini [--prompt ...] [--no-i… · 末节点：标准输入/输出
 
 真实分流点在 CLI 入口：`startInteractiveUI()` 负责启动 Ink UI（`sources/gemini-cli/packages/cli/src/gemini.tsx:227`），最终导入 `interactiveCli.tsx` 并渲染 `AppContainer`（`sources/gemini-cli/packages/cli/src/interactiveCli.tsx:56`, `sources/gemini-cli/packages/cli/src/interactiveCli.tsx:115`）。非交互模式走 `runNonInteractive()`（`sources/gemini-cli/packages/cli/src/nonInteractiveCli.ts:59`），主入口根据 `config.isInteractive()` 分派到两条路径（`sources/gemini-cli/packages/cli/src/gemini.tsx:648`, `sources/gemini-cli/packages/cli/src/gemini.tsx:737`）。
 
 ## 2. Ink TUI 组件树
 
-```
-<App>
-  ├── <Header>（版本/模型信息）
-  ├── <ConversationHistory>（对话历史，滚动）
-  │     ├── <UserMessage>
-  │     ├── <AssistantMessage>（支持 Markdown 渲染）
-  │     └── <ToolCallView>（工具调用展示）
-  ├── <InputBox>（用户输入，支持多行）
-  └── <StatusBar>（Token 用量/审批状态/运行状态）
-```
+![Ink TUI 组件树](diagrams/20-repl-and-state-ink-tui.svg)
+
+**Ink TUI 组件树** — [交互版](diagrams/20-repl-and-state-ink-tui.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/20-repl-and-state-ink-tui.architecture.json)
+
+- **组成**：8 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：<App> · 末节点：<StatusBar>（Token 用量/审批…
 
 ### 2.1 流式渲染
 

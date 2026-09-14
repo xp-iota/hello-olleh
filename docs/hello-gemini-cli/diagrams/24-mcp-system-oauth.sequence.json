@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "OAuth 流程",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1580,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "Client",
+      "type": "external",
+      "label": "MCP Client"
+    },
+    {
+      "id": "Auth",
+      "type": "security",
+      "label": "MCPOAuthProvider"
+    },
+    {
+      "id": "TokenStorage",
+      "type": "database",
+      "label": "Token Storage"
+    },
+    {
+      "id": "Server",
+      "type": "cloud",
+      "label": "MCP Server"
+    },
+    {
+      "id": "Server-",
+      "type": "cloud",
+      "label": "Server-"
+    },
+    {
+      "id": "User",
+      "type": "external",
+      "label": "User"
+    },
+    {
+      "id": "User-",
+      "type": "external",
+      "label": "User-"
+    },
+    {
+      "id": "Auth-",
+      "type": "security",
+      "label": "Auth-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "Client",
+      "to": "Server",
+      "y": 180,
+      "label": "连接请求",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "Server-",
+      "to": "Client",
+      "y": 225,
+      "label": "401 www-authenticate",
+      "variant": "security"
+    },
+    {
+      "id": "message3",
+      "from": "Client",
+      "to": "Auth",
+      "y": 270,
+      "label": "discoverOAuth()",
+      "variant": "security"
+    },
+    {
+      "id": "message4",
+      "from": "Auth",
+      "to": "Server",
+      "y": 315,
+      "label": "动态客户端注册",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "Server-",
+      "to": "Auth",
+      "y": 360,
+      "label": "clientid, clientsecret",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "8 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 15 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "MCPOAuthProvider 自调用：PKCE 生成 codeverifier",
+        "未上画布的调用：授权请求 (codechallenge)",
+        "未上画布的调用：浏览器授权"
+      ]
+    }
+  ]
+}

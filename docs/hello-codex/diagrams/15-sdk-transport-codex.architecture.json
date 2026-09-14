@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Codex 的外部表面其实只有一套语义",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      550
+    ]
+  },
+  "components": [
+    {
+      "id": "JS",
+      "type": "backend",
+      "label": "codex-cli/bin/codex.js",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Rust",
+      "type": "frontend",
+      "label": "cli/src/main.rs",
+      "sublabel": "tui/src/lib.rs",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "SDK",
+      "type": "backend",
+      "label": "sdk/typescript",
+      "sublabel": "CodexExec · Thread",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Exec",
+      "type": "backend",
+      "label": "codex exec --experimental-json",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "AppServer",
+      "type": "cloud",
+      "label": "app-server",
+      "sublabel": "stdio or websocket",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Remote",
+      "type": "external",
+      "label": "remote app-server client",
+      "sublabel": "websocket",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Proto",
+      "type": "cloud",
+      "label": "app-server protocol v2",
+      "sublabel": "Thread · Turn · ThreadItem",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Core",
+      "type": "backend",
+      "label": "ThreadManager + codex.rs",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Model",
+      "type": "external",
+      "label": "client.rs",
+      "sublabel": "Responses WebSocket or HTTPS SSE",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "JS",
+      "to": "Rust",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Rust",
+      "to": "SDK",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "SDK",
+      "to": "Exec",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "Exec",
+      "to": "AppServer",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "AppServer",
+      "to": "Remote",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "Proto",
+      "to": "Core",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "Core",
+      "to": "Model",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "9 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 8 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "codex-cli/bin/codex.js → cli/src/main.rs / tui/src…",
+        "sdk/typescript / CodexExe… → codex exec --experimental…",
+        "cli/src/main.rs / tui/src… → app-server / stdio or web…"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "OAuth 流程",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "Client",
+      "type": "external",
+      "label": "RmcpClient"
+    },
+    {
+      "id": "OAuth",
+      "type": "database",
+      "label": "OAuthTokenStorage"
+    },
+    {
+      "id": "Store",
+      "type": "backend",
+      "label": "Keyring"
+    },
+    {
+      "id": "Server",
+      "type": "cloud",
+      "label": "MCP Server"
+    },
+    {
+      "id": "Store-",
+      "type": "database",
+      "label": "Store-"
+    },
+    {
+      "id": "OAuth-",
+      "type": "security",
+      "label": "OAuth-"
+    },
+    {
+      "id": "Server-",
+      "type": "cloud",
+      "label": "Server-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "Client",
+      "to": "OAuth",
+      "y": 180,
+      "label": "gettoken(server)",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "OAuth",
+      "to": "Store",
+      "y": 225,
+      "label": "get(key)",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "Store-",
+      "to": "OAuth",
+      "y": 270,
+      "label": "token?",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "OAuth-",
+      "to": "Client",
+      "y": 315,
+      "label": "token or None",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "Client",
+      "to": "Server",
+      "y": 360,
+      "label": "refresh token",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "7 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 8 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "未上画布的调用：new token",
+        "未上画布的调用：store token",
+        "未上画布的调用：set key, value"
+      ]
+    }
+  ]
+}

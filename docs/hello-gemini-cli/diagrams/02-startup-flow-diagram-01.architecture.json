@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "启动全景图",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      690
+    ]
+  },
+  "components": [
+    {
+      "id": "Main",
+      "type": "backend",
+      "label": "gemini-cli/packages/cli/src/gemini.tsx",
+      "sublabel": "main() @ 186",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Parse",
+      "type": "backend",
+      "label": "config.ts",
+      "sublabel": "parseArguments() @ 155",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Setup",
+      "type": "security",
+      "label": "加载 settings",
+      "sublabel": "/ trustedFolders · auth",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Sandbox",
+      "type": "security",
+      "label": "沙箱",
+      "sublabel": "需要?",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "StartSandbox",
+      "type": "database",
+      "label": "startsandbox()",
+      "sublabel": "重启进容器/受限进程",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "LoadCfg",
+      "type": "backend",
+      "label": "loadCliConfig()",
+      "sublabel": "创建 Config @ gemini-cli/packages/cor…",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "InitApp",
+      "type": "backend",
+      "label": "initializer.ts",
+      "sublabel": "initializeApp() @ 38",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Mode",
+      "type": "backend",
+      "label": "交互",
+      "sublabel": "模式?",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "UI",
+      "type": "frontend",
+      "label": "interactiveCli.tsx",
+      "sublabel": "startInteractiveUI() @ 53",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Headless",
+      "type": "backend",
+      "label": "nonInteractiveCli.ts",
+      "sublabel": "runNonInteractive() @ 58",
+      "pos": [
+        1083,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "ConfigInit",
+      "type": "backend",
+      "label": "config.initialize()",
+      "sublabel": "@ gemini-cli/packages/core/src/…",
+      "pos": [
+        1429,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "TOOL_INIT",
+      "type": "backend",
+      "label": "ToolRegistry.discoverAllTools()",
+      "sublabel": "@ tool-registry.ts:…",
+      "pos": [
+        1775,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "MCP_INIT",
+      "type": "external",
+      "label": "McpClientManager.startConfiguredMcpServ…",
+      "sublabel": "@ mcp-…",
+      "pos": [
+        45,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "SKILL_INIT",
+      "type": "backend",
+      "label": "SkillManager.discoverSkills()",
+      "sublabel": "@ skillManager.ts:17",
+      "pos": [
+        391,
+        345
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "Main",
+      "to": "Parse",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Parse",
+      "to": "Setup",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "Setup",
+      "to": "Sandbox",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "Sandbox",
+      "to": "StartSandbox",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "StartSandbox",
+      "to": "LoadCfg",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "InitApp",
+      "to": "Mode",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "Mode",
+      "to": "UI",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge8",
+      "from": "UI",
+      "to": "Headless",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge9",
+      "from": "Headless",
+      "to": "ConfigInit",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge10",
+      "from": "ConfigInit",
+      "to": "TOOL_INIT",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge11",
+      "from": "MCP_INIT",
+      "to": "SKILL_INIT",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "14 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 13 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "gemini-cli/packages/cli/s… → config.ts / parseArgument…",
+        "config.ts / parseArgument… → 加载 settings / / trusted…",
+        "加载 settings / / trusted… → 沙箱 / 需要?"
+      ]
+    }
+  ]
+}

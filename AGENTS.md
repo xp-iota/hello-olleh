@@ -13,23 +13,19 @@
 - Cordis: 4.0.0-rc.8
 - DeepSeek Harness: 0.1.0-rc.5
 
-`pages/` contains the Jekyll-based GitHub Pages site. The site is built from the repo root via `pages/_config.yml` with `source: ..`, so content in `docs/hello-*` is rendered into the site without being copied into `pages/`. The active presentation layer is concentrated in `pages/_layouts/default.html`, `pages/_layouts/content.html`, `pages/index.md`, and `pages/style.css`; those files currently define an editorial / newspaper-inspired reading experience. Root files remain lightweight: [`README.md`](README.md) records scope and upstream versions, [`prompts/hello.txt`](prompts/hello.txt) defines the baseline analysis brief when present, and [`sync_repos.sh`](sync_repos.sh) refreshes local clones into `sources/`.
-
-PDF ebook generation is automated by `.github/workflows/ebook.yml` and can also be run locally through the `pages/` package scripts.
+The repository has no static site generator: `docs/` is plain Markdown read directly on GitHub, so every link must resolve to a real file and no page carries generator-specific front matter. Root files remain lightweight: [`README.md`](README.md) records scope and upstream versions, and [`sync_repos.sh`](sync_repos.sh) refreshes local clones into `sources/`.
 
 `deepseek-harness-examples/` is a companion runnable workspace for the DeepSeek Harness analysis: 26 minimal examples, each demonstrating one extension point. Unlike `sources/`, it is **not** a vendored snapshot — it depends on the real published `@deepseek-ai/*` npm packages (version line `0.1.1-rc.2`, pinned exactly in `package.json`; `.npmrc` sets `legacy-peer-deps=true` because some peers are not published). Running it requires **Node >= 22.18** (native TypeScript type stripping plus `Promise.withResolvers`, which the real `dsh-agent-loop` uses). Gates: `npm run all` (all 26 examples), `npm run typecheck` (compiles against the packages' own `.d.ts`), `npm test` (real-service smoke test). `runtime/run-all.sh` honors `DSH_NODE=/path/to/node` when the default `node` is too old.
 
-The DSH analysis set was consolidated from 26 chapters into 11 topic files; section numbers were renumbered consecutively and every merged file records its original sources in a 📎 note. The consolidation helpers are migration scripts rather than daily generators: `scripts/merge_dsh_docs.py` and `scripts/rewrite_dsh_refs.py` detect the final 11-chapter layout and exit safely, while `scripts/link_examples_into_docs.py` is marker-idempotent. Validate cross-references with `python3 scripts/check_doc_links.py` and Jekyll-readiness with `python3 scripts/check_jekyll_ready.py`.
+The DSH analysis set was consolidated from 26 chapters into 11 topic files; section numbers were renumbered consecutively and every merged file records its original sources in a 📎 note. The consolidation helpers are migration scripts rather than daily generators: `scripts/merge_dsh_docs.py` and `scripts/rewrite_dsh_refs.py` detect the final 11-chapter layout and exit safely, while `scripts/link_examples_into_docs.py` is marker-idempotent. Validate cross-references with `python3 scripts/check_doc_links.py .`.
 
 ## Build, Test, and Development Commands
 There is no single monorepo build. Use the command that matches the area you changed.
 
 - `bash ./sync_repos.sh`: clone or refresh the upstream repositories listed in the script.
-- `git status --short`: confirm your change set is limited to the intended docs, pages, or snapshot updates.
+- `git status --short`: confirm your change set is limited to the intended docs or snapshot updates.
 - `rg --files docs/hello-*`: list generated analysis files before adding a new note or index.
-- `cd pages && npm run serve`: run the local Jekyll preview server.
-- `cd pages && npm run build`: build the GitHub Pages site into `pages/_site`.
-- `cd pages && npm run pdf`: generate the combined PDF ebook from the built site.
+- `python3 scripts/check_doc_links.py .`: verify every local Markdown and HTML link resolves.
 
 If you edit code inside a vendored repo, run that repo's native checks from its own directory and record the exact command in your PR or task summary.
 
@@ -37,7 +33,7 @@ Vendored snapshots must contain source-controlled files only. Do not retain nest
 
 ## File Encoding Requirements
 
-**All Markdown files must be UTF-8 without BOM.** A UTF-8 BOM (`\xEF\xBB\xBF`) at the start of a file causes Jekyll's YAML frontmatter parser to fail silently, resulting in 404 pages on GitHub Pages even when the file exists.
+**All Markdown files must be UTF-8 without BOM.** A UTF-8 BOM (`\xEF\xBB\xBF`) at the start of a file breaks YAML front-matter parsing and shows up as stray characters in the first heading.
 
 Before committing new markdown files, verify they have no BOM:
 ```bash
@@ -62,10 +58,8 @@ if content.startswith(b'\xef\xbb\xbf'):
 ## Coding Style & Naming Conventions
 Prefer short, source-backed Markdown sections with concrete headings. Follow existing filename patterns with ordered prefixes such as `01-architecture.md`, `06-context-and-memory.md`, `28-ghost-snapshot.md`, or `38-mainline-index.md`. Keep one major topic per file and place new notes in the matching `docs/hello-*` directory. Preserve the language already used in the file or folder you edit instead of mixing styles casually.
 
-For `pages/` work, preserve the current editorial visual direction instead of reverting to generic documentation styling. Use the existing layouts and CSS tokens, keep `relative_url`-based links intact, and remember that style changes affect both the homepage and all rendered `docs/hello-*` content pages.
-
 ## Testing Guidelines
-For documentation changes, manually verify headings, relative links, referenced paths, and rendered Mermaid blocks when present. For `pages/` changes, run `cd pages && npm run build` and check that the site still renders with the expected layout and navigation. The current build may emit Liquid warnings from `openclaw/docs/start/showcase.md`; treat them as pre-existing unless your task explicitly touches that area.
+For documentation changes, manually verify headings, relative links and referenced paths, then run `python3 scripts/check_doc_links.py .`. Diagrams are Archify artifacts, so also confirm the embedded SVG, the interactive HTML link and the IR link all resolve.
 
 There is no root coverage target. For source changes inside `sources/claude-code/`, `sources/codex/`, `sources/gemini-cli/`, or `sources/opencode/`, rely on the upstream project's own lint and test commands and summarize the results in the PR.
 
@@ -229,4 +223,4 @@ Two traps:
 Use it for: locating the real call chain before writing a chapter, cross-checking that a claimed dependency exists, and `merge-graphs` to compare two `sources/` snapshots. Graph output belongs in the gitignored `graphify-out/`; do not commit generated graphs.
 
 ## Agent Notes
-Start with [`README.md`](README.md) and [`prompts/hello.txt`](prompts/hello.txt) before generating new analysis. Then read the First-Class Tooling section above — OKF, archify, and graphify are the default toolchain for analysis, diagrams, and knowledge indexing respectively, and each has non-obvious constraints documented there. If the task touches the website, review `pages/_layouts/default.html`, `pages/_layouts/content.html`, `pages/index.md`, and `pages/style.css` before editing. Prefer editing `docs/hello-*` outputs and `pages/` presentation over modifying vendored source trees in `sources/`, and avoid committing sync noise unless the snapshot update is intentional.
+Start with [`README.md`](README.md) before generating new analysis. Then read the First-Class Tooling section above — OKF, archify, and graphify are the default toolchain for analysis, diagrams, and knowledge indexing respectively, and each has non-obvious constraints documented there. Prefer editing `docs/hello-*` outputs over modifying vendored source trees in `sources/`, and avoid committing sync noise unless the snapshot update is intentional.

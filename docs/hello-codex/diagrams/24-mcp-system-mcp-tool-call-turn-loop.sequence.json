@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "MCP Tool Call 到 Turn Loop 的调用链",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1940,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "Config",
+      "type": "cloud",
+      "label": "config",
+      "sublabel": "mcptypes"
+    },
+    {
+      "id": "Manager",
+      "type": "cloud",
+      "label": "mcpconnectionmanager"
+    },
+    {
+      "id": "Prompt",
+      "type": "frontend",
+      "label": "turn prompt builder"
+    },
+    {
+      "id": "Model",
+      "type": "external",
+      "label": "model request"
+    },
+    {
+      "id": "Orch",
+      "type": "backend",
+      "label": "tools orchestrator"
+    },
+    {
+      "id": "Handler",
+      "type": "cloud",
+      "label": "MCP handler"
+    },
+    {
+      "id": "Thread",
+      "type": "backend",
+      "label": "thread item",
+      "sublabel": "next turn"
+    },
+    {
+      "id": "Manager-",
+      "type": "backend",
+      "label": "Manager-"
+    },
+    {
+      "id": "Model-",
+      "type": "external",
+      "label": "Model-"
+    },
+    {
+      "id": "Handler-",
+      "type": "backend",
+      "label": "Handler-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "Config",
+      "to": "Manager",
+      "y": 180,
+      "label": "start configured MCP server",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "Manager-",
+      "to": "Prompt",
+      "y": 225,
+      "label": "expose tool/resource state",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "Prompt",
+      "to": "Model",
+      "y": 270,
+      "label": "include MCP tool specs with built-ins",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "Model-",
+      "to": "Orch",
+      "y": 315,
+      "label": "function/tool call",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "Orch",
+      "to": "Handler",
+      "y": 360,
+      "label": "dispatch MCP tool call",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "10 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 8 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "tools orchestrator 自调用：approval / sandbox / network policy",
+        "未上画布的调用：call target server",
+        "未上画布的调用：MCP result"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,230 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "工具执行流水线 (Pipeline)",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      550
+    ]
+  },
+  "components": [
+    {
+      "id": "Request",
+      "type": "backend",
+      "label": "ToolCallRequest",
+      "sublabel": "from Turn.run() @ turn.ts",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Validate",
+      "type": "backend",
+      "label": "参数验证",
+      "sublabel": "BaseToolInvocation",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Policy",
+      "type": "security",
+      "label": "PolicyEngine.check()",
+      "sublabel": "@ policy-engine.ts:492",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Decision",
+      "type": "backend",
+      "label": "审批结果",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "UI",
+      "type": "messagebus",
+      "label": "UI 弹窗确认",
+      "sublabel": "MessageBus: TOOLCALLCONFIRMATION",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Execute",
+      "type": "backend",
+      "label": "ToolExecutor.execute()",
+      "sublabel": "@ tool-executor.ts",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Error",
+      "type": "external",
+      "label": "返回 Error 至模型",
+      "sublabel": "ToolResponse with error",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Truncate",
+      "type": "cloud",
+      "label": "结果截断/蒸馏",
+      "sublabel": "ToolOutputDistillationService",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Feedback",
+      "type": "backend",
+      "label": "FunctionResponse",
+      "sublabel": "回传给 Turn.run()",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "Request",
+      "to": "Validate",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Validate",
+      "to": "Policy",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "Policy",
+      "to": "Decision",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "Decision",
+      "to": "UI",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "UI",
+      "to": "Execute",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "Error",
+      "to": "Truncate",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "Truncate",
+      "to": "Feedback",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "9 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 10 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "ToolCallRequest / from Tu… → 参数验证 / BaseToolInvoca…",
+        "参数验证 / BaseToolInvoca… → PolicyEngine.check() / @…",
+        "PolicyEngine.check() / @… → 审批结果"
+      ]
+    }
+  ]
+}

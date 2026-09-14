@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "09 - 多 Agent 验证"
+title: "多代理与验证隔离对比"
 ---
 # 多代理与验证隔离对比
 

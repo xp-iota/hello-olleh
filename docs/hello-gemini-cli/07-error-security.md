@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "错误处理与安全性：Agent 的自愈与边界防护"
 ---
 # 错误处理与安全性：Agent 的自愈与边界防护
@@ -53,19 +52,13 @@ Gemini CLI 采用多层嵌套防御机制，确保 Agent 在处理复杂任务�
 
 ## 3. 安全审批流 (Confirmation Flow)
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    Start["Agent 下发指令<br/>Turn.run() @ gemini-cli/packages/core/src/core/turn.ts:238"] --> Check["PolicyEngine.check()<br/>@ policy-engine.ts:492"]
-    Check --> Safe{审批结果<br/>allow / deny / ask_user}
-    Safe -->|Allow| Run["ToolExecutor.execute()<br/>@ tool-executor.ts"]
-    Safe -->|Deny| ErrorResp["返回 Error ToolResponse<br/>模型收到错误提示"]
-    Safe -->|AskUser| Ask["MessageBus 广播<br/>UI 弹窗等待确认"]
-    Ask -->|拒绝| Cancel["中止回合并<br/>返回 Deny 状态"]
-    Ask -->|通过| Run
-```
+![安全审批流 (Confirmation Flow)](diagrams/07-error-security-confirmation-flow.svg)
 
-- **YOLO 模式下的例外**：即使用户开启了 `--yolo` 模式，某些极高风险的操作（如删除关键目录）仍可能被 `PolicyEngine` 强制拦截或要求二次确认。
+**安全审批流 (Confirmation Flow)** — [交互版](diagrams/07-error-security-confirmation-flow.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/07-error-security-confirmation-flow.architecture.json)
+
+- **组成**：7 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：Agent 下发指令 / Turn.run… → PolicyEngine.check() / @… · PolicyEngine.check() / @… → 审批结果 / allow / deny… · 审批结果 / allow / deny… → ToolExecutor.execute()…（Allow）
 
 ## 4. 关键代码定位
 

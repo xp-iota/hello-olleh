@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "02 - 控制平面"
+title: "控制平面对比"
 ---
 <!-- markdownlint-disable MD060, MD024 -->
 # 控制平面对比
@@ -61,7 +60,7 @@ ${renderGitRepo(options.gitRepo)}
 
 ### OpenCode
 
-OpenCode 的 System Prompt 是 Effect-ts 驱动的动态构建，配置定义在 `sources/opencode/packages/opencode/src/config/config.ts`。与其说它有固定的控制平面，不如说它的控制平面是 Effect 服务网络运行时的涌现结果。这在理论上提供了极高的组合灵活性，但也意味着从代码到最终 prompt 的推导路径不是线性的，需要追踪 Effect 执行图才能理解。
+OpenCode 的 System Prompt 是 Effect-ts 驱动的动态构建，配置定义在 `sources/opencode/packages/core/src/config.ts`。与其说它有固定的控制平面，不如说它的控制平面是 Effect 服务网络运行时的涌现结果。这在理论上提供了极高的组合灵活性，但也意味着从代码到最终 prompt 的推导路径不是线性的，需要追踪 Effect 执行图才能理解。
 
 ### 横向对比
 
@@ -109,7 +108,7 @@ Gemini CLI 的 GEMINI.md 体系通过 `memory.ts` 的 `HierarchicalMemory` 接�
 
 ### OpenCode
 
-OpenCode 的 Skill 系统（`sources/opencode/packages/opencode/src/skill/index.ts:21-27`）使用三种 glob 模式：
+OpenCode 的 Skill 系统（`sources/opencode/packages/core/src/plugin/skill.ts`）使用三种 glob 模式：
 
 ```typescript
 const EXTERNAL_SKILL_PATTERN = "skills/**/SKILL.md"

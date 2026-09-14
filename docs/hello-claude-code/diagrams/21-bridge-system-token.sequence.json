@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Token 刷新调度",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "Scheduler",
+      "type": "backend",
+      "label": "TokenRefreshSchedul…"
+    },
+    {
+      "id": "Auth",
+      "type": "security",
+      "label": "Auth Server"
+    },
+    {
+      "id": "Transport",
+      "type": "backend",
+      "label": "Transport"
+    },
+    {
+      "id": "Auth-",
+      "type": "security",
+      "label": "Auth-"
+    },
+    {
+      "id": "Transport-",
+      "type": "backend",
+      "label": "Transport-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "Scheduler",
+      "to": "Auth",
+      "y": 180,
+      "label": "获取新 OAuth Token",
+      "variant": "security"
+    },
+    {
+      "id": "message2",
+      "from": "Auth-",
+      "to": "Scheduler",
+      "y": 225,
+      "label": "oauthToken",
+      "variant": "security"
+    },
+    {
+      "id": "message3",
+      "from": "Scheduler",
+      "to": "Transport",
+      "y": 270,
+      "label": "rebuildTransport(fresh)",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "Transport-",
+      "to": "Scheduler",
+      "y": 315,
+      "label": "完成",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "5 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 4 条消息"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "Transport 自调用：关闭旧连接",
+        "Transport 自调用：创建新连接"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Claude Code 的 MCP 系统"
 ---
 # Claude Code 的 MCP 系统
@@ -26,38 +25,13 @@ title: "Claude Code 的 MCP 系统"
 
 扩展总线的高层入口已经在 [06-extension-mcp.md](./06-extension-mcp.md) 说明；本篇只保留 MCP 协议与运行时本身。
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    subgraph ClaudeCode["Claude Code"]
-        A1["MCPClient"]
-        A2["工具转换层"]
-        A3["资源工具"]
-    end
+![MCP 系统概述](diagrams/24-mcp-system-mcp-01.svg)
 
-    subgraph Protocol["MCP 协议"]
-        B1["JSON-RPC 消息"]
-        B2["工具调用"]
-        B3["资源读写"]
-    end
+**MCP 系统概述** — [交互版](diagrams/24-mcp-system-mcp-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-mcp-01.architecture.json)
 
-    subgraph MCPServer["MCP Server"]
-        C1["StdioTransport"]
-        C2["HTTP/SSE Transport"]
-        C3["外部服务"]
-    end
-
-    A1 <-->|JSON-RPC| B1
-    A2 --> A1
-    A3 --> A1
-    B1 --> C1
-    B1 --> C2
-    C1 --> C3
-    C2 --> C3
-```
+- **组成**：12 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：MCPClient → JSON-RPC 消息（JSON-RPC） · 工具转换层 → MCPClient · 资源工具 → MCPClient
 
 ## 2. MCP 客户端
 
@@ -89,26 +63,13 @@ export interface MCPServerConnection {
 
 ### 2.2 MCP 客户端实现
 
-```mermaid
----
-config:
-  theme: neutral
----
-sequenceDiagram
-    participant Client as MCPClient
-    participant Transport as McpTransport
-    participant Server as MCP Server
+![MCP 客户端实现](diagrams/24-mcp-system-mcp-02.svg)
 
-    Client->>Client: initialize()
-    Client->>Server: JSON-RPC initialize
-    Server-->>Client: capabilities
+**MCP 客户端实现** — [交互版](diagrams/24-mcp-system-mcp-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-mcp-02.sequence.json)
 
-    Client->>Server: tools/list
-    Server-->>Client: tools[]
-
-    Client->>Server: tools/call
-    Server-->>Client: result
-```
+- **组成**：4 个参与方
+- **关系**：源图 6 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：MCPClient 自调用：initialize() · 未上画布的调用：result
 
 ## 3. MCP 传输
 
@@ -116,81 +77,35 @@ sequenceDiagram
 
 **位置**: `src/services/mcp/InProcessTransport.ts`
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    subgraph Stdio["StdioTransport"]
-        A1["spawn process"]
-        A2["stdin/stdout"]
-        A3["messageBuffer"]
-    end
+![Stdio 传输](diagrams/24-mcp-system-stdio.svg)
 
-    A1 --> A2 --> A3
+**Stdio 传输** — [交互版](diagrams/24-mcp-system-stdio.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-stdio.architecture.json)
 
-    subgraph Send["发送"]
-        B1["send(message)"]
-        B2["JSON.stringify"]
-        B3["stdin.write"]
-    end
-
-    subgraph Receive["接收"]
-        C1["stdout.on('data')"]
-        C2["handleData()"]
-        C3["parse JSON"]
-        C4["handleMessage()"]
-    end
-
-    B1 --> B2 --> B3
-    C1 --> C2 --> C3 --> C4
-```
+- **组成**：13 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：spawn process → stdin/stdout · stdin/stdout → messageBuffer · send(message) → JSON.stringify
 
 ### 3.2 HTTP 传输 (SSE)
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["connect()"] --> B["fetch SSE 端点"]
-    B --> C["读取 ReadableStream"]
-    C --> D{"数据?"}
+![HTTP 传输 (SSE)](diagrams/24-mcp-system-http-sse.svg)
 
-    D -->|chunk| E["decoder.decode()"]
-    E --> F["handleSSEData()"]
+**HTTP 传输 (SSE)** — [交互版](diagrams/24-mcp-system-http-sse.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-http-sse.architecture.json)
 
-    D -->|done| G["关闭"]
-
-    F --> H["解析 data: 行"]
-    H --> I["JSON.parse"]
-    I --> J["handleMessage()"]
-```
+- **组成**：10 个节点
+- **关系**：源图 9 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：connect() → fetch SSE 端点 · fetch SSE 端点 → 读取 ReadableStream · 读取 ReadableStream → 数据?
 
 ## 4. MCP 工具集成
 
 ### 4.1 工具转换为 Claude Tools
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["MCP 服务器"] --> B["listTools()"]
+![工具转换为 Claude Tools](diagrams/24-mcp-system-claude-tools.svg)
 
-    B --> C["McpTool[]"]
+**工具转换为 Claude Tools** — [交互版](diagrams/24-mcp-system-claude-tools.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-claude-tools.architecture.json)
 
-    C --> D["对每个工具"]
-
-    D --> E["wrapMCPTool()"]
-    E --> F["buildTool()"]
-    F --> G["Claude Tool"]
-
-    G --> H["注册到 AppState"]
-```
+- **组成**：8 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：MCP 服务器 → listTools() · listTools() → McpTool · McpTool → 对每个工具
 
 ### 4.2 工具注册
 
@@ -237,24 +152,13 @@ export interface ResourceContent {
 
 ### 5.2 资源工具
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    subgraph List["ListMcpResources"]
-        A1["遍历 mcpClients"]
-        A2["listResources()"]
-        A3["合并资源"]
-    end
+![资源工具](diagrams/24-mcp-system-diagram-06.svg)
 
-    subgraph Read["ReadMcpResource"]
-        B1["解析 uri"]
-        B2["查找 MCP Server"]
-        B3["readResource()"]
-    end
-```
+**资源工具** — [交互版](diagrams/24-mcp-system-diagram-06.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-diagram-06.architecture.json)
+
+- **组成**：8 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：ListMcpResources → 遍历 mcpClients · 遍历 mcpClients → listResources() · listResources() → 合并资源
 
 ## 6. MCP 配置
 
@@ -262,22 +166,13 @@ flowchart TB
 
 **位置**: `src/services/mcp/config.ts`
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["mcp.json"] --> B["MCPConfig"]
+![配置格式](diagrams/24-mcp-system-diagram-07.svg)
 
-    B --> C["servers[]"]
+**配置格式** — [交互版](diagrams/24-mcp-system-diagram-07.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-diagram-07.architecture.json)
 
-    C --> D["server.name"]
-    C --> E["server.type"]
-
-    E -->|stdio| F["command, args"]
-    E -->|http| G["url, headers"]
-```
+- **组成**：7 个节点
+- **关系**：源图 6 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：mcp.json → MCPConfig · MCPConfig → servers · servers → server.name
 
 ### 6.2 配置加载
 
@@ -304,26 +199,13 @@ export function loadMCPConfig(): MCPConfig {
 
 ### 7.1 权限检查
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["资源访问请求"] --> B["findMCPResource()"]
+![权限检查](diagrams/24-mcp-system-diagram-08.svg)
 
-    B --> C{"资源存在?"}
+**权限检查** — [交互版](diagrams/24-mcp-system-diagram-08.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-diagram-08.architecture.json)
 
-    C -->|否| D["返回 deny"]
-
-    C -->|是| E{"匹配 alwaysAllow?"}
-
-    E -->|是| F["返回 allow"]
-    E -->|否| G{"匹配 alwaysDeny?"}
-
-    G -->|是| H["返回 deny"]
-    G -->|否| I["返回 prompt"]
-```
+- **组成**：9 个节点
+- **关系**：源图 8 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：资源访问请求 → findMCPResource() · findMCPResource() → 资源存在? · 资源存在? → 返回 deny（否）
 
 ## 8. MCP 状态管理
 
@@ -339,68 +221,35 @@ export type MCPConnectionState =
 
 ### 8.2 状态更新
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["updateMCPClientState()"] --> B["setAppState()"]
+![状态更新](diagrams/24-mcp-system-diagram-09.svg)
 
-    B --> C["prev.mcp.clients.map()"]
-    C --> D["匹配 name?"]
+**状态更新** — [交互版](diagrams/24-mcp-system-diagram-09.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-diagram-09.architecture.json)
 
-    D -->|是| E["更新 state"]
-    D -->|否| F["保持不变"]
-```
+- **组成**：6 个节点
+- **关系**：源图 5 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：updateMCPClientState() → setAppState() · setAppState() → prev.mcp.clients.map() · prev.mcp.clients.map() → 匹配 name?
 
 ## 9. MCP 生命周期
 
 ### 9.1 启动流程
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["startMCPClients()"] --> B["loadMcpConfig()"]
+![启动流程](diagrams/24-mcp-system-diagram-10.svg)
 
-    B --> C{"servers[]"}
+**启动流程** — [交互版](diagrams/24-mcp-system-diagram-10.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-diagram-10.architecture.json)
 
-    C -->|每个服务器| D["createTransport()"]
-
-    D --> E["new MCPClient()"]
-    E --> F["client.initialize()"]
-
-    F --> G{"成功?"}
-
-    G -->|是| H["更新状态 connected"]
-    G -->|否| I["更新状态 error"]
-
-    H --> J["注册工具"]
-    I --> C
-    J --> C
-```
+- **组成**：10 个节点
+- **关系**：源图 11 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：startMCPClients() → loadMcpConfig() · loadMcpConfig() → servers · servers → createTransport()（每个服务器）
 
 ### 9.2 关闭流程
 
-```mermaid
----
-config:
-  theme: neutral
----
-sequenceDiagram
-    participant Stop as stopMCPClients()
-    participant Client as MCPClient
-    participant State as AppState
+![关闭流程](diagrams/24-mcp-system-diagram-11.svg)
 
-    Stop->>Client: client.close()
-    Client-->>Stop: 完成
+**关闭流程** — [交互版](diagrams/24-mcp-system-diagram-11.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-diagram-11.sequence.json)
 
-    Stop->>State: setAppState() 清空 mcp.clients 与 mcp.tools
-    State-->>Stop: 状态已重置
-```
+- **组成**：5 个参与方
+- **关系**：源图 4 条消息
+- **要点**：消息标签保留源图中的调用名
 
 ## 10. MCP 提示 (Prompts)
 
@@ -420,23 +269,13 @@ export interface MCPPrompt {
 
 ### 10.2 提示工具
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A["MCPPromptsTool.call()"] --> B{"server 参数?"}
+![提示工具](diagrams/24-mcp-system-diagram-12.svg)
 
-    B -->|有| C["过滤指定服务器"]
-    B -->|无| D["遍历所有服务器"]
+**提示工具** — [交互版](diagrams/24-mcp-system-diagram-12.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-diagram-12.architecture.json)
 
-    C --> E["listPrompts()"]
-    D --> E
-
-    E --> F["合并提示"]
-    F --> G["返回结果"]
-```
+- **组成**：7 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：MCPPromptsTool.call() → server 参数? · server 参数? → 过滤指定服务器（有） · server 参数? → 遍历所有服务器（无）
 
 ## 13. 补充：关键实现细节
 
@@ -527,23 +366,13 @@ Claude Code 的 MCP 章节应比普通 MCP client 分析更宽：MCP server 可�
 
 ## MCP 调用链：Lifecycle 到 Tool Result
 
-```mermaid
-sequenceDiagram
-    participant Config as Settings / Plugin / SDK control
-    participant Hub as McpHub / reconciliation
-    participant Auth as OAuth / XAA
-    participant Perm as Permission rules
-    participant Tool as MCP tool call
-    participant Loop as queryLoop tool result
+![MCP 调用链：Lifecycle 到 Tool Result](diagrams/24-mcp-system-mcp-lifecycle-tool-result.svg)
 
-    Config->>Hub: register or reconcile MCP server
-    Hub->>Auth: resolve credential when remote auth is required
-    Hub->>Hub: discover tools/resources/prompts
-    Loop->>Perm: match MCP permission rule before execution
-    Perm-->>Loop: allow / deny / ask
-    Loop->>Tool: callTool(name, input)
-    Tool-->>Loop: tool result or tool error
-```
+**MCP 调用链：Lifecycle 到 Tool Result** — [交互版](diagrams/24-mcp-system-mcp-lifecycle-tool-result.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-mcp-lifecycle-tool-result.sequence.json)
+
+- **组成**：8 个参与方
+- **关系**：源图 6 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：McpHub / reconciliation 自调用：discover tools/resources/prompts · 未上画布的调用：tool result or tool error
 
 | 阶段 | Claude 侧源码锚点 | 说明 |
 | --- | --- | --- |

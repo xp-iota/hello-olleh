@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "核心执行循环：Agent 决策链与 LLM 调用"
 ---
 # 核心执行循环：Agent 决策链与 LLM 调用
@@ -26,16 +25,13 @@ title: "核心执行循环：Agent 决策链与 LLM 调用"
 
 Gemini CLI 的 agent loop 不是一个单独的 `while` 循环，而是由以下调用链串成的闭环：
 
-```
-AppContainer.handleFinalSubmit()
-  → useGeminiStream.submitQuery()
-    → GeminiClient.sendMessageStream()
-      → GeminiClient.processTurn()
-        → Turn.run()
-  → Scheduler.schedule()
-  → useGeminiStream.handleCompletedTools()
-  → useGeminiStream.submitQuery()  ← 闭环重入
-```
+![Agent Loop 总览](diagrams/03-agent-loop-agent-loop.svg)
+
+**Agent Loop 总览** — [交互版](diagrams/03-agent-loop-agent-loop.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-agent-loop.architecture.json)
+
+- **组成**：8 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：AppContainer.handleFinalSubmi… · 末节点：闭环重入
 
 最关键的两个实现事实：
 
@@ -63,56 +59,31 @@ AppContainer.handleFinalSubmit()
 
 用户提交文本后，经过以下组件链才抵达 `handleFinalSubmit()`（详见 [25-input-command-queue.md](./23-input-command-queue.md)）：
 
-```
-Composer()
-  → InputPrompt.handleInput()
-    → InputPrompt.handleSubmit()
-      → useInputHistory.handleSubmit()
-        → InputPrompt.handleSubmitAndClear()
-          → AppContainer.handleFinalSubmit()
-```
+![UI 提交链（简述）](diagrams/03-agent-loop-ui-02.svg)
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    participant Composer as Composer()
-    participant Prompt as InputPrompt.handleInput()
-    participant Submit as InputPrompt.handleSubmit()
-    participant History as useInputHistory.handleSubmit()
-    participant Clear as InputPrompt.handleSubmitAndClear()
-    participant Final as AppContainer.handleFinalSubmit()
+**UI 提交链（简述）** — [交互版](diagrams/03-agent-loop-ui-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-ui-02.architecture.json)
 
-    Composer->>Prompt: onSubmit={uiActions.handleFinalSubmit}
-    Prompt->>Submit: handleSubmit(buffer.text)
-    Submit->>History: inputHistory.handleSubmit(trimmedMessage)
-    History->>Clear: onSubmit(trimmedValue)
-    Clear->>Final: onSubmit(processedValue)
-```
+- **组成**：6 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：Composer() · 末节点：AppContainer.handleFinalSubmi…
+
+![UI 提交链（简述）](diagrams/03-agent-loop-ui-03.svg)
+
+**UI 提交链（简述）** — [交互版](diagrams/03-agent-loop-ui-03.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-ui-03.sequence.json)
+
+- **组成**：6 个参与方
+- **关系**：源图 5 条消息
+- **要点**：消息标签保留源图中的调用名
 
 ### 2.2 主调用链顺序图
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-sequenceDiagram
-    participant User as 用户
-    participant App as handleFinalSubmit()<br/>AppContainer.tsx:1262
-    participant Hook as submitQuery()<br/>useGeminiStream.ts:1455
-    participant Client as sendMessageStream()<br/>gemini-cli/packages/core/src/core/client.ts:868
-    participant TurnCtl as processTurn()<br/>gemini-cli/packages/core/src/core/client.ts:585
-    participant Turn as Turn.run()<br/>gemini-cli/packages/core/src/core/turn.ts:253
-    participant Chat as GeminiChat.sendMessageStream()<br/>geminiChat.ts:303
+![主调用链顺序图](diagrams/03-agent-loop-diagram-04.svg)
 
-    User->>App: 提交 prompt
-    App->>Hook: submitQuery(submittedValue)
-    Hook->>Hook: prepareQueryForGemini()
-    Hook->>Client: sendMessageStream(queryToSend, signal, ...)
-    Client->>TurnCtl: processTurn(...)
-    TurnCtl->>TurnCtl: tryCompressChat() / turnStarted() / setTools()
-    TurnCtl->>Turn: turn.run(...):729
-    Turn->>Chat: sendMessageStream(...):263
-    Chat-->>Turn: StreamEvent(CHUNK/RETRY/STOP/BLOCK)
-    Turn-->>Hook: Thought / Content / ToolCallRequest / Finished
-```
+**主调用链顺序图** — [交互版](diagrams/03-agent-loop-diagram-04.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-diagram-04.sequence.json)
+
+- **组成**：9 个参与方
+- **关系**：源图 8 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：submitQuery() / useGeminiStream.ts:1455 自调用：prepareQueryForGemini() · processTurn() / gemini-cli/packages/core/src/core/cli… 自调用：tryCompressChat() / … · 未上画布的调用：sendMessageStream(...):263
 
 ### 2.3 各跳职责说明
 
@@ -132,19 +103,13 @@ sequenceDiagram
 
 > Prompt 构建的完整细节见 [12-prompt-system.md](./11-prompt-system.md)，本节只梳理注入点。
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    A["GeminiClient.startChat()<br/>gemini-cli/packages/core/src/core/client.ts:358"] --> B["getCoreSystemPrompt()<br/>gemini-cli/packages/core/src/core/prompts.ts:23"]
-    B --> C["PromptProvider.getCoreSystemPrompt()<br/>promptProvider.ts:42"]
-    C --> D["组装 SystemPromptOptions<br/>promptProvider.ts:122-218"]
-    D --> E["snippets.getCoreSystemPrompt()<br/>snippets.ts:121"]
-    E --> F["renderFinalShell()<br/>snippets.ts:154"]
-    F --> G["systemInstruction 字符串"]
-    G --> H["new GeminiChat(..., systemInstruction)<br/>gemini-cli/packages/core/src/core/client.ts:375"]
-    I["Config.updateSystemInstructionIfInitialized()<br/>gemini-cli/packages/core/src/config/config.ts:2533"] --> J["GeminiClient.updateSystemInstruction()<br/>gemini-cli/packages/core/src/core/client.ts:348"]
-    J --> B
-```
+![Prompt 构建链：系统提示词是在哪里接入的](diagrams/03-agent-loop-prompt.svg)
+
+**Prompt 构建链：系统提示词是在哪里接入的** — [交互版](diagrams/03-agent-loop-prompt.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-prompt.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图 9 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：GeminiClient.startChat()… → getCoreSystemPrompt() / g… · getCoreSystemPrompt() / g… → PromptProvider.getCoreSys… · PromptProvider.getCoreSys… → 组装 SystemPromptOptions…
 
 **关键区分**：`PromptProvider.getCoreSystemPrompt()` 负责**生成文本**，`GeminiClient.startChat()` 和 `GeminiClient.updateSystemInstruction()` 才是**注入点**。`PromptProvider` 是构造器，`GeminiClient` 才是入口。
 
@@ -154,22 +119,13 @@ flowchart LR
 
 `Turn` 的职责是把 `GeminiChat` 返回的流式块转成 UI 和调度层可消费的高层事件，**不执行工具，不构造 `functionResponse`**。
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    A["Turn.run()<br/>gemini-cli/packages/core/src/core/turn.ts:253"] --> B["chat.sendMessageStream()<br/>gemini-cli/packages/core/src/core/turn.ts:263"]
-    B --> C["for await streamEvent<br/>gemini-cli/packages/core/src/core/turn.ts:272"]
-    C --> D{"streamEvent.type"}
-    D -->|retry| E["yield Retry<br/>gemini-cli/packages/core/src/core/turn.ts:278"]
-    D -->|stopped| F["yield AgentExecutionStopped<br/>gemini-cli/packages/core/src/core/turn.ts:284"]
-    D -->|blocked| G["yield AgentExecutionBlocked<br/>gemini-cli/packages/core/src/core/turn.ts:292"]
-    D -->|chunk| H["解析 resp / parts / functionCalls"]
-    H --> I["yield Thought<br/>gemini-cli/packages/core/src/core/turn.ts:310"]
-    H --> J["yield Content<br/>gemini-cli/packages/core/src/core/turn.ts:320"]
-    H --> K["handlePendingFunctionCall()<br/>gemini-cli/packages/core/src/core/turn.ts:406"]
-    K --> L["yield ToolCallRequest<br/>gemini-cli/packages/core/src/core/turn.ts:425"]
-    H --> M["yield Finished<br/>gemini-cli/packages/core/src/core/turn.ts:351"]
-```
+![模型流拆解：Turn.run() 的事件转换](diagrams/03-agent-loop-turn-run.svg)
+
+**模型流拆解：Turn.run() 的事件转换** — [交互版](diagrams/03-agent-loop-turn-run.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-turn-run.architecture.json)
+
+- **组成**：13 个节点
+- **关系**：源图 12 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：Turn.run() / gemini-cli/p… → chat.sendMessageStream()… · chat.sendMessageStream()… → for await streamEvent / g… · for await streamEvent / g… → streamEvent.type
 
 ### 4.1 `Turn.run()` 不做什么
 
@@ -185,48 +141,13 @@ flowchart LR
 
 ### 5.1 整体闭环图
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    subgraph T["turn.ts"]
-        A["Turn.run()"]
-    end
+![整体闭环图](diagrams/03-agent-loop-diagram-07.svg)
 
-    subgraph S1["useGeminiStream.ts"]
-        B["processGeminiStreamEvents()"]
-        C["scheduleToolCalls()"]
-        D["handleCompletedTools()"]
-        E["submitQuery()"]
-        B -.-> C
-        C -.-> D
-        D -.-> E
-    end
+**整体闭环图** — [交互版](diagrams/03-agent-loop-diagram-07.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-diagram-07.architecture.json)
 
-    subgraph S2["useToolScheduler.ts"]
-        F["schedule()"]
-    end
-
-    subgraph S3["scheduler.ts"]
-        G["Scheduler.schedule()"]
-        H["Scheduler._processToolCall()"]
-        I["Scheduler._execute()"]
-        G -.-> H
-        H -.-> I
-    end
-
-    subgraph S4["tool-executor.ts"]
-        J["execute()"]
-        K["createSuccessResult()"]
-        J -.-> K
-    end
-
-    A -.-> B
-    C -.-> F
-    F -.-> G
-    I -.-> J
-    K -.-> D
-    E -.-> A
-```
+- **组成**：16 个节点
+- **关系**：源图 12 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：processGeminiStreamEvents… → scheduleToolCalls() · scheduleToolCalls() → handleCompletedTools() · handleCompletedTools() → submitQuery()
 
 **主路径**：`Turn.run()` → `processGeminiStreamEvents()` → `scheduleToolCalls()` → 调度链 → `handleCompletedTools()` → `submitQuery()` → `Turn.run()`（闭环）
 
@@ -298,25 +219,13 @@ flowchart LR
 
 循环检测的主插桩点是 `GeminiClient.processTurn()`，不是 `Turn.run()`。
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    A["GeminiClient.processTurn()<br/>gemini-cli/packages/core/src/core/client.ts:585"] --> B["loopDetector.turnStarted()<br/>gemini-cli/packages/core/src/core/client.ts:672"]
-    B --> C{"LoopDetectionResult.count"}
-    C -->|">1"| D["yield LoopDetected<br/>gemini-cli/packages/core/src/core/client.ts:673"]
-    C -->|"=1"| E["_recoverFromLoop()<br/>gemini-cli/packages/core/src/core/client.ts:681"]
-    C -->|"0"| F["turn.run()<br/>gemini-cli/packages/core/src/core/client.ts:729"]
-    F --> G["for await event of resultStream<br/>gemini-cli/packages/core/src/core/client.ts:740"]
-    G --> H["loopDetector.addAndCheck(event)<br/>gemini-cli/packages/core/src/core/client.ts:741"]
-    H --> I{"count"}
-    I -->|">1"| J["yield LoopDetected<br/>gemini-cli/packages/core/src/core/client.ts:742"]
-    I -->|"=1"| K["准备 recoverFromLoop<br/>gemini-cli/packages/core/src/core/client.ts:746"]
-    I -->|"0"| L["yield event 给 UI<br/>gemini-cli/packages/core/src/core/client.ts:755"]
-    J --> M["processGeminiStreamEvents()<br/>useGeminiStream.ts:1409"]
-    K --> M
-    M --> N["loopDetectedRef.current = true"]
-    N --> O["submitQuery() 弹确认框<br/>useGeminiStream.ts:1561"]
-```
+![循环检测：LoopDetectionService](diagrams/03-agent-loop-loopdetectionservice.svg)
+
+**循环检测：LoopDetectionService** — [交互版](diagrams/03-agent-loop-loopdetectionservice.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-loopdetectionservice.architecture.json)
+
+- **组成**：15 个节点
+- **关系**：源图 15 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：GeminiClient.processTurn(… → loopDetector.turnStarted(… · loopDetector.turnStarted(… → LoopDetectionResult.count · LoopDetectionResult.count → yield LoopDetected / gemi…（>1）
 
 ### 6.1 turn 开始前的检测
 
@@ -450,15 +359,13 @@ for (const call of activeCalls) {
 
 ### 工具状态机
 
-```
-ToolCallRequestInfo
-    │
-    ▼
-Validating ──→ AwaitingApproval ──→ Scheduled ──→ Executing ──→ Terminal
-    │                                     │              │        (success/error/cancelled)
-    │                                     │              │
-    └──→ Error (验证失败)                  └──→ Error     └──→ Cancelled
-```
+![工具状态机](diagrams/03-agent-loop-diagram-09.svg)
+
+**工具状态机** — [交互版](diagrams/03-agent-loop-diagram-09.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-agent-loop-diagram-09.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：ToolCallRequestInfo · 末节点：Cancelled
 
 ### 模型端并发控制
 

@@ -4,7 +4,7 @@
 
 ![12 个方向模块的真实拓扑](../docs/hello-dsh/diagrams/12-example-topology.svg)
 
-交互版：[12-example-topology.html](../docs/hello-dsh/diagrams/12-example-topology.html) · IR：[12-example-topology.architecture.json](../docs/hello-dsh/diagrams/12-example-topology.architecture.json) · 结构测量：[OKF graphify reference](../docs/okf/references/graphify-dsh-example.md)
+交互版：[12-example-topology.html](../docs/hello-dsh/diagrams/12-example-topology.html) · IR：[12-example-topology.architecture.json](../docs/hello-dsh/diagrams/12-example-topology.architecture.json) · 结构测量：[OKF graphify reference](../docs/okf/references/01-graphify-dsh-example.md)
 
 ## 数字证据：全部从 IR 复算
 

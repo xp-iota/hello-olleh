@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "17 - Prompt 系统横向对比"
+title: "Prompt 系统横向对比"
 ---
 <!-- markdownlint-disable MD060, MD024 -->
 
@@ -11,7 +10,7 @@ title: "17 - Prompt 系统横向对比"
 - `docs/hello-claude-code/11-prompt-system.md`
 - `docs/hello-codex/11-prompt-system.md`
 - `docs/hello-gemini-cli/11-prompt-system.md`
-- `docs/hello-opencode/11-prompt-system.md`
+- `docs/hello-opencode/04-context-and-state.md`
 
 ## 1. 一句话结论
 
@@ -43,7 +42,7 @@ Claude Code 的文档最需要保留细节，因为它把 prompt 当成产品行
 | Claude Code | `sources/claude-code/src/constants/prompts.ts`, `sources/claude-code/src/query.ts:365` | `sources/claude-code/src/context.ts` | `sources/claude-code/src/tools/AgentTool/built-in/exploreAgent.ts`, `sources/claude-code/src/skills/loadSkillsDir.ts` |
 | Codex | `sources/codex/codex-rs/core/src/session/turn.rs`, `sources/codex/codex-rs/core/src/client.rs` | `sources/codex/codex-rs/core/src/agents_md.rs` | `sources/codex/codex-rs/tools/src/tool_spec.rs:17`, `sources/codex/codex-rs/core/src/compact.rs` |
 | Gemini CLI | `sources/gemini-cli/packages/core/src/core/prompts.ts`, `sources/gemini-cli/packages/core/src/prompts/promptProvider.ts` | `sources/gemini-cli/packages/core/src/prompts/snippets.ts` | `sources/gemini-cli/packages/core/src/tools/activate-skill.ts`, `sources/gemini-cli/packages/core/src/tools/tool-registry.ts:635` |
-| OpenCode | `sources/opencode/packages/opencode/src/session/prompt.ts:162`, `sources/opencode/packages/opencode/src/session/processor.ts:548` | `sources/opencode/packages/opencode/src/session/prompt.ts:986` | `sources/opencode/packages/opencode/src/session/prompt.ts:1304`, `sources/opencode/packages/opencode/src/command/index.ts:117` |
+| OpenCode | `sources/opencode/packages/core/src/session/prompt.ts`, `sources/opencode/packages/core/src/session/runner/step.ts` | `sources/opencode/packages/core/src/session/prompt.ts` | `sources/opencode/packages/core/src/session/prompt.ts`, `sources/opencode/packages/core/src/config/plugin/command.ts` |
 
 ## 5. 建议统一章节结构
 

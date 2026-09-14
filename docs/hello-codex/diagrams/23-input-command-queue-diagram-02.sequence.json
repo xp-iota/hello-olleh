@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "序列号机制",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "User",
+      "type": "external",
+      "label": "用户输入"
+    },
+    {
+      "id": "Mailbox",
+      "type": "backend",
+      "label": "Mailbox"
+    },
+    {
+      "id": "Codex",
+      "type": "backend",
+      "label": "Codex"
+    },
+    {
+      "id": "Watch",
+      "type": "messagebus",
+      "label": "Watch Channel"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "User",
+      "to": "Mailbox",
+      "y": 180,
+      "label": "senduserinput(submission)",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "Mailbox",
+      "to": "Codex",
+      "y": 225,
+      "label": "InterAgentCommunication::UserInput",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "Mailbox",
+      "to": "Watch",
+      "y": 270,
+      "label": "seqtx.send(seq)",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "Codex",
+      "to": "Mailbox",
+      "y": 315,
+      "label": "InterAgentCommunication::AgentEvent",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "Mailbox",
+      "to": "Watch",
+      "y": 360,
+      "label": "seqtx.send(seq)",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "4 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 5 条消息"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "Mailbox 自调用：nextseq++",
+        "Codex 自调用：process submission"
+      ]
+    }
+  ]
+}

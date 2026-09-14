@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "连接流程",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "MCM",
+      "type": "cloud",
+      "label": "McpConnectionManager"
+    },
+    {
+      "id": "RMCP",
+      "type": "external",
+      "label": "RmcpClient"
+    },
+    {
+      "id": "Server",
+      "type": "cloud",
+      "label": "MCP Server"
+    },
+    {
+      "id": "Server-",
+      "type": "cloud",
+      "label": "Server-"
+    },
+    {
+      "id": "RMCP-",
+      "type": "cloud",
+      "label": "RMCP-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "MCM",
+      "to": "RMCP",
+      "y": 180,
+      "label": "new(transportrecipe)",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "RMCP",
+      "to": "Server",
+      "y": 225,
+      "label": "initialize (protocol 2025-06-18)",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "Server-",
+      "to": "RMCP",
+      "y": 270,
+      "label": "capabilities",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "RMCP",
+      "to": "Server",
+      "y": 315,
+      "label": "tools/list",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "Server-",
+      "to": "RMCP",
+      "y": 360,
+      "label": "tools",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "5 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 6 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "McpConnectionManager 自调用：cache Codex Apps tools",
+        "未上画布的调用：tools cached"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "用户输入、命令解析与 Mailbox 队列系统"
 ---
 # 用户输入、命令解析与 Mailbox 队列系统
@@ -39,28 +38,13 @@ Codex 的输入处理涉及以下核心模块：
 
 ## 2. 整体流程图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[CLI main.rs] --> B{是否有子命令?}
-    B -->|exec| C[run_exec]
-    B -->|mcp| D[run_mcp]
-    B -->|无| E[run_interactive_tui]
-    E --> F[TUI run_main]
-    F --> G[CodexThread.new]
-    G --> H[Mailbox 创建]
-    H --> I[事件循环]
-    I --> J{等待输入}
-    J -->|用户输入| K[Submission]
-    K --> L[Mailbox.tx.send]
-    L --> M[Codex 处理]
-    M --> N[Event 产生]
-    N --> O[EventQueue]
-    O --> P[TUI 渲染]
-```
+![整体流程图](diagrams/23-input-command-queue-diagram-01.svg)
+
+**整体流程图** — [交互版](diagrams/23-input-command-queue-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/23-input-command-queue-diagram-01.architecture.json)
+
+- **组成**：16 个节点
+- **关系**：源图 15 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：CLI main.rs → 是否有子命令? · 是否有子命令? → runexec（exec） · 是否有子命令? → runmcp（mcp）
 
 ## 3. CLI 入口与子命令
 
@@ -175,25 +159,13 @@ pub(crate) struct Submission {
 
 ### 5.2 序列号机制
 
-```mermaid
----
-config:
-  theme: neutral
----
-sequenceDiagram
-    participant User as 用户输入
-    participant Mailbox as Mailbox
-    participant Codex as Codex
-    participant Watch as Watch Channel
+![序列号机制](diagrams/23-input-command-queue-diagram-02.svg)
 
-    User->>Mailbox: send_user_input(submission)
-    Mailbox->>Mailbox: next_seq++
-    Mailbox->>Codex: InterAgentCommunication::UserInput
-    Mailbox->>Watch: seq_tx.send(seq)
-    Codex->>Codex: process submission
-    Codex->>Mailbox: InterAgentCommunication::AgentEvent
-    Mailbox->>Watch: seq_tx.send(seq)
-```
+**序列号机制** — [交互版](diagrams/23-input-command-queue-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/23-input-command-queue-diagram-02.sequence.json)
+
+- **组成**：4 个参与方
+- **关系**：源图 5 条消息
+- **要点**：Mailbox 自调用：nextseq++ · Codex 自调用：process submission
 
 ## 6. Submission / Event Queue 模式
 
@@ -276,23 +248,13 @@ pub fn parse_command(input: &str) -> ParsedCommand {
 
 ### 9.1 命令执行流程
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    A[execute command] --> B{沙箱策略}
-    B -->|需要沙箱| C[SandboxedExec]
-    B -->|直接执行| D[DirectExec]
-    C --> E[sandbox_tags]
-    D --> F[ExecPolicy.check]
-    E --> F
-    F -->|允许| G[spawn process]
-    F -->|拒绝| H[Return Error]
-    G --> I[capture output]
-    I --> J[return ExecResult]
-```
+![命令执行流程](diagrams/23-input-command-queue-diagram-03.svg)
+
+**命令执行流程** — [交互版](diagrams/23-input-command-queue-diagram-03.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/23-input-command-queue-diagram-03.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图 10 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：execute command → 沙箱策略 · 沙箱策略 → SandboxedExec（需要沙箱） · 沙箱策略 → DirectExec（直接执行）
 
 ### 9.2 沙箱集成
 

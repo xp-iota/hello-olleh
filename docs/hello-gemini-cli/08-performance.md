@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "性能与代码质量：大仓库处理与架构评估"
 ---
 # 性能与代码质量：大仓库处理与架构评估
@@ -19,23 +18,13 @@ Gemini CLI 在处理超大规模代码库（数百万行代码）和长周期会
 
 ## 1. 性能关键路径 Mermaid 图
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart TD
-    subgraph Input["输入阶段"]
-        LargeFile["大文件 read_file<br/>ToolExecutor.execute()"] --> Distill["ToolOutputDistillationService<br/>截断 + 摘要"]
-        Distill --> TokenSave["完整输出落盘<br/>节省 Token"]
-    end
+![性能关键路径 Mermaid 图](diagrams/08-performance-mermaid.svg)
 
-    subgraph Search["搜索优化"]
-        Grep["grep_search<br/>RipGrepTool"] --> Ripgrep["ripgrep 二进制<br/>跳过 node_modules/dist/.git"]
-        Ripgrep --> Parallel["Scheduler: 并行调度<br/>只读工具并行 @ gemini-cli/packages/core/src/scheduler/scheduler.ts:191"]
-    end
+**性能关键路径 Mermaid 图** — [交互版](diagrams/08-performance-mermaid.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/08-performance-mermaid.architecture.json)
 
-    subgraph Stream["流式传输"]
-        StreamGen["sendMessageStream()<br/>@ geminiChat.ts:303"] --> ChunkYield["流式 yield CHUNK<br/>UI 逐步渲染"]
-    end
-```
+- **组成**：11 个节点
+- **关系**：源图 5 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：大文件 readfile / ToolExe… → ToolOutputDistillationSer… · ToolOutputDistillationSer… → 完整输出落盘 / 节省 Token · grepsearch / RipGrepTool → ripgrep 二进制 / 跳过 nod…
 
 ## 2. 核心函数清单 (Function List)
 

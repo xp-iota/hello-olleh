@@ -1,12 +1,10 @@
 ---
-layout: content
 type: Bundle Log
-title: dsh-example 知识包更新历史
+title: "dsh-example 知识包更新历史"
 description: 本 OKF bundle 的按日更新记录。
 tags: [okf, dsh-example]
 ---
-
-# Directory Update Log
+# dsh-example 知识包更新历史
 
 ## 2026-09-12
 
@@ -26,11 +24,11 @@ A5 按 12 个方向模块重建结构证据；本节**取代** 2026-09-07 条目
 
 - 用 graphify 0.9.53 对 `dsh-example/` 自有源码（87 个文件，排除 `node_modules`）建有向图，
   得到 584 节点 / 744 边 / 45 社区；`createHarness` 以度数 66 成为唯一枢纽。
-  这组数字是 [装配枢纽](concepts/assembly-hub.md) 与
-  [graphify reference](references/graphify-dsh-example.md) 的事实来源。
+  这组数字是 [装配枢纽](concepts/01-assembly-hub.md) 与
+  [graphify reference](references/01-graphify-dsh-example.md) 的事实来源。
 - 用 archify 补齐示例工程此前缺失的两张图（拓扑与工具调用回路），
   均通过 showcase 的 9 项检查，0 error 0 warning。
-- [一次工具调用等于两步](concepts/tool-call-round-trip.md) 的 step 数与词数、字符数，
+- [一次工具调用等于两步](concepts/04-tool-call-round-trip.md) 的 step 数与词数、字符数，
   来自 `01-tool-wordcount/run-minimax.ts` 在本地 SSE 桩下的实测输出，非估算。
 
 已知限制（同日记录，便于后续复核）：

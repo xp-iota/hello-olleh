@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "01 - 理论框架总览"
+title: "Harness Engineering 理论框架在四工程中的映射"
 ---
 <!-- markdownlint-disable MD060, MD024 -->
 
@@ -38,9 +37,9 @@ Gemini CLI 的前馈控制通过 `sources/gemini-cli/packages/core/src/prompts/p
 
 ### OpenCode
 
-OpenCode 的前馈控制通过 `sources/opencode/packages/opencode/src/skill/index.ts:1-262` 实现的 Skill 系统传递。Skill 文件通过 SKILL.md + Zod Schema 定义结构，由 `Config.directories()` 决定扫描路径。这是声明式的前馈：规则不写在代码里，写在目录里。
+OpenCode 的前馈控制通过 `sources/opencode/packages/core/src/plugin/skill.ts` 实现的 Skill 系统传递。Skill 文件通过 SKILL.md + Effect Schema 定义结构，由 `Config.directories()` 决定扫描路径。这是声明式的前馈：规则不写在代码里，写在目录里。
 
-反馈方面，`sources/opencode/packages/opencode/src/permission/index.ts:1-322` 的 Permission 系统通过 `ask()` 方法暂停执行并等待用户判断。这是一种人工参与的反馈，而非自动化反馈。Effect-ts 的 `Deferred.await()` 模型保证了不会有竞争条件，但也意味着每次反馈都需要人类在场。
+反馈方面，`sources/opencode/packages/core/src/permission.ts` 的 Permission 系统通过 `ask()` 方法暂停执行并等待用户判断。这是一种人工参与的反馈，而非自动化反馈。Effect-ts 的 `Deferred.await()` 模型保证了不会有竞争条件，但也意味着每次反馈都需要人类在场。
 
 ### 横向对比：前馈/反馈的时序质量
 
@@ -74,11 +73,11 @@ Gemini CLI 的计算型传感器包括工具注册表 `sources/gemini-cli/packag
 
 ### OpenCode
 
-OpenCode 的计算型传感器主要是 Zod Schema 验证，见 `sources/opencode/packages/opencode/src/permission/index.ts:19-24` 和 `sources/opencode/packages/opencode/src/skill/index.ts:28-34`。Zod 验证是运行时的，不是编译期的，这是与 Rust/TypeScript strict 的本质区别。Effect-ts 的类型系统提供了一定的编译期保证，但 `z.record(z.string(), z.any())` 这类宽松 schema 削弱了其有效性。
+OpenCode 的计算型传感器主要是 Effect Schema 验证，见 `sources/opencode/packages/core/src/permission.ts` 和 `sources/opencode/packages/core/src/plugin/skill.ts`。Effect Schema 验证是运行时的，不是编译期的，这是与 Rust/TypeScript strict 的本质区别。Effect-ts 的类型系统提供了一定的编译期保证，但 `z.record(z.string(), z.any())` 这类宽松 schema 削弱了其有效性。
 
 ### 横向对比：计算型/推断型的成本与可靠性
 
-计算型传感器的优势是可靠性和零成本，推断型的优势是处理复杂场景的能力。Codex 向计算型倾斜最重（Rust borrow checker），OpenCode 向运行时推断型倾斜（Zod + Effect），Claude Code 的计算型传感器因反编译失效而实际偏低，Gemini CLI 用测试套件量化了推断型传感器的覆盖范围。后续的可驾驭性评分（§07）直接来自这里的观察。
+计算型传感器的优势是可靠性和零成本，推断型的优势是处理复杂场景的能力。Codex 向计算型倾斜最重（Rust borrow checker），OpenCode 向运行时推断型倾斜（Effect Schema + Effect），Claude Code 的计算型传感器因反编译失效而实际偏低，Gemini CLI 用测试套件量化了推断型传感器的覆盖范围。后续的可驾驭性评分（§07）直接来自这里的观察。
 
 ---
 
@@ -170,7 +169,7 @@ Rust crate 边界（`sources/codex/codex-rs/app-server/src/lib.rs`）是编译�
 
 ### OpenCode
 
-`sources/opencode/packages/opencode/src/permission/index.ts:138` 的 Effect Layer 模式强制依赖注入，这意味着：任何需要 Permission 服务的代码都必须通过 `ServiceMap` 声明这个依赖，而不能静默地使用全局状态。这是一个强大的架构约束，但对不熟悉 Effect-ts 的工程师来说，门槛相当高。
+`sources/opencode/packages/core/src/permission.ts` 的 Effect Layer 模式强制依赖注入，这意味着：任何需要 Permission 服务的代码都必须通过 `ServiceMap` 声明这个依赖，而不能静默地使用全局状态。这是一个强大的架构约束，但对不熟悉 Effect-ts 的工程师来说，门槛相当高。
 
 ---
 
@@ -183,7 +182,7 @@ Ashby 的必要多样性定律说：控制系统必须具备至少与被控系�
 - **Claude Code**：`sources/claude-code/src/constants/tools.ts:36-112` 的 Allowlist 机制通过精确列出允许/禁止的工具集合来限制空间，这是一种朴素但有效的拓扑承诺。feature flag 系统（即使当前失效）的设计意图是通过条件启用来进一步划定子空间。
 - **Codex**：`sources/codex/codex-rs/prompts/templates/permissions/approval_policy/` 的四种 policy 变体，加上 `execpolicy` 对 shell 命令的约束，形成了两层正交的空间限制。
 - **Gemini CLI**：`sources/gemini-cli/packages/core/src/core/prompts.ts:20-40` 的组合式 prompt 构建器通过条件渲染（plan mode vs primary workflows）来切换子空间，而 `models.ts` 的模型约束限制了推断引擎的选择空间。
-- **OpenCode**：`sources/opencode/packages/opencode/src/config/config.ts` 定义了配置 schema，间接约束了 Agent 可以读取的操作参数空间。但当前缺少对工具调用空间的系统性限制。
+- **OpenCode**：`sources/opencode/packages/core/src/config.ts` 定义了配置 schema，间接约束了 Agent 可以读取的操作参数空间。但当前缺少对工具调用空间的系统性限制。
 
 ---
 
@@ -205,7 +204,7 @@ Ashby 的必要多样性定律说：控制系统必须具备至少与被控系�
 
 ### OpenCode
 
-`sources/opencode/packages/opencode/src/permission/index.ts:19-24` 的 Zod Schema 定义和 `sources/opencode/packages/opencode/src/skill/index.ts:28-34` 的 Skill.Info Schema，为 AI 和人类提供了相同的机器可读规范。这是 OpenCode 最突出的可读性优势。
+`sources/opencode/packages/core/src/permission.ts` 的 Effect Schema 定义和 `sources/opencode/packages/core/src/plugin/skill.ts` 的 Skill.Info Schema，为 AI 和人类提供了相同的机器可读规范。这是 OpenCode 最突出的可读性优势。
 
 ---
 
@@ -252,4 +251,4 @@ Ashby 的必要多样性定律说：控制系统必须具备至少与被控系�
 - **Claude Code**：`sources/claude-code/src/utils/claudemd.ts:1-26` 定义了清晰的文件发现顺序和优先级，`.claude/rules/*.md` 的条件规则使团队可以按文件路径分配不同规则集。这是完整的团队治理层级，但缺少 lifecycle 约定文档（何时审查规则、何时清理废弃规则）。
 - **Codex**：`sources/codex/docs/agents_md.md` 是专门给团队工程师阅读的 AGENTS.md 规范，`protocol/src/prompts/base_instructions/default.md:17-27` 里的 AGENTS.md 语义给出了嵌套优先规则。这是对团队制度化投入最高的工程。
 - **Gemini CLI**：`sources/gemini-cli/packages/core/src/config/memory.ts` 的 `HierarchicalMemory` 接口（global / extension / project 三层）提供了清晰的规则来源层次，每层可由不同角色管理。
-- **OpenCode**：`sources/opencode/packages/opencode/src/skill/index.ts:143-157` 的 `Config.directories()` 和 `permission/index.ts:278-290` 的 `Permission.fromConfig()` 提供了配置驱动的制度化路径，但团队协作规范（谁写 Skill、谁审批 Permission 规则）需要团队自行建立。
+- **OpenCode**：`sources/opencode/packages/core/src/plugin/skill.ts` 的 `Config.directories()` 和 `permission/index.ts:278-290` 的 `Permission.fromConfig()` 提供了配置驱动的制度化路径，但团队协作规范（谁写 Skill、谁审批 Permission 规则）需要团队自行建立。

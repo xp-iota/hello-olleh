@@ -1,8 +1,7 @@
 ---
-layout: content
 title: "配置、恢复与安全边界：config.toml、resume/fork、approval 与 sandbox 的收束点"
 ---
-# 配置、恢复与安全边界：`config.toml`、`resume/fork`、approval 与 sandbox 的收束点
+# 配置、恢复与安全边界：config.toml、resume/fork、approval 与 sandbox 的收束点
 
 这篇补充稿横向对照 Claude Code 的配置/恢复主题、Gemini CLI 的配置与 session 恢复主题，以及 OpenCode 的启动配置与 worktree/sandbox 主题。这里不再沿用旧文件编号，直接使用当前仓库里的文档名。
 
@@ -27,17 +26,13 @@ title: "配置、恢复与安全边界：config.toml、resume/fork、approval �
 | 生命周期枢纽 | `sources/codex/codex-rs/core/src/thread_manager.rs` | `start/resume/fork` 最终都汇合到 `spawn_thread()` |
 | 执行边界 | `sources/codex/codex-rs/core/src/exec.rs`, `tools/orchestrator.rs`, `tools/sandboxing.rs` | 把 approval policy 与 sandbox policy 变成真实执行约束 |
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart TD
-    CLI["cli/src/main.rs<br/>root flags + subcommand flags"] --> Config["config/mod.rs<br/>load + resolve"]
-    Config --> Params["ThreadStart / Resume / Fork Params"]
-    Params --> TM["ThreadManager<br/>start_thread / resume_thread / fork_thread"]
-    TM --> Spawn["spawn_thread()"]
-    Spawn --> Turn["TurnContext<br/>approval_policy + sandbox + model + cwd"]
-    Turn --> Exec["exec.rs / tools::orchestrator"]
-    Exec --> Sandbox["SandboxManager.select_initial() / transform()"]
-```
+![这条链的收束点不在 CLI，而在统一线程参数](diagrams/10-session-resume-cli.svg)
+
+**这条链的收束点不在 CLI，而在统一线程参数** — [交互版](diagrams/10-session-resume-cli.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/10-session-resume-cli.architecture.json)
+
+- **组成**：8 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：cli/src/main.rs / root fl… → config/mod.rs / load + re… · config/mod.rs / load + re… → ThreadStart / Resume / Fo… · ThreadStart / Resume / Fo… → ThreadManager / startthre…
 
 ## 2. 配置优先级是“根级 + 子命令级 override”双层叠加
 
@@ -120,7 +115,7 @@ Codex 的安全模型不是单一的 `sandbox=true/false`。
 
 - Claude Code: [17-settings-config.md](../hello-claude-code/17-settings-config.md), [10-session-resume.md](../hello-claude-code/10-session-resume.md)
 - Gemini CLI: [17-settings-config.md](../hello-gemini-cli/17-settings-config.md), [10-session-resume.md](../hello-gemini-cli/10-session-resume.md)
-- OpenCode: [17-settings-config.md](../hello-opencode/17-settings-config.md), [32-worktree-sandbox.md](../hello-opencode/32-worktree-sandbox.md), [10-session-resume.md](../hello-opencode/10-session-resume.md)
+- OpenCode: [17-settings-config.md](../hello-opencode/06-security-resilience-and-operations.md), [32-worktree-sandbox.md](../hello-opencode/06-security-resilience-and-operations.md), [10-session-resume.md](../hello-opencode/03-session-runtime.md)
 
 ---
 

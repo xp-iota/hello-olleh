@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "用户输入、Slash 命令与队列分发"
 ---
 # 用户输入、Slash 命令与队列分发
@@ -36,62 +35,25 @@ Gemini CLI 的输入处理涉及以下核心模块：
 
 ## 2. 输入流程图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[用户输入] --> B[InputPrompt.handleFinalSubmit]
-    B --> C{是 Slash 命令?}
-    C -->|是| D[CommandService.resolve]
-    C -->|否| E{Agent 忙碌?}
-    E -->|是| F[useMessageQueue.add]
-    E -->|否| G[submitQuery]
-    D --> H{命令类型}
-    H -->|内置| I[BuiltinCommand]
-    H -->|文件| J[FileCommand]
-    H -->|MCP Prompt| K[McpPromptLoader]
-    H -->|Skill| L[SkillCommandLoader]
-    F --> I
-    I --> M[执行结果]
-    J --> M
-    K --> M
-    L --> M
-    M --> N{是否需要模型?}
-    N -->|是| G
-    N -->|否| O[更新 UI]
-```
+![输入流程图](diagrams/23-input-command-queue-diagram-01.svg)
+
+**输入流程图** — [交互版](diagrams/23-input-command-queue-diagram-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/23-input-command-queue-diagram-01.architecture.json)
+
+- **组成**：15 个节点
+- **关系**：源图 19 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：用户输入 → InputPrompt.handleFinalSu… · InputPrompt.handleFinalSu… → 是 Slash 命令? · 是 Slash 命令? → CommandService.resolve（是）
 
 ## 3. 命令服务 (CommandService)
 
 ### 3.1 命令加载器体系
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    A[CommandService.create]
-    A --> B[并行加载所有命令]
-    B --> C[BuiltinCommandLoader]
-    B --> D[FileCommandLoader]
-    B --> E[McpPromptLoader]
-    B --> F[SkillCommandLoader]
-    C -.-> G1[内置命令: /help, /clear, /model, /exit]
-    D -.-> G2[Toml 文件: ~/.gemini/commands/*.toml]
-    E -.-> G3[MCP Prompts: listPrompts()]
-    F -.-> G4[Skills: 技能系统]
-    G1 --> H[SlashCommandResolver.resolve]
-    G2 --> H
-    G3 --> H
-    G4 --> H
-    H --> I[CommandService]
-    I --> J{冲突检测}
-    J -->|有冲突| K[标记冲突命令]
-    J -->|无冲突| L[返回冻结命令集]
-```
+![命令加载器体系](diagrams/23-input-command-queue-diagram-02.svg)
+
+**命令加载器体系** — [交互版](diagrams/23-input-command-queue-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/23-input-command-queue-diagram-02.architecture.json)
+
+- **组成**：15 个节点
+- **关系**：源图 17 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：CommandService.create → 并行加载所有命令 · 并行加载所有命令 → BuiltinCommandLoader · 并行加载所有命令 → FileCommandLoader
 
 ### 3.2 命令类型
 
@@ -182,19 +144,13 @@ export class McpPromptLoader implements ICommandLoader {
 
 ### 5.1 状态机
 
-```mermaid
----
-config:
-  theme: neutral
----
-stateDiagram-v2
-    [*] --> Idle: 初始化
-    Idle --> Busy: 用户提交输入
-    Busy --> Idle: 模型响应完成
-    Busy --> Idle: 队列清空
-    Idle --> Queueing: 忙碌时新输入
-    Queueing --> Idle: 队列处理
-```
+![状态机](diagrams/23-input-command-queue-diagram-03.svg)
+
+**状态机** — [交互版](diagrams/23-input-command-queue-diagram-03.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/23-input-command-queue-diagram-03.lifecycle.json)
+
+- **组成**：4 个状态
+- **关系**：源图 6 条状态迁移 · 画布绘制 2 条主迁移，跨节点与回边列在要点
+- **要点**：lifecycle-start → Idle: 初始化 · Idle → Busy: 用户提交输入 · Busy → Idle: 模型响应完成
 
 ### 5.2 队列实现
 
@@ -342,22 +298,13 @@ Gemini CLI 的输入链路要把自然语言、slash command、工具确认和 c
 
 ## UI Hook、Scheduler 与 CommandService 调用关系
 
-```mermaid
-sequenceDiagram
-    participant UI as Ink UI / useMessageQueue
-    participant Cmd as CommandService / slashCommandProcessor
-    participant Stream as useGeminiStream
-    participant Core as GeminiClient / Turn
-    participant Sch as Scheduler
+![UI Hook、Scheduler 与 CommandService 调用关系](diagrams/23-input-command-queue-ui-hook-scheduler-commandservice.svg)
 
-    UI->>Cmd: slash command or raw input classification
-    Cmd-->>UI: local command result or query payload
-    UI->>Stream: submitQuery()
-    Stream->>Core: sendMessageStream()
-    Core->>Sch: schedule tool calls
-    Sch-->>Stream: tool results / confirmation state
-    Stream->>Core: continuation with tool results
-```
+**UI Hook、Scheduler 与 CommandService 调用关系** — [交互版](diagrams/23-input-command-queue-ui-hook-scheduler-commandservice.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/23-input-command-queue-ui-hook-scheduler-commandservice.sequence.json)
+
+- **组成**：7 个参与方
+- **关系**：源图 7 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：未上画布的调用：tool results / confirmation state · 未上画布的调用：continuation with tool results
 
 | 边界 | 负责什么 | 不负责什么 |
 | --- | --- | --- |

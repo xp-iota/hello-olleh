@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Rollout 记录与回放",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "C",
+      "type": "external",
+      "label": "Client"
+    },
+    {
+      "id": "TM",
+      "type": "backend",
+      "label": "ThreadManager"
+    },
+    {
+      "id": "ST",
+      "type": "backend",
+      "label": "spawnthread()"
+    },
+    {
+      "id": "RR",
+      "type": "backend",
+      "label": "RolloutRecorder"
+    },
+    {
+      "id": "DB",
+      "type": "backend",
+      "label": "StateRuntime"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "C",
+      "to": "TM",
+      "y": 180,
+      "label": "startthread(config)",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "TM",
+      "to": "ST",
+      "y": 225,
+      "label": "spawn(InitialHistory::New)",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "ST",
+      "to": "RR",
+      "y": 270,
+      "label": "RolloutRecorder::new()",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "ST",
+      "to": "DB",
+      "y": 315,
+      "label": "persistthreadmetadata()",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "C",
+      "to": "TM",
+      "y": 360,
+      "label": "resumethread(params)",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "5 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 9 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "ThreadManager 自调用：优先级: history > path > threadid",
+        "ThreadManager 自调用：ForkSnapshot 策略截断",
+        "未上画布的调用：getrollouthistory()"
+      ]
+    }
+  ]
+}

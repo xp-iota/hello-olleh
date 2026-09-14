@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "16 - 工具治理横向对比"
+title: "工具治理横向对比"
 ---
 <!-- markdownlint-disable MD060, MD024 -->
 
@@ -11,7 +10,7 @@ title: "16 - 工具治理横向对比"
 - `docs/hello-claude-code/05-tool-system.md`
 - `docs/hello-codex/05-tool-system.md`
 - `docs/hello-gemini-cli/05-tool-system.md`
-- `docs/hello-opencode/05-tool-system.md`
+- `docs/hello-opencode/05-tools-and-extensions.md`
 
 ## 1. 一句话结论
 
@@ -24,19 +23,13 @@ title: "16 - 工具治理横向对比"
 
 ## 2. 生命周期对比
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-  A["model tool call"] --> B["parse / validate"]
-  B --> C["permission / policy"]
-  C --> D["execute"]
-  D --> E["truncate / normalize"]
-  E --> F["inject result"]
-  F --> G["next turn"]
-```
+![生命周期对比](diagrams/16-tool-governance-comparison-diagram.svg)
+
+**生命周期对比** — [交互版](diagrams/16-tool-governance-comparison-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/16-tool-governance-comparison-diagram.architecture.json)
+
+- **组成**：7 个节点
+- **关系**：源图 6 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：model tool call → parse / validate · parse / validate → permission / policy · permission / policy → execute
 
 四个项目都符合这条闭环，但差异在控制点的位置：
 
@@ -55,7 +48,7 @@ flowchart LR
 | Claude Code | `sources/claude-code/src/Tool.ts:123`, `sources/claude-code/src/tools.ts` | `sources/claude-code/src/hooks/useCanUseTool.tsx`, `sources/claude-code/src/services/tools/toolOrchestration.ts` | `sources/claude-code/src/services/tools/toolExecution.ts`, `sources/claude-code/src/services/tools/StreamingToolExecutor.ts` |
 | Codex | `sources/codex/codex-rs/tools/src/tool_spec.rs:17` | `sources/codex/codex-rs/core/src/tools/orchestrator.rs:111`, `sources/codex/codex-rs/core/src/exec_policy.rs:234` | `sources/codex/codex-rs/core/src/tools/handlers/unified_exec/exec_command.rs:184` |
 | Gemini CLI | `sources/gemini-cli/packages/core/src/tools/tool-registry.ts:352` | `sources/gemini-cli/packages/core/src/policy/policy-engine.ts` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:191`, `sources/gemini-cli/packages/core/src/scheduler/tool-executor.ts:60` |
-| OpenCode | `sources/opencode/packages/opencode/src/tool/registry.ts:36` | `sources/opencode/packages/opencode/src/permission/evaluate.ts:9`, `sources/opencode/packages/opencode/src/permission/index.ts:166` | `sources/opencode/packages/opencode/src/session/session.ts:587` |
+| OpenCode | `sources/opencode/packages/core/src/tool.ts` | `sources/opencode/packages/core/src/permission.ts`, `sources/opencode/packages/core/src/permission.ts` | `sources/opencode/packages/core/src/session/session.ts` |
 
 ## 4. 文档完善要求
 

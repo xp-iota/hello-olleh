@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "总体时序图",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "P",
+      "type": "backend",
+      "label": "进程启动"
+    },
+    {
+      "id": "M",
+      "type": "backend",
+      "label": "main.tsx"
+    },
+    {
+      "id": "I",
+      "type": "backend",
+      "label": "init()/entrypoints"
+    },
+    {
+      "id": "S",
+      "type": "backend",
+      "label": "setup.ts"
+    },
+    {
+      "id": "H",
+      "type": "backend",
+      "label": "interactiveHelpers"
+    },
+    {
+      "id": "R",
+      "type": "frontend",
+      "label": "REPL"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "P",
+      "to": "M",
+      "y": 180,
+      "label": "顶层 import 前 side effects",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "M",
+      "to": "I",
+      "y": 225,
+      "label": "init()",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "M",
+      "to": "S",
+      "y": 270,
+      "label": "setup(...)",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "M",
+      "to": "H",
+      "y": 315,
+      "label": "createRoot + showSetupScreens()",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "H",
+      "to": "R",
+      "y": 360,
+      "label": "launchRepl()",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "6 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 6 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "main.tsx 自调用：早期 flag/settings 解析",
+        "main.tsx 自调用：进入 print / sdk / other entrypoint",
+        "未上画布的调用：renderAndRun() 后启动 deferred prefetches"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Gemini CLI 的状态、会话与记忆系统"
 ---
 # Gemini CLI 的状态、会话与记忆系统
@@ -276,31 +275,23 @@ DEFAULT_CONTEXT_FILENAME = 'GEMINI.md'
 
 ### 并发控制与状态投影（Mermaid）
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    Scheduler["Scheduler.schedule()<br/>@ gemini-cli/packages/core/src/scheduler/scheduler.ts:191"] -->|"TOOL_CALLS_UPDATE"| Bus["MessageBus.publish()<br/>@ message-bus.ts"]
-    Bus -->|"广播"| UIHook["useToolScheduler hook<br/>@ confirmation-bus/"]
-    UIHook -->|"setState()"| UIState["UIStateContext<br/>@ UIStateContext.tsx"]
-    UIState -->|"增量渲染"| Ink["Ink React 组件<br/>终端输出"]
-```
+![并发控制与状态投影（Mermaid）](diagrams/04-state-session-memory-mermaid-01.svg)
+
+**并发控制与状态投影（Mermaid）** — [交互版](diagrams/04-state-session-memory-mermaid-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-mermaid-01.architecture.json)
+
+- **组成**：5 个节点
+- **关系**：源图 4 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：Scheduler.schedule() / @… → MessageBus.publish() / @…（TOOLCALLSUPDATE） · MessageBus.publish() / @… → useToolScheduler hook / @…（广播） · useToolScheduler hook / @… → UIStateContext / @ UIStat…（setState()）
 
 ### 上下文分层注入示意（Mermaid）
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    MD["GEMINI.md 文件<br/>（global / extension / project）"]
-    MD --> Discovery["memoryDiscovery.ts<br/>扫描、去重、分类"]
-    Discovery --> CM["ContextManager<br/>三层记忆"]
-    CM -->|"global memory"| SP["System Prompt<br/>getSystemInstructionMemory()"]
-    CM -->|"extension + project memory"| SC["首条会话内容<br/>getSessionMemory()"]
-    SP --> GC["GeminiClient.startChat()"]
-    SC --> GC
-    GC -->|"发送前保护"| Compress["ChatCompressionService<br/>历史压缩"]
-    GC -->|"发送前保护"| Mask["ToolOutputMaskingService<br/>工具输出遮罩"]
-    GC -->|"发送前保护"| Loop["LoopDetectionService<br/>循环检测"]
-```
+![上下文分层注入示意（Mermaid）](diagrams/04-state-session-memory-mermaid-02.svg)
+
+**上下文分层注入示意（Mermaid）** — [交互版](diagrams/04-state-session-memory-mermaid-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-state-session-memory-mermaid-02.architecture.json)
+
+- **组成**：9 个节点
+- **关系**：源图 9 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：GEMINI.md 文件 / （global… → memoryDiscovery.ts / 扫描… · memoryDiscovery.ts / 扫描… → ContextManager / 三层记忆 · ContextManager / 三层记忆 → System Prompt / getSystem…（global memory）
 
 ### save_memory 写入流程（TypeScript 伪代码）
 

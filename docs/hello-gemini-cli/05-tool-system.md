@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "工具调用机制：Tool 注册、权限策略与执行闭环"
 ---
 # 工具调用机制：Tool 注册、权限策略与执行闭环
@@ -43,20 +42,13 @@ title: "工具调用机制：Tool 注册、权限策略与执行闭环"
 
 一个工具调用的生命周期遵循以下严格步骤：
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    Request["ToolCallRequest<br/>from Turn.run() @ turn.ts"] --> Validate["参数验证<br/>BaseToolInvocation"]
-    Validate --> Policy["PolicyEngine.check()<br/>@ policy-engine.ts:492"]
-    Policy --> Decision{审批结果}
-    Decision -->|AskUser| UI["UI 弹窗确认<br/>MessageBus: TOOL_CALL_CONFIRMATION"]
-    Decision -->|Allow| Execute["ToolExecutor.execute()<br/>@ tool-executor.ts"]
-    Decision -->|Deny| Error["返回 Error 至模型<br/>ToolResponse with error"]
-    UI -->|拒绝| Error
-    UI -->|通过| Execute
-    Execute --> Truncate["结果截断/蒸馏<br/>ToolOutputDistillationService"]
-    Truncate --> Feedback["FunctionResponse<br/>回传给 Turn.run()"]
-```
+![工具执行流水线 (Pipeline)](diagrams/05-tool-system-pipeline.svg)
+
+**工具执行流水线 (Pipeline)** — [交互版](diagrams/05-tool-system-pipeline.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/05-tool-system-pipeline.architecture.json)
+
+- **组成**：9 个节点
+- **关系**：源图 10 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：ToolCallRequest / from Tu… → 参数验证 / BaseToolInvoca… · 参数验证 / BaseToolInvoca… → PolicyEngine.check() / @… · PolicyEngine.check() / @… → 审批结果
 
 ## 4. 权限策略 (Tool Policy) 的实现
 

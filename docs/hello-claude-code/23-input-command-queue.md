@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "用户输入、Slash 命令与队列分发"
 ---
 # 用户输入、Slash 命令与队列分发
@@ -54,29 +53,13 @@ title: "用户输入、Slash 命令与队列分发"
 
 ## 2. 整体流程图
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[REPL.onSubmit] --> B[handlePromptSubmit]
-    B --> C{当前是否已有活跃 query?}
-    C -- 是 --> D[入队 / 尝试打断 / 排队提示]
-    C -- 否 --> E[executeUserInput]
-    E --> F[processUserInput]
-    F --> G{mode}
-    G -- prompt --> H[processTextPrompt]
-    G -- bash --> I[processBashCommand]
-    G -- slash --> J[processSlashCommand]
-    J --> K{shouldQuery}
-    H --> L[返回 messages]
-    I --> L
-    J --> L
-    L --> M{有新消息且 shouldQuery}
-    M -- 是 --> N["onQuery(...)"]
-    M -- 否 --> O[只更新本地 UI / 消息]
-```
+![整体流程图](diagrams/23-input-command-queue-diagram.svg)
+
+**整体流程图** — [交互版](diagrams/23-input-command-queue-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/23-input-command-queue-diagram.architecture.json)
+
+- **组成**：15 个节点
+- **关系**：源图 16 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：REPL.onSubmit → handlePromptSubmit · handlePromptSubmit → 当前是否已有活跃 query? · 当前是否已有活跃 query? → 入队 / 尝试打断 / 排队提示（是）
 
 ## 3. `handlePromptSubmit`：输入总入口
 

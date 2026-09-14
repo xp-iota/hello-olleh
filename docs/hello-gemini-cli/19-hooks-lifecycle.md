@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Hooks 与生命周期：Gemini CLI 的事件回调与扩展点"
 ---
 # Hooks 与生命周期：Gemini CLI 的事件回调与扩展点

@@ -1,8 +1,7 @@
 ---
-layout: content
-title: "Gemini CLI SDK 与传输层：`GeminiClient`、`GeminiChat` 与 CLI 复用层"
+title: "Gemini CLI SDK 与传输层：GeminiClient、GeminiChat 与 CLI 复用层"
 ---
-# Gemini CLI SDK 与传输层：`GeminiClient`、`GeminiChat` 与 CLI 复用层
+# Gemini CLI SDK 与传输层：GeminiClient、GeminiChat 与 CLI 复用层
 
 这部分最容易被写成“Gemini CLI 直接调 `@google/genai`，没有中间层”。这种说法不完整。当前仓库里确实没有像 Codex app-server 那样的独立宿主协议，但已经形成了清晰的内部复用层。
 
@@ -30,17 +29,13 @@ title: "Gemini CLI SDK 与传输层：`GeminiClient`、`GeminiChat` 与 CLI 复�
 - `packages/core` 本身就是 CLI 复用层
 - `GeminiClient` 和 `GeminiChat` 并不只是 SDK 的简单薄包装，它们还负责会话恢复、工具声明、压缩、循环保护、IDE 上下文注入等行为
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    TUI["interactiveCli.tsx<br/>Ink TUI"] --> Core["@google/gemini-cli-core"]
-    Headless["nonInteractiveCli.ts<br/>pipeline/headless"] --> Core
-    Core --> Client["GeminiClient<br/>gemini-cli/packages/core/src/core/client.ts:92"]
-    Client --> Chat["GeminiChat<br/>geminiChat.ts:245"]
-    Chat --> SDK["@google/genai"]
-    Client --> Tools["ToolRegistry / Scheduler"]
-    Client --> Context["Compression / masking / memory"]
-```
+![真实分层](diagrams/15-sdk-transport-diagram.svg)
+
+**真实分层** — [交互版](diagrams/15-sdk-transport-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/15-sdk-transport-diagram.architecture.json)
+
+- **组成**：8 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：interactiveCli.tsx / Ink… → @google/gemini-cli-core · nonInteractiveCli.ts / pi… → @google/gemini-cli-core · @google/gemini-cli-core → GeminiClient / gemini-cli…
 
 ## 2. `GeminiChat` 是模型传输的底层适配器
 

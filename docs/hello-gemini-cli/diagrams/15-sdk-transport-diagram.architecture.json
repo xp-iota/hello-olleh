@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "真实分层",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      550
+    ]
+  },
+  "components": [
+    {
+      "id": "TUI",
+      "type": "frontend",
+      "label": "interactiveCli.tsx",
+      "sublabel": "Ink TUI",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Core",
+      "type": "backend",
+      "label": "@google/gemini-cli-core",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Headless",
+      "type": "backend",
+      "label": "nonInteractiveCli.ts",
+      "sublabel": "pipeline/headless",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Client",
+      "type": "external",
+      "label": "GeminiClient",
+      "sublabel": "gemini-cli/packages/core/src/core/clie…",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Chat",
+      "type": "backend",
+      "label": "GeminiChat",
+      "sublabel": "geminiChat.ts:245",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "SDK",
+      "type": "backend",
+      "label": "@google/genai",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Tools",
+      "type": "backend",
+      "label": "ToolRegistry",
+      "sublabel": "Scheduler",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Context",
+      "type": "backend",
+      "label": "Compression",
+      "sublabel": "masking · memory",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "TUI",
+      "to": "Core",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Core",
+      "to": "Headless",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "Headless",
+      "to": "Client",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "Client",
+      "to": "Chat",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "Chat",
+      "to": "SDK",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "Tools",
+      "to": "Context",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "8 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 7 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "interactiveCli.tsx / Ink… → @google/gemini-cli-core",
+        "nonInteractiveCli.ts / pi… → @google/gemini-cli-core",
+        "@google/gemini-cli-core → GeminiClient / gemini-cli…"
+      ]
+    }
+  ]
+}

@@ -1,14 +1,3 @@
-# Jekyll
-_site/
-.jekyll-cache/
-.jekyll-metadata
-.sass-cache/
-
-# Ruby
-Gemfile.lock
-.bundle/
-vendor/bundle/
-
 # IDE
 .idea/
 .vscode/

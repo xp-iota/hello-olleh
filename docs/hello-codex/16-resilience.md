@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Codex 韧性机制：重试策略、错误归一化与恢复路径"
 ---
 # Codex 韧性机制：重试策略、错误归一化与恢复路径
@@ -55,13 +54,13 @@ Codex 的韧性机制可以概括为一套“把失败继续收束回线程状�
 
 ### 2.2 错误归一化的价值
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    A[Provider错误] --> B[fromError 映射]
-    B --> C[CodexErr 统一错误]
-    C --> D[processor 分支策略]
-```
+![错误归一化的价值](diagrams/16-resilience-diagram.svg)
+
+**错误归一化的价值** — [交互版](diagrams/16-resilience-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/16-resilience-diagram.architecture.json)
+
+- **组成**：4 个节点
+- **关系**：源图 3 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：Provider错误 → fromError 映射 · fromError 映射 → CodexErr 统一错误 · CodexErr 统一错误 → processor 分支策略
 
 1. provider、网络、系统调用错误先被规约进统一语义
 2. processor 后续只需要按错误类别做策略分支

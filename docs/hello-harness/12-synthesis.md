@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "12 - 综合裁定"
+title: "综合裁定"
 ---
 # 综合裁定
 
@@ -15,21 +14,13 @@ title: "12 - 综合裁定"
 横轴：**运行时连续性成熟度**（Agent 能否跨 session 积累知识、维持一致性）
 纵轴：**控制平面显式化程度**（规则是否对团队透明、可审查、可版本化）
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-quadrantChart
-    title Harness Engineering 四工程定位
-    x-axis 运行时连续性成熟度 (Runtime Continuity) --> 高
-    y-axis 控制平面显式化程度 (Control Plane Explicitness) --> 高
-    quadrant Runtime-first 高控制
-    quadrant Runtime-first 低控制
-    quadrant Control-plane-first 高控制
-    quadrant Control-plane-first 低控制
-    point "Claude Code": [0.3, 0.4]
-    point "Codex": [0.7, 0.85]
-    point "Gemini CLI": [0.6, 0.65]
-    point "OpenCode": [0.35, 0.35]
-```
+![四象限定位图](diagrams/12-synthesis-diagram.svg)
+
+**四象限定位图** — [交互版](diagrams/12-synthesis-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/12-synthesis-diagram.architecture.json)
+
+- **组成**：7 个节点
+- **关系**：源图 5 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：x-axis → Runtime · Runtime → Continuity · y-axis → Control
 
 ### 定位说明
 

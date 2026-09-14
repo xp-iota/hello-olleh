@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "三层嵌套循环总览",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1940,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "U",
+      "type": "external",
+      "label": "用户",
+      "sublabel": "TUI"
+    },
+    {
+      "id": "SL",
+      "type": "backend",
+      "label": "submissionloop"
+    },
+    {
+      "id": "RT",
+      "type": "backend",
+      "label": "runturn"
+    },
+    {
+      "id": "RSR",
+      "type": "backend",
+      "label": "runsamplingrequest"
+    },
+    {
+      "id": "TSR",
+      "type": "backend",
+      "label": "tryrunsamplingreque…"
+    },
+    {
+      "id": "LLM",
+      "type": "external",
+      "label": "ModelClientSession"
+    },
+    {
+      "id": "TOOL",
+      "type": "backend",
+      "label": "ToolRouter + Orches…"
+    },
+    {
+      "id": "LLM-",
+      "type": "backend",
+      "label": "LLM-"
+    },
+    {
+      "id": "TOOL-",
+      "type": "backend",
+      "label": "TOOL-"
+    },
+    {
+      "id": "TSR-",
+      "type": "backend",
+      "label": "TSR-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "U",
+      "to": "SL",
+      "y": 180,
+      "label": "Op::UserInput",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "SL",
+      "to": "RT",
+      "y": 225,
+      "label": "runturn()",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "RT",
+      "to": "RSR",
+      "y": 270,
+      "label": "runsamplingrequest()",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "RSR",
+      "to": "TSR",
+      "y": 315,
+      "label": "tryrunsamplingrequest()",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "TSR",
+      "to": "LLM",
+      "y": 360,
+      "label": "clientsession.stream(prompt)",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "画布 10 个参与方",
+        "源图共 13 个参与方，其余见正文"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 9 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "runturn 自调用：预采样: 插件/技能/上下文",
+        "runsamplingrequest 自调用：加载工具 + 构建 Prompt",
+        "未上画布的调用：ResponseEvent"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "UI Hook、Scheduler 与 CommandService 调用关系",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1400,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "UI",
+      "type": "messagebus",
+      "label": "Ink UI",
+      "sublabel": "useMessageQueue"
+    },
+    {
+      "id": "Cmd",
+      "type": "cloud",
+      "label": "CommandService",
+      "sublabel": "slashCommandProcessor"
+    },
+    {
+      "id": "Stream",
+      "type": "messagebus",
+      "label": "useGeminiStream"
+    },
+    {
+      "id": "Core",
+      "type": "external",
+      "label": "GeminiClient",
+      "sublabel": "Turn"
+    },
+    {
+      "id": "Sch",
+      "type": "backend",
+      "label": "Scheduler"
+    },
+    {
+      "id": "Cmd-",
+      "type": "backend",
+      "label": "Cmd-"
+    },
+    {
+      "id": "Sch-",
+      "type": "backend",
+      "label": "Sch-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "UI",
+      "to": "Cmd",
+      "y": 180,
+      "label": "slash command or raw input classification",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "Cmd-",
+      "to": "UI",
+      "y": 225,
+      "label": "local command result or query payload",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "UI",
+      "to": "Stream",
+      "y": 270,
+      "label": "submitQuery()",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "Stream",
+      "to": "Core",
+      "y": 315,
+      "label": "sendMessageStream()",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "Core",
+      "to": "Sch",
+      "y": 360,
+      "label": "schedule tool calls",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "7 个参与方"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 7 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "未上画布的调用：tool results / confirmation state",
+        "未上画布的调用：continuation with tool results"
+      ]
+    }
+  ]
+}

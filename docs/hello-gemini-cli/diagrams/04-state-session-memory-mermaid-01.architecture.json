@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "并发控制与状态投影（Mermaid）",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1820,
+      480
+    ]
+  },
+  "components": [
+    {
+      "id": "Scheduler",
+      "type": "backend",
+      "label": "Scheduler.schedule()",
+      "sublabel": "@ gemini-cli/packages/core/src…",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Bus",
+      "type": "messagebus",
+      "label": "MessageBus.publish()",
+      "sublabel": "@ message-bus.ts",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "UIHook",
+      "type": "messagebus",
+      "label": "useToolScheduler hook",
+      "sublabel": "@ confirmation-bus/",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "UIState",
+      "type": "frontend",
+      "label": "UIStateContext",
+      "sublabel": "@ UIStateContext.tsx",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "Ink",
+      "type": "backend",
+      "label": "Ink React 组件",
+      "sublabel": "终端输出",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "Scheduler",
+      "to": "Bus",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "Bus",
+      "to": "UIHook",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "UIHook",
+      "to": "UIState",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "UIState",
+      "to": "Ink",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "5 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 4 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "Scheduler.schedule() / @… → MessageBus.publish() / @…（TOOLCALLSUPDATE）",
+        "MessageBus.publish() / @… → useToolScheduler hook / @…（广播）",
+        "useToolScheduler hook / @… → UIStateContext / @ UIStat…（setState()）"
+      ]
+    }
+  ]
+}

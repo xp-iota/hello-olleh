@@ -1,0 +1,250 @@
+---
+title: "代码结构地图"
+---
+# 代码结构地图
+
+> **本篇回答**：219 个包怎么组织——二级目录结构、六类命名后缀的语义、依赖分层、以及"想改 X 该去哪个包"。
+> **路径缩写**：`P/` = `packages/`。行号对应快照 `fb2c4b9e`。
+>
+> 🧭 **本篇导览**：2.1–2.3 仓库全貌、命名规律与依赖分层 → 2.4–2.6 `core` 七包、`invariant.ts` 与 31 个 `ui-*` → 2.7–2.10 `apps`/`bundle`、`scripts`、顶层配置与"想改 X 去哪"定位表。
+>
+> 📎 **来源**：本篇对应初版第 02 篇；主题与篇号保持不变。
+
+## 2.1 仓库全貌
+
+![仓库全貌](diagrams/02-codebase-map-diagram.svg)
+
+**仓库全貌** — [交互版](diagrams/02-codebase-map-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-codebase-map-diagram.architecture.json)
+
+- **组成**：画布 14 个节点 · 源图共 18 个节点，其余见正文
+- **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
+- **要点**：首节点：deepseek-harness/ · 末节点：website/ 80 K
+
+`pnpm-workspace.yaml` 的 8 个 workspace glob：
+
+| glob | 说明 |
+|---|---|
+| `vendor/*` | vendored 框架包 |
+| `packages/*/*` | **二级结构**：组/包 |
+| `native/landlock-run` + `native/landlock-run/packages/*` | 原生沙箱 |
+| `apps/*` | 产品装配层（`apps/cli` 拥有 `dsh` bin） |
+| `website` | 文档站 |
+| `examples` | **只为依赖解析**，注释明确说"NOT build targets" |
+| `python/sdk-runtime` | 单文件 exe 构建的依赖清单根 |
+
+💡 **`examples` 作为单一 workspace 成员的注释很有信息量**：`examples/package.json` 声明了每个叶子的 `cordis.yml` 里全部插件为 `workspace:*`，这样纯 node 启动任意叶子时能通过真实的 package `exports` → `lib` 向上走到 `examples/node_modules` 解析到插件。
+
+## 2.2 二级包结构与命名规律
+
+**这是读 DSH 的第一把钥匙。** 包名后缀严格对应角色：
+
+![包名后缀对应的角色（以 fs 组为例）](diagrams/02-naming-pattern.svg)
+
+**包名后缀对应的角色（以 fs 组为例）** — [交互版](diagrams/02-naming-pattern.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-naming-pattern.architecture.json)
+
+- **这是读 DSH 的第一把钥匙**：后缀严格对应角色，没有例外 · 看到 tool- 就知道它是模型可见的 · 看到 -policy 就知道它只监听事件
+- **Provider 可以跨组**：fs-e2b 放在 e2b 组而不是 fs 组 · 因为它依赖 E2B 的运行时 · 组织按依赖归属，不按接口归属
+- **一个定义可带多个消费者**：tool-fs 是通用读写 · tool-fs-search 专做搜索 · tool-str-replace-editor 专做精确替换
+
+### 六类后缀
+
+| 命名模式 | 角色 | 实例 |
+|---|---|---|
+| `<name>`（与组同名） | **Service Definition**：声明接口与事件 | `fs`、`shell`、`sandbox`、`llm`、`session`、`tools`、`agent`、`storage`、`jobs`、`skill`、`goal`、`terminal`、`lsp`、`spill`、`credentials`、`settings`、`workspace`、`compaction`、`subagent`、`workflow`、`attachment`、`code-runtime`、`subprocess` |
+| `<name>-local` | **Provider**：本机实现 | `fs-local`、`subprocess-local`、`sandbox-local`、`jobs-local`、`storage-*`、`attachment-local`、`credentials-local`、`spill-local`、`bash-local`、`pwsh-local` |
+| `<name>-sandbox` / `-e2b` / `-windows-acl` | **Provider**：其它执行世界 | `fs-sandbox`、`bash-sandbox`、`pwsh-sandbox`、`fs-e2b`、`subprocess-e2b`、`sandbox-windows-acl` |
+| `<name>-policy` | **Policy**：监听 capability 事件加策略 | `fs-observation-policy`、`sandbox-policy`、`spill-policy`、`session-checkpoint-policy`、`timeout-policy` |
+| **`tool-<name>`** | **Consumer**：模型可见的工具 | `tool-fs`、`tool-bash`、`tool-bash-persistent`、`tool-pwsh`、`tool-terminal`、`tool-lsp`、`tool-web`、`tool-skill`、`tool-todo`、`tool-goal`、`tool-jobs`、`tool-workflow`、`tool-ralph`、`tool-subagent`、`tool-subagent-control`、`tool-subagent-report`、`tool-session-query`、`tool-cordis`、`tool-ask-user`、`tool-str-replace-editor`、`tool-fs-search` |
+| `command-<name>` | **人类命令**（不经模型 turn） | `command-compact`、`command-feedback`、`command-goal` |
+| `ui-<name>` | **前端**（client 组，31 个） | `ui-conversation`、`ui-settings`、`ui-tool`、`ui-plan`… |
+
+💡 **定位方法**：想改"模型能看到的某个工具"→ 找 `tool-*`；想改"这个工具底层怎么执行"→ 找同组的定义包与 provider；想加"执行前的检查"→ 找 `*-policy` 或直接监听 capability 事件。
+
+💡 **`tool-*` 与 provider 分离是 seam 设计的关键**。`tool-bash` 不知道命令跑在本机还是远端沙箱——它只调 `ctx.shell`。换 provider（`bash-local` → `bash-sandbox`）即改变执行世界，工具代码零改动。详见 [03 篇](03-capability-seams-and-services.md)。
+
+## 2.3 依赖分层
+
+![依赖分层：从 vendor 到能力包](diagrams/02-dependency-layers.svg)
+
+**依赖分层：从 vendor 到能力包** — [交互版](diagrams/02-dependency-layers.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-dependency-layers.architecture.json)
+
+- **vendor 是重写过的上游**：包名与 import 被 rescope 到 deepseek-ai 作用域 · 版本固定在 cordis 4.0.1 · 因此不能直接对照上游 cordis 源码行号
+- **core 组只有七个包**：四个提供服务：sessions / tools / agents / agentLoop · system-prompt 提供提示组装 · scope 是纯库，没有 ctx key
+- **agent-loop 是可替换的**：它只是 ctx.agentLoop 的默认实现 · 换掉它就换掉整个 turn/step 语义 · 这是没有特权内核的最直接体现
+
+💡 **注意"分层"是逻辑上的，不是强制的**。cordis 的插件系统里没有编译期的层次约束——所有包平等地挂在配置树上，激活顺序由**服务可用性**驱动（`dsh-base` 的 patch 注释明确说"Row order carries no load semantics (activation is service-availability driven)"）。上图是**依赖方向**的归纳，不是加载顺序。
+
+## 2.4 `core` 组七个包
+
+这是全仓最需要精读的 40745 行。
+
+| 包 | 行数 | `ctx` 键 | 职责 | 对应篇 |
+|---|---|---|---|---|
+| **`core/tools`** | **5620** | `ctx.tools` | 作用域化工具注册表 + 三段执行管线 | [07](07-request-pipeline-llm-tools-and-prompts.md) |
+| **`core/session`** | **3156** | `ctx.sessions` | append-only `SessionEvent` 日志 + 内存 store | [06](06-agent-loop-and-session-log.md) |
+| `core/agent-loop` | 1643 | `ctx.agentLoop` | 实现 `AgentFactory` 的默认驱动（turn/step） | [06](06-agent-loop-and-session-log.md) |
+| `core/agent` | 1636 | `ctx.agents` | `Agent` 接口 + 活动注册表 + `agent/*` 事件 | [06](06-agent-loop-and-session-log.md) |
+| `core/system-prompt` | 605 | `ctx.systemPrompt` | 提示分节 + 工具 schema 组装 | [07](07-request-pipeline-llm-tools-and-prompts.md) |
+| `core/scope` | 561 | 无（库） | 每 agent 的作用域注册原语 | [03](03-capability-seams-and-services.md) |
+| `core/agent-default-model` | 137 | — | 入口点创建 Agent 时的默认模型 | [07](07-request-pipeline-llm-tools-and-prompts.md) |
+| `core/agent-tool-presentation` | 104 | — | 工具呈现方式选择 | [07](07-request-pipeline-llm-tools-and-prompts.md) |
+
+### 逐文件明细
+
+![core 四大包的逐文件规模](diagrams/02-core-files.svg)
+
+**core 四大包的逐文件规模** — [交互版](diagrams/02-core-files.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-core-files.architecture.json)
+
+- **读哪个文件先**：主循环看 agent-loop/src/agent.ts，496 行 · 工具注册看 tools/index.ts，1946 行 · 日志投影看 session/index.ts，1157 行
+- **tools 里的三块大件**：py-types.ts 818 行生成 Python 类型 · code-mode.ts 673 行实现 Code Mode · json-schema 与 schema 各 600 余行做校验
+- **session 的辅助文件值得看**：chunk-rows.ts 346 行处理流式分片 · repair.ts 133 行做日志修复 · known-event-types.ts 收敛事件类型白名单
+
+💡 **`agent.ts` 只有 496 行，却是整个产品的心脏**——turn/step 循环全在里面。而 `tools/index.ts` 1946 行是全 core 最大的单文件。
+
+💡 **`scoped-events.generated.ts`（`P/core/scope/src`）带 `.generated` 后缀**——DSH 有一批脚本生成的源文件（`scripts/gen-*.ts` 共十余个）。改这类文件要改生成器，不是改产物。
+
+## 2.5 每个包都有 `invariant.ts`
+
+这是全仓最一致的约定之一：
+
+| 包 | invariant 行数 |
+|---|---|
+| `core/session` | **250** |
+| `core/tools` | 128 |
+| `core/agent-loop` | 63 |
+| `core/system-prompt` | 60 |
+| `core/scope` | 41 |
+| `core/agent` | 32 |
+| `core/agent-default-model` | 30 |
+| `core/agent-tool-presentation` | 32 |
+
+全仓共 **219 个 `invariant.ts`**（`find packages -name invariant.ts` 实测）。
+| `boot/app-boot` | 30 |
+| `boot/cmdline` | 30 |
+
+💡 **`invariant.ts` 是运行时断言集合**，不是类型声明。想快速知道某子系统"绝对不能违反什么"，读它比读 README 快。`core/session/src/invariant.ts` 有 250 行，是全仓最厚的——对应 [06 篇](06-agent-loop-and-session-log.md) 的"Model-visible means logged"不变量。
+
+💡 另有独立的 `runtime-diagnostics/invariants` 包（540 行），提供不变量框架本身。
+
+## 2.6 `client` 组：31 个 `ui-*` 子包
+
+137889 行，占全仓代码 24%。
+
+| 基础设施子包 | 作用 |
+|---|---|
+| `client-connection` | 与 host 的连接 |
+| `client-modules` | 模块注册 |
+| `client-runtime` | 运行时（也在 test-support 里有对应） |
+| `client-schema-form` | 由 schema 生成表单 |
+| `client-locale` | i18n |
+| `client-hmr` | 前端热重载 |
+| `client-web` / `client-web-react` | Web 壳 |
+
+31 个 `ui-*` 子包按功能域切分：
+
+```
+ui-primitives · ui-layout · ui-theme · ui-slots · ui-sidebar
+ui-conversation（对话主体）· ui-tool · ui-trajectory · ui-message-feedback
+ui-input-trigger · ui-attachment · ui-commands
+ui-settings + ui-settings-general / -models / -plugins / -plugin-inventory
+ui-model-selection · ui-agent-preset · ui-permission-presets
+ui-plan · ui-goal · ui-workflow-run · ui-jobs
+ui-subagent · ui-skill · ui-workspace · ui-deliverables
+ui-directory-picker-browse / -native · ui-user-questions
+（另有 extensions 组的 ui-cordis）
+```
+
+💡 **前端也是插件化的**：加一个 Chat 节点 = 注册 `ConversationNodeDefinition` + 一个 keyed renderer（见 `docs/cookbook/adding-a-conversation-node.md`）。详见 [09 篇](09-host-runtime-and-storage.md)。
+
+## 2.7 `apps/` 与 `bundle/` 的分工
+
+![apps 与 bundle 的分工](diagrams/02-apps-vs-bundle.svg)
+
+**apps 与 bundle 的分工** — [交互版](diagrams/02-apps-vs-bundle.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-apps-vs-bundle.architecture.json)
+
+- **base 用 insert，其余用 id 覆盖**：base 是唯一整体插入的 bundle · web-app 与 headless 都按 id 改写既有行 · 这正是 applyPatches 的两条路径
+- **apps 里没有业务逻辑**：apps/cli 只负责 bin 入口与默认配置 · apps/web 只负责前端界面 · 能力全部来自 bundle 叠出来的插件树
+- **web-app 关掉了 hmr**：浏览器场景下热重载会干扰前端状态 · 于是在 patch 里把 hmr 设为 disabled · 这是按 id 覆盖的典型用法
+
+`bundle/base/package.json` 的全部 dsh 声明只有三行：
+
+```json
+{
+  "name": "@deepseek-ai/dsh-base",
+  "version": "0.1.5-rc.2",
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
+}
+```
+
+详见 [05 篇](05-startup-and-cordis-runtime.md)。
+
+## 2.8 `scripts/`：145 个顶层条目的用途分类
+
+![scripts/ 的四类用途](diagrams/02-scripts-taxonomy.svg)
+
+**scripts/ 的四类用途** — [交互版](diagrams/02-scripts-taxonomy.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-scripts-taxonomy.architecture.json)
+
+- **生成与校验成对出现**：gen- 的产物随后被对应的 verify- 脚本校验 · 每个 gen- 脚本基本都有对应的 verify- · CI 靠 verify 保证生成物未过期 · 改了源码忘记重新生成会被拦住
+- **vendor 重写是一次性动作**：rescope-vendor.ts 负责改包名与 import · check-vendor-manifest.sh 校验清单一致 · verify-vendored-links 检查链接未失效
+- **包不变量是硬门禁**：verify-package-invariants 检查源码侧 · verify-built-package-invariants 检查产物侧 · 两者都通过才允许发布
+
+根 `package.json` 的 `hygiene` 脚本把校验串起来：
+
+```
+rescope-vendor:check && knip && publint && constraints
+&& verify-dsh-package-licenses && verify-package-invariants
+&& verify-built-package-invariants && verify-cordis-config
+&& verify-node-next-types && verify-runtime-closure && verify-vendored-links
+```
+
+💡 **`doc-typecheck.ts` + `doc-budgets.manifest.json` 值得注意**：DSH 对自己的文档做**类型检查**（代码块必须能编译）与**长度预算**。169055 行 markdown 能保持一致，靠的是工程手段而非人工。
+
+💡 **`knip`（`knip.json`）检测未使用的导出/依赖**。在 219 个包的 monorepo 里，这是防止死代码堆积的必要工具。
+
+## 2.9 顶层配置文件
+
+| 文件 | 作用 |
+|---|---|
+| `tsconfig.json` + `tsconfig.base.json` + `tsconfig.base.client.json` + `tsconfig.client.json` + `tsconfig.host.json` | **5 份 tsconfig**：host（Node）与 client（浏览器）分开 |
+| `vitest.config.ts` + 另外 6 份 `vitest.*.ts` | **7 份 vitest 配置**：单元 / e2e / 快照 / web / web 性能 / web 压力，逐份的命令与用途见 [10 § 10.3](10-testing-and-engineering.md) |
+| `tsdown.config.ts` | 打包器（tsdown = rolldown 系） |
+| `pytest.ini` | Python SDK 的测试 |
+| `knip.json` | 未使用导出检测 |
+| `lefthook.yml` | git hooks |
+| `.oxlintrc.json` + `.oxlintrc.staged.json` | **oxlint**（Rust 写的 linter），另有 staged 专用配置 |
+| `.jscpd.json` | 重复代码检测 |
+| `.rgignore` | ripgrep 忽略规则 |
+| `.github/workflows/` | **主 CI：15 个 GitHub Actions workflow**（ci / e2e / e2b-e2e / sandbox / release / python-release / landlock-run / docs-pages / issue-lifecycle …） |
+| `.gitlab-ci.yml`（129 行） | **仅用于 Python 包发布**：`workflow.rules` 限定 `$CI_COMMIT_TAG =~ /^python-v.../`，其余情况 `when: never` |
+| `AGENTS.md` = `CLAUDE.md`（149 行，内容相同） | 给 agent 的仓库约定 |
+| `THIRD_PARTY_NOTICES.md` | 第三方许可披露 |
+| `BENCHMARK.md`（3 行） | 基准（几乎空） |
+
+💡 **`.oxlintrc.json` 用 oxlint 而非 eslint**——对 56 万行代码，Rust linter 的速度差异是决定性的。
+
+💡 **CI 是双轨的**：主 CI 在 GitHub Actions（`.github/workflows/` 15 个 workflow），而 `.gitlab-ci.yml` 只在打 `python-v*` tag 时触发，专管 Python wheel 的构建与发布（含版本一致性校验：tag 必须等于 `package.json` 的 version）。详见 [10 篇](10-testing-and-engineering.md)。
+
+## 2.10 想改 X 该去哪：定位表
+
+| 想做的事 | 去哪个包 |
+|---|---|
+| 加一个模型提供方 | 新建包，在 `ctx.llm` 上注册适配器（照 `P/llm/llm-deepseek` 抄） |
+| 加一个模型可见的工具 | 新建 `tool-<name>` 包，在 `ctx.tools` 注册 |
+| 改工具的底层执行方式 | 该组的 provider 包（`*-local` / `*-sandbox` / `*-e2b`） |
+| 加执行前后的检查/策略 | `*-policy` 包，或监听 `tools/*` / `fs/*` 事件 |
+| 加一个人类命令（不走模型） | `command-<name>` 包，在 `ctx.commands` 注册（`P/interaction/commands`） |
+| 改 turn/step 循环 | `P/core/agent-loop/src/agent.ts`（496 行）——但更可能应该用 `agent/*` 事件 |
+| 加一种持久的会话状态 | 扩展 `SessionEventMap`（`P/core/session/src/types.ts:236`） |
+| 改提示词组装 | `P/core/system-prompt`（605 行）或注册新的 prompt section |
+| 加后台任务 | `ctx.jobs`（`P/jobs/jobs`），`job_*` 工具会收集 |
+| 加前端 UI | 新建 `client/ui-<name>` 包 |
+| 改启动组合 | `P/bundle/*/cordis.patch.yml`，或自己的 profile patch |
+| 加一种 subagent 驱动 | `P/subagent/subagent-*`（已有 in-process / fork / claude-code / codex / acp / dsh-sdk 六种） |
+| 改沙箱策略 | `P/sandbox/sandbox-policy`，或换 `sandbox-local` / `sandbox-windows-acl` |
+| 加 MCP 服务器接入 | `P/mcp/mcp-client` |
+
+💡 **上游 `docs/architecture.md` 有一张更权威的"Where new behavior goes"表**（21 行映射），本表是它的补充（按包定位而非按机制）。
+
+---
+
+**上一篇** ← [01 项目概览](01-overview.md) ｜ **下一篇** → [03 能力缝 Seam 与服务全景](03-capability-seams-and-services.md)：seam 的三角色模型、两级隔离、以及 seam 全表。

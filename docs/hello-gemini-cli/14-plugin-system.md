@@ -1,8 +1,7 @@
 ---
-layout: content
-title: "Gemini CLI 扩展系统：`gemini-extension.json`、MCP Server 与装载治理"
+title: "Gemini CLI 扩展系统：gemini-extension.json、MCP Server 与装载治理"
 ---
-# Gemini CLI 扩展系统：`gemini-extension.json`、MCP Server 与装载治理
+# Gemini CLI 扩展系统：gemini-extension.json、MCP Server 与装载治理
 
 Gemini CLI 这里更准确的名称是 **extension system**。MCP 只是 extension 能贡献的一部分能力，不等同于全部“插件系统”。
 

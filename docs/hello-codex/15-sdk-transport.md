@@ -1,8 +1,7 @@
 ---
-layout: content
 title: "宿主表面与传输层：app-server、remote websocket、TypeScript SDK 与多宿主复用"
 ---
-# 宿主表面与传输层：`app-server`、remote websocket、TypeScript SDK 与多宿主复用
+# 宿主表面与传输层：app-server、remote websocket、TypeScript SDK 与多宿主复用
 
 这篇补充稿对齐 Claude Code 的 QueryEngine/transport/bridge 主题，也对应 Gemini CLI 的 session+SDK 主题，以及 OpenCode 的入口传输、路由边界和模型请求主题。这里直接引用当前仓库里的实际文件名。
 
@@ -29,18 +28,13 @@ title: "宿主表面与传输层：app-server、remote websocket、TypeScript SD
 | TypeScript SDK | `sources/codex/sdk/typescript/src/codex.ts`, `exec.ts`, `thread.ts` | 通过 `codex exec --experimental-json` 消费线程事件 |
 | 模型传输 | `sources/codex/codex-rs/core/src/client.rs` | 单轮内部在 Responses WebSocket 与 HTTPS SSE 之间切换 |
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    JS["codex-cli/bin/codex.js"] --> Rust["cli/src/main.rs / tui/src/lib.rs"]
-    SDK["sdk/typescript<br/>CodexExec / Thread"] --> Exec["codex exec --experimental-json"]
-    Rust --> AppServer["app-server<br/>stdio or websocket"]
-    Exec --> AppServer
-    Remote["remote app-server client<br/>websocket"] --> AppServer
-    AppServer --> Proto["app-server protocol v2<br/>Thread / Turn / ThreadItem"]
-    Proto --> Core["ThreadManager + codex.rs"]
-    Core --> Model["client.rs<br/>Responses WebSocket or HTTPS SSE"]
-```
+![Codex 的外部表面其实只有一套语义](diagrams/15-sdk-transport-codex.svg)
+
+**Codex 的外部表面其实只有一套语义** — [交互版](diagrams/15-sdk-transport-codex.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/15-sdk-transport-codex.architecture.json)
+
+- **组成**：9 个节点
+- **关系**：源图 8 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：codex-cli/bin/codex.js → cli/src/main.rs / tui/src… · sdk/typescript / CodexExe… → codex exec --experimental… · cli/src/main.rs / tui/src… → app-server / stdio or web…
 
 ## 2. 不要把两类 WebSocket 混为一谈
 
@@ -106,7 +100,7 @@ SDK 不是第二实现，而是事件协议的消费者。
 
 - Claude Code: [15-sdk-transport.md](../hello-claude-code/15-sdk-transport.md), [21-bridge-system.md](../hello-claude-code/21-bridge-system.md)
 - Gemini CLI: [10-session-resume.md](../hello-gemini-cli/10-session-resume.md), [15-sdk-transport.md](../hello-gemini-cli/15-sdk-transport.md)
-- OpenCode: [15-sdk-transport.md](../hello-opencode/15-sdk-transport.md), [26-server-routing.md](../hello-opencode/26-server-routing.md), [29-llm-request.md](../hello-opencode/29-llm-request.md)
+- OpenCode: [15-sdk-transport.md](../hello-opencode/05-tools-and-extensions.md), [26-server-routing.md](../hello-opencode/02-architecture.md), [29-llm-request.md](../hello-opencode/04-context-and-state.md)
 
 ---
 

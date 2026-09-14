@@ -1,6 +1,5 @@
 ---
-layout: content
-title: "08 - 熵管理"
+title: "熵管理对比"
 ---
 # 熵管理对比
 
@@ -53,7 +52,7 @@ async fireSessionEndEvent(
 
 ### OpenCode
 
-`sources/opencode/packages/opencode/src/permission/index.ts:151-160` 的 Finalizer 机制：
+`sources/opencode/packages/core/src/permission.ts` 的 Finalizer 机制：
 
 ```typescript
 yield* Effect.addFinalizer(() =>
@@ -80,7 +79,7 @@ Finalizer 是 Effect 作用域结束时的资源清理，这是运行时资源�
 
 **Gemini CLI**：无文档腐烂检测机制。GEMINI.md 文件的内容会被原样注入上下文，没有时效性检查。29+ eval 文件提供了行为层面的回归测试，如果规则腐烂导致 Agent 行为退化，eval 测试可能会捕捉到——但这是行为层面的间接检测，不是文档层面的直接检测。
 
-**OpenCode**：无文档腐烂检测。Skill 文件的 Zod Schema 验证保证了格式合法性，但不验证内容的时效性。
+**OpenCode**：无文档腐烂检测。Skill 文件的 Effect Schema 验证保证了格式合法性，但不验证内容的时效性。
 
 ---
 
@@ -139,7 +138,7 @@ Golden Principles（黄金原则）是指：工程是否有一套核心的、高
 | 维度 | Claude Code | Codex | Gemini CLI | OpenCode |
 | :------| :-------------| :-------| :------------| :----------|
 | 后台 GC | **1** — 无，memoize 无过期策略 | **5** — Phase 1/2 两阶段，usage 遗忘机制 | **2** — SessionEnd 事件触发，被动 | **1** — 无，仅 Effect Finalizer（资源清理） |
-| 文档腐烂检测 | **1** — 路径清理，无内容检测 | **4** — usage_count 代理相关性，间接检测 | **2** — eval 行为回归（间接） | **1** — Zod 格式验证，无时效性检测 |
+| 文档腐烂检测 | **1** — 路径清理，无内容检测 | **4** — usage_count 代理相关性，间接检测 | **2** — eval 行为回归（间接） | **1** — Effect Schema 格式验证，无时效性检测 |
 | 质量评分 | **1** — 无 | **4** — outcome 标签 + preference evidence | **3** — eval 静态基准（非实时） | **1** — 无 |
 | Golden Principles | **2** — 存在但非结构化 | **4** — Core Mandates 节，命令式语言 | **3** — 命令式规则（代码注释形式） | **3** — 机械化 Permission Action（最无歧义） |
 | **综合评分 (1-5)** | **1.25** | **4.25** | **2.5** | **1.5** |

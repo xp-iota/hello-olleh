@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Gemini CLI 的 MCP 系统"
 ---
 # Gemini CLI 的 MCP 系统
@@ -24,49 +23,13 @@ title: "Gemini CLI 的 MCP 系统"
 
 ## 1. MCP 系统概述
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    subgraph Config["配置层"]
-        A[MCPServerConfig JSON]
-    end
+![MCP 系统概述](diagrams/24-mcp-system-mcp-01.svg)
 
-    subgraph Manager["McpClientManager"]
-        B[McpClientManager]
-        C[Auth Provider]
-    end
+**MCP 系统概述** — [交互版](diagrams/24-mcp-system-mcp-01.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-mcp-01.architecture.json)
 
-    subgraph Clients["McpClient 实例池"]
-        D[Server A Client]
-        E[Server B Client]
-        F[Server C Client]
-    end
-
-    subgraph Transport["传输层"]
-        G[StdioTransport]
-        H[SSEClientTransport]
-        I[StreamableHTTPTransport]
-    end
-
-    subgraph MCP["MCP Server"]
-        J[本地进程]
-        K[远程 HTTP]
-    end
-
-    Config --> Manager
-    Manager --> D
-    Manager --> E
-    Manager --> F
-    D --> G
-    E --> H
-    F --> I
-    G --> J
-    H --> K
-    I --> K
-```
+- **组成**：16 个节点
+- **关系**：源图 10 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：配置层 → McpClientManager · McpClientManager → Server A Client · McpClientManager → Server B Client
 
 ## 2. 核心组件
 
@@ -123,22 +86,13 @@ function createTransport(config: MCPServerConfig): Transport {
 
 ### 3.2 StdioTransport 流程
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    A[spawn(command, args)] --> B[子进程 stdin/stdout]
-    B --> C[send message]
-    C --> D[JSON.stringify]
-    D --> E[stdin.write]
-    E --> F[stdout.on data]
-    F --> G[messageBuffer]
-    G --> H[handleMessage]
-    H --> I[JSON.parse]
-    I --> J[通知处理器]
-```
+![StdioTransport 流程](diagrams/24-mcp-system-stdiotransport.svg)
+
+**StdioTransport 流程** — [交互版](diagrams/24-mcp-system-stdiotransport.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-stdiotransport.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图 9 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：spawn(command, args) → 子进程 stdin/stdout · 子进程 stdin/stdout → send message · send message → JSON.stringify
 
 ## 4. 认证体系
 
@@ -161,53 +115,25 @@ interface AuthProvider {
 
 ### 4.2 OAuth 流程
 
-```mermaid
----
-config:
-  theme: neutral
----
-sequenceDiagram
-    participant Client as MCP Client
-    participant Auth as MCPOAuthProvider
-    participant TokenStorage as Token Storage
-    participant Server as MCP Server
+![OAuth 流程](diagrams/24-mcp-system-oauth.svg)
 
-    Client->>Server: 连接请求
-    Server-->>Client: 401 www-authenticate
-    Client->>Auth: discoverOAuth()
-    Auth->>Server: 动态客户端注册
-    Server-->>Auth: client_id, client_secret
-    Auth->>Auth: PKCE 生成 code_verifier
-    Auth->>Server: 授权请求 (code_challenge)
-    Server-->>User: 浏览器授权
-    User-->>Server: 用户同意
-    Server-->>Auth: authorization_code
-    Auth->>Server: token 请求 (code_verifier)
-    Server-->>Auth: access_token, refresh_token
-    Auth->>TokenStorage: 存储 token
-    Client->>Auth: getValidToken()
-    Auth-->>Client: access_token
-    Client->>Server: 重新请求
-```
+**OAuth 流程** — [交互版](diagrams/24-mcp-system-oauth.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-oauth.sequence.json)
+
+- **组成**：8 个参与方
+- **关系**：源图 15 条消息 · 画布展示前 5 条主链消息，其余列在要点
+- **要点**：MCPOAuthProvider 自调用：PKCE 生成 codeverifier · 未上画布的调用：授权请求 (codechallenge) · 未上画布的调用：浏览器授权
 
 ## 5. 工具发现与注册
 
 ### 5.1 工具发现流程
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[listTools()] --> B[McpTool[]]
-    B --> C{过滤}
-    C -->|已启用| D[McpCallableTool]
-    C -->|已禁用| E[跳过]
-    D --> F[DiscoveredMCPTool]
-    F --> G[ToolRegistry]
-    G --> H[Agent 工具集]
-```
+![工具发现流程](diagrams/24-mcp-system-diagram-04.svg)
+
+**工具发现流程** — [交互版](diagrams/24-mcp-system-diagram-04.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-diagram-04.architecture.json)
+
+- **组成**：8 个节点
+- **关系**：源图 7 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：listTools() → McpTool · McpTool → 过滤 · 过滤 → McpCallableTool（已启用）
 
 ### 5.2 工具调用
 
@@ -242,22 +168,13 @@ class McpCallableTool implements CallableTool {
 
 ### 6.1 MCP Prompts 作为 Slash 命令
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart TB
-    A[MCP listPrompts()] --> B[MCPPrompt[]]
-    B --> C[McpPromptLoader]
-    C --> D[SlashCommand]
-    D --> E[CommandService]
-    E --> F[用户 /promptName]
-    F --> G[prompt.invoke()]
-    G --> H[MCP getPrompt]
-    H --> I[返回消息]
-    I --> J[提交给模型]
-```
+![MCP Prompts 作为 Slash 命令](diagrams/24-mcp-system-mcp-prompts-slash.svg)
+
+**MCP Prompts 作为 Slash 命令** — [交互版](diagrams/24-mcp-system-mcp-prompts-slash.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-mcp-prompts-slash.architecture.json)
+
+- **组成**：10 个节点
+- **关系**：源图 9 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：MCP listPrompts() → MCPPrompt · MCPPrompt → McpPromptLoader · McpPromptLoader → SlashCommand
 
 ## 7. 动态更新处理
 
@@ -333,37 +250,23 @@ interface MCPServerConfig {
 
 ### 8.2 配置来源
 
-```mermaid
----
-config:
-  theme: neutral
----
-flowchart LR
-    A[~/.gemini/mcp.json] --> B[MCPServerConfig[]]
-    C[项目 .gemini/mcp.json] --> B
-    B --> D[McpClientManager]
-```
+![配置来源](diagrams/24-mcp-system-diagram-06.svg)
+
+**配置来源** — [交互版](diagrams/24-mcp-system-diagram-06.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-diagram-06.architecture.json)
+
+- **组成**：4 个节点
+- **关系**：源图 3 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：~/.gemini/mcp.json → MCPServerConfig · 项目 .gemini/mcp.json → MCPServerConfig · MCPServerConfig → McpClientManager
 
 ## 9. MCP 状态机
 
-```mermaid
----
-config:
-  theme: neutral
----
-stateDiagram-v2
-    [*] --> NOT_STARTED
-    NOT_STARTED --> IN_PROGRESS: 启动
-    IN_PROGRESS --> COMPLETED: 发现完成
-    IN_PROGRESS --> ERROR: 发现失败
-    COMPLETED --> IN_PROGRESS: 刷新
-    ERROR --> IN_PROGRESS: 重试
+![MCP 状态机](diagrams/24-mcp-system-mcp-07.svg)
 
-    DISCONNECTED --> CONNECTING: 连接
-    CONNECTING --> CONNECTED: 连接成功
-    CONNECTING --> DISCONNECTED: 连接失败
-    CONNECTED --> DISCONNECTED: 断开
-```
+**MCP 状态机** — [交互版](diagrams/24-mcp-system-mcp-07.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/24-mcp-system-mcp-07.lifecycle.json)
+
+- **组成**：8 个状态
+- **关系**：源图 10 条状态迁移 · 画布绘制 5 条主迁移，跨节点与回边列在要点
+- **要点**：lifecycle-start → NOTSTARTED · NOTSTARTED → INPROGRESS: 启动 · INPROGRESS → COMPLETED: 发现完成
 
 ## 10. 与 Claude Code 的差异
 

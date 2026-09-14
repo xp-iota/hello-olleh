@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "生命周期顺序图",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1940,
+      566
+    ]
+  },
+  "participants": [
+    {
+      "id": "U",
+      "type": "external",
+      "label": "User"
+    },
+    {
+      "id": "TUI",
+      "type": "backend",
+      "label": "App::run",
+      "sublabel": "ChatWidget"
+    },
+    {
+      "id": "AS",
+      "type": "cloud",
+      "label": "app-server"
+    },
+    {
+      "id": "CORE",
+      "type": "backend",
+      "label": "core::Codex"
+    },
+    {
+      "id": "LLM",
+      "type": "external",
+      "label": "ModelClientSession"
+    },
+    {
+      "id": "TOOL",
+      "type": "backend",
+      "label": "ToolRouter + ToolOr…"
+    },
+    {
+      "id": "LLM-",
+      "type": "backend",
+      "label": "LLM-"
+    },
+    {
+      "id": "TOOL-",
+      "type": "backend",
+      "label": "TOOL-"
+    },
+    {
+      "id": "CORE-",
+      "type": "backend",
+      "label": "CORE-"
+    },
+    {
+      "id": "AS-",
+      "type": "backend",
+      "label": "AS-"
+    }
+  ],
+  "messages": [
+    {
+      "id": "message1",
+      "from": "U",
+      "to": "TUI",
+      "y": 180,
+      "label": "输入 prompt",
+      "variant": "default"
+    },
+    {
+      "id": "message2",
+      "from": "TUI",
+      "to": "AS",
+      "y": 225,
+      "label": "start/resume thread + submit turn",
+      "variant": "default"
+    },
+    {
+      "id": "message3",
+      "from": "AS",
+      "to": "CORE",
+      "y": 270,
+      "label": "线程接收用户消息",
+      "variant": "default"
+    },
+    {
+      "id": "message4",
+      "from": "CORE",
+      "to": "LLM",
+      "y": 315,
+      "label": "stream(prompt)",
+      "variant": "default"
+    },
+    {
+      "id": "message5",
+      "from": "LLM-",
+      "to": "CORE",
+      "y": 360,
+      "label": "输出文本 / FunctionCall",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "画布 10 个参与方",
+        "源图共 11 个参与方，其余见正文"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 10 条消息",
+        "画布展示前 5 条主链消息，其余列在要点"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "core::Codex 自调用：getuserinstructions + buildprompt",
+        "ToolRouter + ToolOrchestrator 自调用：approval + sandbox + execute",
+        "未上画布的调用：buildtoolcall + dispatch"
+      ]
+    }
+  ]
+}

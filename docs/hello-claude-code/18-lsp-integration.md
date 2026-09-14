@@ -1,5 +1,4 @@
 ---
-layout: content
 title: "Claude Code LSP 集成：代码理解与符号定位"
 ---
 # Claude Code LSP 集成：代码理解与符号定位
@@ -54,20 +53,13 @@ Claude Code **当前没有原生 LSP 集成**：
 
 ### 2.2 OpenCode 的 LSP 工作原理
 
-```mermaid
-flowchart TD
-    Boot["InstanceBootstrap()<br/>LSP.init()"]
-    Registry["配置与注册表<br/>Config.lsp + LSPServer"]
-    Trigger["触发点<br/>read / write / edit / apply_patch"]
-    Match["LSP.getClients(file)<br/>按扩展名和 root 匹配"]
-    Reuse{"已有同 root + serverID client?"}
-    Spawn["spawn language server<br/>LSPClient.create()"]
-    Client["LSP client<br/>stdio JSON-RPC"]
-    Server["Language Server"]
-    Diag["publishDiagnostics"]
-    Cache["诊断缓存与聚合"]
-    FixLoop["write/edit<br/>把错误回喂模型"]
-```
+![OpenCode 的 LSP 工作原理](diagrams/18-lsp-integration-opencode-lsp.svg)
+
+**OpenCode 的 LSP 工作原理** — [交互版](diagrams/18-lsp-integration-opencode-lsp.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/18-lsp-integration-opencode-lsp.architecture.json)
+
+- **组成**：11 个节点
+- **关系**：源图 10 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：InstanceBootstrap() / LSP… → 配置与注册表 / Config.lsp… · 配置与注册表 / Config.lsp… → 触发点 / read / write / e… · 触发点 / read / write / e… → LSP.getClients(file) / 按…
 
 ---
 
@@ -99,14 +91,13 @@ Claude Code 可以通过 MCP 扩展获得 LSP 能力：
 
 Claude Code 采用更传统的方式：
 
-```mermaid
-%%{init: {'theme': 'neutral'}}%%
-flowchart LR
-    A[用户请求] --> B["Glob / Grep<br/>搜索文件"]
-    B --> C["Read<br/>读取内容"]
-    C --> D["模型理解<br/>代码结构"]
-    D --> E[编辑/执行]
-```
+![基于工具的代码理解](diagrams/18-lsp-integration-diagram.svg)
+
+**基于工具的代码理解** — [交互版](diagrams/18-lsp-integration-diagram.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/18-lsp-integration-diagram.architecture.json)
+
+- **组成**：5 个节点
+- **关系**：源图 4 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
+- **要点**：用户请求 → Glob / Grep / 搜索文件 · Glob / Grep / 搜索文件 → Read / 读取内容 · Read / 读取内容 → 模型理解 / 代码结构
 
 ### 4.2 MCP 扩展的 LSP
 

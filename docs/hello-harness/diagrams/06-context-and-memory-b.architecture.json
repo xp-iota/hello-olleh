@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "场景 B：长会话如何控长又保形",
+    "quality_profile": "showcase",
+    "viewBox": [
+      2166,
+      550
+    ]
+  },
+  "components": [
+    {
+      "id": "Pressure",
+      "type": "backend",
+      "label": "历史过长",
+      "sublabel": "token 压力升高",
+      "pos": [
+        45,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "ClaudePath",
+      "type": "backend",
+      "label": "Claude Code",
+      "sublabel": "budget → snip → microcompact → collapse…",
+      "pos": [
+        391,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "CodexPath",
+      "type": "backend",
+      "label": "Codex",
+      "sublabel": "ContextManager compaction · + memories pipeli…",
+      "pos": [
+        737,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "GeminiPath",
+      "type": "backend",
+      "label": "Gemini CLI",
+      "sublabel": "compress(50%) + masking · + spill large …",
+      "pos": [
+        1083,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "OpenPath",
+      "type": "backend",
+      "label": "OpenCode",
+      "sublabel": "CompactionTask → summary agent · → compact…",
+      "pos": [
+        1429,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "ClaudeOut",
+      "type": "backend",
+      "label": "boundary 后的有效视图",
+      "pos": [
+        1775,
+        65
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "CodexOut",
+      "type": "backend",
+      "label": "规范化历史 + 新基线",
+      "pos": [
+        45,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "GeminiOut",
+      "type": "backend",
+      "label": "summary + 最近 30%",
+      "pos": [
+        391,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    },
+    {
+      "id": "OpenOut",
+      "type": "database",
+      "label": "summary 投影 + 活动 durable history",
+      "pos": [
+        737,
+        205
+      ],
+      "size": [
+        300,
+        84
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "edge1",
+      "from": "Pressure",
+      "to": "ClaudePath",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge2",
+      "from": "ClaudePath",
+      "to": "CodexPath",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge3",
+      "from": "CodexPath",
+      "to": "GeminiPath",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge4",
+      "from": "GeminiPath",
+      "to": "OpenPath",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge5",
+      "from": "OpenPath",
+      "to": "ClaudeOut",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge6",
+      "from": "CodexOut",
+      "to": "GeminiOut",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "edge7",
+      "from": "GeminiOut",
+      "to": "OpenOut",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "组成",
+      "items": [
+        "9 个节点"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "关系",
+      "items": [
+        "源图 8 条有向关系",
+        "画布按主链顺序排列，完整关系见下方要点与正文"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "要点",
+      "items": [
+        "历史过长 / token 压力升高 → Claude Code / budget → sn…",
+        "历史过长 / token 压力升高 → Codex / ContextManager co…",
+        "历史过长 / token 压力升高 → Gemini CLI / compress(50%…"
+      ]
+    }
+  ]
+}
