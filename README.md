@@ -10,13 +10,13 @@
 | 工程 | 版本 | 语言/框架 | 架构特点 |
 |:-----|:-----|:----------|:---------|
 | [claude-code](sources/claude-code) | v2.1.87（反编译） | TypeScript / React | src/ 目录，React TUI，REPL 交互，Hooks 生命周期 |
-| [codex](https://github.com/openai/codex.git) | rust-v0.141.0 | **Rust**（121 crate）+ TypeScript SDK | Rust workspace 为运行时中心，TS 只做分发/封装 |
+| [codex](https://github.com/openai/codex.git) | rust-v0.154.0 | **Rust**（121 crate）+ TypeScript SDK | Rust workspace 为运行时中心，TS 只做分发/封装 |
 | [gemini-cli](https://github.com/google-gemini/gemini-cli.git) | v0.47.0 | TypeScript monorepo | packages/core 内核 + packages/cli（TUI/Ink）+ SDK + A2A server |
-| [opencode](https://github.com/anomalyco/opencode.git) | v1.4.14 | **Bun** + Effect-ts | Hono Server + SQLite Durable State，A/B/C 三层文档结构 |
-| [hermes-agent](https://github.com/nousresearch/hermes-agent.git) | v0.16.0 | Python / FastAPI | Nous Research 的多模态 Agent 框架 |
-| [nanobot](https://github.com/HKUDS/nanobot.git) | v0.2.1 | Python / LangChain | HKUDS 轻量级 Agent 框架 |
+| [opencode](https://github.com/anomalyco/opencode.git) | v2.0.2 | **Bun** + Effect-ts | 多包架构（schema/protocol/core/server），durable event log + projection，SSE 事件馈送 |
+| [hermes-agent](https://github.com/nousresearch/hermes-agent.git) | v0.21.2 | Python / FastAPI | Nous Research 的多模态 Agent 框架 |
+| [nanobot](https://github.com/HKUDS/nanobot.git) | v0.3.0 | Python / asyncio | HKUDS 轻量级个人助手框架：17 渠道 + MessageBus + 两层 Agent 循环 |
 | [cordis](sources/cordis) | 4.0.0-rc.8 | TypeScript | Fiber + Service 元框架，可逆插件组合 |
-| [deepseek-harness](sources/deepseek-harness) | 0.1.0-rc.5 | TypeScript / React | 基于 Cordis 的插件化 Agent Harness |
+| [deepseek-harness](sources/deepseek-harness) | 0.1.5-rc.2 | TypeScript / React | 基于 Cordis 的插件化 Agent Harness |
 
 ![](docs/assets/hello-harness.png)
 
@@ -35,7 +35,7 @@
 | `sources/` | 上游源码快照目录 |
 | `sources/claude-code/`, `sources/codex/`, `sources/gemini-cli/`, `sources/opencode/`, `sources/hermes-agent/`, `sources/nanobot/`, `sources/cordis/`, `sources/deepseek-harness/` | 各项目源码，分析输入 |
 | `docs/` | 分析输出目录 |
-| `docs/hello-claude-code/`, `docs/hello-codex/`, `docs/hello-gemini-cli/`, `docs/hello-opencode/`, `docs/hello-cordis/`, `docs/hello-dsh/` | 按主题拆分的 Markdown 分析文档 |
+| `docs/hello-claude-code/`, `docs/hello-codex/`, `docs/hello-gemini-cli/`, `docs/hello-opencode/`, `docs/hello-nanobot/`, `docs/hello-cordis/`, `docs/hello-dsh/` | 按主题拆分的 Markdown 分析文档 |
 | `docs/hello-harness/` | Harness Engineering 框架分析 |
 | `docs/okf/` | OKF v0.2 知识包：`dsh-example` 的可复用结论，带来源、验证方式与过期时间 |
 | `dsh-example/` | DeepSeek Harness 的 12 个方向模块（58 个可跑阶段）（装在真实发布的 `@deepseek-ai/*` npm 包上，`0.1.5-rc.2`） |

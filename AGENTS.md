@@ -5,17 +5,17 @@
 
 **Current upstream versions:**
 - Claude Code: v2.1.87 (decompiled snapshot)
-- Codex: rust-v0.141.0
+- Codex: rust-v0.154.0
 - Gemini CLI: v0.47.0
-- OpenCode: v1.4.14
-- Hermes Agent: v2026.6.5
-- Nanobot: v0.2.1
+- OpenCode: v2.0.2
+- Hermes Agent: v0.21.2
+- Nanobot: v0.3.0
 - Cordis: 4.0.0-rc.8
-- DeepSeek Harness: 0.1.0-rc.5
+- DeepSeek Harness: 0.1.5-rc.2
 
 The repository has no static site generator: `docs/` is plain Markdown read directly on GitHub, so every link must resolve to a real file and no page carries generator-specific front matter. Root files remain lightweight: [`README.md`](README.md) records scope and upstream versions, and [`sync_repos.sh`](sync_repos.sh) refreshes local clones into `sources/`.
 
-`deepseek-harness-examples/` is a companion runnable workspace for the DeepSeek Harness analysis: 26 minimal examples, each demonstrating one extension point. Unlike `sources/`, it is **not** a vendored snapshot — it depends on the real published `@deepseek-ai/*` npm packages (version line `0.1.1-rc.2`, pinned exactly in `package.json`; `.npmrc` sets `legacy-peer-deps=true` because some peers are not published). Running it requires **Node >= 22.18** (native TypeScript type stripping plus `Promise.withResolvers`, which the real `dsh-agent-loop` uses). Gates: `npm run all` (all 26 examples), `npm run typecheck` (compiles against the packages' own `.d.ts`), `npm test` (real-service smoke test). `runtime/run-all.sh` honors `DSH_NODE=/path/to/node` when the default `node` is too old.
+`dsh-example/` is a companion runnable workspace for the DeepSeek Harness analysis: 12 capability modules (M01–M12, 61 runnable phases), each demonstrating one capability seam. Unlike `sources/`, it is **not** a vendored snapshot — it depends on the real published `@deepseek-ai/*` npm packages (version line `0.1.5-rc.2`, pinned exactly in `package.json`; `.npmrc` sets `legacy-peer-deps=true` because some peers are not published). Running it requires **Node >= 22.18** (native TypeScript type stripping plus `Promise.withResolvers`, which the real `dsh-agent-loop` uses). Gates: `npm run all` (alias of `real:all`, all 61 phases against the real provider; needs `LLM_API_KEY`), `npm run all:mock` (offline gate), per-module `npm run MXX` / `npm run MXX -- --mock`. `runtime/run-all.sh` honors `DSH_NODE=/path/to/node` when the default `node` is too old.
 
 The DSH analysis set was consolidated from 26 chapters into 11 topic files; section numbers were renumbered consecutively and every merged file records its original sources in a 📎 note. The consolidation helpers are migration scripts rather than daily generators: `scripts/merge_dsh_docs.py` and `scripts/rewrite_dsh_refs.py` detect the final 11-chapter layout and exit safely, while `scripts/link_examples_into_docs.py` is marker-idempotent. Validate cross-references with `python3 scripts/check_doc_links.py .`.
 

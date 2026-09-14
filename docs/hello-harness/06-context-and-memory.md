@@ -364,5 +364,5 @@ OpenCode 的 **InstructionPrompt loaded/claim 机制**（`instruction.ts:168-190
 - Claude Code 状态、会话与记忆系统：[../hello-claude-code/04-state-session-memory.md](../hello-claude-code/04-state-session-memory.md)
 - Codex 状态、会话与记忆系统：[../hello-codex/04-state-session-memory.md](../hello-codex/04-state-session-memory.md)
 - Gemini CLI 状态、会话与记忆系统：[../hello-gemini-cli/04-state-session-memory.md](../hello-gemini-cli/04-state-session-memory.md)
-- OpenCode 状态、会话与记忆系统：[../hello-opencode/04-context-and-state.md](../hello-opencode/04-context-and-state.md)
+- OpenCode 状态、会话与记忆系统：[../hello-opencode/04-state-session-memory.md](../hello-opencode/04-state-session-memory.md)
 - 四工具 state / session / memory 对比：[本章第 5 节](#5-四工具-state--session--memory-详细对比)

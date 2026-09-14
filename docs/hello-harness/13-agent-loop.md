@@ -10,7 +10,7 @@ title: "Agent Loop 闭环拓扑对比"
 - [`../hello-claude-code/03-agent-loop.md`](../hello-claude-code/03-agent-loop.md)
 - [`../hello-codex/03-agent-loop.md`](../hello-codex/03-agent-loop.md)
 - [`../hello-gemini-cli/03-agent-loop.md`](../hello-gemini-cli/03-agent-loop.md)
-- [`../hello-opencode/03-session-runtime.md`](../hello-opencode/03-session-runtime.md)
+- [`../hello-opencode/03-agent-loop.md`](../hello-opencode/03-agent-loop.md)
 
 ---
 

@@ -23,7 +23,7 @@ title: "Gemini CLI 源码分析 README"
 
 ## 章节索引
 
-> 横向对齐规则：`01-25` 是四个 AI Coding CLI 目录共享的主题主干；Gemini CLI 当前没有项目特有附录。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
+> 横向对齐规则：`01-25` 是五个 AI Coding CLI 目录共享的主题主干；Gemini CLI 当前没有项目特有附录。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
 
 | 文件 | 主题 | 阅读目的 |
 | --- | --- | --- |

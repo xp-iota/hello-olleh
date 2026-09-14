@@ -5,7 +5,7 @@ title: "Hello Harness"
 
 `docs/hello-harness/` 是跨 AI Coding CLI 的综合分析层。它不绑定某一个上游工程，而是把 Claude Code、Codex、Gemini CLI、OpenCode 等实现抽象成 Harness Engineering 的控制系统：控制平面、前馈控制、反馈控制、工具治理、上下文与记忆、可驾驭性、熵管理、多代理验证、人类导向和扩展性。
 
-> **Source baselines:** Codex `rust-v0.154.0`, OpenCode `v2.0.2`, Hermes Agent `0.21.2`, and nanobot `v0.3.0`. OpenCode comparisons use the [v2 overview](../hello-opencode/01-overview.md).
+> **Source baselines:** Codex `rust-v0.154.0`, OpenCode `v2.0.2`, Hermes Agent `0.21.2`, and nanobot `v0.3.0`. OpenCode comparisons use the [v2 architecture](../hello-opencode/01-architecture.md).
 
 ## 阅读入口
 
@@ -57,4 +57,4 @@ title: "Hello Harness"
 ## 维护注意
 
 - 本目录的判断必须回链到 `hello-*` 或上游源码证据，避免只写抽象结论。
-- 四个项目目录的 `01-25` 视为共享主干；项目特有深挖统一作为附录，并在 [15-topic-alignment-matrix.md](./15-topic-alignment-matrix.md) 登记。
+- 五个项目目录的 `01-25` 视为共享主干；项目特有深挖统一作为附录，并在 [15-topic-alignment-matrix.md](./15-topic-alignment-matrix.md) 登记。
