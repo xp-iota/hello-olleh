@@ -16,7 +16,7 @@ env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M12
 2. 失效后注册和错名 capability 的拒绝
 3. 标准 entry-point group
 
-运行器会先打印学习目标与观察点，再输出逐项事实、机器可读 JSON 和 `IOTA_MODULE_OK`。任何事实不符都会抛出带“期望/实际”的 `TeachingCheckError`。
+运行器会先打印目标与观察点，再输出逐项事实、机器可读 JSON 和 `IOTA_MODULE_OK`。任何事实不符都会抛出带“期望/实际”的 `TeachingCheckError`。
 
 ## 边界
 

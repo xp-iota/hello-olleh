@@ -12,8 +12,7 @@ from iota_core.errors import ConfigError
 from iota_core.storage.in_memory import InMemoryConversationStore
 from iota_core.types import AgentConfig, Message
 
-from runtime.harness import WorkshopHarness
-from runtime.teaching import fail, require, require_not_none
+from runtime.harness import WorkshopHarness, fail, require, require_not_none
 
 
 async def run(_harness: WorkshopHarness) -> dict[str, Any]:

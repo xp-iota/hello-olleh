@@ -8,8 +8,7 @@ from iota_core.graph import GraphRef
 from iota_core.graph.checkpoint import InMemoryCheckpointStore, build_checkpoint
 from iota_core.graph.task_queue import GraphTask, InMemoryGraphTaskQueue
 
-from runtime.harness import WorkshopHarness
-from runtime.teaching import require, require_not_none
+from runtime.harness import WorkshopHarness, require, require_not_none
 
 
 async def run(_harness: WorkshopHarness) -> dict[str, Any]:

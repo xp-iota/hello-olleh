@@ -6,7 +6,7 @@ import socket
 
 import pytest
 
-from runtime.network_guard import OfflineViolation, install_network_guard
+from runtime.harness import OfflineViolation, install_network_guard
 
 
 def test_network_connect_is_blocked() -> None:

@@ -7,8 +7,7 @@ from typing import Any
 from iota_core.adapters.dsh_acp import DshAcpAdapter
 from iota_core.types import AgentConfig
 
-from runtime.harness import WorkshopHarness
-from runtime.teaching import require
+from runtime.harness import WorkshopHarness, require
 
 
 async def run(_harness: WorkshopHarness) -> dict[str, Any]:

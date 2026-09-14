@@ -10,9 +10,7 @@ from iota_core.graph.compiler import GraphCompiler
 from iota_core.providers import register_adapter
 from iota_core.registry import Registry
 
-from runtime.harness import WorkshopHarness
-from runtime.kernel_echo import EchoKernelAdapter
-from runtime.teaching import fail, require
+from runtime.harness import EchoKernelAdapter, WorkshopHarness, fail, require
 
 
 async def run(harness: WorkshopHarness) -> dict[str, Any]:

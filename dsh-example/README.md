@@ -44,14 +44,14 @@ npm run learn -- --list
 | 模式 | 命令 | 是什么 |
 |---|---|---|
 | **real**（默认） | `npm run MXX` / `npm run all` | 真实 MiniMax 请求，`provider=anthropic-compat`。需 `LLM_API_KEY`，会联网。 |
-| **mock** | `npm run MXX -- --mock` / `npm run all:mock` | 确定性机制测试。全部走 `runtime/llm-mock.ts`，不联网、不需要密钥。 |
+| **mock** | `npm run MXX -- --mock` / `npm run all:mock` | 确定性机制测试。全部走 `runtime/llm.ts`，不联网、不需要密钥。 |
 
 不带 `--mock` 就是真实模式，**不会静默退回 mock** —— 缺 `LLM_API_KEY` 时立即失败并说明
 配置来源（工程根 `.env`，模板见 `.env.example`）。离线门禁请显式用 `--mock`。
 
 ```bash
 npm run M01            # M01 的 6 个阶段，逐阶段 REAL_STAGE_OK
-npm run M01 -- --mock  # 同样的阶段清单，离线；3 个专项演示打印 skip
+npm run M01 -- --mock  # 同样的阶段清单，离线；专项真实演示打印 skip
 npm run real:all       # 61 个阶段，末行 REAL_ALL_OK
 ```
 
@@ -109,8 +109,7 @@ MXX-name/
   README.md       一条完整方向叙事、观察点和结论
   steps/*.ts      一种能力一个实现；通常可独立 ctx.plugin()
   phases/*.ts     对应能力的可运行观察场景；按"这次观察什么"命名，不与 steps 重名
-  run.ts          唯一的运行入口：阶段清单 + real/mock 分叉
-  real/*.ts       专项真实演示，由 run.ts 作为 realOnly 阶段驱动（M01/M03/M10）
+  run.ts          唯一的运行入口：阶段清单 + real/mock 分叉；M01/M03/M10 还内联专项真实阶段
   support/assets  共享协议 helper 或数据资产（按需）
 ```
 
@@ -142,7 +141,7 @@ MXX-name/
 ## 验证门禁
 
 ```bash
-npm run typecheck          # 所有 steps/phases/real/support 对真实 .d.ts 编译
+npm run typecheck          # 所有 run/steps/phases/support 对真实 .d.ts 编译
 npm run coverage:surfaces # 核心 25 + 扩展面 34 = 59，门槛 ≥50
 npm test                   # 离线单测，含 MiniMax wire 协议与真实模式纪律
 npm run all:mock           # 12 个模块逐个 exit 0（离线 mock，无密钥可跑）

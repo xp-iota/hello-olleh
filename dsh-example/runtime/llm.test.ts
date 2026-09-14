@@ -7,10 +7,10 @@ import {
   createToolResultMessage,
   createUserMessage,
 } from '@deepseek-ai/dsh-llm'
-import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
-import { MinimaxAnthropicAdapter } from './llm-minimax.ts'
+import type { GenerateOptions, LlmAdapter, ReplayEnvelope, StreamChunk } from '@deepseek-ai/dsh-llm'
+import { AnthropicCompatAdapter, MockAdapter, ToolCallingMockAdapter, resolveAnthropicCompatVendor } from './llm.ts'
 
-async function collect(adapter: MinimaxAnthropicAdapter, options: GenerateOptions): Promise<StreamChunk[]> {
+async function collect(adapter: LlmAdapter, options: GenerateOptions): Promise<StreamChunk[]> {
   const chunks: StreamChunk[] = []
   for await (const chunk of adapter.stream(options)) chunks.push(chunk)
   return chunks
@@ -55,7 +55,7 @@ test('MiniMax 请求映射 tools、停止序列、温度和工具消息历史', 
   }) as typeof fetch
 
   await withFetch(fakeFetch, async () => {
-    const adapter = new MinimaxAnthropicAdapter({ apiKey: 'redacted', baseUrl: 'https://fixture.invalid' })
+    const adapter = new AnthropicCompatAdapter({ apiKey: 'redacted', baseUrl: 'https://fixture.invalid' })
     await collect(adapter, {
       provider: 'anthropic-compat',
       model: 'MiniMax-M3',
@@ -110,7 +110,7 @@ test('MiniMax tool_use/thinking SSE 映射为完整 dsh block 并保留 replay s
   )) as typeof fetch
 
   const chunks = await withFetch(fakeFetch, async () => {
-    const adapter = new MinimaxAnthropicAdapter({ apiKey: 'redacted', baseUrl: 'https://fixture.invalid' })
+    const adapter = new AnthropicCompatAdapter({ apiKey: 'redacted', baseUrl: 'https://fixture.invalid' })
     return collect(adapter, { provider: 'anthropic-compat', model: 'MiniMax-M3', messages: [] })
   })
 
@@ -135,7 +135,7 @@ test('MiniMax tool_use/thinking SSE 映射为完整 dsh block 并保留 replay s
 })
 
 test('MiniMax 对没有官方映射的 reasoningEffort fail loud', async () => {
-  const adapter = new MinimaxAnthropicAdapter({ apiKey: 'redacted', baseUrl: 'https://fixture.invalid' })
+  const adapter = new AnthropicCompatAdapter({ apiKey: 'redacted', baseUrl: 'https://fixture.invalid' })
   await assert.rejects(
     collect(adapter, {
       provider: 'anthropic-compat',
@@ -164,7 +164,7 @@ test('MiniMax 把 agent-loop 放在 messages 里的 system 消息提升到顶层
   }) as typeof fetch
 
   await withFetch(fakeFetch, async () => {
-    const adapter = new MinimaxAnthropicAdapter({ apiKey: 'redacted', baseUrl: 'https://fixture.invalid' })
+    const adapter = new AnthropicCompatAdapter({ apiKey: 'redacted', baseUrl: 'https://fixture.invalid' })
     await collect(adapter, { provider: 'anthropic-compat', model: 'MiniMax-M3', messages, system: '调用方显式 system' })
   })
 
@@ -174,4 +174,160 @@ test('MiniMax 把 agent-loop 放在 messages 里的 system 消息提升到顶层
   ])
   assert.equal(requestBody.messages.length, 1)
   assert.equal(requestBody.messages[0].role, 'user')
+})
+
+test('供应商可显式选择，也可从网关和模型兼容识别', () => {
+  assert.equal(resolveAnthropicCompatVendor('minimax'), 'minimax')
+  assert.equal(resolveAnthropicCompatVendor('FUYAO'), 'fuyao')
+  assert.equal(resolveAnthropicCompatVendor(undefined, { model: 'fuyao-coding' }), 'fuyao')
+  assert.equal(resolveAnthropicCompatVendor(undefined, { baseUrl: 'http://fuyao-ai-gateway.xiaopeng.link' }), 'fuyao')
+  assert.equal(resolveAnthropicCompatVendor(undefined, { model: 'MiniMax-M3' }), 'minimax')
+  assert.throws(() => resolveAnthropicCompatVendor('unknown'), /只支持 minimax \/ fuyao/)
+})
+
+test('统一文件保留固定文本与工具调用两种 mock 适配器', async () => {
+  const options: GenerateOptions = { provider: 'mock', model: 'mock-1', messages: [] }
+  const fixed = await collect(new MockAdapter('固定回复'), options)
+  assert.deepEqual(fixed.map((chunk) => chunk.type), ['block-start', 'text-delta', 'block-end', 'usage', 'finish'])
+  assert.ok(fixed.some((chunk) => chunk.type === 'text-delta' && chunk.text === '固定回复'))
+
+  const tool = new ToolCallingMockAdapter('weather', { city: '上海' }, '工具完成')
+  const first = await collect(tool, options)
+  const second = await collect(tool, options)
+  assert.ok(first.some((chunk) => chunk.type === 'block-end'
+    && chunk.block.type === 'tool-call'
+    && chunk.block.name === 'weather'))
+  assert.ok(second.some((chunk) => chunk.type === 'text-delta' && chunk.text === '工具完成'))
+})
+
+function toolReplayMessages(signature?: string) {
+  const callId = ToolCallId('call-fuyao')
+  const replayState: ReplayEnvelope = {
+    response: { id: 'msg-fuyao', model: 'fuyao-coding', stopReason: 'tool_use' },
+    blocks: [
+      { type: 'thinking', ...(signature ? { signature } : {}) },
+      { type: 'tool_use' },
+    ],
+  }
+  return [
+    createAssistantMessage({
+      content: [
+        { type: 'reasoning', text: '需要调用工具' },
+        { type: 'tool-call', id: callId, name: 'weather', arguments: '{"city":"上海"}' },
+      ],
+      source: { provider: 'anthropic-compat', model: 'fuyao-coding', replayState },
+    }),
+    createToolResultMessage({
+      callId,
+      content: [{ type: 'text', text: '晴，26℃' }],
+      isError: false,
+    }),
+  ]
+}
+
+test('Fuyao 回放时省略 unsigned reasoning，但保留 tool_use 与 tool_result', async () => {
+  let requestBody: any
+  const fakeFetch = (async (_input: string | URL | Request, init?: RequestInit) => {
+    requestBody = JSON.parse(String(init?.body))
+    return terminalSse()
+  }) as typeof fetch
+
+  await withFetch(fakeFetch, async () => {
+    const adapter = new AnthropicCompatAdapter({
+      apiKey: 'redacted',
+      vendor: 'fuyao',
+      baseUrl: 'https://fixture.invalid',
+      defaultModel: 'fuyao-coding',
+    })
+    await collect(adapter, {
+      provider: 'anthropic-compat',
+      model: 'fuyao-coding',
+      messages: toolReplayMessages(),
+    })
+  })
+
+  assert.deepEqual(requestBody.messages[0].content, [{
+    type: 'tool_use',
+    id: 'call-fuyao',
+    name: 'weather',
+    input: { city: '上海' },
+  }])
+  assert.deepEqual(requestBody.messages[1].content[0], {
+    type: 'tool_result',
+    tool_use_id: 'call-fuyao',
+    content: [{ type: 'text', text: '晴，26℃' }],
+    is_error: false,
+  })
+})
+
+test('MiniMax 对 unsigned reasoning 继续 fail loud', async () => {
+  let fetchCalled = false
+  const fakeFetch = (async () => {
+    fetchCalled = true
+    return terminalSse()
+  }) as typeof fetch
+
+  await withFetch(fakeFetch, async () => {
+    const adapter = new AnthropicCompatAdapter({
+      apiKey: 'redacted',
+      vendor: 'minimax',
+      baseUrl: 'https://fixture.invalid',
+    })
+    await assert.rejects(
+      collect(adapter, {
+        provider: 'anthropic-compat',
+        model: 'MiniMax-M3',
+        messages: toolReplayMessages(),
+      }),
+      /minimax: 无法回放缺少 Anthropic signature/,
+    )
+  })
+  assert.equal(fetchCalled, false)
+})
+
+test('Fuyao 仍回放带签名 reasoning', async () => {
+  let requestBody: any
+  const fakeFetch = (async (_input: string | URL | Request, init?: RequestInit) => {
+    requestBody = JSON.parse(String(init?.body))
+    return terminalSse()
+  }) as typeof fetch
+
+  await withFetch(fakeFetch, async () => {
+    const adapter = new AnthropicCompatAdapter({
+      apiKey: 'redacted',
+      vendor: 'fuyao',
+      baseUrl: 'https://fixture.invalid',
+    })
+    await collect(adapter, {
+      provider: 'anthropic-compat',
+      model: 'fuyao-coding',
+      messages: toolReplayMessages('signed-thinking'),
+    })
+  })
+
+  assert.deepEqual(requestBody.messages[0].content[0], {
+    type: 'thinking',
+    thinking: '需要调用工具',
+    signature: 'signed-thinking',
+  })
+})
+
+test('Fuyao 不会把 reasoning-only 消息省略成空 content', async () => {
+  const replayState: ReplayEnvelope = {
+    response: { id: 'msg-reasoning', model: 'fuyao-coding', stopReason: 'end_turn' },
+    blocks: [{ type: 'thinking' }],
+  }
+  const message = createAssistantMessage({
+    content: [{ type: 'reasoning', text: '只有思考，没有可回放结果' }],
+    source: { provider: 'anthropic-compat', model: 'fuyao-coding', replayState },
+  })
+  const adapter = new AnthropicCompatAdapter({
+    apiKey: 'redacted',
+    vendor: 'fuyao',
+    baseUrl: 'https://fixture.invalid',
+  })
+  await assert.rejects(
+    collect(adapter, { provider: 'anthropic-compat', model: 'fuyao-coding', messages: [message] }),
+    /fuyao: 无法回放缺少 Anthropic signature/,
+  )
 })

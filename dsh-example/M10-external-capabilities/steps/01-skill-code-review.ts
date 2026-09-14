@@ -2,7 +2,7 @@
  * 08 的共享部分：把 `SKILL.md` 喂进**真实 `ctx.skills`**（`@deepseek-ai/dsh-skill` 的
  * `SkillRegistry`），并给出评审用的那段 diff 与\"清单是否被遵守\"的核对函数。
  *
- * `run.ts`（离线 mock）与 `real/skill-code-review-minimax.ts`（真实推理）都用这一份 ——
+ * `run.ts` 的离线 phase 与内联 `M10.d` 真实阶段都用这一份 ——
  * 差异只有 agent 的 `provider`，skill 的注册、渲染与注入完全相同。
  *
  * 真实产品里 SKILL.md 由 `@deepseek-ai/dsh-skill-filesystem` 这类 provider 从磁盘目录

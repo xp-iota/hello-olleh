@@ -2,7 +2,7 @@
  * consume.ts —— 05 两个入口共享的 StreamChunk 消费循环。
  *
  * 「换 provider 不换 Consumer」不能只停留在口头：mock（run.ts）与真实推理服务
- * （real/llm-adapter-minimax.ts）走的是**这一个**函数，差异只有传给 llm.stream() 的 provider。
+ * （run.ts 内联的 M03.d）走的是**这一个**函数，差异只有传给 llm.stream() 的 provider。
  *
  * 除聚合文本外，这里逐条核对 LlmAdapter 的协议硬约束（见 steps/01-llm-adapter.ts 头注释）：
  *   - 先 `usage` 再 `finish`；`finish` 之后不再发任何 chunk；

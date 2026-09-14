@@ -13,8 +13,7 @@ from iota_core.tool_pipeline import (
     WrapFn,
 )
 
-from runtime.harness import WorkshopHarness
-from runtime.teaching import fail, require
+from runtime.harness import WorkshopHarness, fail, require
 
 
 @dataclass
@@ -74,7 +73,7 @@ async def run(harness: WorkshopHarness) -> dict[str, Any]:
     return {
         "module": "M01",
         "status": "ok",
-        "relationship": "教学补齐 + 结构性边界",
+        "relationship": "机制补齐 + 结构性边界",
         "pipeline": wrapped,
         "refusal": refusal,
     }

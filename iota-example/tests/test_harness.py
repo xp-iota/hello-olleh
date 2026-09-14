@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from runtime.harness import create_harness
-from runtime.kernel_echo import EchoKernelAdapter
+from runtime.harness import EchoKernelAdapter, create_harness
 
 
 async def test_real_echo_adapter_round_trip() -> None:

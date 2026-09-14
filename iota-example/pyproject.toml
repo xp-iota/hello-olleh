@@ -1,15 +1,15 @@
 [project]
 name = "iota-example"
 version = "0.1.0"
-description = "Offline teaching examples aligned with dsh-example M01-M12"
+description = "Offline comparison examples aligned with dsh-example M01-M12"
 requires-python = ">=3.11,<3.14"
 dependencies = [
   "iota-core==2026.9.8",
 ]
 
 [project.optional-dependencies]
-# 真实模式（IOTA_PROVIDER=minimax）的运行依赖：ClaudeAdapter 通过它驱动内核进程。
-# 离线教学入口不需要这一组，所以它是 optional 而不是主依赖。
+# 真实模式（IOTA_PROVIDER=anthropic-compat）的运行依赖：ClaudeAdapter 通过它驱动内核进程。
+# 离线入口不需要这一组，所以它是 optional 而不是主依赖。
 real = [
   "claude-agent-sdk>=0.2,<1",
 ]

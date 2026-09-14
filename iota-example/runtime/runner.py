@@ -1,11 +1,12 @@
-"""Load a teaching module and explain what was observed.
+"""Load a module scenario and explain what was observed.
 
 Two entry modes, chosen explicitly:
 
 * offline (default) — deterministic echo kernel, outbound network blocked in-process,
   ends with ``IOTA_MODULE_OK``.
-* ``--real`` — MiniMax-backed kernel. The module first proves the real kernel answered, then
-  runs the same orchestration-layer assertions, and ends with ``IOTA_REAL_MODULE_OK``.
+* ``--real`` — MiniMax/Fuyao Anthropic-compatible kernel. The module first proves the real
+  kernel answered, then runs the same orchestration-layer assertions, and ends with
+  ``IOTA_REAL_MODULE_OK``.
   There is no fallback: a missing credential, SDK or CLI aborts before the module starts.
 """
 
@@ -15,16 +16,29 @@ import argparse
 import asyncio
 import importlib.util
 import json
+import os
+import subprocess
 import sys
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from types import ModuleType
 from typing import Any, cast
 
-from runtime.harness import REAL_PROVIDER, WorkshopHarness, create_harness, selected_provider
-from runtime.kernel_minimax import resolve_cli
-from runtime.network_guard import install_network_guard
-from runtime.teaching import LESSONS, Lesson, print_after, print_before, print_real, require
+from runtime.harness import (
+    LESSONS,
+    REAL_PROVIDER,
+    Lesson,
+    WorkshopHarness,
+    create_harness,
+    install_network_guard,
+    preflight,
+    print_after,
+    print_before,
+    print_real,
+    require,
+    resolve_cli,
+    selected_provider,
+)
 
 Scenario = Callable[[WorkshopHarness], Awaitable[dict[str, Any]]]
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,8 +91,8 @@ PROBE_ATTEMPTS = 3
 
 
 async def _kernel_evidence(harness: WorkshopHarness, lesson: Lesson) -> dict[str, Any]:
-    """Run one real MiniMax-backed turn and turn it into printable, redacted evidence."""
-    require(harness.real, "真实模式使用 MiniMax-backed kernel", harness.provider)
+    """Run one real Anthropic-compatible turn and turn it into printable, redacted evidence."""
+    require(harness.real, "真实模式使用 Anthropic-compatible kernel", harness.provider)
     require(harness.kernel != "echo", "真实模式不得回退到 echo 内核", harness.kernel)
     text = ""
     events: list[str] = []
@@ -125,7 +139,7 @@ async def _execute_offline(path: Path) -> dict[str, Any]:
 
 
 async def _execute_real(path: Path, lesson: Lesson) -> tuple[dict[str, Any], dict[str, Any]]:
-    harness = await create_harness("minimax", allow_shell=path.parent.name in SHELL_MODULES)
+    harness = await create_harness(REAL_PROVIDER, allow_shell=path.parent.name in SHELL_MODULES)
     try:
         evidence = await _kernel_evidence(harness, lesson)
         scenario = cast(Scenario, _load(path).run)
@@ -156,18 +170,59 @@ def run_module(module_dir: Path, *, real: bool = False) -> None:
     )
 
 
+def run_all_modules(*, real: bool = False) -> int:
+    """Run all twelve modules in isolated child processes."""
+    modules = sorted(ROOT.glob("M[0-9][0-9]-*"))
+    if len(modules) != 12:
+        raise RuntimeError(f"expected 12 modules, found {len(modules)}")
+    env = dict(os.environ)
+    env.pop("PYTHONHOME", None)
+    env.pop("PYTHONPATH", None)
+    report: dict[str, str] = {}
+    if real:
+        env["IOTA_PROVIDER"] = REAL_PROVIDER
+        report = preflight()
+        print(
+            "IOTA_REAL_PREFLIGHT_OK "
+            f"kernel={report['kernel']} vendor={report['vendor']} model={report['model']}"
+            f" sdk={report['sdk']} cli={report['cli']}"
+        )
+
+    for module in modules:
+        command = [sys.executable, "-m", "runtime.runner", module.name]
+        if real:
+            command.append("--real")
+        completed = subprocess.run(command, cwd=ROOT, env=env, check=False, text=True)
+        if completed.returncode != 0:
+            return completed.returncode
+
+    if real:
+        print(
+            "IOTA_REAL_ALL_OK modules=12 kernel=claude "
+            f"provider={REAL_PROVIDER} vendor={report['vendor']}"
+        )
+    else:
+        print("IOTA_ALL_OK modules=12 network=blocked")
+    return 0
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="运行一个 iota 教学模块")
-    parser.add_argument("module", help="模块选择器，例如 M01")
+    parser = argparse.ArgumentParser(description="运行一个或全部 iota 对照模块")
+    parser.add_argument("module", nargs="?", help="模块选择器，例如 M01")
+    parser.add_argument("--all", action="store_true", help="在隔离子进程中运行全部 12 个模块")
     parser.add_argument(
         "--real",
         action="store_true",
-        help="用 MiniMax-backed kernel 真实运行（等价于 IOTA_PROVIDER=minimax）",
+        help="用 Anthropic-compatible kernel 真实运行（等价于 IOTA_PROVIDER=anthropic-compat）",
     )
     args = parser.parse_args()
-    # 两条等价的开关：显式 --real，或 IOTA_PROVIDER=minimax。
-    # selected_provider 对拼错的值直接抛错，所以打错开关不会静默跑成离线。
+    if args.all and args.module:
+        parser.error("module 与 --all 不能同时使用")
+    if not args.all and not args.module:
+        parser.error("请提供模块选择器，或使用 --all")
     real = args.real or selected_provider() == REAL_PROVIDER
+    if args.all:
+        return run_all_modules(real=real)
     run_module(resolve_module(args.module), real=real)
     return 0
 

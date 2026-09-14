@@ -3,7 +3,7 @@
 ## 判定口径
 
 - **语义等价**：两侧用不同结构实现相同可观察能力。
-- **教学补齐**：示例消费 iota-core 已提供的通用机制，在编排层补出可运行教学路径。
+- **机制补齐**：示例消费 iota-core 已提供的通用机制，在编排层补出可运行路径。
 - **结构性边界**：能力属于具体内核或宿主；iota 明确拒绝伪装成自己拥有。
 - 证据使用 ``项目/文件::符号或章节``，避免行号随排版变化而漂移。校验脚本会同时验证文件和锚点文本。
 
@@ -11,7 +11,7 @@
 
 | 模块 | DSH 事实 | iota 对照 | 可运行证明 | 架构边界 |
 |---|---|---|---|---|
-| **M01 工具管线** | 注册、pre/post、restrict、guard 分层：`dsh-example/M01-tool-pipeline/README.md::阶段与观察点` | **教学补齐 + 结构性边界**：`ToolPipeline` 提供具名可逆 stage：`iota-core/src/iota_core/tool_pipeline.py::class ToolPipeline` | `iota-example/M01-tool-pipeline/lesson_m01.py::async def run` | 只借机制，不搬内核工具栈：`iota-core/docs/architecture/pluggability-cordis-alignment.md::借机制，不搬架构` |
+| **M01 工具管线** | 注册、pre/post、restrict、guard 分层：`dsh-example/M01-tool-pipeline/README.md::阶段与观察点` | **机制补齐 + 结构性边界**：`ToolPipeline` 提供具名可逆 stage：`iota-core/src/iota_core/tool_pipeline.py::class ToolPipeline` | `iota-example/M01-tool-pipeline/lesson_m01.py::async def run` | 只借机制，不搬内核工具栈：`iota-core/docs/architecture/pluggability-cordis-alignment.md::借机制，不搬架构` |
 | **M02 上下文装配与经济学** | section、assembly、compaction 连成治理链：`dsh-example/M02-context-assembly-economics/README.md::完整链路` | **语义等价 + 结构性边界**：作用域记忆由 `MemoryContextService` 构建：`iota-core/src/iota_core/memory/context.py::class MemoryContextService` | `iota-example/M02-context-assembly-economics/lesson_m02.py::async def run` | 模型请求 middleware 属于内核能力：`iota-core/docs/architecture/node-hooks.md::节点 Hook 与模型 Middleware` |
 | **M03 推理服务接入** | Adapter 与流中间件正交：`dsh-example/M03-inference-service-access/README.md::完整链路` | **结构性边界**：iota 的替换单元是整个 `KernelAdapter`：`iota-core/src/iota_core/adapters/base.py::class KernelAdapter` | `iota-example/M03-inference-service-access/lesson_m03.py::async def run` | ACP 不支持的 middleware 在编译期拒绝：`iota-core/docs/architecture/node-hooks.md::引用语法与校验` |
 | **M04 Agent 循环与干预面** | 事件、hook、inbox 是稳定边界：`dsh-example/M04-agent-loop-intervention/README.md::完整链路` | **语义等价 + 结构性边界**：标准 `AgentEvent` 与节点 hook 可观察编排：`iota-core/src/iota_core/types.py::AgentEvent` | `iota-example/M04-agent-loop-intervention/lesson_m04.py::async def run` | mid-turn 状态仍由内核拥有：`iota-core/docs/architecture/node-hooks.md::执行顺序` |
@@ -27,7 +27,7 @@
 ## 可复现命令
 
 ```bash
-env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.run_all
+env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner --all
 env -u PYTHONHOME -u PYTHONPATH .venv/bin/pytest -q
 env -u PYTHONHOME -u PYTHONPATH .venv/bin/ruff check .
 env -u PYTHONHOME -u PYTHONPATH .venv/bin/mypy

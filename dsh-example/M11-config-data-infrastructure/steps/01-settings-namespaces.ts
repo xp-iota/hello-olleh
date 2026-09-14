@@ -2,7 +2,7 @@
  * M11.1 · 设置命名空间（ctx.settings）：schema 注册 + 分层解析 + 乐观并发。
  *
  * 对照真实 `@deepseek-ai/dsh-settings`（`SettingsProvider` / `SettingsScope`）：
- *   - provider 负责原始文档存取（本示例用 runtime/settings-memory.ts 的内存子类），
+ *   - provider 负责原始文档存取（本示例用 runtime/harness.ts 的内存子类），
  *     基座负责命名空间注册、分层解析、修订号、变化检测与提交事件；
  *   - 命名空间不是自由字符串：要用 `settingsNamespace('demo')` 铸一个 branded 值；
  *   - register(ns, schema) 返回属主 scope：get() / watch((next, prev)) / update(patch) /

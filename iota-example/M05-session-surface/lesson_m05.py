@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from runtime.harness import WorkshopHarness
-from runtime.teaching import require, require_event_order, require_not_none
+from runtime.harness import WorkshopHarness, require, require_event_order, require_not_none
 
 
 async def run(harness: WorkshopHarness) -> dict[str, Any]:

@@ -1,4 +1,4 @@
-"""Every teaching module must be independently executable and offline."""
+"""Every module must be independently executable and offline."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def test_module_exits_zero(module: Path) -> None:
     assert completed.returncode == 0, completed.stderr
     assert f"IOTA_MODULE_OK {module.name}" in completed.stdout
     assert '"status": "ok"' in completed.stdout
-    assert "学习目标：" in completed.stdout
+    assert "目标：" in completed.stdout
     assert "运行时观察：" in completed.stdout
     assert "结论：" in completed.stdout
 

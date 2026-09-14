@@ -6,8 +6,7 @@ from typing import Any
 
 from iota_core.graph import GraphSpec, NodeSpec
 
-from runtime.harness import WorkshopHarness
-from runtime.teaching import require
+from runtime.harness import WorkshopHarness, require
 
 
 async def run(harness: WorkshopHarness) -> dict[str, Any]:

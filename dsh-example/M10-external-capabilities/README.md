@@ -22,7 +22,7 @@ npm run M10 -- --mock  # 离线确定性机制；不联网、不需要密钥
 | 3 Webhook | 扩展面 | `steps/03-webhook-runtime.ts` | `phases/03-check-webhook-boundary.ts` | Host-plane 完整依赖边界 |
 | 4 Cordis extensions | 扩展面 | `steps/04-cordis-extensions.ts` | `phases/04-mount-dynamic-tool.ts` | dynamic runner 与 inspect registry |
 | 5 默认模型 | 扩展面 | `steps/05-agent-default-model.ts` | `phases/05-route-default-model.ts` | Webhook 创建 Agent 所需的 mock 路由 |
-| M10.d 专项演示 | 真实专属 | `real/skill-code-review-minimax.ts` | — | 注入 SKILL.md 前后的真实作答对照（需 `LLM_API_KEY`） |
+| M10.d 专项演示 | 真实专属 | `run.ts`（`runSkillCodeReviewMinimax`） | — | 注入 SKILL.md 前后的真实作答对照（需 `LLM_API_KEY`） |
 
 ## 完整链路
 

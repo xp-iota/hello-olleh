@@ -16,7 +16,7 @@ env -u PYTHONHOME -u PYTHONPATH .venv/bin/python -m runtime.runner M05
 2. run 状态与事件顺序
 3. 事件 schema 是否包含 `sequence`
 
-运行器会先打印学习目标与观察点，再输出逐项事实、机器可读 JSON 和 `IOTA_MODULE_OK`。任何事实不符都会抛出带“期望/实际”的 `TeachingCheckError`。
+运行器会先打印目标与观察点，再输出逐项事实、机器可读 JSON 和 `IOTA_MODULE_OK`。任何事实不符都会抛出带“期望/实际”的 `TeachingCheckError`。
 
 ## 边界
 

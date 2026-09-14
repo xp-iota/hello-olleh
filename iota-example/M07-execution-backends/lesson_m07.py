@@ -8,7 +8,7 @@ not belong to this layer.
 Both providers exercise the same claim with the kernel they actually have:
 
 * offline — the deterministic kernel answers a ``shell:`` request with kernel.shell events.
-* real    — the MiniMax-backed kernel is asked to run a command with its own Bash tool, so the
+* real    — the Anthropic-compatible kernel is asked to run a command with its own Bash tool, so the
   tool events come from inside the kernel process, not from anything iota registered.
 """
 
@@ -19,8 +19,7 @@ from typing import Any
 
 from iota_core.types import ToolCallResultEvent, ToolCallStartEvent
 
-from runtime.harness import WorkshopHarness
-from runtime.teaching import require
+from runtime.harness import WorkshopHarness, require
 
 OFFLINE_PROMPT = "shell: printf offline"
 PROOF_FILE = "kernel-proof.txt"

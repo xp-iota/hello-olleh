@@ -13,52 +13,51 @@ npm run M01            # 真实 MiniMax（默认）；需要 LLM_API_KEY，会�
 npm run M01 -- --mock  # 离线确定性机制；不联网、不需要密钥
 ```
 
-## 先看文件关系：只分成“编排、场景、实现”三层
+## 先看文件关系：只分成“入口、场景、实现”三层
 
 ```text
 dsh-example/package.json
 └─ npm run M01
-   └─ M01-tool-pipeline/run.ts                 # 编排：列出要运行的阶段，本身不实现工具机制
-      └─ ../runtime/real.ts · runModule()       # 按 real/mock 模式逐个 import 阶段文件
+   └─ M01-tool-pipeline/run.ts                 # 唯一入口：阶段编排 + 内联 M01.d 真实专项
+      └─ ../runtime/harness.ts · runModule()       # 按 real/mock 模式执行 path 或 run 回调
          ├─ phases/01-register-and-dispose.ts  ──加载──▶ steps/01-word-count.ts
          ├─ phases/02-deny-bash-call.ts        ──加载──▶ steps/02-permission-gate.ts
          ├─ phases/03-append-model-notice.ts   ──加载──▶ steps/01-word-count.ts
          │                                             + steps/03-result-transform.ts
          ├─ phases/04-narrow-visible-set.ts    ──加载──▶ steps/04-tool-restrict.ts
          ├─ phases/05-guard-overrides-allow.ts ──加载──▶ steps/05-tool-guard.ts
-         └─ real/word-count-minimax.ts         ──加载──▶ steps/01-word-count.ts
-                                                    （仅真实模式，模型自主发起调用）
+         └─ runWordCountMinimax()              ──加载──▶ steps/01-word-count.ts
+                                                    （M01.d，仅真实模式）
 
-phases/* 和 real/*
+phases/* 和 run.ts 内联的 M01.d
 └─ 都复用 ../runtime/harness.ts                 # 装配真实 dsh 服务，提供 loadPlugin/callTool/runTurn
 ```
 
-各类文件只记住下面四句话：
+各类文件只记住下面三句话：
 
 | 文件 | 职责 | 是否先读 |
 |---|---|---|
-| `run.ts` | 总目录/播放列表：决定阶段顺序和 real/mock 分流 | 是 |
-| `phases/*.ts` | 可执行的观察场景：准备条件、加载插件、触发调用、打印结果 | 是 |
-| `steps/*.ts` | 真正要学习和复用的 Cordis 插件实现，不是独立主入口 | 对照对应 phase 读 |
-| `real/*.ts` | 真实模型专项验收；区别是让模型自己决定并发起工具调用 | 最后读 |
+| `run.ts` | 总目录/播放列表，并直接包含真实专项 M01.d；决定阶段顺序和 real/mock 分流 | 是 |
+| `phases/*.ts` | 可执行的离线观察场景：准备条件、加载插件、触发调用、打印结果 | 是 |
+| `steps/*.ts` | 真正要学习和复用的 Cordis 插件实现，不是独立主入口 | 对照对应 phase 或内联专项读 |
 
 实际调用顺序是：
 
 ```text
-npm script → run.ts → runModule() 动态导入某个 phase
-→ phase 调 createHarness() → phase 调 loadPlugin(step)
-→ phase 用 callTool() 直接触发机制
+npm script → run.ts → runModule() → executeStage()
+→ path 阶段动态导入 phase，或 run 阶段调用 run.ts 内联函数
+→ createHarness() → loadPlugin(step) → callTool()/runTurn()
 → pre-execute → guard → execute → post-execute → result 审计
 ```
 
-`M01.d` 是唯一不同的一段：它用 `runTurn()` 把工具 schema 给真实 MiniMax，由模型产出 tool-call，再由同一条工具管线执行并把结果回灌给模型。
+`M01.d` 是唯一使用内联 `run` 回调的一段：它用 `runTurn()` 把工具 schema 给真实 MiniMax，由模型产出 tool-call，再由同一条工具管线执行并把结果回灌给模型。
 
 ## 最短玩法
 
 1. 先运行 `npm run M01 -- --mock`，不联网地看完 1～5 段输出。
 2. 只读第一对文件：先看 `phases/01-register-and-dispose.ts` 怎么“演”，再看 `steps/01-word-count.ts` 怎么“实现”。
 3. 按同样方式读 `02 phase → 02 step`，依次看到权限门、结果变换、可见性和最终守卫。
-4. 配好真实模型后再运行 `npm run M01`，最后观察 `real/word-count-minimax.ts` 中模型是否自主调用 `word_count`。
+4. 配好真实模型后再运行 `npm run M01`，最后观察 `run.ts` 中的 `runWordCountMinimax()` 是否验证到模型自主调用 `word_count`。
 
 只想离线跑一个场景时，可在项目根目录执行：
 
@@ -75,7 +74,7 @@ DSH_MOCK=1 node M01-tool-pipeline/phases/01-register-and-dispose.ts
 | 3 结果变换 | 教学主线 | `steps/03-result-transform.ts` | `phases/03-append-model-notice.ts` | post-execute 改模型可见结果但不破坏 canonical value |
 | 4 可见性 | 教学主线 | `steps/04-tool-restrict.ts` | `phases/04-narrow-visible-set.ts` | `agent.ctx.tools.restrict` 的单向收紧和 effect 归属 |
 | 5 守卫 | 教学主线 | `steps/05-tool-guard.ts` | `phases/05-guard-overrides-allow.ts` | guard 在 pre-execute 之后做不可翻案的最终拒绝 |
-| M01.d 专项演示 | 真实专属 | `real/word-count-minimax.ts` | — | 模型**自主决定**调用 word_count（需 `LLM_API_KEY`） |
+| M01.d 专项演示 | 真实专属 | `run.ts`（`runWordCountMinimax`） | — | 模型**自主决定**调用 word_count（需 `LLM_API_KEY`） |
 
 ## 完整链路
 

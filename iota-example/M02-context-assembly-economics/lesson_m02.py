@@ -8,8 +8,7 @@ from iota_core.memory.context import MemoryContextService
 from iota_core.memory.gateway import MemoryRecallItem, MemoryRecallQuery, MemoryRecallResult
 from iota_core.types import AgentConfig
 
-from runtime.harness import WorkshopHarness
-from runtime.teaching import require, require_not_none
+from runtime.harness import WorkshopHarness, require, require_not_none
 
 
 class Gateway:

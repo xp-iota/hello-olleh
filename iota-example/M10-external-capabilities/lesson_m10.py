@@ -10,8 +10,7 @@ from iota_core.mcp.server import IotaMcpServer
 from iota_core.skill_sync import sync_skills
 from iota_core.types import ToolDef
 
-from runtime.harness import WorkshopHarness
-from runtime.teaching import require, require_not_none
+from runtime.harness import WorkshopHarness, require, require_not_none
 
 
 async def run(_harness: WorkshopHarness) -> dict[str, Any]:
