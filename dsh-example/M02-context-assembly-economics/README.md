@@ -30,3 +30,26 @@ section 与 variable 先进入 `PromptAssembly`，渲染器最后生成模型请
 ## 边界
 
 压缩不删除事实日志；spill 场景在结束时删除临时根目录。
+
+## `LocalSpillStore` 与 `spillPolicy` 如何配合
+
+这两个插件分别负责“存在哪里”和“什么时候外溢”，必须按下面顺序装载：
+
+```ts
+import LocalSpillStore from '@deepseek-ai/dsh-spill-local'
+import * as spillPolicy from '@deepseek-ai/dsh-spill-policy'
+
+await ctx.plugin(LocalSpillStore, {
+  root: config.root,
+  cleanupPeriodDays: 0,
+})
+await ctx.plugin(spillPolicy, {
+  maxInlineBytes: config.maxInlineBytes,
+})
+```
+
+`LocalSpillStore` 是 `ctx.spillStore` 的本地 Provider。它按 session 建立目录，把完整 UTF-8 文本写入文件，并返回一个 locator；`root` 指定文件根目录。`cleanupPeriodDays` 控制启动时的一次性过期文件清理，示例设为 `0` 表示关闭清理，因为场景脚本最后会显式删除临时目录。
+
+`spillPolicy` 是工具结果策略。它监听工具结果中的纯文本：结果字节数不超过 `maxInlineBytes` 时原样返回；超过阈值时，先调用 `ctx.spillStore.saveText()` 保存**完整结果**，再把模型可见内容替换成有界预览、被省略的字节数、locator 和读取提示。它不会凭空提供存储；没有 `ctx.spillStore` 或保存失败时会保留原文（best effort）。因此，local 插件提供能力，policy 插件决定是否使用能力。
+
+本例把阈值设为 `256` 字节：`scenes/06-spill-to-file.ts` 注册一个返回长文本的工具，调用后可观察 `harness.ctx.spillStore` 的 Provider 类型、返回内容的字节数以及 locator 是否指向 `root`。模型上下文只携带预览和 locator，后续宿主或工具可根据 locator 读取原始文件。
