@@ -26,7 +26,7 @@
 > 不拉取的话，工作区里拿到的是 130 字节的**指针文件**而非真图，Markdown 里内嵌的图会渲染失败。
 >
 > ```bash
-> git clone git@github.com:feuyeux/hello-olleh.git
+> git clone git@github.com:xp-iota/hello-olleh.git
 > cd hello-olleh && git lfs pull
 > ```
 
