@@ -37,7 +37,7 @@ import SessionStore from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionId, UserMessage } from '@deepseek-ai/dsh-session'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import type { AssembleContext } from '@deepseek-ai/dsh-system-prompt'
-import LlmRuntime, { ToolCallId, LlmAdapter, createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
+import LlmRuntime, { ToolCallId, LlmAdapter, createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import { defineTool } from '@deepseek-ai/dsh-tools'
@@ -58,28 +58,8 @@ import LocalBashExecutor from '@deepseek-ai/dsh-bash-local'
 import LocalJobRegistry from '@deepseek-ai/dsh-jobs-local'
 import { SettingsProvider } from '@deepseek-ai/dsh-settings'
 import type { SettingsNamespace } from '@deepseek-ai/dsh-settings'
-import { AnthropicCompatAdapter, MockAdapter, ToolCallingMockAdapter, resolveAnthropicCompatVendor } from './llm.ts'
+import { AnthropicCompatAdapter, resolveAnthropicCompatVendor } from './llm.ts'
 import type { AnthropicCompatVendor } from './llm.ts'
-
-/** 唯一运行模式状态：默认真实，`--mock` / `DSH_MOCK=1` 才离线。 */
-let mock = process.env.DSH_MOCK === '1'
-export let REAL_MODE = !mock
-
-export function isMockMode(): boolean {
-  return mock
-}
-
-export function setMockMode(): void {
-  mock = true
-  REAL_MODE = false
-  process.env.DSH_MOCK = '1'
-}
-
-export function applyMockFlag(argv: readonly string[] = process.argv.slice(2)): string[] {
-  const rest = argv.filter((arg) => arg !== '--mock')
-  if (rest.length !== argv.length) setMockMode()
-  return rest
-}
 
 let envLoaded = false
 
@@ -97,7 +77,7 @@ loadProjectEnv()
 
 export function requireRealCredentials(module: string): void {
   loadProjectEnv()
-  if (isMockMode() || process.env.LLM_API_KEY) return
+  if (process.env.LLM_API_KEY) return
   console.error('✗ 缺少 LLM_API_KEY。')
   console.error('  复制 .env.example 为 .env 并填入推理服务密钥，或在命令前临时注入：')
   console.error(`  LLM_API_KEY=<your-key> npm run ${module}`)
@@ -122,15 +102,9 @@ export class MemorySettingsProvider extends SettingsProvider {
 export const DEMO_SESSION = 'demo-session' as SessionId
 
 export interface HarnessOptions {
-  /** 默认 mock 适配器的固定回复；示例可自己注册适配器覆盖 `mock` 路由前先传 `mock: false`。 */
-  reply?: string
-  /** 传 false 时不注册内置 mock 适配器（示例要自己占用 `mock` 路由时用）。 */
-  mock?: boolean
-  /** 用自定义适配器占住 `mock` 路由（例如会调工具的 {@link ToolCallingMockAdapter}）。 */
-  adapter?: LlmAdapter
-  /** agent 的 provider 路由，默认读 `DSH_PROVIDER`（未设则 `mock`）。 */
+  /** agent 的 provider 路由，默认真实路由 {@link REAL_PROVIDER}。 */
   provider?: string
-  /** agent 的 model，默认读 `DSH_MODEL`。 */
+  /** agent 的 model，默认读 `LLM_MODEL`。 */
   model?: string
   /** 会话 id，默认 {@link DEMO_SESSION}。 */
   sessionId?: SessionId
@@ -217,29 +191,13 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
     await (config === undefined ? ctx.plugin(plugin as any) : ctx.plugin(plugin as any, config)).await()
   }
 
-  // 真实模式（默认；`--mock` 才关）：密钥缺失当场失败，绝不静默退回 mock。
+  // 密钥缺失当场失败，绝不静默退化。
   // 计数适配器把真实 chunk 一条不改地透传给 agent-loop，同时留下调用证据。
-  const real = REAL_MODE ? realConfig() : undefined
-  if (real) {
-    ctx.llm.registerAdapter([REAL_PROVIDER], new CountingAnthropicCompatAdapter(real))
-  } else if (process.env.LLM_API_KEY) {
-    // 离线模式下也注册这条路由，方便 `DSH_PROVIDER=anthropic-compat` 单点试跑。
-    ctx.llm.registerAdapter([REAL_PROVIDER], new AnthropicCompatAdapter({
-      apiKey: process.env.LLM_API_KEY,
-      baseUrl: process.env.LLM_BASE_URL,
-      defaultModel: process.env.LLM_MODEL,
-    }))
-  }
-  if (options.mock !== false) {
-    // 真实模式忽略示例传入的 mock 适配器：模型该做的决定必须由真实模型做。
-    // `mock` 路由仍然在场，因为 M01/M03 有几个阶段就是在演示"路由与适配器协议"本身。
-    const fallback = new MockAdapter(options.reply ?? '好的，我已经看过了。')
-    ctx.llm.registerAdapter(['mock'], real ? fallback : (options.adapter ?? fallback))
-  }
+  const real = realConfig()
+  ctx.llm.registerAdapter([REAL_PROVIDER], new CountingAnthropicCompatAdapter(real))
 
-  const provider = options.provider ?? (real ? REAL_PROVIDER : process.env.DSH_PROVIDER ?? 'mock')
-  const model = options.model
-    ?? (real ? real.model : process.env.DSH_MODEL ?? (provider === REAL_PROVIDER ? 'MiniMax-M3' : 'mock-1'))
+  const provider = options.provider ?? REAL_PROVIDER
+  const model = options.model ?? real.model
 
   const plugins: Fiber[] = []
   const loadPlugin = async (plugin: unknown, config?: unknown): Promise<Fiber> => {
@@ -314,19 +272,6 @@ export function userText(text: string, source: UserMessage['source'] = { kind: '
 }
 
 /**
- * 造一条 assistant 消息。`assistant/message` 是三种"可进入模型可见面"的事件之一
- * （另两种是 `user/message` / `tool/result`），并且**必须带 model 来源**
- * （`{ kind:'model', provider, model }`）—— 压缩摘要之所以也走这个事件，正是因为
- * 那段摘要在真实实现里确实由模型生成。
- *
- * 注意 `createUserMessage` / `createAssistantMessage` 的入参**不接受** `id` 与 `role`
- * （类型上是 `never`）：身份与角色由铸造函数负责，调用方不能自己编。
- */
-export function assistantText(text: string, provider = 'mock', model = 'mock-1') {
-  return createAssistantMessage({ content: [{ type: 'text', text }], source: { provider, model } })
-}
-
-/**
  * 一个"占位"工具：只回一句字符串。示例里需要几个假工具来演示策略/收紧/守卫时用它，
  * 免得每处都重抄一遍 `defineTool` 的样板。真实工具三件套见 M01。
  */
@@ -369,7 +314,7 @@ function summarize(session: Session, events: readonly SessionEvent[]): TurnOutco
   return { text, steps, steerRequested: steerCount > 0, steerCount, session }
 }
 
-export { LlmAdapter, MockAdapter, ToolCallingMockAdapter }
+export { LlmAdapter }
 
 
 // ── 真实/离线模块编排与调用证据 ──────────────────────────────────────────
@@ -393,7 +338,7 @@ let cached: RealConfig | undefined
 
 /**
  * 读取真实 provider 配置。缺密钥时**立即失败**并说明该去哪里配 ——
- * 真实模式不允许静默退回 mock。
+ * 不存在任何静默退化路径。
  */
 export function realConfig(): RealConfig {
   if (cached) return cached
@@ -525,26 +470,25 @@ export class CountingAnthropicCompatAdapter extends LlmAdapter {
 /** 阶段类型：`model` 由模型驱动，`mechanism` 断言本地机制 + 入口 probe。 */
 export type StageKind = 'model' | 'mechanism'
 
+/**
+ * 一个阶段（stage）。**它是 `run.ts` 里的编排单位，不是目录名**：
+ * 阶段要么指向一个 `scenes/` 场景脚本（`path`），要么是 `run.ts` 内联的演示（`run`）。
+ * 与之对应的是 `impl/` —— 场景脚本加载的能力实现（Provider 侧）。
+ */
 interface StageBase {
   /** 稳定的阶段编号，例如 `M01.1`。 */
   id: string
   title: string
   kind: StageKind
-  /**
-   * 只对真实模式有意义的阶段（各模块 `run.ts` 内联的专项演示自带真实 turn / 真实路由消费，
-   * 没有密钥就跑不起来）。mock 模式下打印一行 skip 而**不是**执行 —— 这样 `run.ts`
-   * 的阶段清单在两个模式下是同一份，不需要各自维护。
-   */
-  realOnly?: boolean
 }
 
-/** 路径阶段保持独立场景文件；专项阶段可直接内联在对应模块的 run.ts。 */
+/** `path` 指向 scenes/ 场景脚本；`run` 是 run.ts 内联的专项演示。 */
 export type StageSpec = StageBase & (
   | { path: string; run?: never }
   | { path?: never; run: () => void | Promise<void> }
 )
 
-/** 执行路径阶段或 run.ts 内联阶段。 */
+/** 执行 scenes/ 场景脚本，或 run.ts 内联阶段。 */
 async function executeStage(stage: StageSpec, base: string): Promise<void> {
   if (stage.path !== undefined) {
     await import(new URL(stage.path, base).href)
@@ -557,8 +501,10 @@ async function executeStage(stage: StageSpec, base: string): Promise<void> {
  * 入口 probe：用本文件的完整装配链（全部服务 + 真实 agent-loop）
  * 打一次真实推理服务 请求。它证明的不是"HTTP 通了"，而是"这条装配链能把真实响应
  * 送回会话日志"——纯机制阶段因此也有真实证据，而不是只拼配置。
+ *
+ * 不打印回复：结果落在证据账本里，由本阶段的 REAL_STAGE_OK 行汇总，避免与阶段正文抢版面。
  */
-async function probeAssembly(stageId: string): Promise<string> {
+async function probeAssembly(stageId: string): Promise<void> {
   const harness = await createHarness()
   try {
     const outcome = await harness.runTurn({
@@ -568,45 +514,37 @@ async function probeAssembly(stageId: string): Promise<string> {
     if (!outcome.text.trim()) {
       throw new Error(`阶段 ${stageId} 的入口 probe 没有拿到非空真实文本`)
     }
-    return outcome.text
   } finally {
     await harness.dispose()
   }
 }
 
 /**
- * 驱动一个模块。**这是 12 个模块 `run.ts` 唯一的编排入口**，两个模式共用一份阶段清单：
+ * 驱动一个模块。**这是 12 个模块 `run.ts` 唯一的编排入口**：
  *
- *   - 默认（real）：每个阶段都必须留下真实调用证据，否则 fail loud。
- *     mechanism 阶段先做一次入口 probe（真实模型 + 完整装配），再跑本地机制断言；
- *     model 阶段直接跑脚本，脚本内部的 runTurn 已被路由到真实推理服务。
- *   - `--mock`：只跑不带 `realOnly` 的阶段 —— 正是原先 `run.ts` 逐个 `import()` 的那批。
- *     `realOnly` 阶段打印一行 skip，不执行、不联网、不需要密钥。
+ *   每个阶段都必须留下真实调用证据，否则 fail loud。
+ *   mechanism 阶段先做一次入口 probe（真实模型 + 完整装配），再跑本地机制断言；
+ *   model 阶段直接跑脚本，脚本内部的 runTurn 已被路由到真实推理服务。
  *
- * 两个模式都按同一份清单打印阶段 banner，所以输出可以逐行对照。
+ * 日志只留骨架：模块 banner（声明一次 provider/model）→ 阶段分隔 → 场景正文 →
+ * 一行 REAL_STAGE_OK 结论。正文由各场景脚本自己打印，编排层不加旁白。
  */
 export async function runModule(
   module: string,
   title: string,
   stages: readonly StageSpec[],
-  /** 调用方的 `import.meta.url`：阶段路径相对**模块目录**解析，而不是相对本文件。 */
+  /** 调用方的 `import.meta.url`：scenes/ 路径相对**模块目录**解析，而不是相对本文件。 */
   base: string,
 ): Promise<void> {
-  if (!REAL_MODE) return runMockModule(module, title, stages, base)
-
   const config = realConfig()
-  console.log(`\n████ ${module} · ${title} —— 真实推理服务 模式 ████`)
-  console.log(`provider=${REAL_PROVIDER} model=${config.model} endpoint=<${ENDPOINT_LABEL}> timeout=${REAL_TIMEOUT_MS}ms`)
-  console.log('（离线请用 --mock，例如 `npm run M01 -- --mock`）')
+  console.log(`\n████ ${module} · ${title} ████`)
+  console.log(`provider=${REAL_PROVIDER} model=${config.model} timeout=${REAL_TIMEOUT_MS}ms`)
 
   let realStages = 0
   for (const stage of stages) {
     const before = evidence.length
-    console.log(`\n════════ ${stage.id} · ${stage.title}（kind=${stage.kind}）════════`)
-    if (stage.kind === 'mechanism') {
-      const probe = await probeAssembly(stage.id)
-      console.log(`  ↳ 入口 probe 真实回复: ${JSON.stringify(sample(probe, 40))}`)
-    }
+    console.log(`\n──── ${stage.id} · ${stage.title} ────`)
+    if (stage.kind === 'mechanism') await probeAssembly(stage.id)
     await executeStage(stage, base)
     realStages += 1
 
@@ -616,7 +554,7 @@ export async function runModule(
       throw new Error(`REAL_STAGE_FAIL ${stage.id} 真实调用失败：${failures.map((item) => item.failure).join(' / ')}`)
     }
     if (slice.length === 0) {
-      throw new Error(`REAL_STAGE_FAIL ${stage.id} 本阶段没有产生任何 推理服务调用证据（禁止把 mock 结果当真实验收）`)
+      throw new Error(`REAL_STAGE_FAIL ${stage.id} 本阶段没有产生任何 推理服务调用证据`)
     }
     const answered = slice.filter((item) => item.textChars > 0 || item.toolCalls.length > 0)
     if (answered.length === 0) {
@@ -624,43 +562,20 @@ export async function runModule(
     }
     const best = answered[answered.length - 1]!
     const tools = slice.flatMap((item) => item.toolCalls)
+    // 只报本阶段真正新增的东西：provider/model/kind 已在 banner 与阶段分隔里给过；
+    // mechanism 阶段的样本就是上面 probe 的复述回声，属于重复，不打印。
     console.log(
-      `REAL_STAGE_OK ${stage.id} kind=${stage.kind} provider=${REAL_PROVIDER} model=${config.model}`
+      `REAL_STAGE_OK ${stage.id}`
       + ` calls=${slice.length} ms=${slice.reduce((sum, item) => sum + item.ms, 0)}`
       + ` in=${slice.reduce((sum, item) => sum + item.inputTokens, 0)}`
       + ` out=${slice.reduce((sum, item) => sum + item.outputTokens, 0)}`
-      + ` finish=${best.finish} tools=${tools.length === 0 ? '-' : tools.join(',')}`
-      + ` text="${sample(best.textSample, 48)}"`,
+      + ` finish=${best.finish}`
+      + (tools.length === 0 ? '' : ` tools=${tools.join(',')}`)
+      + (stage.kind === 'model' && best.textSample ? ` "${sample(best.textSample, 40)}"` : ''),
     )
   }
 
   const total = evidence.length
   const failed = evidence.filter((item) => item.failure).length
   console.log(`\nREAL_MODULE_OK ${module} stages=${realStages} calls=${total} failed=${failed}`)
-}
-
-/** mock 分支：只跑离线可跑的阶段，`realOnly` 阶段显式跳过。 */
-async function runMockModule(
-  module: string,
-  title: string,
-  stages: readonly StageSpec[],
-  base: string,
-): Promise<void> {
-  console.log(`\n████ ${module} · ${title} —— 离线 mock 模式 ████`)
-  console.log('provider=mock（不联网、不需要密钥；真实模式去掉 --mock）')
-
-  let ran = 0
-  let skipped = 0
-  for (const stage of stages) {
-    console.log(`\n════════ ${stage.id} · ${stage.title}（kind=${stage.kind}）════════`)
-    if (stage.realOnly) {
-      console.log('  ↳ 跳过：本阶段需要真实推理服务，离线 mock 模式不跑（去掉 --mock 即可执行）')
-      skipped += 1
-      continue
-    }
-    await executeStage(stage, base)
-    ran += 1
-  }
-
-  console.log(`\nMOCK_MODULE_OK ${module} stages=${ran} skipped=${skipped}`)
 }

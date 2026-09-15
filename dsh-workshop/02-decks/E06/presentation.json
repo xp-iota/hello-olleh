@@ -70,8 +70,8 @@
         "  persistence: 'JsonlSessionPersistence',",
         "  listResult: { ok: true, value: { items: [] } }",
         "}",
-        "REAL_STAGE_OK M06.6 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1574 in=0 out=9 finish=stop tools=- text=\"装配链已连通 M06.6\"",
-        "REAL_MODULE_OK M06 stages=6 calls=10 failed=0",
+        "REAL_STAGE_OK M06.6 calls=1 ms=1604 in=0 out=56 finish=stop",
+        "REAL_MODULE_OK M06 stages=6 calls=11 failed=0",
         "[exit 0]"
       ]
     },

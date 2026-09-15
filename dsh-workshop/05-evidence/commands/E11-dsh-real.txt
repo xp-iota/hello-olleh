@@ -5,12 +5,10 @@ $ cd dsh-example && npm run M11
 > node M11-config-data-infrastructure/run.ts
 
 
-████ M11 · 配置与数据设施：配置、存储、附件、凭证与工作区 —— 真实推理服务 模式 ████
-provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
-（离线请用 --mock，例如 `npm run M01 -- --mock`）
+████ M11 · 配置与数据设施：配置、存储、附件、凭证与工作区 ████
+provider=anthropic-compat model=fuyao-coding timeout=120000ms
 
-════════ M11.1 · 注册并驱动 settings 命名空间（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M11.1"
+──── M11.1 · 注册并驱动 settings 命名空间 ────
 ① 未写任何东西：解析值 = schema 默认值
    { theme: 'dark', fontSize: 14 } | revision = 0
 
@@ -35,52 +33,47 @@ provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeo
 
 ⑦ 重复注册同一命名空间抛错
    settings namespace "demo" is already registered
-REAL_STAGE_OK M11.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1029 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.1"
+REAL_STAGE_OK M11.1 calls=1 ms=3903 in=0 out=81 finish=stop
 
-════════ M11.2 · 装配 JSON storage 与 domain 路由（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M11.2"
+──── M11.2 · 装配 JSON storage 与 domain 路由 ────
 storage: {
   hub: 'Storage',
   backend: 'JsonStorageBackend',
   domainFacility: 'DomainFacility'
 }
-REAL_STAGE_OK M11.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1224 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.2"
+REAL_STAGE_OK M11.2 calls=1 ms=997 in=0 out=86 finish=stop
 
-════════ M11.3 · 保存 content-addressed 本地附件（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M11.3"
+──── M11.3 · 保存 content-addressed 本地附件 ────
 attachments: {
   backend: 'LocalAttachmentStore',
   attachmentId: 'sha256:565339bc4d33d72817b583024112eb7f5cdf3e5eef0252d6ec1b9c9a94e12bb3',
   name: 'sample.bin'
 }
-REAL_STAGE_OK M11.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1264 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.3"
+REAL_STAGE_OK M11.3 calls=1 ms=2263 in=0 out=74 finish=stop
 
-════════ M11.4 · 按 Agent workspace 搜索文件引用（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M11.4"
+──── M11.4 · 按 Agent workspace 搜索文件引用 ────
 fileReferences: {
   backend: 'LocalFileReferenceService',
   matches: 5,
   sample: 'README.md'
 }
-REAL_STAGE_OK M11.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=733 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.4"
+REAL_STAGE_OK M11.4 calls=1 ms=1153 in=0 out=100 finish=stop
 
-════════ M11.5 · 只读取凭证状态并列出授权 flow（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M11.5"
+──── M11.5 · 只读取凭证状态并列出授权 flow ────
 credentials: {
   provider: 'LocalCredentialProvider',
   safeDescription: { configured: false, writable: true },
   authorizationFlows: []
 }
-REAL_STAGE_OK M11.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=698 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.5"
+REAL_STAGE_OK M11.5 calls=1 ms=1604 in=0 out=121 finish=stop
 
-════════ M11.6 · 组合 workspace 与耐久 Session（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M11.6"
+──── M11.6 · 组合 workspace 与耐久 Session ────
 workspaceRegistry: {
   service: 'WorkspaceRegistry',
   listed: 0,
   persistence: 'JsonlSessionPersistence'
 }
-REAL_STAGE_OK M11.6 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1046 in=0 out=9 finish=stop tools=- text="装配链已连通 M11.6"
+REAL_STAGE_OK M11.6 calls=1 ms=5228 in=0 out=190 finish=stop
 
 REAL_MODULE_OK M11 stages=6 calls=6 failed=0
 [exit 0]

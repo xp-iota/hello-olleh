@@ -260,7 +260,7 @@ export const deliverablesDefinition: ConversationNodeDefinition<DeliverablesStat
 
 ## 9.17 `settings` 组
 
-> 📐 **配套可跑示例**：[`M11.1 · settings-cas-conflict`](../../dsh-example/M11-config-data-infrastructure/phases/01-settings-cas-conflict.ts) 走完
+> 📐 **配套可跑示例**：[`M11.1 · settings-cas-conflict`](../../dsh-example/M11-config-data-infrastructure/scenes/01-settings-cas-conflict.ts) 走完
 > 默认值 → `update` 合并 → 过期 `expectedRevision` 冲突 → `mutate` 路径编辑 → `replace({})` 重置 → 重复注册抛错。
 > 命名空间不是自由字符串，要用 `settingsNamespace('demo')` 铸一个 branded 值。
 
@@ -301,7 +301,7 @@ export const deliverablesDefinition: ConversationNodeDefinition<DeliverablesStat
 
 ## 9.20 Jobs：`ctx.jobs`
 
-> 📐 **配套可跑示例**：[`M09.1 · job-start-read-kill`](../../dsh-example/M09-long-running-orchestration/phases/01-job-start-read-kill.ts) 覆盖 JobHooks 拉模型、增量读、
+> 📐 **配套可跑示例**：[`M09.1 · job-start-read-kill`](../../dsh-example/M09-long-running-orchestration/scenes/01-job-start-read-kill.ts) 覆盖 JobHooks 拉模型、增量读、
 > `wait` 结算、属主栅栏、`kill`，以及**没有 controller 时 start 被拒**的准入。
 > 注意 `JobKind` 是封闭词表（`'bash' | 'subagent'`），`label` 必填。
 
@@ -346,7 +346,7 @@ export const deliverablesDefinition: ConversationNodeDefinition<DeliverablesStat
 
 ## 9.23 Goal：同会话目标
 
-> 📐 **配套可跑示例**：[`M09.2 · goal-cas-conflict`](../../dsh-example/M09-long-running-orchestration/phases/02-goal-cas-conflict.ts) 走完
+> 📐 **配套可跑示例**：[`M09.2 · goal-cas-conflict`](../../dsh-example/M09-long-running-orchestration/scenes/02-goal-cas-conflict.ts) 走完
 > create → pause → resume → block → complete → clear，中间演示一次过期 `GoalRef` 的 CAS 冲突；
 > 最后用会话日志里的 `goal/change` 事件数说明"状态完全折叠自日志"。
 

@@ -5,11 +5,10 @@ $ cd dsh-example && npm run M10
 > node M10-external-capabilities/run.ts
 
 
-████ M10 · 外部能力接入：知识、协议、Webhook 与动态扩展 —— 真实推理服务 模式 ████
-provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
-（离线请用 --mock，例如 `npm run M01 -- --mock`）
+████ M10 · 外部能力接入：知识、协议、Webhook 与动态扩展 ████
+provider=anthropic-compat model=fuyao-coding timeout=120000ms
 
-════════ M10.1 · 注册、发现并注入代码审查 Skill（kind=model）════════
+──── M10.1 · 注册、发现并注入代码审查 Skill ────
 ① 模型在目录里发现的 skill:
    name    = code-review-checklist | source = project-dsh | provider = runtime
    何时该用 = Use when the user asks for a code review of a diff, PR, or recent change, to give a consistent, prioritized review instead of ad-hoc nitpicking.
@@ -21,11 +20,10 @@ provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeo
    已被认领（nextStep 清空）  = true
    模型可见投影里有 skill 消息 = true (source=skill-invocation)
    其正文带清单的输出格式要求 = true
-   本轮 step 数 = 1 | mock 回复 = "结论：阻断\n[正确性] src/cart.ts:3 — 循环从 i=1 开始且条件为 i <= items.length，但用 items[i] 取值，最后一次迭代访问 items[length] 为 undefined，会抛 TypeError — 改为 i = 0; i < items.length\n[正确性] src/cart.ts:3 — 用 for 按下标遍历纯数组做求和，比原 reduce 多余且更易出错，可读性也更差 — 保留 items.reduce((sum, it) => sum + it.price * it.qty, 0)\n[安全] src/cart.ts:6 — eval('COUPONS.' + code) 会执行任意输入字符串，存在代码注入风险，且原型链属性也会被读取 — 用 COUPONS[code] ?? 0\n[正确性] src/cart.ts:6 — 即使去掉 eval，COUPONS[code] ?? 0 在 code 为 \"toString\" 等原型属性时会返回函数值而非 0，且 number 上下文中会变 NaN — 用 Object.hasOwn(COUPONS, code) ? COUPONS[code] : 0\n[风格] src/cart.ts:3 — 一行 for 内联 sum += 不带大括号且与 for 同行，违反常规格式且不利于排错 — 拆分主体行"
-REAL_STAGE_OK M10.1 kind=model provider=anthropic-compat model=MiniMax-M3 calls=1 ms=6156 in=0 out=282 finish=stop tools=- text="结论：阻断 [正确性] src/cart.ts:3 — 循环从 i=1 开始且条件为 i <= …"
+   本轮 step 数 = 1 | 模型回复 = "结论：阻断\n[正确性] src/cart.ts:3 — 循环从 `i = 1` 开始漏掉 `items[0]`，且 `i <= items.length` 会读到 `items[items.length]`（`undefined`），取 `.price` 直接抛 TypeError — 改为 `for (let i = 0; i < items.length; i++)`，或保留原 `reduce` 写法\n[安全] src/cart.ts:8 — `eval('COUPONS.' + code)` 把外部可控的 `code` 拼进 `eval`，`code` 为 `x; <任意语句>` 之类即可执行任意代码（RCE），原实现 `COUPONS[code] ?? 0` 无此问题 — 恢复下标访问，并用 `Object.prototype.hasOwnProperty.call(COUPONS, code)` 做原型链防护\n[风格] src/cart.ts:8 — 属性拼接式访问要求 `code` 是合法标识符，含 `-`、空格等正常优惠码会直接语法错误 — 用对象下标取值，不要拼接字符串"
+REAL_STAGE_OK M10.1 calls=1 ms=20879 in=0 out=952 finish=stop "结论：阻断 [正确性] src/cart.ts:3 — 循环从 `i = 1` …"
 
-════════ M10.2 · 跨进程 MCP：真实成功往返与明确拒绝（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M10.2"
+──── M10.2 · 跨进程 MCP：真实成功往返与明确拒绝 ────
 ① 实际成功：拉起真实 MCP stdio server，并同步它的工具
    模型可见的 MCP 工具: [ 'mcp__local_word_count__mcp_word_count' ]
    tools/call 真实往返: 5 词 / 34 字符（来自 MCP server 进程）
@@ -38,10 +36,9 @@ REAL_STAGE_OK M10.1 kind=model provider=anthropic-compat model=MiniMax-M3 calls=
   failLoud: true,
   reason: 'mcp-client(offline_missing): initial connection or tool synchronization failed'
 }
-REAL_STAGE_OK M10.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=704 in=0 out=9 finish=stop tools=- text="装配链已连通 M10.2"
+REAL_STAGE_OK M10.2 calls=1 ms=1757 in=0 out=107 finish=stop
 
-════════ M10.3 · 检查 Webhook Host-plane 组合边界（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M10.3"
+──── M10.3 · 检查 Webhook Host-plane 组合边界 ────
 webhookRuntime boundary: {
   required: [
     'agents',
@@ -61,10 +58,9 @@ webhookRuntime boundary: {
   loaded: false,
   reason: 'Host-plane dependencies stay explicit in an offline teaching profile'
 }
-REAL_STAGE_OK M10.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=988 in=0 out=9 finish=stop tools=- text="装配链已连通 M10.3"
+REAL_STAGE_OK M10.3 calls=1 ms=6314 in=0 out=150 finish=stop
 
-════════ M10.4 · 装配动态 Cordis 扩展工具（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M10.4"
+──── M10.4 · 装配动态 Cordis 扩展工具 ────
 extensions: {
   dynamicRunner: 'DynamicCordisRunnerService',
   inspectRegistry: 'CordisInspectRegistryService',
@@ -78,98 +74,85 @@ extensions: {
     'cordis_undefine'
   ]
 }
-REAL_STAGE_OK M10.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=948 in=0 out=9 finish=stop tools=- text="装配链已连通 M10.4"
+REAL_STAGE_OK M10.4 calls=1 ms=20398 in=0 out=46 finish=stop
 
-════════ M10.5 · 配置 Webhook 所需默认模型路由（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M10.5"
-agentDefaultModel: { provider: 'mock', model: 'mock-1' }
-REAL_STAGE_OK M10.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=3004 in=0 out=9 finish=stop tools=- text="装配链已连通 M10.5"
+──── M10.5 · 配置 Webhook 所需默认模型路由 ────
+agentDefaultModel: { provider: 'anthropic-compat', model: 'fuyao-coding' }
+REAL_STAGE_OK M10.5 calls=1 ms=2685 in=0 out=78 finish=stop
 
-════════ M10.d · 专项真实演示：注入 SKILL.md 前后的真实作答对照（kind=model）════════
-目标模型: anthropic-compat / MiniMax-M3 （真实 HTTP + SSE）
+──── M10.d · 专项真实演示：注入 SKILL.md 前后的真实作答对照 ────
+目标模型: anthropic-compat / fuyao-coding （真实 HTTP + SSE）
 
 ① A 组：不注入 skill
-   这段改动有两个比较严重的问题，都**不建议合并**：
+   ## Review
 
-   ---
+   Both changes are regressions. I'd block this PR.
 
-   ## 1. `total()`：循环边界错了 + 越界访问
+   ### `total()` — off-by-one + out-of-bounds crash
 
    ```ts
-   let sum = 0
    for (let i = 1; i <= items.length; i++) sum += items[i].price * items[i].qty
    ```
 
-   - **起始索引错误**：数组下标从 `0` 开始，`i = 1` 会漏掉第一件商品。
-   - **循环条件错误**：`i <= items.length` 会让最后一次循环访问 `items[items.length]`，即 `undefined`，运行时会抛 `TypeError: Cannot read properties of undefined`。
-   - 即使修好边界，`for` + `items[i]` 比原来的 `reduce` 还要冗长，可读性没有提升。
+   Two bugs in one line:
 
-   **建议：直接还原 `reduce` 版本。**
+   1. **Starts at `i = 1`** — `items[0]` is never counted, so the first item is silently dropped from the total.
+   2. **Runs to `i <= items.length`** — the last iteration reads `items[items.length]`, which is `undefined`. `undefined.price` throws `TypeError`.
 
-   ```ts
-   return items.reduce((sum, it) => sum + it.price * it.qty, 0)
-   ```
-
-   如果只是为了规避 `reduce` 的一些争议风格，可以写成：
+   Net effect: for any non-empty cart this function **throws**, so it's not even "wrong total", it's broken. It also produces a wrong result rather than failing loudly for an empty array? No — empty is the only case that works, returning `0`.
 
    ```ts
-   let sum = 0
-   for (const it of items) sum += it.price * it.qty
-   return sum
+   for (let i = 0; i < items.length; i++) sum += items[i].price * items[i].qty
    ```
 
-   ---
+   Even fixed, the rewrite has no upside over the original `reduce` — it's just longer. Unless there's a measured perf reason, revert.
 
-   ## 2. `applyCoupon()`：引入了 `eval`，安全风险极高
+   ### `applyCoupon()` — `eval` on a lookup table
 
    ```ts
    return eval('COUPONS.' + code) ?? 0
    ```
 
-   - **任意代码执行**：`code` 来源不可控（用户输入？URL 参数？），攻击者传入 `code = "x; process.exit(1)"` 或 `code = "; require('fs').unlinkSync('/')"` 就能在服务器上执行任意 JS。
-   - **作用域不可见**：`COUPONS` 是模块私有变量，字符串拼出来的 `'COUPONS.x'` 在 `eval` 里其实**也访问不到** `COUPONS`（`eval` 不会自动捕获外层局部变量，除非用间接 `eval` / `(0, eval)`），所以这个改动**功能上也是坏的**。
-   - **绕过所有 lint/类型检查**。
+   Three problems, in order of seriousness:
 
-   **建议：还原成 `COUPONS[code] ?? 0`，如果担心原型污染，可以加白名单：**
+   1. **Code injection.** `eval` with a string built from `code` executes whatever is passed in. The `COUPONS.` prefix is not a sandbox: `code = "x; doEvil()"` parses as `COUPONS.x; doEvil()`. If `code` is ever user-supplied (it's a coupon field — it is), this is RCE. Fails `no-eval` lint rules too.
+   2. **Changes behavior for non-identifier codes.** Coupon codes like `"SAVE-10"` become `COUPONS.SAVE-10`, i.e. `COUPONS.SAVE - 10` → `NaN` (not `0`), because `??` doesn't catch `NaN`. Bracket access handled these correctly; dotted access can't represent them at all.
+   3. **Prototype access.** `COUPONS.constructor` / `__proto__` / `toString` return inherited values instead of `0`.
+
+   Revert to:
 
    ```ts
+   return COUPONS[code] ?? 0
+   ```
+
+   If you want to harden the original (the inherited-prop issue is real there too), use `Object.hasOwn(COUPONS, code)` or make `COUPONS` a `Map`.
+
+   ### Suggested diff
+
+   ```ts
+   export function total(items: Item[]): number {
+     return items.reduce((sum, it) => sum + it.price * it.qty, 0)
+   }
+
    export function applyCoupon(code: string): number {
-     const allowed = ['SAVE10', 'FREESHIP'] as const
-     if (!(allowed as readonly string[]).includes(code)) return 0
      return COUPONS[code] ?? 0
    }
    ```
 
-   或者更通用一点：
+   ### Also
 
-   ```ts
-   export function applyCoupon(code: string): number {
-     if (!Object.prototype.hasOwnProperty.call(COUPONS, code)) return 0
-     return COUPONS[code]
-   }
-   ```
+   There are clearly no tests covering these two paths, or this wouldn't have landed. Worth adding cases for: empty cart, single item, unknown coupon, and hyphenated coupon code.
 
-   ---
-
-   ## 总结
-
-   | 改动 | 问题 | 建议 |
-   |---|---|---|
-   | `total` 改用 for 循环 | 下标越界 + 漏元素 | 回退 `reduce` 或用 `for...of` |
-   | `applyCoupon` 用 `eval` | 安全漏洞 + 功能也是坏的 | 回退 `COUPONS[code] ?? 0`，必要时加白名单 |
-
-   要我帮你写一版修复后的 diff 吗？
+   Want me to apply the revert and add those tests?
    → 第一行是结论 = false | 清单条目数 = 0
 
 ② B 组：注入 SKILL.md 正文（同一段 diff、同一句请求）
    结论：阻断
-   [正确性] src/cart.ts:3 — 循环从 `i = 1` 开始且条件为 `i <= items.length`，最后一个元素 `items[items.length]` 为 `undefined`，读取 `.price` 会抛 `TypeError`；且索引方式改变了原 `reduce` 累加顺序与语义，应改回 0 基 `i < items.length`。
-   [正确性] src/cart.ts:5 — 使用 `eval` 执行拼接字符串以访问 `COUPONS[code]`，若 `code` 含 `') ; …` 等可成为可执行语句，导致运行任意代码并抛错或行为异常；应改回 `COUPONS[code] ?? 0`。
-   [安全] src/cart.ts:5 — `eval` 引入 RCE 风险，且 `code` 来源未校验，攻击者可注入任意 JS 执行，必须移除。
-   [风格] src/cart.ts:3 — `for` 循环中 `sum +=` 与 `i++` 未加分号，且循环变量与累加混合在一行，可读性下降；建议拆分并保持原 `reduce` 写法。
-   → 第一行是结论 = true | 清单条目数 = 4
-   → 严重性顺序 = ["正确性","正确性","安全","风格"]
-REAL_STAGE_OK M10.d kind=model provider=anthropic-compat model=MiniMax-M3 calls=2 ms=16507 in=0 out=898 finish=stop tools=- text="结论：阻断 [正确性] src/cart.ts:3 — 循环从 `i = 1` 开始且条件为 `…"
+   [正确性] src/cart.ts:3 — 循环从 i=1 起且条件为 i<=items.length：跳过 items[0]，并在 i==items.length 时访问 undefined，导致结果少算首项且末次迭代抛 TypeError/产出 NaN — 改为 for (let i = 0; i < items.length; i++)，或直接保留原 reduce 写法
+   [安全] src/cart.ts:8 — eval('COUPONS.' + code) 将外部输入拼入执行代码，可被构造为任意代码执行（如 code = "x; process.exit()" 之类） — 恢复 COUPONS[code] ?? 0，如需限制取值则用白名单/自有属性校验（Object.prototype.hasOwnProperty）
+   → 第一行是结论 = true | 清单条目数 = 2
+   → 严重性顺序 = ["正确性","安全"]
+REAL_STAGE_OK M10.d calls=2 ms=34665 in=0 out=2159 finish=stop "结论：阻断 [正确性] src/cart.ts:3 — 循环从 i=1 起且条件…"
 
 REAL_MODULE_OK M10 stages=6 calls=7 failed=0
 [exit 0]

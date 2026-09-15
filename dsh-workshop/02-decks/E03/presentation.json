@@ -70,8 +70,8 @@
         "协议检查: finish 是最后一个 = true",
         "协议检查: delta 的 index 都有 block-start = true",
         "协议检查: 有 usage 载荷 = true",
-        "REAL_STAGE_OK M03.d kind=model provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2876 in=0 out=34 finish=stop tools=- text=\"DeepSeek Harness 通过统一接口和模块化设计，将多家 LLM 的能力封装为可灵活调…\"",
-        "REAL_MODULE_OK M03 stages=3 calls=3 failed=0",
+        "REAL_STAGE_OK M03.d calls=1 ms=10606 in=0 out=848 finish=stop \"DeepSeek Harness 的 LLM 能力缝是其在框架与具体大语言模型之…\"",
+        "REAL_MODULE_OK M03 stages=2 calls=3 failed=0",
         "[exit 0]"
       ]
     },

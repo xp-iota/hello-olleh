@@ -122,7 +122,7 @@ title: "cordis 源代码全面分析（中文）"
 |---|---|---|
 | Context / 插件装配 | [`cordis.yml`](../../dsh-example/cordis.yml)、[`M12 · cordis-timer`](../../dsh-example/M12-framework-mechanisms/README.md) | 配置树如何挂插件、插件卸载时如何回收 effect |
 | Fiber / 可逆副作用 | [`M12 · cordis-timer`](../../dsh-example/M12-framework-mechanisms/README.md) | 定时器作为 effect 注册，Fiber 卸载后不再继续触发 |
-| Service / 依赖与作用域 | [`M03 · llm-adapter`](../../dsh-example/M03-inference-service-access/README.md)、[`M01 · tool-restrict`](../../dsh-example/M01-tool-pipeline/README.md) | Provider 注入、Consumer 解析、scope 限制 |
+| Service / 依赖与作用域 | [`M03 · 推理服务接入`](../../dsh-example/M03-inference-service-access/README.md)、[`M01 · tool-restrict`](../../dsh-example/M01-tool-pipeline/README.md) | Provider 注入、Consumer 解析、scope 限制 |
 | Events / waterfall | [`M12 · dispatch-modes`](../../dsh-example/M12-framework-mechanisms/README.md)、[`M03 · llm-stream`](../../dsh-example/M03-inference-service-access/README.md) | 五种派发模式与 waterfall 包装链 |
 | 生命周期 / 清理 | [`M04 · hooks-lifecycle-steering`](../../dsh-example/M04-agent-loop-intervention/README.md)、[`M12 · cordis-timer`](../../dsh-example/M12-framework-mechanisms/README.md) | 监听器与定时器随插件生命周期撤销 |
 

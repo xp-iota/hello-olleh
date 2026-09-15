@@ -27,10 +27,9 @@ title: "请求管线：LLM、工具与 SystemPrompt"
 
 ## 7.2 `LlmAdapter`：只有一个必需方法
 
-> 📐 **配套可跑示例**：[`M03.1 · llm-adapter`](../../dsh-example/M03-inference-service-access/steps/01-llm-adapter.ts) 只实现这一个方法就接上了整条链；
-> [`runtime/llm-minimax.ts`](../../dsh-example/runtime/llm-minimax.ts) 是同一个抽象类的真实 HTTP/SSE 实现
-> （MiniMax 的 Anthropic 兼容端点 → 同一份 StreamChunk 协议）；`npm run M03`
-> 用同一个消费循环消费真实 `anthropic-compat` 路由。
+> 📐 **配套可跑示例**：[`AnthropicCompatAdapter`](../../dsh-example/runtime/llm.ts) 只实现 `stream()` 这一个方法就接上了整条链
+> （MiniMax / Fuyao 的 Anthropic 兼容端点 → 同一份 StreamChunk 协议）；`npm run M03`
+> 用同一个消费循环消费 `anthropic-compat` 路由。
 
 
 `L/index.ts:180-233` 是抽象基类，**只有 `stream()` 是 abstract**，其余四个都有默认实现：
@@ -51,7 +50,7 @@ title: "请求管线：LLM、工具与 SystemPrompt"
 
 ## 7.3 `llm/stream`：waterfall 接缝
 
-> 📐 **配套可跑示例**：[`M03.2 · llm-stream`](../../dsh-example/M03-inference-service-access/steps/02-llm-stream.ts) 注册两个监听器包在真实适配器外层 ——
+> 📐 **配套可跑示例**：[`M03.2 · llm-stream`](../../dsh-example/M03-inference-service-access/impl/02-llm-stream.ts) 注册两个监听器包在真实适配器外层 ——
 > 外层改写 `text-delta`、内层统计 chunk 与 usage：
 >
 > ```ts
@@ -206,7 +205,7 @@ const replayState = assembler.replayState // → 可选的回放状态
 
 ## 7.10 `ToolDefinition`：工具的契约
 
-> 📐 **配套可跑示例**：[`M01.1 · tool-wordcount`](../../dsh-example/M01-tool-pipeline/steps/01-word-count.ts) 是这份契约的最小实现。
+> 📐 **配套可跑示例**：[`M01.1 · tool-wordcount`](../../dsh-example/M01-tool-pipeline/impl/01-word-count.ts) 是这份契约的最小实现。
 > 两个真实 DSL 硬要求容易踩：object 型 `output.schema` **必须**显式写 `additionalProperties`，
 > 必填字段写在**每个 property 上**（`required: true`），不是 JSON Schema 的 `required` 数组 ——
 > 写错在 `defineTool` 就抛 `JsonSchemaError`。
@@ -244,9 +243,9 @@ context => this.inbox.splice('next-step', this.inbox.nextStep.length, 0, [contex
 ## 7.11 三段 waterfall
 
 > 📐 **配套可跑示例**：三段各有一个示例 ——
-> pre-execute → [M01.2 · 权限门](../../dsh-example/M01-tool-pipeline/steps/02-permission-gate.ts)（返回 `deny` / `ask`）、
-> post-execute + result → [M01.3 · 结果转换与审计](../../dsh-example/M01-tool-pipeline/steps/03-result-transform.ts)、
-> 以及 pre-execute **之后**仍无法翻案的 [M01.5 · 单调守卫](../../dsh-example/M01-tool-pipeline/steps/05-tool-guard.ts)。
+> pre-execute → [M01.2 · 权限门](../../dsh-example/M01-tool-pipeline/impl/02-permission-gate.ts)（返回 `deny` / `ask`）、
+> post-execute + result → [M01.3 · 结果转换与审计](../../dsh-example/M01-tool-pipeline/impl/03-result-transform.ts)、
+> 以及 pre-execute **之后**仍无法被推翻的 [M01.5 · 单调守卫](../../dsh-example/M01-tool-pipeline/impl/05-tool-guard.ts)。
 
 
 `T/index.ts:152` / `:163` / `:175`，`this` 类型统一是 `Scoped<ToolRuntime>`。
@@ -328,7 +327,7 @@ JSON 解析失败**不抛错，而是把原始字符串当作参数传下去**�
 
 ## 7.14 `ToolRuntime`：注册表
 
-> 📐 **配套可跑示例**：[`M01.4 · narrow-visible-set`](../../dsh-example/M01-tool-pipeline/phases/04-narrow-visible-set.ts) 验证"展示 / 查找 / 执行三者对齐"——
+> 📐 **配套可跑示例**：[`M01.4 · narrow-visible-set`](../../dsh-example/M01-tool-pipeline/scenes/04-narrow-visible-set.ts) 验证"展示 / 查找 / 执行三者对齐"——
 > 被收紧掉的工具在 `schemas(scope)` 里消失，调用它直接得到 `unknown tool "write"`。
 
 
@@ -408,8 +407,8 @@ JSON 解析失败**不抛错，而是把原始字符串当作参数传下去**�
 
 ## 7.18 四种可注册的东西
 
-> 📐 **配套可跑示例**：section → [M02.1 · 提示段](../../dsh-example/M02-context-assembly-economics/steps/01-prompt-section.ts)，
-> variable + 整段 assemble → [M02.2 · 提示变量与装配](../../dsh-example/M02-context-assembly-economics/steps/02-prompt-variable-assemble.ts)。
+> 📐 **配套可跑示例**：section → [M02.1 · 提示段](../../dsh-example/M02-context-assembly-economics/impl/01-prompt-section.ts)，
+> variable + 整段 assemble → [M02.2 · 提示变量与装配](../../dsh-example/M02-context-assembly-economics/impl/02-prompt-variable-assemble.ts)。
 > 注意真实占位语法是 `{{name}}`，插值发生在 `renderPrompt(assembly)` 而不是 `assemble()`；
 > 引用未注册的变量、或 provider 返回 `undefined`，都会让 `renderPrompt` **抛错**。
 
@@ -570,7 +569,7 @@ return this.layers.effect(
 
 ## 7.26 `system-prompt/assemble` waterfall
 
-> 📐 **配套可跑示例**：[`M02.2 · prompt-variable-assemble`](../../dsh-example/M02-context-assembly-economics/steps/02-prompt-variable-assemble.ts) 的钩子演示了正确的包装写法 ——
+> 📐 **配套可跑示例**：[`M02.2 · prompt-variable-assemble`](../../dsh-example/M02-context-assembly-economics/impl/02-prompt-variable-assemble.ts) 的钩子演示了正确的包装写法 ——
 > 先 `await next()` 拿到下游装配体，再往 `sections` 里插一段，**不要**把装配体拍平成字符串：
 >
 > ```ts

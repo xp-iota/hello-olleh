@@ -20,8 +20,8 @@ stale_after: 2026-12-31T00:00:00Z
 ---
 # graphify 对 dsh-example 的建图结果
 
-本条目是本知识包**所有结构性断言的唯一数字来源**。任何引用这些数字的概念都应链回这里，
-而不是各自另做估算。生成图位于 gitignored 的 `graphify-out/dsh-example/graph.json`，不入库。
+本页记录扫描范围、图谱指标、关系类型和重建命令。生成图位于
+`graphify-out/dsh-example/graph.json`，该目录已加入 git 忽略规则。
 
 ## 测量值
 
@@ -67,12 +67,12 @@ stale_after: 2026-12-31T00:00:00Z
 | `createHarness()` | 66 | `dsh-example/runtime/harness.ts` L136 |
 | `userText()` | 10 | `dsh-example/runtime/harness.ts` L250 |
 | `Harness`（接口） | 8 | `dsh-example/runtime/harness.ts` L105 |
-| `DemoCompactionEngine` | 7 | `dsh-example/M02-context-assembly-economics/steps/03-compaction-provider.ts` L41 |
+| `DemoCompactionEngine` | 7 | `dsh-example/M02-context-assembly-economics/impl/03-compaction-provider.ts` L41 |
 
 `createHarness` 只匹配到一个节点。它的 66 度由 **62 条入边 + 4 条出边**组成：
 
 - 62 条入边：59 条 `imports`、2 条 `calls`、1 条定义归属的 `contains`；全部是 `EXTRACTED`。
-- 4 条出边：调用 `MinimaxAnthropicAdapter`、`MockAdapter`、`entryOf` 与 `Harness.loadPlugin`；全部是 `EXTRACTED`。
+- 4 条出边：调用真实 provider 适配器、`entryOf` 与 `Harness.loadPlugin` 等内部符号；全部是 `EXTRACTED`。
 
 因此，“唯一装配枢纽”是可由图复算的结构事实；但不能把 62 条入边简化成“12 个模块各一条”，
 因为每个 phase、真实 provider 路径和测试文件都会独立形成依赖边。
@@ -84,7 +84,7 @@ stale_after: 2026-12-31T00:00:00Z
 | 来源 | 目标 | 关系 | 位置 |
 |:-----|:-----|:-----|:-----|
 | `collect()` | `MinimaxAnthropicAdapter.stream()` | `calls` | `runtime/llm-minimax.test.ts` L14 |
-| `M05 phases/01-session-log.ts` | `describe()` | `indirect_call` | `M05-session-surface/phases/01-check-log-invariants.ts` L32 |
+| `M05 scenes/01-session-log.ts` | `describe()` | `indirect_call` | `M05-session-surface/scenes/01-check-log-invariants.ts` L32 |
 | `MinimaxAnthropicAdapter.stream()` | `toAnthropicTool()` | `indirect_call` | `runtime/llm-minimax.ts` L221 |
 | `MinimaxAnthropicAdapter.stream()` | `toAnthropicMessage()` | `indirect_call` | `runtime/llm-minimax.ts` L224 |
 | `toAnthropicMessage()` | `toAnthropicNestedBlock()` | `indirect_call` | `runtime/llm-minimax.ts` L163 |

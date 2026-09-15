@@ -128,7 +128,7 @@ BLOCKS = [
 > {MARK}：三段各有一个示例 ——
 > pre-execute → [M01.2 · 权限门]({EX}/M01-tool-pipeline/steps/02-permission-gate.ts)（返回 `deny` / `ask`）、
 > post-execute + result → [M01.3 · 结果转换与审计]({EX}/M01-tool-pipeline/steps/03-result-transform.ts)、
-> 以及 pre-execute **之后**仍无法翻案的 [M01.5 · 单调守卫]({EX}/M01-tool-pipeline/steps/05-tool-guard.ts)。
+> 以及 pre-execute **之后**仍无法被推翻的 [M01.5 · 单调守卫]({EX}/M01-tool-pipeline/impl/05-tool-guard.ts)。
 """),
     ('07-请求管线-LLM工具与提示.md', '7.14', f"""
 > {MARK}：[`M01.4 · narrow-visible-set`]({EX}/M01-tool-pipeline/phases/04-narrow-visible-set.ts) 验证"展示 / 查找 / 执行三者对齐"——

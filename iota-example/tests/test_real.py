@@ -1,7 +1,7 @@
 """Real-kernel assembly tests that never touch the network.
 
-They pin the three properties that make ``--real`` trustworthy:
-its configuration fails loud, it never falls back to echo, and its evidence carries no secret.
+They pin the properties that make a run trustworthy: its configuration fails loud, the kernel
+is always the Anthropic-compatible one, and its evidence carries no secret.
 """
 
 from __future__ import annotations
@@ -41,9 +41,9 @@ def without_credentials() -> Iterator[None]:
 
 
 def test_provider_selection_is_explicit() -> None:
-    assert PROVIDERS == ("echo", "anthropic-compat")
-    assert selected_provider("echo") == "echo"
+    assert PROVIDERS == ("anthropic-compat",)
     assert selected_provider("anthropic-compat") == "anthropic-compat"
+    assert selected_provider() == "anthropic-compat"
     with pytest.raises(KernelUnavailable, match="未知 IOTA_PROVIDER"):
         selected_provider("gpt-please")
 
@@ -54,12 +54,12 @@ def test_missing_credentials_fail_loud_with_config_source() -> None:
     message = str(excinfo.value)
     assert "LLM_API_KEY" in message
     assert ".env" in message
-    assert "不会退回 EchoKernelAdapter" in message
+    assert "没有任何替代" in message or "没有配置就没有内核" in message
 
 
-async def test_real_provider_never_falls_back_to_echo() -> None:
+async def test_assembly_without_a_kernel_raises() -> None:
     with without_credentials(), pytest.raises(KernelUnavailable):
-        await create_harness("anthropic-compat")
+        await create_harness()
 
 
 def test_expected_anthropic_variables_reach_the_kernel() -> None:
@@ -158,15 +158,6 @@ def test_build_adapter_passes_fuyao_thinking_guards(
     assert env["DISABLE_INTERLEAVED_THINKING"] == "1"
 
 
-def test_offline_harness_needs_no_credentials() -> None:
-    async def run() -> str:
-        with without_credentials():
-            harness = await create_harness("echo")
-            try:
-                return harness.kernel
-            finally:
-                await harness.close()
-
-    import asyncio
-
-    assert asyncio.run(run()) == "echo"
+def test_unknown_provider_is_rejected_before_assembly() -> None:
+    with pytest.raises(KernelUnavailable, match="没有可切换的本地替代实现"):
+        selected_provider("echo")

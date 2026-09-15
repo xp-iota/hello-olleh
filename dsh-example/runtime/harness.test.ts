@@ -1,10 +1,13 @@
 /**
- * harness.test.ts —— 对**真实 dsh SDK**的冒烟测试（`npm test`，离线）。
+ * harness.test.ts —— 对**真实 dsh SDK**的冒烟测试（`npm test`）。
  *
  * 它守的不是 mini 运行时的契约（那套东西已经删掉了），而是三件事：
  *   1. 真实 core 服务能按依赖顺序全部装配起来；
  *   2. 真实 agent-loop 能跑完一个 turn，并按 dsh 的顺序把事件写进会话日志；
  *   3. 会话日志的核心不变量成立（seq 连续、深冻结、surface 只投影三类消息事件）。
+ *
+ * 装配与 turn 都需要真实 provider 配置（`createHarness` 缺 `LLM_API_KEY` 会立即失败），
+ * 所以这里按是否有密钥决定 skip —— 不引入任何本地 stub 适配器。
  */
 import assert from 'node:assert/strict'
 import test from 'node:test'
@@ -18,7 +21,10 @@ import {
   sample,
 } from './harness.ts'
 
-test('真实 core 服务全部装配', async () => {
+/** 无密钥时跳过需要真实 provider 配置的用例；不做任何静默降级。 */
+const noKey = process.env.LLM_API_KEY ? false : '缺少 LLM_API_KEY'
+
+test('真实 core 服务全部装配', { skip: noKey }, async () => {
   const harness = await createHarness()
   try {
     for (const name of ['sessions', 'systemPrompt', 'llm', 'approval', 'tools', 'commands', 'skills', 'subagents', 'fs', 'subprocess', 'shell', 'jobs', 'agents', 'goals', 'agentLoop', 'settings'] as const) {
@@ -32,12 +38,12 @@ test('真实 core 服务全部装配', async () => {
   }
 })
 
-test('真实 agent-loop 跑完一个 turn 并按序落日志', async () => {
-  const harness = await createHarness({ reply: 'pong' })
+test('真实 agent-loop 跑完一个 turn 并按序落日志', { skip: noKey }, async () => {
+  const harness = await createHarness()
   try {
     const { text, steps, session } = await harness.runTurn({ prompt: 'ping' })
-    assert.equal(text, 'pong')
-    assert.equal(steps, 1)
+    assert.ok(text.trim() !== '', '真实模型应当返回非空文本')
+    assert.ok(steps >= 1)
 
     const types = session.snapshotEvents().map((event) => event.type)
     for (const expected of ['turn/start', 'step/start', 'user/message', 'assistant/message', 'step/end', 'turn/end'] as const) {
@@ -51,7 +57,7 @@ test('真实 agent-loop 跑完一个 turn 并按序落日志', async () => {
   }
 })
 
-test('会话日志不变量：seq 连续 + 深冻结 + surface 只投影消息事件', async () => {
+test('会话日志不变量：seq 连续 + 深冻结 + surface 只投影消息事件', { skip: noKey }, async () => {
   const harness = await createHarness()
   try {
     const { session } = await harness.runTurn({ prompt: 'ping' })
@@ -70,7 +76,7 @@ test('会话日志不变量：seq 连续 + 深冻结 + surface 只投影消息�
   }
 })
 
-test('工具管线：注册 → 执行 → effect 反注册', async () => {
+test('工具管线：注册 → 执行 → effect 反注册', { skip: noKey }, async () => {
   const harness = await createHarness()
   try {
     const seed = { name: 'seed', inject: ['tools'], apply: (ctx: any) => { ctx.tools.register(demoTool('echo')) } }
@@ -114,7 +120,7 @@ test('缺少密钥时 realConfig 立即失败并指出配置来源', () => {
     let message = ''
     try {
       // 清缓存的唯一方式是在未配置密钥的进程里首次调用；测试进程已加载 .env 时跳过断言主体，
-      // 但仍要求实现明确提到 .env 与变量名，避免"静默退回 mock"。
+      // 但仍要求实现明确提到 .env 与变量名 —— 缺配置必须给出可操作的指引，而不是静默降级。
       realConfig()
     } catch (error) {
       message = (error as Error).message

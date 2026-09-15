@@ -5,17 +5,15 @@ $ cd dsh-example && npm run M07
 > node M07-execution-backends/run.ts
 
 
-████ M07 · 执行侧后端：I/O、进程与沙箱边界 —— 真实推理服务 模式 ████
-provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
-（离线请用 --mock，例如 `npm run M01 -- --mock`）
+████ M07 · 执行侧后端：I/O、进程与沙箱边界 ████
+provider=anthropic-compat model=fuyao-coding timeout=120000ms
 
-════════ M07.1 · 通过 fs/subprocess seam 执行副作用（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M07.1"
+──── M07.1 · 通过 fs/subprocess seam 执行副作用 ────
 ① 已注册模型可见工具: [ 'write_note', 'run_cmd' ]
    seam 后端: LocalFileSystem / LocalSubprocessRuntime
 
 ----- ② write_note：经 ctx.fs seam 真实写盘 -----
-    isError=false, 成功 | render: 已写入 /tmp/dsh-example-16-1789382240096.txt（53 字节）
+    isError=false, 成功 | render: 已写入 /tmp/dsh-example-16-1789453194823.txt（53 字节）
 
 ----- ③ 用同一个 seam 读回，验证真的落盘 -----
    读回内容: "hello from the fs seam\n第二行：中文也没问题"
@@ -27,19 +25,18 @@ provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeo
     isError=true, code=ABORTED_BEFORE_DISPATCH
     render: Error: tool call aborted before dispatch
     文件内容仍是: "hello from the fs seam\n第二行：中文也没问题"
-    注意 code = ABORTED_BEFORE_DISPATCH：steps/01-fs-shell-side-effects.ts 里那句 `signal.aborted` 守卫
+    注意 code = ABORTED_BEFORE_DISPATCH：impl/01-fs-shell-side-effects.ts 里那句 `signal.aborted` 守卫
     在这条路径上是够不着的 —— 注册表在调用工具主体之前就已经返回了。
 
 ----- ⑤b 派发后取消：主体已启动，被中止并收敛（code 不同） -----
     isError=true, code=ABORTED
-    耗时: 316 ms（子进程本身要跑 5000ms）
+    耗时: 312 ms（子进程本身要跑 5000ms）
     子进程被提前掐掉了，而不是等它自然跑完。
 
-⑥ 清理：演示文件已删除 = /tmp/dsh-example-16-1789382240096.txt
-REAL_STAGE_OK M07.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1115 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.1"
+⑥ 清理：演示文件已删除 = /tmp/dsh-example-16-1789453194823.txt
+REAL_STAGE_OK M07.1 calls=1 ms=1309 in=0 out=109 finish=stop
 
-════════ M07.2 · 消费 shell 的 run/start 双形态（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M07.2"
+──── M07.2 · 消费 shell 的 run/start 双形态 ────
 [shell-service] shell seam 可用: LocalBashExecutor | sandboxMode = (未装沙箱)
 
 ① resolve：补默认值并夹紧上限（请求 999_999ms）
@@ -62,10 +59,9 @@ REAL_STAGE_OK M07.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 ca
 
 ⑥ kill 幂等：对已结束的进程再 kill
    kill() → false | 再 kill() → false
-REAL_STAGE_OK M07.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1112 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.2"
+REAL_STAGE_OK M07.2 calls=1 ms=7848 in=0 out=63 finish=stop
 
-════════ M07.3 · 用 sandbox provider 强制策略（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M07.3"
+──── M07.3 · 用 sandbox provider 强制策略 ────
 [sandbox] 已装载 WrapSandbox（enforcement=full）
 ① 调用方给出的策略: {"mode":"workspace-write","workspaceRoot":"<repo>/dsh-example"}
 
@@ -87,25 +83,23 @@ REAL_STAGE_OK M07.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 ca
 
 ⑥ 最后卸掉 RefuseSandbox → seam 回到未装
    ctx.sandbox = undefined
-REAL_STAGE_OK M07.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=10940 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.3"
+REAL_STAGE_OK M07.3 calls=1 ms=1773 in=0 out=219 finish=stop
 
-════════ M07.4 · 观察 terminal backend 注册边界（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M07.4"
+──── M07.4 · 观察 terminal backend 注册边界 ────
 terminals: {
   backends: [],
   rejection: { name: 'TerminalError', code: 'NO_BACKEND' },
   nativeBackendSkipped: 'npm install scripts were not approved'
 }
-REAL_STAGE_OK M07.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1428 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.4"
+REAL_STAGE_OK M07.4 calls=1 ms=7352 in=0 out=597 finish=stop
 
-════════ M07.5 · 解析共享 sandbox policy（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M07.5"
+──── M07.5 · 解析共享 sandbox policy ────
 sandboxPolicy: {
   default: 'read-only',
   sessionOverride: 'workspace-write',
   workspaceRoot: '<repo>/dsh-example'
 }
-REAL_STAGE_OK M07.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=924 in=0 out=9 finish=stop tools=- text="装配链已连通 M07.5"
+REAL_STAGE_OK M07.5 calls=1 ms=9538 in=0 out=109 finish=stop
 
 REAL_MODULE_OK M07 stages=5 calls=5 failed=0
 [exit 0]

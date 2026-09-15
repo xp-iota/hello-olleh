@@ -1,6 +1,6 @@
-"""Shared runtime package for the offline iota modules."""
+"""Shared runtime package for the iota-example modules."""
 
 import logging
 
-# Optional kernel integrations may be absent in the offline environment.
+# Optional kernel integrations may be absent in a minimal environment.
 logging.disable(logging.CRITICAL)

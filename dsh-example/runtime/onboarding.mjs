@@ -6,25 +6,25 @@ const projectRoot = fileURLToPath(new URL('..', import.meta.url))
 const lessons = [
   {
     id: 'M01', title: '工具管线', goal: '看懂工具从注册、披露、裁决到结果变换的完整链路',
-    entry: 'M01-tool-pipeline/run.ts', source: 'M01-tool-pipeline/steps/01-word-count.ts',
+    entry: 'M01-tool-pipeline/run.ts', source: 'M01-tool-pipeline/impl/01-word-count.ts',
     observe: ['Fiber dispose 后注册怎样消失', 'restrict、gate、guard 各控制哪一层', 'canonical value 与模型可见 content 怎样分离'],
     takeaway: '工具扩展由多个正交控制面组合，不需要改 AgentLoop。', next: '继续 M02，理解模型上下文怎样装配和压缩。',
   },
   {
     id: 'M02', title: '上下文装配与经济学', goal: '理解 section、variable、assembly 与 compaction 的连续生命周期',
-    entry: 'M02-context-assembly-economics/run.ts', source: 'M02-context-assembly-economics/steps/01-prompt-section.ts',
+    entry: 'M02-context-assembly-economics/run.ts', source: 'M02-context-assembly-economics/impl/01-prompt-section.ts',
     observe: ['Prompt section 怎样排序', '变量和 waterfall 怎样改结构化 assembly', '压缩为什么追加检查点而不删除日志'],
     takeaway: '上下文是结构化投影，不是一个不断增长的大字符串。', next: '继续 M03，观察推理 Provider 和流中间件。',
   },
   {
     id: 'M03', title: '推理服务接入', goal: '区分 Provider seam、StreamChunk Consumer 与 llm/stream 中间件',
-    entry: 'M03-inference-service-access/run.ts', source: 'M03-inference-service-access/steps/01-llm-adapter.ts',
+    entry: 'M03-inference-service-access/run.ts', source: 'M03-inference-service-access/impl/02-llm-stream.ts',
     observe: ['具名 provider 路由怎样注册', '统一 chunk 协议包含哪些不变量', 'waterfall 怎样包装而不替换后端'],
     takeaway: '后端、流中间件和 Consumer 分离后，业务代码不依赖供应商。', next: '真实模式默认就是 npm run M03；或继续 M04 看 AgentLoop。',
   },
   {
     id: 'M04', title: 'Agent 循环与干预面', goal: '从事件边界理解循环，并通过 inbox/steer 做非侵入干预',
-    entry: 'M04-agent-loop-intervention/run.ts', source: 'M04-agent-loop-intervention/steps/01-agent-events-telemetry.ts',
+    entry: 'M04-agent-loop-intervention/run.ts', source: 'M04-agent-loop-intervention/impl/01-agent-events-telemetry.ts',
     observe: ['turn/step 事件顺序', 'steering 在哪个边界生效', '四种 inbox 输入怎样进入 next-turn/next-step'],
     takeaway: '观察和干预都走稳定边界，主循环仍是唯一事实来源。', next: '继续 M05 看会话日志与模型可见 surface。',
   },
@@ -36,7 +36,7 @@ const lessons = [
   },
   {
     id: 'M12', title: '框架机制本体', goal: '直接观察 Cordis 派发模式与 Fiber 资源回收',
-    entry: 'M12-framework-mechanisms/run.ts', source: 'M12-framework-mechanisms/steps/01-dispatch-modes.ts',
+    entry: 'M12-framework-mechanisms/run.ts', source: 'M12-framework-mechanisms/impl/01-dispatch-modes.ts',
     observe: ['五种派发模式的顺序与返回值', 'bail 接异步监听者的陷阱', 'dispose 怎样清理 timer 与挂起 Promise'],
     takeaway: '控制流与生命周期纪律是所有 DSH 插件的底座。', next: '回到 README，按方向选择其余模块。',
   },

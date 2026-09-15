@@ -70,7 +70,7 @@
         "  listed: 0,",
         "  persistence: 'JsonlSessionPersistence'",
         "}",
-        "REAL_STAGE_OK M11.6 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1046 in=0 out=9 finish=stop tools=- text=\"装配链已连通 M11.6\"",
+        "REAL_STAGE_OK M11.6 calls=1 ms=5228 in=0 out=190 finish=stop",
         "REAL_MODULE_OK M11 stages=6 calls=6 failed=0",
         "[exit 0]"
       ]

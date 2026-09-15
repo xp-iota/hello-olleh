@@ -1,13 +1,13 @@
 ---
 type: Harness Concept
 title: "推理服务可替换"
-description: 从离线 mock 换到真实推理服务，只改 provider 路由与模型名，业务代码与工具定义一行都不用动。
+description: 通过 provider 路由与协议适配器接入推理服务，工具定义和主循环共用。
 tags: [okf, dsh-example, llm, provider, minimax]
 status: stable
 sources:
   - id: llm-minimax
-    resource: "dsh-example/runtime/llm-minimax.ts"
-    title: MiniMax 的 Anthropic 兼容适配器
+    resource: "dsh-example/runtime/llm.ts"
+    title: Anthropic 兼容适配器（MiniMax / Fuyao 共用）
   - id: harness-routes
     resource: "dsh-example/runtime/harness.ts"
     title: 两条 provider 路由的注册与默认选路
@@ -15,7 +15,7 @@ sources:
     resource: "dsh-example/M01-tool-pipeline/real/word-count-minimax.ts"
     title: M01 工具调用回路的真实推理服务版
   - id: m03-real
-    resource: "dsh-example/M03-inference-service-access/real/llm-adapter-minimax.ts"
+    resource: "dsh-example/runtime/llm.ts"
     title: M03 的真实 provider 访问路径
   - id: wire-test
     resource: "dsh-example/runtime/llm-minimax.test.ts"
@@ -28,23 +28,21 @@ stale_after: 2026-12-31T00:00:00Z
 
 ## 结论
 
-LLM 是一条标准能力缝，所以**换推理服务的代价接近于零**：注册一条新路由，
-把 agent 的 `provider` 指过去即可。工具定义、提示装配、agent 主循环都不用改。
+LLM 服务通过适配器连接推理后端。新协议需要实现适配器并注册 provider 路由；
+同协议的兼容端点可通过配置切换，工具定义、提示装配和主循环共用。
 
 | 路由 | 适配器 | 特性 |
 |:-----|:-------|:-----|
-| `mock` | `MockAdapter` / `ToolCallingMockAdapter` | 离线、不要密钥，`npm run all:mock` 因此恒绿 |
-| `anthropic-compat` | `MinimaxAnthropicAdapter` | 真实 HTTP 与 SSE，需 `LLM_API_KEY` |
+| `anthropic-compat` | `AnthropicCompatAdapter`（`runtime/llm.ts`） | 真实 HTTP 与 SSE，需 `LLM_API_KEY` |
 
-选路优先级：显式入参 `provider` > 环境变量 `DSH_PROVIDER` > 默认 `mock`。
-`anthropic-compat` 路由只在检测到 `LLM_API_KEY` 时才注册——没有密钥就干脆不存在这条路由，
-而不是注册一个会在运行时失败的空壳。
+`dsh-example/` 注册 `anthropic-compat` 路由。缺少 `LLM_API_KEY` 时，
+`realConfig()` 抛错并提示配置来源。
 
 路由名描述的是**协议**而不是厂商：适配器讲的是 Anthropic Messages wire format，所以
 把 `LLM_BASE_URL` 指向任何同等兼容的端点（默认 `https://api.minimaxi.com/anthropic`）
 即可换服务，不必改路由名。这也是三个变量名不带厂商前缀的原因。
 
-## 适配器真正的工作
+## 协议转换
 
 `MinimaxAnthropicAdapter` 继承真实包里的 `LlmAdapter`，`stream()` 是唯一必需方法。
 它做的是**双向翻译**：
@@ -52,7 +50,7 @@ LLM 是一条标准能力缝，所以**换推理服务的代价接近于零**：
 - 出方向：provider-neutral 的消息与工具 schema → Anthropic Messages wire format。
 - 入方向：SSE 的 `text` / `thinking` / `tool_use` 块 → dsh 的 `StreamChunk` 协议。
 
-必须守住的协议契约（写错就会让上层静默错乱）：
+流事件遵循以下顺序与字段约束：
 
 - 先 `usage` 再 `finish`，`finish` 之后不再发任何 chunk。
 - 同一 block 的所有 delta 复用同一 `index`。
@@ -68,13 +66,11 @@ LLM 是一条标准能力缝，所以**换推理服务的代价接近于零**：
 |:-----|:-----|:-----|
 | wire format 映射 | `runtime/llm-minimax.test.ts` 的 fixture 测试 | 已有 |
 | 整条工具调用回路 | 本地 SSE 桩 + 真实 agent-loop | 已验证，见 [一次工具调用等于两步](04-tool-call-round-trip.md) |
-| 真实端点连通性 | 需显式提供 `LLM_API_KEY` | **A5 未执行**（A5 默认离线，不发外网请求） |
-
-把「未验证」如实写在这里，是为了让后续读者不误以为真实计费链路已经跑通过。
+| 真实端点连通性 | 需显式提供 `LLM_API_KEY` | 本文记录的测试未覆盖外部端点 |
 
 ## 什么时候这条结论会失效
 
-- MiniMax 调整其 Anthropic 兼容端点的事件类型或字段（`llm-minimax.test.ts` 会先红）。
+- MiniMax 调整其 Anthropic 兼容端点的事件类型或字段（需更新协议回归测试）。
 - 上游 `@deepseek-ai/dsh-llm` 修改 `StreamChunk` 协议或 `LlmAdapter` 的必需方法。
 
 ## 相关

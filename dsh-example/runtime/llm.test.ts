@@ -8,7 +8,7 @@ import {
   createUserMessage,
 } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, LlmAdapter, ReplayEnvelope, StreamChunk } from '@deepseek-ai/dsh-llm'
-import { AnthropicCompatAdapter, MockAdapter, ToolCallingMockAdapter, resolveAnthropicCompatVendor } from './llm.ts'
+import { AnthropicCompatAdapter, resolveAnthropicCompatVendor } from './llm.ts'
 
 async function collect(adapter: LlmAdapter, options: GenerateOptions): Promise<StreamChunk[]> {
   const chunks: StreamChunk[] = []
@@ -183,21 +183,6 @@ test('供应商可显式选择，也可从网关和模型兼容识别', () => {
   assert.equal(resolveAnthropicCompatVendor(undefined, { baseUrl: 'http://fuyao-ai-gateway.xiaopeng.link' }), 'fuyao')
   assert.equal(resolveAnthropicCompatVendor(undefined, { model: 'MiniMax-M3' }), 'minimax')
   assert.throws(() => resolveAnthropicCompatVendor('unknown'), /只支持 minimax \/ fuyao/)
-})
-
-test('统一文件保留固定文本与工具调用两种 mock 适配器', async () => {
-  const options: GenerateOptions = { provider: 'mock', model: 'mock-1', messages: [] }
-  const fixed = await collect(new MockAdapter('固定回复'), options)
-  assert.deepEqual(fixed.map((chunk) => chunk.type), ['block-start', 'text-delta', 'block-end', 'usage', 'finish'])
-  assert.ok(fixed.some((chunk) => chunk.type === 'text-delta' && chunk.text === '固定回复'))
-
-  const tool = new ToolCallingMockAdapter('weather', { city: '上海' }, '工具完成')
-  const first = await collect(tool, options)
-  const second = await collect(tool, options)
-  assert.ok(first.some((chunk) => chunk.type === 'block-end'
-    && chunk.block.type === 'tool-call'
-    && chunk.block.name === 'weather'))
-  assert.ok(second.some((chunk) => chunk.type === 'text-delta' && chunk.text === '工具完成'))
 })
 
 function toolReplayMessages(signature?: string) {

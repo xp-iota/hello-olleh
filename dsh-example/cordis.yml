@@ -58,7 +58,7 @@
     allow:
       - word_count
 
-# —— 12: 单调拒绝守卫: pre-execute 之后仍无法翻案 ——
+# —— 12: 单调拒绝守卫: pre-execute 之后不可推翻 ——
 - id: example-tool-guard
   name: '@example/dsh-tool-guard'
   config:
@@ -122,15 +122,6 @@
 # —— M12 dispatch / M07 shell: 纯演示插件, 不列为组合行 ——
 # M12 的 dispatch 监听器挂在 demo/* 事件上(对照演示五种派发模式), 真实 agent 里没有这些事件;
 # M07 的 shell phase 只探测 ctx.shell seam 是否可用, 没有常驻行为。想试就直接 npm run M12 / M07。
-
-# —— M03: mock LLM adapter(默认注释) ——
-# 与真实 provider 二选一。启用它会占用 'mock' 这条路由, 不影响 'deepseek-official'。
-# 想试 mock: 取消注释, 然后把某个 agent 的 provider 指到 'mock'。
-# - id: example-llm-mock
-#   name: '@example/dsh-llm-adapter'
-#   config:
-#     routeName: mock
-#     reply: '你好, 我是示例 mock 模型。'
 
 # —— M10: Skill 不是 cordis 行 ——
 # SKILL.md 是"数据驱动能力", 由 skill-filesystem provider 从磁盘目录发现。

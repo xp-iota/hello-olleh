@@ -27,7 +27,7 @@ title: "执行侧服务：文件、Shell、沙箱、子代理、压缩"
 
 ## 8.2 `FileSystem` 抽象类：13 个抽象方法
 
-> 📐 **配套可跑示例**：[`M07.1 · fs-shell-side-effects`](../../dsh-example/M07-execution-backends/steps/01-fs-shell-side-effects.ts) 的 `write_note` 工具只用
+> 📐 **配套可跑示例**：[`M07.1 · fs-shell-side-effects`](../../dsh-example/M07-execution-backends/impl/01-fs-shell-side-effects.ts) 的 `write_note` 工具只用
 > `resolve` → `writeText` → `processPath` 三个口，就在真实 `LocalFileSystem`（`@deepseek-ai/dsh-fs-local`）上落了盘。
 
 
@@ -157,7 +157,7 @@ title: "执行侧服务：文件、Shell、沙箱、子代理、压缩"
 
 ## 8.11 `ShellExecutor`：三个抽象方法
 
-> 📐 **配套可跑示例**：[`M07.2 · run-and-start`](../../dsh-example/M07-execution-backends/phases/02-run-and-start.ts) 把三个方法都跑了一遍 ——
+> 📐 **配套可跑示例**：[`M07.2 · run-and-start`](../../dsh-example/M07-execution-backends/scenes/02-run-and-start.ts) 把三个方法都跑了一遍 ——
 > `resolve` 把 999999ms 的请求夹到实现上限（实测 600000）、`run` 对非零退出/超时/取消都 **resolve**、
 > `start` 的 `readOutput()` 是消费性增量读。注意 `stdout`/`stderr` 是 `CollectedOutput`（`{ text, truncated }`）而不是裸字符串。
 
@@ -281,7 +281,7 @@ title: "执行侧服务：文件、Shell、沙箱、子代理、压缩"
 
 ## 8.18 `SandboxProvider.confine()`：唯一的方法
 
-> 📐 **配套可跑示例**：[`M07.3 · sandbox-seam`](../../dsh-example/M07-execution-backends/steps/03-sandbox-seam.ts) 提供两个后端演示两端 ——
+> 📐 **配套可跑示例**：[`M07.3 · sandbox-seam`](../../dsh-example/M07-execution-backends/impl/03-sandbox-seam.ts) 提供两个后端演示两端 ——
 > `WrapSandbox` 返回可强制执行的 argv，`RefuseSandbox` 对强制不了的模式抛 `SandboxUnavailableError`。
 >
 > ```ts
@@ -347,9 +347,9 @@ sandbox 组四个包的行数对比：
 
 ## 8.21 审批链：从 `ask` 到用户
 
-> 📐 **配套可跑示例**：[`M06.2 · approval-answerer`](../../dsh-example/M06-human-in-the-loop/steps/02-approval-answerer.ts) 把四值 outcome 的三种局面都跑了一遍。
+> 📐 **配套可跑示例**：[`M06.2 · approval-answerer`](../../dsh-example/M06-human-in-the-loop/impl/02-approval-answerer.ts) 把四值 outcome 的三种局面都跑了一遍。
 > 它还暴露了一条容易踩的不变量：`approval.request()` **必须在打开的 turn 内**
-> （`approval/asked` + `approval/decided` 这对审计事件要被 turn 包住），所以示例用一个会调工具的 mock 适配器
+> （`approval/asked` + `approval/decided` 这对审计事件要被 turn 包住），所以示例用明确的指令让真实模型
 > 让真实 agent-loop 在轮内派发，实测事件序列是 `tool/call → approval/asked → approval/decided → tool/result`。
 
 
@@ -452,7 +452,7 @@ CI 里有专门的 sandbox workflow（[02 § 2.9](02-codebase-map.md) 的 15 个
 
 ## 8.27 六种驱动的谱系
 
-> 📐 **配套可跑示例**：[`M08.1 · subagent-delegation`](../../dsh-example/M08-delegation-presets/steps/01-subagent-delegation.ts) 写了第七种（一个离线的
+> 📐 **配套可跑示例**：[`M08.1 · subagent-delegation`](../../dsh-example/M08-delegation-presets/impl/01-subagent-delegation.ts) 写了第七种（一个离线的
 > `local-reviewer`），并把它暴露成模型工具。注意 `start()` 返回的是**句柄**而不是结果：
 > `{ id, localAgent, result: Promise<SubagentResult>, dispose() }` —— 正因如此
 > `subagent/start` 与 `subagent/end` 才能分成两个事件。
@@ -545,7 +545,7 @@ CI 里有专门的 sandbox workflow（[02 § 2.9](02-codebase-map.md) 的 15 个
 
 ## 8.33 `CompactionEngine`：三个抽象方法
 
-> 📐 **配套可跑示例**：[`M02.3 · compaction-provider`](../../dsh-example/M02-context-assembly-economics/steps/03-compaction-provider.ts) 是这个抽象类的最小 provider，
+> 📐 **配套可跑示例**：[`M02.3 · compaction-provider`](../../dsh-example/M02-context-assembly-economics/impl/03-compaction-provider.ts) 是这个抽象类的最小 provider，
 > 形状与 25 的沙箱后端同型：继承 → `static inject` / `static Config` → 构造里 `super(ctx)` 即挂到
 > `ctx.compaction` → `export default`。**没有** `ctx.provide('compaction', engine)` 这种写法。
 
@@ -568,7 +568,7 @@ CI 里有专门的 sandbox workflow（[02 § 2.9](02-codebase-map.md) 的 15 个
 
 ## 8.34 压缩怎么做到"不丢日志"
 
-> 📐 **配套可跑示例**：[`M02.3 · fold-history`](../../dsh-example/M02-context-assembly-economics/phases/03-fold-history.ts) 实测把 12 个 surface 节点折成 4 个
+> 📐 **配套可跑示例**：[`M02.3 · fold-history`](../../dsh-example/M02-context-assembly-economics/scenes/03-fold-history.ts) 实测把 12 个 surface 节点折成 4 个
 > （摘要 + 保留最近 3 条），返回的 `CompactionResult` 报出 `summarySeq` / `shadowedRange` / `shadowedSeqs` /
 > `shadowedTokenCount` 这份可核对的账。两个真实约束：摘要只能以 `assistant/message` 进 surface，
 > 且**必须带 model 来源**（消息本体要经 `createAssistantMessage` 铸造）。

@@ -2,7 +2,7 @@
   "audio/e01-task.mp3": {
     "path": "audio/e01-task.mp3",
     "durationSec": 37.032,
-    "chars": 188
+    "chars": 183
   },
   "audio/e01-terminal.mp3": {
     "path": "audio/e01-terminal.mp3",
@@ -12,7 +12,7 @@
   "audio/e01-dsh.mp3": {
     "path": "audio/e01-dsh.mp3",
     "durationSec": 42.504,
-    "chars": 194
+    "chars": 212
   },
   "audio/e01-iota.mp3": {
     "path": "audio/e01-iota.mp3",
@@ -32,6 +32,6 @@
   "audio/e01-exercise.mp3": {
     "path": "audio/e01-exercise.mp3",
     "durationSec": 35.064,
-    "chars": 193
+    "chars": 188
   }
 }

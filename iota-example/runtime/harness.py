@@ -1,19 +1,22 @@
 """Unified runtime assembly for iota-example M01-M12.
 
-This single module owns environment loading, offline/real kernels, the network guard, lesson
-metadata, fail-loud checks and the WorkshopHarness assembly path. The two providers remain
-explicit: deterministic `echo` and MiniMax/Fuyao `anthropic-compat`.
+This single module owns environment loading, the MiniMax/Fuyao Anthropic-compatible kernel,
+lesson metadata, fail-loud checks and the WorkshopHarness assembly path.
+
+There is exactly one kernel. A missing credential, SDK or CLI aborts before a module starts;
+nothing is substituted for the model, so an unconfigured run fails instead of quietly
+answering itself.
 """
 
 from __future__ import annotations
 
 import importlib.util
-import json
 import os
+import re
 import shutil
-import socket
 import tempfile
-from collections.abc import AsyncIterator, Callable
+import time
+from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, NoReturn, TypeVar
@@ -28,20 +31,7 @@ from iota_core.registry import Registry
 from iota_core.runtime import IotaRuntime
 from iota_core.storage.in_memory import InMemoryConversationStore
 from iota_core.storage.run_store import InMemoryRunStore
-from iota_core.types import (
-    AgentConfig,
-    AgentEvent,
-    AgentResult,
-    FinalEvent,
-    McpServerConfig,
-    Message,
-    SessionHandle,
-    SystemInitEvent,
-    TextDeltaEvent,
-    ToolCallResultEvent,
-    ToolCallStartEvent,
-    ToolDef,
-)
+from iota_core.types import AgentConfig, AgentEvent, AgentResult
 
 # ── Project environment ───────────────────────────────────────────────────
 _ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
@@ -177,10 +167,10 @@ def anthropic_compat_settings() -> AnthropicCompatSettings:
         missing.append("LLM_BASE_URL（Fuyao 必填）")
     if missing:
         raise KernelUnavailable(
-            "真实模式缺少配置：" + ", ".join(missing) + "。\n"
+            "运行缺少配置：" + ", ".join(missing) + "。\n"
             f"  配置来源：{CONFIG_SOURCE}\n"
             "  推荐配置：LLM_API_KEY / LLM_VENDOR / LLM_BASE_URL / LLM_MODEL\n"
-            "  真实模式不会退回 EchoKernelAdapter —— 离线演示请显式用 IOTA_PROVIDER=echo。"
+            "  没有配置就没有内核：工程不提供任何替代模型的本地实现。"
         )
 
     resolved_base_url = base_url or "https://api.minimaxi.com/anthropic"
@@ -209,8 +199,8 @@ def preflight() -> dict[str, str]:
     if importlib.util.find_spec("claude_agent_sdk") is None:
         raise KernelUnavailable(
             "缺少 claude-agent-sdk（真实内核的运行依赖）。\n"
-            "  安装：iota-example/.venv/bin/python -m pip install 'claude-agent-sdk>=0.2,<1'\n"
-            "  或声明式安装：uv sync --extra real"
+            "  安装：uv sync --extra real\n"
+            "  然后用 uv run 执行，例如：uv run python -m runtime.runner --all"
         )
     cli = resolve_cli()
     if cli is None:
@@ -233,7 +223,7 @@ def create_workspace() -> Path:
 
 
 def build_adapter(
-    *, allow_shell: bool = False, timeout: float = 180.0, workspace: Path | None = None
+    *, allow_shell: bool = False, timeout: float | None = None, workspace: Path | None = None
 ) -> Any:
     """Build an Anthropic-compatible ClaudeAdapter for MiniMax or Fuyao."""
     from iota_core.adapters.claude import ClaudeAdapter
@@ -250,121 +240,10 @@ def build_adapter(
         disallowed_tools=[] if allow_shell else ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
         permission_mode="bypassPermissions" if allow_shell else "default",
         max_turns=4,
-        timeout=timeout,
+        timeout=REAL_TIMEOUT_MS / 1000 if timeout is None else timeout,
         thinking=False,
         setting_sources=[],
     )
-
-
-class EchoKernelAdapter(KernelAdapter):
-    """A deterministic adapter implementation with no I/O."""
-
-    name = "echo"
-    provides = frozenset()
-    requires = frozenset()
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.started = False
-        self.closed = False
-        self.sessions: dict[str, AgentConfig] = {}
-        self.observed_prompts: list[str] = []
-        self.observed_memory: list[list[Message]] = []
-
-    async def start(self) -> None:
-        self.started = True
-
-    async def capabilities(self) -> dict[str, Any]:
-        return {
-            "streaming": True,
-            "concurrent_sessions": True,
-            "max_concurrency": 8,
-            "per_session_model": True,
-            "per_session_system_prompt": True,
-            "per_session_skills": True,
-            "per_session_middleware": False,
-            "mcps": False,
-            "incremental_tool_events": True,
-            "enforces_max_iterations": True,
-            "enforces_max_tool_calls": True,
-            "enforces_token_budget": False,
-        }
-
-    async def create_session(
-        self,
-        cfg: AgentConfig,
-        tools: list[ToolDef],
-        mcps: list[McpServerConfig],
-    ) -> SessionHandle:
-        del tools, mcps
-        session_id = f"echo-session-{len(self.sessions) + 1}"
-        self.sessions[session_id] = cfg.model_copy(deep=True)
-        return SessionHandle(
-            session_id=session_id,
-            kernel=self.name,
-            extra={"model": cfg.model or "echo-v1"},
-        )
-
-    def has_session(self, session: SessionHandle) -> bool:
-        return session.session_id in self.sessions
-
-    async def stream(
-        self,
-        session: SessionHandle,
-        prompt: str,
-        memory: list[Message],
-    ) -> AsyncIterator[AgentEvent]:
-        self.observed_prompts.append(prompt)
-        self.observed_memory.append(list(memory))
-        yield SystemInitEvent(model=session.extra.get("model"), raw={"offline": True})
-        if prompt.startswith("shell:"):
-            command = prompt.removeprefix("shell:").strip()
-            yield ToolCallStartEvent(
-                id="kernel-shell-1", name="kernel.shell", args={"command": command}
-            )
-            output = f"echo-kernel handled shell request: {command}"
-            yield ToolCallResultEvent(id="kernel-shell-1", ok=True, output=output)
-            yield TextDeltaEvent(text=output)
-            yield FinalEvent(text=output, session_id=session.session_id)
-            return
-        text = f"echo:{prompt}"
-        yield TextDeltaEvent(text=text)
-        yield FinalEvent(text=text, session_id=session.session_id)
-
-    async def close(self, session: SessionHandle | None = None) -> None:
-        if session is None:
-            self.sessions.clear()
-            self.closed = True
-        else:
-            self.sessions.pop(session.session_id, None)
-
-
-# ── Offline network guard ──────────────────────────────────────────────────
-class OfflineViolation(RuntimeError):
-    """Raised when a module attempts network I/O."""
-
-
-def install_network_guard() -> Callable[[], None]:
-    original_connect = socket.socket.connect
-    original_connect_ex = socket.socket.connect_ex
-    original_create_connection = socket.create_connection
-
-    def blocked(*_args: Any, **_kwargs: Any) -> None:
-        raise OfflineViolation("outbound network is disabled for iota-example")
-
-    def blocked_ex(*_args: Any, **_kwargs: Any) -> int:
-        raise OfflineViolation("outbound network is disabled for iota-example")
-
-    socket.socket.connect = blocked  # type: ignore[method-assign]
-    socket.socket.connect_ex = blocked_ex  # type: ignore[method-assign]
-    socket.create_connection = blocked  # type: ignore[assignment]
-
-    def restore() -> None:
-        socket.socket.connect = original_connect  # type: ignore[method-assign]
-        socket.socket.connect_ex = original_connect_ex  # type: ignore[method-assign]
-        socket.create_connection = original_create_connection
-
-    return restore
 
 
 # ── Module metadata and assertions ─────────────────────────────────────────
@@ -375,154 +254,21 @@ class TeachingCheckError(RuntimeError):
     """Raised when an observed fact does not match a lesson's stated expectation."""
 
 
-@dataclass(frozen=True, slots=True)
-class Lesson:
-    title: str
-    goal: str
-    observe: tuple[str, ...]
-    relationship: str
-    conclusion: str
-    #: 真实模式下让读者一眼分清的三类事实。
-    #: kernel_behavior —— Anthropic-compatible kernel 真的做了什么；
-    #: orchestration   —— iota 编排层本地机制断言（不需要模型也成立）；
-    #: not_iota        —— 明确不属于 iota、由内核或宿主拥有的能力。
-    kernel_behavior: str = ""
-    orchestration: str = ""
-    not_iota: str = ""
-
-    def real_prompt(self) -> str:
-        """真实内核 probe 的提问：短、确定，避免把结论寄托在模型创造力上。"""
-        return (
-            f"请用一句话回答：{self.goal}"
-            " 回答控制在 40 字以内，只输出这句话。"
-        )
-
-
-LESSONS = {
-    "M01-tool-pipeline": Lesson(
-        "M01 · 工具管线",
-        "理解 iota 自有工具槽如何获得具名、可逆的处理阶段。",
-        ("stage 安装顺序与幂等行为", "错名 stage 是否明确拒绝", "effect 回收后 handler 是否恢复"),
-        "机制补齐 + 结构性边界",
-        "ToolPipeline 可治理 iota 自有工具槽，但不冒充内核内部工具可见性控制。",
-        kernel_behavior="内核按自己的工具可见性规则作答，编排层不干预它内部的工具选择。",
-        orchestration="stage 安装、幂等、错名拒绝与 effect 回收都在本地断言，不依赖模型。",
-        not_iota="内核内部工具的可见性收窄与执行前策略不属于 iota。",
-    ),
-    "M02-context-assembly-economics": Lesson(
-        "M02 · 上下文装配与经济学",
-        "观察作用域记忆如何进入 Prompt，并识别仍由内核拥有的压缩边界。",
-        ("user/project/session scope", "记忆注入的默认开关", "编排层是否声明 compression seam"),
-        "语义等价 + 结构性边界",
-        "iota 能组织作用域记忆；模型请求的完整装配与压缩仍属于内核。",
-        kernel_behavior="内核自己装配完整 Prompt 并决定历史怎么进上下文。",
-        orchestration="作用域记忆前缀的拼装、默认关闭开关与 AgentConfig 字段边界在本地断言。",
-        not_iota="Prompt 完整装配与历史压缩由内核拥有，AgentConfig 不伪造 compression seam。",
-    ),
-    "M03-inference-service-access": Lesson(
-        "M03 · 推理服务接入",
-        "理解 iota 以整个 KernelAdapter 为替换单元的设计。",
-        (
-            "Provider 注册的替换粒度",
-            "ACP capability 声明",
-            "不支持的模型 middleware 是否编译期拒绝",
-        ),
-        "结构性边界",
-        "iota 替换整个内核适配器，不在编排层仿造 DSH 的 LLM middleware。",
-        kernel_behavior="切换 MiniMax/Fuyao 只换内核配置这一个替换单元，编排层代码一行未改。",
-        orchestration="Provider 注册粒度、ACP capability 声明与不支持项的拒绝在本地断言。",
-        not_iota="单次模型调用的 middleware 属于内核，跨进程内核不声明未验证过的能力。",
-    ),
-    "M04-agent-loop-intervention": Lesson(
-        "M04 · Agent 循环与干预面",
-        "区分标准事件流、节点 hook 与内核运行中的消息注入。",
-        ("AgentEvent 顺序", "after_node_result 的执行", "mid-turn 注入是否属于编排契约"),
-        "语义等价 + 结构性边界",
-        "节点边界可观察、可扩展；进行中循环仍由具体内核拥有。",
-        kernel_behavior="内核在真实循环里产出标准事件流，节点边界之外的过程属于它。",
-        orchestration="节点 hook 与图运行状态在本地断言，与具体内核无关。",
-        not_iota="进行中循环的 mid-turn 注入不属于编排契约。",
-    ),
-    "M05-session-surface": Lesson(
-        "M05 · 会话面",
-        "读取真实 ConversationStore 与 RunStore，并对比 DSH 日志投影契约。",
-        ("持久化消息顺序", "run 状态与事件顺序", "事件是否承诺 sequence 字段"),
-        "语义等价 + 结构性边界",
-        "iota 保存会话和运行事实，但不声称拥有 DSH 的 seq/surface 不变量。",
-        kernel_behavior="内核回答被真实写入 ConversationStore 与 RunStore，可读回。",
-        orchestration="消息顺序、run 状态与事件 schema 边界在本地断言。",
-        not_iota="DSH 的 seq/surface 不变量不属于 iota 的事件 schema。",
-    ),
-    "M06-human-in-the-loop": Lesson(
-        "M06 · 人在环路",
-        "验证 ACP permission 必定得到答复，并识别计划模式的宿主边界。",
-        ("无匹配策略时是否 fail closed", "permission 是否及时答复", "plan mode 位于哪一层"),
-        "语义等价 + 结构性边界",
-        "权限请求由适配器可靠闭合；计划模式由具体内核或宿主管理。",
-        kernel_behavior="内核在权限策略下作答；请求必定得到答复，不会挂住整轮。",
-        orchestration="ACP permission 的 fail-closed 默认与 AgentConfig 字段边界在本地断言。",
-        not_iota="计划模式由具体内核或宿主管理，不在编排层。",
-    ),
-    "M07-execution-backends": Lesson(
-        "M07 · 执行侧后端",
-        "确认 shell 副作用由 KernelAdapter 执行，而非编排层工具注册表。",
-        ("kernel.shell 事件", "工具结果事件", "编排层 shell registry 是否为空"),
-        "结构性边界",
-        "iota 转发执行事件，但不重写内核的 fs/shell/sandbox 执行栈。",
-        kernel_behavior="shell 副作用由内核执行并以工具事件回传，编排层只转发。",
-        orchestration="编排层 shell 注册表为空这一条本身就是可运行的边界证据。",
-        not_iota="fs/shell/sandbox 执行栈不属于 iota。",
-    ),
-    "M08-delegation-presets": Lesson(
-        "M08 · 委派与预设",
-        "用 GraphSpec 的依赖与绑定表达可验证的节点委派。",
-        ("拓扑顺序", "上游输出绑定", "图运行结果"),
-        "语义等价",
-        "显式 DAG 依赖为委派提供确定的顺序、数据流和失败边界。",
-        kernel_behavior="内核按节点提示词分别作答，委派顺序由图决定而不是模型自由发挥。",
-        orchestration="拓扑顺序、上游输出绑定与图运行结果在本地断言。",
-        not_iota="内核内部的子代理实现细节不属于 iota。",
-    ),
-    "M09-long-running-orchestration": Lesson(
-        "M09 · 长任务与编排",
-        "观察队列租约、幂等入队与 checkpoint 恢复语义。",
-        ("重复 task id 是否幂等", "claim/ack 状态", "checkpoint sequence"),
-        "语义等价（iota 提供更多耐久语义）",
-        "队列与 checkpoint 让长任务可租约、可恢复，而不只是一段后台进程。",
-        kernel_behavior="内核负责单次运行；断点续跑所需的状态不在它手里。",
-        orchestration="队列幂等、租约认领与 checkpoint 序号在本地断言。",
-        not_iota="单次运行内部的重试细节属于内核。",
-    ),
-    "M10-external-capabilities": Lesson(
-        "M10 · 外部能力接入",
-        "验证文件系统 Skill 与进程内 MCP 的真实发现和调用路径。",
-        ("SKILL.md 同步结果", "MCP tools/list", "MCP tools/call"),
-        "语义等价",
-        "知识资产与外部工具协议都能通过明确边界接入，默认示例无需网络。",
-        kernel_behavior="内核读到同步进来的 Skill 正文后作答。",
-        orchestration="SKILL.md 同步与进程内 MCP 的 tools/list、tools/call 往返在本地断言。",
-        not_iota="外部服务本身的可用性不由 iota 承诺。",
-    ),
-    "M11-config-data-infrastructure": Lesson(
-        "M11 · 配置与数据设施",
-        "区分 profile 投影、可换存储协议与宿主持有的凭证/附件。",
-        ("profile 文件是否真实生成", "不支持的布局是否拒绝", "ConversationStore 是否可替换"),
-        "语义等价 + 结构性边界",
-        "配置和会话存储可治理；凭证与附件不应被硬塞进 AgentConfig。",
-        kernel_behavior="内核在本次配置投影下真实启动并作答。",
-        orchestration="profile 投影、不支持布局的拒绝与可替换存储协议在本地断言。",
-        not_iota="凭证与附件归宿主，不塞进 AgentConfig。",
-    ),
-    "M12-framework-mechanisms": Lesson(
-        "M12 · 框架机制本体",
-        "验证可逆 effect、身份安全 disposer 与 Provider 发现机制。",
-        ("LIFO 与幂等 dispose", "失效后注册和错名 capability 的拒绝", "标准 entry-point group"),
-        "语义等价 + 结构性边界",
-        "iota 借用可逆机制，但不复制 Cordis 的事件总线、Proxy Context 与 HMR 架构。",
-        kernel_behavior="内核可整体替换，替换动作本身走可逆 effect。",
-        orchestration="LIFO 拆除、幂等 dispose、身份安全 disposer 与 entry-point 发现在本地断言。",
-        not_iota="Cordis 的事件总线、Proxy Context 与运行期热替换不属于 iota。",
-    ),
+#: 模块目录 → banner 标题。与 `dsh-example` 的 `runModule(module, title, …)` 同一角色：
+#: 教学正文（目标、三类边界、结论）都在各模块 README 里，运行日志只留骨架。
+MODULE_TITLES = {
+    "M01-tool-pipeline": "工具管线：包装、拒绝与可见性归属",
+    "M02-context-assembly-economics": "上下文装配与经济学：作用域记忆与内核边界",
+    "M03-inference-service-access": "推理服务接入：替换单元与能力声明",
+    "M04-agent-loop-intervention": "Agent 循环与干预面：事件、节点 hook 与编译期不变量",
+    "M05-session-surface": "会话面：消息存储、运行记录与 schema 边界",
+    "M06-human-in-the-loop": "人在环路：命令、权限与计划模式归属",
+    "M07-execution-backends": "执行侧后端：副作用归内核，编排层只转发",
+    "M08-delegation-presets": "委派与预设：显式 DAG、空 roster 与模型路由",
+    "M09-long-running-orchestration": "长任务与编排：幂等入队、租约与 checkpoint",
+    "M10-external-capabilities": "外部能力接入：Skill、MCP 与运行时扩展",
+    "M11-config-data-infrastructure": "配置与数据设施：投影、存储协议与宿主边界",
+    "M12-framework-mechanisms": "框架机制本体：可逆 effect、身份安全与配置叠加",
 }
 
 
@@ -542,22 +288,12 @@ def require_not_none(value: T | None, expectation: str) -> T:
     return value
 
 
-def print_before(module_dir: Path) -> Lesson:
-    lesson = LESSONS[module_dir.name]
-    print(f"\n{'█' * 4} {lesson.title} {'█' * 4}")
-    print(f"目标：{lesson.goal}")
-    print("运行时观察：")
-    for index, item in enumerate(lesson.observe, 1):
-        print(f"  {index}. {item}")
-    return lesson
-
-
-def require_event_order(observed: list[str], expected: tuple[str, ...]) -> None:
+def require_event_order(observed: Sequence[str], expected: tuple[str, ...]) -> None:
     """按**子序列**校验事件顺序。
 
     不同内核会在标准事件之间插入自己的事件（step、thinking、工具调用…），
     所以"顺序正确"应表述为"这几个标准事件按序出现"，而不是"事件列表完全等于某个字面量"。
-    写成相等会让示例只在 echo 内核下成立，那正是本工程要避免的假象。
+    写成相等会让示例只在某一个内核的事件序列下成立，那正是本工程要避免的假象。
     """
     cursor = 0
     for item in observed:
@@ -567,43 +303,135 @@ def require_event_order(observed: list[str], expected: tuple[str, ...]) -> None:
         fail(f"事件按序包含 {' → '.join(expected)}", observed)
 
 
-def print_real(lesson: Lesson, evidence: dict[str, Any]) -> None:
-    """真实模式专属输出：真实模型 / 真实内核 / 真实响应 + 三类边界结论。"""
-    print("真实内核证据：")
-    print(f"  - 真实模型: {evidence['model']}")
-    print(f"  - 真实内核: {evidence['kernel']}（{evidence['sdk']} + {evidence['cli']}）")
-    print(f"  - 真实响应: {evidence['response']}")
-    print(f"  - 事件序列: {', '.join(evidence['events'])}")
-    print("三类边界：")
-    print(f"  - Anthropic-compatible kernel 行为: {lesson.kernel_behavior}")
-    print(f"  - iota 编排层本地机制断言 : {lesson.orchestration}")
-    print(f"  - 明确不属于 iota 的能力  : {lesson.not_iota}")
+# ── 真实调用证据 ───────────────────────────────────────────────────────────
+#: 单次内核调用的墙钟上限；超时按失败计，不按"跳过"计。
+REAL_TIMEOUT_MS = int(os.environ.get("IOTA_REAL_TIMEOUT_MS", "180000"))
+
+#: 证据里代替真实 endpoint 的稳定占位符。
+ENDPOINT_LABEL = "anthropic-compatible"
 
 
-def print_after(lesson: Lesson, result: dict[str, Any]) -> None:
-    print("验证结果：")
-    for key, value in result.items():
-        if key not in {"module", "status", "relationship"}:
-            rendered = json.dumps(value, ensure_ascii=False, sort_keys=True)
-            print(f"  - {key}: {rendered}")
-    print(f"对照关系：{lesson.relationship}")
-    print(f"结论：{lesson.conclusion}")
+def redact(value: str) -> str:
+    """输出脱敏：凭证、endpoint、绝对路径都不进证据。"""
+    out = value
+    for name in ("LLM_API_KEY", "ANTHROPIC_AUTH_TOKEN"):
+        token = os.environ.get(name, "")
+        if len(token) > 6:
+            out = out.replace(token, "<redacted-key>")
+    out = re.sub(r"https?://[^\s\"')]+", f"<{ENDPOINT_LABEL}>", out)
+    out = re.sub(r"/(?:Users|home|private|var|tmp)/[^\s\"')]+", "<path>", out)
+    return out
+
+
+def sample(text: str, limit: int = 72) -> str:
+    """一段真实文本的可展示样本（单行、限长、已脱敏）。"""
+    flat = " ".join(redact(text).split())
+    return flat if len(flat) <= limit else f"{flat[:limit]}…"
+
+
+@dataclass(slots=True)
+class CallEvidence:
+    """一次真实内核调用留下的证据。"""
+
+    seq: int
+    kernel: str
+    model: str
+    ms: int = 0
+    text_chars: int = 0
+    text_sample: str = ""
+    tool_calls: list[str] = field(default_factory=list)
+    finish: str = "incomplete"
+    input_tokens: int = 0
+    output_tokens: int = 0
+    failure: str | None = None
+
+
+_evidence: list[CallEvidence] = []
+
+
+def all_evidence() -> Sequence[CallEvidence]:
+    """至今为止全部真实调用证据（同一进程内共享）。"""
+    return _evidence
+
+
+class CountingKernelAdapter(KernelAdapter):
+    """把真实内核适配器包一层：事件一条不改地透传，同时留下调用证据。
+
+    与 `dsh-example` 的 `CountingAnthropicCompatAdapter` 同一角色 —— 它仍是真实
+    `KernelAdapter`，所以每个阶段"到底有没有真的调用过内核"是可核验的事实，而不是自报。
+    """
+
+    def __init__(self, inner: KernelAdapter, model: str) -> None:
+        super().__init__()
+        self._inner = inner
+        self._model = model
+        self.name = inner.name
+        self.provides = inner.provides
+        self.requires = inner.requires
+
+    async def start(self) -> None:
+        await self._inner.start()
+
+    async def capabilities(self) -> dict[str, Any]:
+        return await self._inner.capabilities()
+
+    async def create_session(self, cfg: Any, tools: Any, mcps: Any) -> Any:
+        return await self._inner.create_session(cfg, tools, mcps)
+
+    def has_session(self, session: Any) -> bool:
+        return self._inner.has_session(session)
+
+    def check_session_ready(self, session: Any) -> None:
+        self._inner.check_session_ready(session)
+
+    async def close(self, session: Any = None) -> None:
+        await self._inner.close(session)
+
+    async def stream(self, session: Any, prompt: str, memory: Any) -> AsyncIterator[Any]:
+        record = CallEvidence(seq=len(_evidence) + 1, kernel=self.name, model=self._model)
+        _evidence.append(record)
+        started = time.monotonic()
+        text = ""
+        try:
+            async for event in self._inner.stream(session, prompt, memory):
+                if event.type == "text_delta":
+                    text += getattr(event, "text", "")
+                elif event.type == "tool_call":
+                    record.tool_calls.append(getattr(event, "name", "?"))
+                elif event.type == "final":
+                    text = text or getattr(event, "text", "")
+                    record.finish = "error" if getattr(event, "is_error", False) else (
+                        getattr(event, "subtype", None) or "stop"
+                    )
+                    usage = getattr(event, "usage", None)
+                    if usage is not None:
+                        data = usage if isinstance(usage, dict) else usage.to_dict()
+                        record.input_tokens = int(data.get("input_tokens", 0))
+                        record.output_tokens = int(data.get("output_tokens", 0))
+                yield event
+        except Exception as exc:
+            record.failure = redact(str(exc)) or exc.__class__.__name__
+            record.finish = "error"
+            raise
+        finally:
+            record.ms = int((time.monotonic() - started) * 1000)
+            record.text_chars = len(text)
+            record.text_sample = sample(text)
 
 
 # ── Runtime assembly ───────────────────────────────────────────────────────
-OFFLINE_PROVIDER = "echo"
 REAL_PROVIDER = "anthropic-compat"
-PROVIDERS = (OFFLINE_PROVIDER, REAL_PROVIDER)
+PROVIDERS = (REAL_PROVIDER,)
 
 
 def selected_provider(provider: str | None = None) -> str:
-    """Resolve the provider from the argument, then ``IOTA_PROVIDER``, then offline."""
+    """Resolve the provider from the argument, then ``IOTA_PROVIDER``."""
     load_project_env()
-    value = (provider or os.environ.get("IOTA_PROVIDER") or OFFLINE_PROVIDER).strip().lower()
+    value = (provider or os.environ.get("IOTA_PROVIDER") or REAL_PROVIDER).strip().lower()
     if value not in PROVIDERS:
         raise KernelUnavailable(
-            f"未知 IOTA_PROVIDER={value!r}；可选：{', '.join(PROVIDERS)}。"
-            " 真实模式用 anthropic-compat，离线确定性演示用 echo。"
+            f"未知 IOTA_PROVIDER={value!r}；唯一可选：{', '.join(PROVIDERS)}。"
+            " 本工程只用真实内核，没有可切换的本地替代实现。"
         )
     return value
 
@@ -618,18 +446,13 @@ class WorkshopHarness:
     conversation_store: InMemoryConversationStore
     run_store: InMemoryRunStore
     runtime: IotaRuntime
-    provider: str = OFFLINE_PROVIDER
-    kernel: str = OFFLINE_PROVIDER
+    provider: str = REAL_PROVIDER
+    kernel: str = ""
     model: str | None = None
     capabilities: KernelCapabilities | None = None
     preflight_report: dict[str, str] = field(default_factory=dict)
-    #: 真实内核进程的工作目录（离线模式为 None）。示例只能通过它给内核准备输入。
+    #: 内核进程的工作目录。示例只能通过它给内核准备输入。
     workspace: Path | None = None
-
-    @property
-    def real(self) -> bool:
-        """Whether this harness uses the real Anthropic-compatible kernel."""
-        return self.provider == REAL_PROVIDER
 
     async def start(self) -> WorkshopHarness:
         missing = missing_host_capabilities(self.adapter.requires)
@@ -666,37 +489,27 @@ async def create_harness(
     allow_shell: bool = False,
 ) -> WorkshopHarness:
     """Assemble the registry, effects, provider, stores and adapter in one place."""
-    resolved = selected_provider(provider)
+    selected_provider(provider)
     effects = EffectStack("iota-example")
     registry = Registry()
     conversation_store = InMemoryConversationStore()
     run_store = InMemoryRunStore()
 
-    adapter: KernelAdapter
-    report: dict[str, str] = {}
-    model: str | None = None
-    workspace: Path | None = None
-    if resolved == REAL_PROVIDER:
-        # Fail before any module runs: credentials, SDK and CLI are all checked here.
-        report = preflight()
-        workspace = create_workspace()
-        adapter = build_adapter(allow_shell=allow_shell, workspace=workspace)
-        kernel = adapter.name
-        model = report["model"]
-        effects.push(
-            register_adapter(
-                kernel,
-                lambda _build: build_adapter(allow_shell=allow_shell, workspace=workspace),
-            ),
-            f"provider:{kernel}",
-        )
-    else:
-        adapter = EchoKernelAdapter()
-        kernel = adapter.name
-        effects.push(
-            register_adapter(kernel, lambda _build: EchoKernelAdapter()),
-            f"provider:{kernel}",
-        )
+    # Fail before any module runs: credentials, SDK and CLI are all checked here.
+    report = preflight()
+    workspace = create_workspace()
+    # 真实适配器外面包一层计数器：事件透传，同时留下"这一阶段确实调用过内核"的证据。
+    adapter: KernelAdapter = CountingKernelAdapter(
+        build_adapter(allow_shell=allow_shell, workspace=workspace), report["model"]
+    )
+    kernel = adapter.name
+    effects.push(
+        register_adapter(
+            kernel,
+            lambda _build: build_adapter(allow_shell=allow_shell, workspace=workspace),
+        ),
+        f"provider:{kernel}",
+    )
 
     runtime = IotaRuntime(
         adapters={kernel: adapter},
@@ -711,9 +524,9 @@ async def create_harness(
         conversation_store=conversation_store,
         run_store=run_store,
         runtime=runtime,
-        provider=resolved,
+        provider=REAL_PROVIDER,
         kernel=kernel,
-        model=model,
+        model=report["model"],
         preflight_report=report,
         workspace=workspace,
     )

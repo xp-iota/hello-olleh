@@ -9,7 +9,7 @@ sources:
     resource: "dsh-example/M01-tool-pipeline/real/word-count-minimax.ts"
     title: 从会话日志提取工具调用证据的运行脚本
   - id: tool-def
-    resource: "dsh-example/M01-tool-pipeline/steps/01-word-count.ts"
+    resource: "dsh-example/M01-tool-pipeline/impl/01-word-count.ts"
     title: word_count 工具的三件套定义
   - id: harness-summarize
     resource: "dsh-example/runtime/harness.ts"
@@ -27,24 +27,23 @@ stale_after: 2026-12-31T00:00:00Z
 1. 第一步：模型只发出调用意图（`stop_reason` 为 `tool_use`），不产出最终文本。
 2. 第二步：工具结果回灌成模型可见内容后，模型才基于结果收尾。
 
-这不是实现细节，而是可观测的事实——`step` 数由会话日志里的 `step/start` 事件计数得出，
-实测值正好是 2。
+该示例的会话日志包含 2 个 `step/start` 事件，对应上述两次模型请求。
 
 ![一次 word_count 工具调用的完整回路](../../hello-dsh/diagrams/12-example-minimax-loop.svg)
 
 交互版：[12-example-minimax-loop.html](../../hello-dsh/diagrams/12-example-minimax-loop.html)　·　
 IR 源：[12-example-minimax-loop.sequence.json](../../hello-dsh/diagrams/12-example-minimax-loop.sequence.json)
 
-- **工具没有为对接模型改一行**：01 注册的 `defineTool` 原样复用；只把 provider 从 mock 换成 `anthropic-compat`；schema 汇入提示由 `systemPrompt` 负责。
-- **证据取自会话日志**：`tool-call` 与 `tool-result` 都从 `session.events` 读；不依赖适配器自报调用成功；模型不调工具时脚本直接抛错。
+- **工具定义复用**：01 注册的 `defineTool` 原样复用；provider 固定 `anthropic-compat`；schema 汇入提示由 `systemPrompt` 负责。
+- **证据取自会话日志**：`tool-call` 与 `tool-result` 都从 `session.events` 读；未发现工具调用时脚本抛错。
 - **一次工具调用等于两步**：第一步模型只发调用意图；结果回灌后才有第二步收尾；实测 step 数正好是 2。
 
 ## 怎么验证「模型真的调了工具」
 
-关键在于**不信任适配器的自我报告**，而是读会话日志：模型发起的 `tool-call` 与回灌的
-`tool-result` 都以消息块形式落在 `session.events` 上，扫描这些块即可拿到事实。
+模型发起的 `tool-call` 与回灌的 `tool-result` 都以消息块形式写入
+`session.events`，可以据此检查工具名称、参数和结果。
 
-实测输出（本地 SSE 桩，非估算）：
+本地 SSE 桩测试输出：
 
 | 观测点 | 值 |
 |:-------|:---|
@@ -54,16 +53,12 @@ IR 源：[12-example-minimax-loop.sequence.json](../../hello-dsh/diagrams/12-exa
 | 本轮 step 数 | 2 |
 | 两次请求是否都带 tools | 是 |
 
-设计 query 时有一个实用技巧：**让调用工具成为答对的唯一路径**。
-给一句英文并明确禁止模型自己数，工具是否被选中就变成可判定的，
-而不是一句可有可无的客套话。
+请求要求模型使用 `word_count` 统计给定英文句子，脚本通过会话日志检查是否调用了该工具。
 
-## fail loud 的位置
+## 错误处理
 
-脚本在结尾断言 `word_count` 出现在调用列表里，否则抛错。理由是：
-这个示例的全部意义就是「模型自己调了工具」——没调到说明链路未被验证，
-让它静默通过等于假绿。同理，缺 `LLM_API_KEY` 时脚本以非零码退出并给出配置提示，
-不会偷偷退回 mock 假装成功。
+调用列表中没有 `word_count` 时，脚本抛错。连接模型服务时若缺少 `LLM_API_KEY`，
+脚本以非零状态退出并提示配置方法。
 
 ## 什么时候这条结论会失效
 

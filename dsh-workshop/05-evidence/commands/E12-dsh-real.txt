@@ -5,12 +5,10 @@ $ cd dsh-example && npm run M12
 > node M12-framework-mechanisms/run.ts
 
 
-████ M12 · 框架机制本体：事件语义与生命周期资源 —— 真实推理服务 模式 ████
-provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
-（离线请用 --mock，例如 `npm run M01 -- --mock`）
+████ M12 · 框架机制本体：事件语义与生命周期资源 ████
+provider=anthropic-compat model=fuyao-coding timeout=120000ms
 
-════════ M12.1 · 对照五种事件派发模式（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M12.1"
+──── M12.1 · 对照五种事件派发模式 ────
 ① emit：同步广播，立即返回，不等任何 Promise
   [观察者 A] 看到 hello
   [观察者 B] 看到 hello
@@ -50,9 +48,9 @@ provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeo
   bail   → 返回值 = Promise { <pending> }
   bail 没 await，直接把未决 Promise 当成了截链值 —— 这是用 bail 接异步监听者的坑。
   [异步候选] 睡够 30ms 才返回 4
-REAL_STAGE_OK M12.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=857 in=0 out=9 finish=stop tools=- text="装配链已连通 M12.1"
+REAL_STAGE_OK M12.1 calls=1 ms=2345 in=0 out=210 finish=stop
 
-════════ M12.2 · 验证绑定 Fiber 的可处置定时器（kind=model）════════
+──── M12.2 · 验证绑定 Fiber 的可处置定时器 ────
 ① timeout(delay) → Promise（可 await 的延时）
    50ms 到了
 
@@ -74,31 +72,28 @@ REAL_STAGE_OK M12.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 ca
 
 ⑥ dispose：fiber 卸载时挂起的 timeout Promise 被拒
    被拒: Context has been disposed
-REAL_STAGE_OK M12.2 kind=model provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1060 in=0 out=33 finish=stop tools=- text="看起来你发送了一个空消息或只有一个"滴"字。😊 有什么我可以帮你的吗？请告诉我你的问题或需求，…"
+REAL_STAGE_OK M12.2 calls=1 ms=2282 in=0 out=64 finish=stop "你好！有什么我可以帮你的吗？😊"
 
-════════ M12.3 · 观察 Fiber 依赖状态机（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M12.3"
+──── M12.3 · 观察 Fiber 依赖状态机 ────
 FiberState: {
   beforeDependency: 'PENDING',
   afterDependency: 'ACTIVE',
   afterDispose: 'DISPOSED'
 }
-REAL_STAGE_OK M12.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2017 in=0 out=9 finish=stop tools=- text="装配链已连通 M12.3"
+REAL_STAGE_OK M12.3 calls=1 ms=1267 in=0 out=77 finish=stop
 
-════════ M12.4 · 隔离同名服务 realm（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M12.4"
+──── M12.4 · 隔离同名服务 realm ────
 isolate: { root: 'root', isolated: 'isolated', separated: true }
-REAL_STAGE_OK M12.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2203 in=0 out=9 finish=stop tools=- text="装配链已连通 M12.4"
+REAL_STAGE_OK M12.4 calls=1 ms=452 in=0 out=43 finish=stop
 
-════════ M12.5 · 叠加调用域 intercept 配置（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M12.5"
+──── M12.5 · 叠加调用域 intercept 配置 ────
 intercept: {
   base: { mode: 'safe', budget: 100 },
   scoped: { mode: 'strict', budget: 40 },
   bothViewsAreDemoPolicy: true,
   traceProxyIdentityDiffers: true
 }
-REAL_STAGE_OK M12.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=893 in=0 out=9 finish=stop tools=- text="装配链已连通 M12.5"
+REAL_STAGE_OK M12.5 calls=1 ms=2202 in=0 out=77 finish=stop
 
 REAL_MODULE_OK M12 stages=5 calls=5 failed=0
 [exit 0]

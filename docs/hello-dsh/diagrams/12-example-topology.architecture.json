@@ -104,9 +104,9 @@
     {
       "id": "providers",
       "type": "external",
-      "label": "真实默认 / --mock 离线",
-      "sublabel": "每个模块一个 run.ts；默认真实 anthropic-compat，--mock 走 llm-mock",
-      "tag": "npm run all:mock 永不隐式触网",
+      "label": "真实推理服务路由",
+      "sublabel": "每个模块一个 run.ts；全部走 anthropic-compat",
+      "tag": "npm run all 需要 LLM_API_KEY",
       "pos": [
         1230,
         290
@@ -199,8 +199,8 @@
       "dot": "emerald",
       "title": "结构与覆盖可复算",
       "items": [
-        "12 个方向模块；58 steps + 58 phases",
-        "3 条真实 Provider 路径；默认 12 个模块全部离线",
+        "12 个方向模块；57 impl + 57 scenes",
+        "3 条真实 Provider 专项演示；12 个模块全部走真实推理服务",
         "核心扩展面 25 + 补充扩展面 34 = 覆盖 59，门槛 ≥ 50"
       ]
     },

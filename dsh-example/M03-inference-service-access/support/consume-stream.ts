@@ -1,17 +1,18 @@
 /**
- * consume.ts —— 05 两个入口共享的 StreamChunk 消费循环。
+ * consume.ts —— M03 各入口共享的 StreamChunk 消费循环。
  *
- * 「换 provider 不换 Consumer」不能只停留在口头：mock（run.ts）与真实推理服务
- * （run.ts 内联的 M03.d）走的是**这一个**函数，差异只有传给 llm.stream() 的 provider。
+ * 「换 provider 不换 Consumer」不能只停留在口头：M03.2 与 M03.d 走的是**这一个**函数，
+ * 差异只有传给 llm.stream() 的 provider。
  *
- * 除聚合文本外，这里逐条核对 LlmAdapter 的协议硬约束（见 steps/01-llm-adapter.ts 头注释）：
+ * 除聚合文本外，这里逐条核对 LlmAdapter 的协议硬约束（契约由 `AnthropicCompatAdapter`
+ * 与 dsh-llm 的 `StreamChunk` 类型共同定义）：
  *   - 先 `usage` 再 `finish`；`finish` 之后不再发任何 chunk；
  *   - 同一 block 的所有 delta 复用同一 index（delta 的 index 必须先有 block-start）。
  */
 import type { FinishReason, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm'
 
 export interface ConsumeOptions {
-  /** 逐条打印 chunk。mock 流只有 5 个 chunk 适合全打印；真实流太长，改看计数。 */
+  /** 逐条打印 chunk。真实流很长，默认只看计数。 */
   verbose?: boolean
   /** 逐条打印时的行前缀，默认两个空格。 */
   indent?: string
@@ -24,7 +25,7 @@ export interface ConsumeResult {
   counts: Record<string, number>
   /** 聚合的全部 text-delta。 */
   text: string
-  /** reasoning-delta 的字符总数（真实推理模型的"思考量"，mock 恒为 0）。 */
+  /** reasoning-delta 的字符总数（真实推理模型的"思考量"）。 */
   reasoningChars: number
   /** block-start 的 blockType 序列。 */
   blockTypes: string[]
@@ -95,8 +96,7 @@ export async function consumeStream(
 }
 
 /**
- * 打印协议检查结果（两个入口共用同一组断言措辞）。返回值全为 true 才算守住契约；
- * mock 与真实 provider 应给出完全一致的结论 —— 这正是"同一份契约"的可观测证据。
+ * 打印协议检查结果。返回值全为 true 才算守住契约 —— 这是"同一份 LlmAdapter 契约"的可观测证据。
  */
 export function printProtocolChecks(result: ConsumeResult): void {
   const usageBeforeFinish = result.order.indexOf('usage') < result.order.indexOf('finish')

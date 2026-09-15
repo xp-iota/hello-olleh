@@ -9,19 +9,18 @@ AgentLoop 的外部控制面由三类稳定边界组成：事件用于观察，�
 ## 运行
 
 ```bash
-npm run M04            # 真实 MiniMax（默认）；需要 LLM_API_KEY，会发起网络请求
-npm run M04 -- --mock  # 离线确定性机制；不联网、不需要密钥
+npm run M04   # 真实推理服务；需要 LLM_API_KEY，会发起网络请求
 ```
 
-## 阶段与观察点
+## 实现与场景
 
-| 阶段 | 类型 | 实现 | 观察场景 | 观察什么 |
+| 场景 | 类型 | 实现（`impl/`） | 场景脚本（`scenes/`） | 观察什么 |
 |---|---|---|---|---|
-| 1 生命周期遥测 | 教学主线 | `steps/01-agent-events-telemetry.ts` | `phases/01-observe-turn-events.ts` | turn、step、请求、流、消息的事件次序 |
-| 2 Steering | 教学主线 | `steps/02-lifecycle-steering.ts` | `phases/02-steer-at-boundary.ts` | session-start / pre-step / request / turn-stopping |
-| 3 Inbox | 教学主线 | `steps/03-agent-inbox.ts` | `phases/03-compare-inbox-channels.ts` | send、followup、steer、inject 的 next-turn / next-step 边界 |
-| 4 会话遥测 | 扩展面 | `steps/04-session-telemetry.ts` | `phases/04-capture-telemetry-ledger.ts` | 内存 backend 捕获逐事件 ledger，不发送网络 |
-| 5 运行时不变量 | 扩展面 | `steps/05-invariants.ts` | `phases/05-attribute-invariant-failure.ts` | 失败如何归属到明确 packageName |
+| 1 生命周期遥测 | 教学主线 | `impl/01-agent-events-telemetry.ts` | `scenes/01-observe-turn-events.ts` | turn、step、请求、流、消息的事件次序 |
+| 2 Steering | 教学主线 | `impl/02-lifecycle-steering.ts` | `scenes/02-steer-at-boundary.ts` | session-start / pre-step / request / turn-stopping |
+| 3 Inbox | 教学主线 | `impl/03-agent-inbox.ts` | `scenes/03-compare-inbox-channels.ts` | send、followup、steer、inject 的 next-turn / next-step 边界 |
+| 4 会话遥测 | 扩展面 | `impl/04-session-telemetry.ts` | `scenes/04-capture-telemetry-ledger.ts` | 内存 backend 捕获逐事件 ledger，不发送网络 |
+| 5 运行时不变量 | 扩展面 | `impl/05-invariants.ts` | `scenes/05-attribute-invariant-failure.ts` | 失败如何归属到明确 packageName |
 
 ## 完整链路
 
@@ -30,5 +29,3 @@ npm run M04 -- --mock  # 离线确定性机制；不联网、不需要密钥
 ## 边界
 
 插件可以提出下一步意图，但不能绕过 AgentLoop 直接改写进行中的内部状态。
-
-**结论：**循环扩展应落在事件与消息边界，主循环保持单一事实来源。

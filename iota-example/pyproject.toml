@@ -1,15 +1,15 @@
 [project]
 name = "iota-example"
 version = "0.1.0"
-description = "Offline comparison examples aligned with dsh-example M01-M12"
+description = "Comparison examples aligned with dsh-example M01-M12, run against a real kernel"
 requires-python = ">=3.11,<3.14"
 dependencies = [
   "iota-core==2026.9.8",
 ]
 
 [project.optional-dependencies]
-# 真实模式（IOTA_PROVIDER=anthropic-compat）的运行依赖：ClaudeAdapter 通过它驱动内核进程。
-# 离线入口不需要这一组，所以它是 optional 而不是主依赖。
+# 运行依赖：ClaudeAdapter 通过它驱动内核进程。
+# 只有真实内核这一条路径，但装了它才能跑模块，所以留在 optional 里由 uv sync --extra real 声明。
 real = [
   "claude-agent-sdk>=0.2,<1",
 ]
@@ -35,25 +35,16 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.ruff.lint.per-file-ignores]
+# 模块入口在导入 runtime/ 之前要先把工程根放进 sys.path，所以这里的 import 必然不在文件顶部。
+"M[0-9][0-9]-*/run.py" = ["E402"]
+
 [tool.mypy]
 python_version = "3.11"
 explicit_package_bases = true
-files = [
-  "runtime",
-  "tests",
-  "M01-tool-pipeline/lesson_m01.py",
-  "M02-context-assembly-economics/lesson_m02.py",
-  "M03-inference-service-access/lesson_m03.py",
-  "M04-agent-loop-intervention/lesson_m04.py",
-  "M05-session-surface/lesson_m05.py",
-  "M06-human-in-the-loop/lesson_m06.py",
-  "M07-execution-backends/lesson_m07.py",
-  "M08-delegation-presets/lesson_m08.py",
-  "M09-long-running-orchestration/lesson_m09.py",
-  "M10-external-capabilities/lesson_m10.py",
-  "M11-config-data-infrastructure/lesson_m11.py",
-  "M12-framework-mechanisms/lesson_m12.py",
-]
+# 共享层在这里检查；12 个模块目录名带连字符，不是合法包名，由 runtime/typecheck.sh
+# 逐个检查（每次把模块目录设为顶层导入根，和运行时的 impl./scenes. 导入一致）。
+files = ["runtime", "tests"]
 check_untyped_defs = true
 disallow_untyped_defs = true
 no_implicit_optional = true

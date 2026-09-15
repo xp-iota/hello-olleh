@@ -112,11 +112,11 @@ DeepSeek Harness（`dsh`）是 DeepSeek 开源的 **agent harness**——一个�
 
 详见 [05 篇](05-startup-and-cordis-runtime.md)、[03 篇](03-capability-seams-and-services.md)。
 
-> 📐 **这三个概念都能立刻上手跑**：本仓库的 [配套示例工程](../../dsh-example/README.md) 有 12 个方向模块（58 个可跑阶段），
+> 📐 **这三个概念都能立刻上手跑**：本仓库的 [配套示例工程](../../dsh-example/README.md) 有 12 个方向模块（60 个可跑阶段），
 > 全部装在**真实发布的 `@deepseek-ai/*` npm 包**上（`0.1.5-rc.2`）——
 > profile/bundle 看 [`cordis.yml`](../../dsh-example/cordis.yml)，
-> seam 看 [M03.1 · llm-adapter](../../dsh-example/M03-inference-service-access/steps/01-llm-adapter.ts) / [M07.3 · sandbox](../../dsh-example/M07-execution-backends/steps/03-sandbox-seam.ts)，
-> 三类事件域看 [M04.1 · telemetry](../../dsh-example/M04-agent-loop-intervention/steps/01-agent-events-telemetry.ts) / [M04.2 · lifecycle](../../dsh-example/M04-agent-loop-intervention/steps/02-lifecycle-steering.ts) / [M01.2 · 权限门](../../dsh-example/M01-tool-pipeline/steps/02-permission-gate.ts)。
+> seam 看 [M03 · 推理服务接入](../../dsh-example/M03-inference-service-access/README.md) / [M07.3 · sandbox](../../dsh-example/M07-execution-backends/impl/03-sandbox-seam.ts)，
+> 三类事件域看 [M04.1 · telemetry](../../dsh-example/M04-agent-loop-intervention/impl/01-agent-events-telemetry.ts) / [M04.2 · lifecycle](../../dsh-example/M04-agent-loop-intervention/impl/02-lifecycle-steering.ts) / [M01.2 · 权限门](../../dsh-example/M01-tool-pipeline/impl/02-permission-gate.ts)。
 
 ## 1.6 ⚠️ DSH 用的 cordis 是 vendored 的分叉
 

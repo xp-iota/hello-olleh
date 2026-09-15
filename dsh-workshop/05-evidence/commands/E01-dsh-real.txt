@@ -5,36 +5,31 @@ $ cd dsh-example && npm run M01
 > node M01-tool-pipeline/run.ts
 
 
-████ M01 · 工具管线：从注册、可见性到执行前后策略 —— 真实推理服务 模式 ████
-provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
-（离线请用 --mock，例如 `npm run M01 -- --mock`）
+████ M01 · 工具管线：从注册、可见性到执行前后策略 ████
+provider=anthropic-compat model=fuyao-coding timeout=120000ms
 
-════════ M01.1 · 注册工具与 Fiber 回收（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M01.1"
+──── M01.1 · 注册工具与 Fiber 回收 ────
 ① 已注册模型可见工具: [ 'word_count' ]
 ② canonical value: { words: 4, chars: 27 }
 ③ render 给模型看: 4 词 / 27 字符
 ④ dispose 之后工具集合: [] （应为空）
-REAL_STAGE_OK M01.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=10467 in=0 out=9 finish=stop tools=- text="装配链已连通 M01.1"
+REAL_STAGE_OK M01.1 calls=1 ms=2132 in=0 out=96 finish=stop
 
-════════ M01.2 · pre-execute 权限门（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M01.2"
+──── M01.2 · pre-execute 权限门 ────
 read_file → isError: false | read_file 已执行: path=a.txt
 bash      → isError: true | failure.message: 工具 "bash" 被示例权限门拒绝。
 返回给模型的内容: Error: 工具 "bash" 被示例权限门拒绝。
-REAL_STAGE_OK M01.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=839 in=0 out=9 finish=stop tools=- text="装配链已连通 M01.2"
+REAL_STAGE_OK M01.2 calls=1 ms=9659 in=0 out=86 finish=stop
 
-════════ M01.3 · post-execute 结果变换（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M01.3"
+──── M01.3 · post-execute 结果变换 ────
 [audit] 工具 word_count 结束 → ok
 规范值 value（未变）: { words: 5, chars: 23 }
 模型可见 content（已被转换追加）:
   • "5 词 / 23 字符"
   • "\n[post-execute 策略] 已在结果后追加一条模型可见提示"
-REAL_STAGE_OK M01.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=840 in=0 out=9 finish=stop tools=- text="装配链已连通 M01.3"
+REAL_STAGE_OK M01.3 calls=1 ms=3113 in=0 out=114 finish=stop
 
-════════ M01.4 · 按 Agent 收紧可见工具（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M01.4"
+──── M01.4 · 按 Agent 收紧可见工具 ────
 ① 全部已注册（全局视角）: [ 'echo', 'read', 'write', 'bash' ]
 ② 该 agent 可见（已被收紧）: [ 'echo', 'read' ]
 ③ 调用被收紧的 write → isError: true | Error: unknown tool "write"
@@ -53,26 +48,25 @@ REAL_STAGE_OK M01.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 ca
    —— 因为这条 restrict 是在 `agent.ctx` 上调的，effect 归**那个 agent 的 fiber**，
       随 agent 一起回收；插件 fiber 只拥有它自己注册的那个 session-start 监听器。
    新建的 agent 不再被收紧 → [ 'echo', 'read', 'write', 'bash' ] （监听器已随插件撤销）
-REAL_STAGE_OK M01.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=4821 in=0 out=9 finish=stop tools=- text="装配链已连通 M01.4"
+REAL_STAGE_OK M01.4 calls=1 ms=2991 in=0 out=93 finish=stop
 
-════════ M01.5 · 不可翻案的单调守卫（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M01.5"
+──── M01.5 · 单调守卫：只能拒绝，不能放行 ────
 ls -la    → isError: false | bash 已执行: cmd=ls -la
 rm -rf /  → isError: true | Error: 命令命中危险模式 "rm -rf"，被单调守卫拒绝
 （pre-execute 明明 allow 了，但 guard 是单调最终拒绝，翻不了案）
-REAL_STAGE_OK M01.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=966 in=0 out=9 finish=stop tools=- text="装配链已连通 M01.5"
+REAL_STAGE_OK M01.5 calls=1 ms=3849 in=0 out=55 finish=stop
 
-════════ M01.d · 专项真实演示：模型自主决定调用 word_count（kind=model）════════
-① 推理服务: anthropic-compat / MiniMax-M3 （真实 HTTP + SSE）
+──── M01.d · 专项真实演示：模型自主决定调用 word_count ────
+① 推理服务: anthropic-compat / fuyao-coding （真实 HTTP + SSE）
 ② 模型可见工具: [ 'word_count' ]
 ③ 用户 query: 请统计这句话的词数和字符数："DeepSeek Harness makes every tool call observable"。必须调用 word_count 工具来算，不要自己数，最后用一句中文报出结果。
 ④ 模型发起的工具调用:
-   → word_count {"text":"DeepSeek Harness makes every tool call observable"}
+   → word_count {"text": "DeepSeek Harness makes every tool call observable", "caseSensitive": true}
 ⑤ 工具结果回灌给模型:
    → isError=false · 7 词 / 49 字符
-⑥ 模型最终回答: "该句共有 **7 个词、49 个字符**。"
+⑥ 模型最终回答: "这句话共 7 个词、49 个字符。"
 ⑦ 本轮 step 数: 2 （工具调用会多出一步：调用步 + 收尾步）
-REAL_STAGE_OK M01.d kind=model provider=anthropic-compat model=MiniMax-M3 calls=2 ms=1724 in=0 out=48 finish=stop tools=word_count text="该句共有 **7 个词、49 个字符**。"
+REAL_STAGE_OK M01.d calls=2 ms=18356 in=0 out=88 finish=stop tools=word_count "这句话共 7 个词、49 个字符。"
 
 REAL_MODULE_OK M01 stages=6 calls=7 failed=0
 [exit 0]

@@ -12,7 +12,7 @@ title: "扩展与生态：Skill、插件、协议、SDK"
 ## 4.1 两条扩展路径的区别
 
 > 📐 **配套可跑示例**：[`M10.1 · skill-code-review`](../../dsh-example/M10-external-capabilities/assets/SKILL.md) 是"按数据扩展"的完整样本
-> （一个 `SKILL.md`，零行 TypeScript）；它的 [`run.ts`](../../dsh-example/M10-external-capabilities/phases/01-inject-skill-into-turn.ts) 把这份 Markdown
+> （一个 `SKILL.md`，零行 TypeScript）；它的 [`run.ts`](../../dsh-example/M10-external-capabilities/scenes/01-inject-skill-into-turn.ts) 把这份 Markdown
 > 注册进真实 `ctx.skills`，再用真实 `renderSkillContent` 渲染后经 `agent.inject()` 送进下一步上下文。
 
 
@@ -39,7 +39,7 @@ title: "扩展与生态：Skill、插件、协议、SDK"
 
 ## 4.3 `hooks` 组：兼容其它 agent 的钩子协议
 
-> 📐 **配套可跑示例**：[`M04.2 · hooks-lifecycle-steering`](../../dsh-example/M04-agent-loop-intervention/steps/02-lifecycle-steering.ts) 演示这些桥接器最终落到的那组拦截点
+> 📐 **配套可跑示例**：[`M04.2 · hooks-lifecycle-steering`](../../dsh-example/M04-agent-loop-intervention/impl/02-lifecycle-steering.ts) 演示这些桥接器最终落到的那组拦截点
 > （`agent/session-start` · `pre-step` · `request` · `turn-stopping`），并在轮末用 `agent.steer()` 真的多跑了一个 step。
 
 
@@ -132,7 +132,7 @@ title: "扩展与生态：Skill、插件、协议、SDK"
 ## 4.10 扩展点全景
 
 > 📐 **配套可跑示例**：这张全景表里的每个扩展点都有对应示例，逐条映射见
-> [示例工程 README 的能力索引](../../dsh-example/README.md)（12 个方向模块、58 个阶段，全部跑在真实 `@deepseek-ai/*` 发布包上）。
+> [示例工程 README 的能力索引](../../dsh-example/README.md)（12 个方向模块、60 个阶段，全部跑在真实 `@deepseek-ai/*` 发布包上）。
 
 
 把前面各篇的扩展点汇总（对应 `docs/architecture.md` 的映射表 + 本文档集的发现）：

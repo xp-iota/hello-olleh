@@ -70,7 +70,7 @@
         "  hasLocator: true,",
         "  isError: false",
         "}",
-        "REAL_STAGE_OK M02.6 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2221 in=0 out=9 finish=stop tools=- text=\"装配链已连通 M02.6\"",
+        "REAL_STAGE_OK M02.6 calls=1 ms=5661 in=0 out=77 finish=stop",
         "REAL_MODULE_OK M02 stages=6 calls=6 failed=0",
         "[exit 0]"
       ]

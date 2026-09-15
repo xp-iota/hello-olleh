@@ -4,24 +4,23 @@ Cordis 用事件派发语义定义监听者如何组合，用 Fiber 生命周期
 
 ## 学习目标
 
-理解控制流、依赖状态、服务隔离与调用域配置如何构成可组合、可卸载插件的底层纪律。
+理解控制流、依赖状态、服务隔离与调用域配置如何构成可组合、可卸载插件的底层机制。
 
 ## 运行
 
 ```bash
-npm run M12            # 真实 MiniMax（默认）；需要 LLM_API_KEY，会发起网络请求
-npm run M12 -- --mock  # 离线确定性机制；不联网、不需要密钥
+npm run M12   # 真实推理服务；需要 LLM_API_KEY，会发起网络请求
 ```
 
-## 阶段与观察点
+## 实现与场景
 
-| 阶段 | 类型 | 实现 | 观察场景 | 观察什么 |
+| 场景 | 类型 | 实现（`impl/`） | 场景脚本（`scenes/`） | 观察什么 |
 |---|---|---|---|---|
-| 1 Dispatch | 教学主线 | `steps/01-dispatch-modes.ts` | `phases/01-compare-dispatch-modes.ts` | emit、parallel、serial、bail、waterfall 的顺序与返回值 |
-| 2 Timer | 教学主线 | `steps/02-cordis-timer.ts` | `phases/02-dispose-pending-timer.ts` | timeout、interval、throttle、debounce 与 Fiber dispose |
-| 3 Fiber 状态机 | 扩展面 | `steps/03-fiber-state-machine.ts` | `phases/03-observe-pending-state.ts` | 依赖缺失时 PENDING，满足后转为 ACTIVE |
-| 4 Isolate realm | 扩展面 | `steps/04-isolate-realm.ts` | `phases/04-isolate-same-name-service.ts` | 同名服务的独立解析域 |
-| 5 Intercept config | 扩展面 | `steps/05-intercept-config.ts` | `phases/05-layer-intercept-config.ts` | 按调用域叠加配置而不复制服务实例 |
+| 1 Dispatch | 教学主线 | `impl/01-dispatch-modes.ts` | `scenes/01-compare-dispatch-modes.ts` | emit、parallel、serial、bail、waterfall 的顺序与返回值 |
+| 2 Timer | 教学主线 | `impl/02-cordis-timer.ts` | `scenes/02-dispose-pending-timer.ts` | timeout、interval、throttle、debounce 与 Fiber dispose |
+| 3 Fiber 状态机 | 扩展面 | `impl/03-fiber-state-machine.ts` | `scenes/03-observe-pending-state.ts` | 依赖缺失时 PENDING，满足后转为 ACTIVE |
+| 4 Isolate realm | 扩展面 | `impl/04-isolate-realm.ts` | `scenes/04-isolate-same-name-service.ts` | 同名服务的独立解析域 |
+| 5 Intercept config | 扩展面 | `impl/05-intercept-config.ts` | `scenes/05-layer-intercept-config.ts` | 按调用域叠加配置而不复制服务实例 |
 
 ## 完整链路
 
@@ -30,5 +29,3 @@ npm run M12 -- --mock  # 离线确定性机制；不联网、不需要密钥
 ## 边界
 
 `bail` 不等待异步监听者；无法接受 Promise 泄露时必须改用合适的异步派发模式。
-
-**结论：**错误的派发模式会改变控制流，脱离 Fiber 的资源会破坏可卸载性。

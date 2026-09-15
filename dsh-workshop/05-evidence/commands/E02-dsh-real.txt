@@ -5,12 +5,10 @@ $ cd dsh-example && npm run M02
 > node M02-context-assembly-economics/run.ts
 
 
-████ M02 · 上下文装配与经济学：构造、改写、压缩 —— 真实推理服务 模式 ████
-provider=anthropic-compat model=MiniMax-M3 endpoint=<llm-anthropic-compat> timeout=120000ms
-（离线请用 --mock，例如 `npm run M01 -- --mock`）
+████ M02 · 上下文装配与经济学：构造、改写、压缩 ████
+provider=anthropic-compat model=fuyao-coding timeout=120000ms
 
-════════ M02.1 · 按顺序贡献 Prompt section（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M02.1"
+──── M02.1 · 按顺序贡献 Prompt section ────
 ===== 组装后的 System Prompt =====
 You are an AI agent powered by DeepSeek Harness.
 
@@ -20,13 +18,12 @@ You are an AI agent powered by DeepSeek Harness.
 - 保持简洁，先给结论再给理由。
 - 涉及代码时给出可运行的最小示例。
 - 结尾署名：—— 来自扩展示例工程
-REAL_STAGE_OK M02.1 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1600 in=0 out=9 finish=stop tools=- text="装配链已连通 M02.1"
+REAL_STAGE_OK M02.1 calls=1 ms=2453 in=0 out=78 finish=stop
 
-════════ M02.2 · 变量解析与 assembly waterfall（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M02.2"
+──── M02.2 · 变量解析与 assembly waterfall ────
 ===== ① assemble() 的返回值是结构化 PromptAssembly，不是字符串 =====
    sections : runtime-preamble → harness:identity → deployment:persona-prefix → persona → date-aware → deployment:persona-suffix
-   variables: {"provider":"anthropic-compat","model":"MiniMax-M3","today":"2026-09-14"}
+   variables: {"provider":"anthropic-compat","model":"fuyao-coding","today":"2026-09-15"}
    contexts : 1 | tools: 0
 
 ===== ② 渲染成最终提示词（拼 section + 插值 {{today}}）=====
@@ -36,7 +33,7 @@ You are an AI agent powered by DeepSeek Harness.
 
 你是一个乐于助人的编码助手。
 
-当前日期是 2026-09-14。请在涉及"今天/昨天"的回答里以该日期为准。
+当前日期是 2026-09-15。请在涉及"今天/昨天"的回答里以该日期为准。
 
 ===== ③ 未注册的变量是**硬错误**：渲染阶段直接抛，不静默清空也不原样保留 =====
    renderPrompt 抛错: unknown prompt variable "{{nope}}" in section "x"; registered variables: (none)
@@ -44,10 +41,9 @@ You are an AI agent powered by DeepSeek Harness.
 ===== ④ 已注册但求值为 undefined 的变量：同样 fail loud =====
    variables.maybe = undefined
    renderPrompt 抛错: prompt variable "{{maybe}}" has no value for this assembly (section "maybe-user")
-REAL_STAGE_OK M02.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2133 in=0 out=9 finish=stop tools=- text="装配链已连通 M02.2"
+REAL_STAGE_OK M02.2 calls=1 ms=686 in=0 out=79 finish=stop
 
-════════ M02.3 · 压缩历史并替换模型可见 surface（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M02.3"
+──── M02.3 · 压缩历史并替换模型可见 surface ────
 ① 已装载 compaction 实现: DemoCompactionEngine （构造里 super(ctx) 即挂载，无手工 provide）
 
 ② 构建初始上下文：向 longCtx 的会话逐条追加 12 条 user 消息（surfaceOp: append）:
@@ -97,27 +93,24 @@ REAL_STAGE_OK M02.2 kind=mechanism provider=anthropic-compat model=MiniMax-M3 ca
 
 ⑧ 插件 fiber.dispose() 后 seam 自动卸载（回到未装）:
    ctx.compaction = undefined
-REAL_STAGE_OK M02.3 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=738 in=0 out=9 finish=stop tools=- text="装配链已连通 M02.3"
+REAL_STAGE_OK M02.3 calls=1 ms=1083 in=0 out=68 finish=stop
 
-════════ M02.4 · 回放日志估算 token 压力（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M02.4"
+──── M02.4 · 回放日志估算 token 压力 ────
 tokenMeter: { baseline: 'estimated', surfaceTokens: 11, totalTokens: 11, nodes: 1 }
-REAL_STAGE_OK M02.4 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=1934 in=0 out=9 finish=stop tools=- text="装配链已连通 M02.4"
+REAL_STAGE_OK M02.4 calls=1 ms=557 in=0 out=10 finish=stop
 
-════════ M02.5 · 确定性裁剪超长工具结果（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M02.5"
+──── M02.5 · 确定性裁剪超长工具结果 ────
 toolResultPruner: { before: 112, after: 55, marker: true }
-REAL_STAGE_OK M02.5 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=4931 in=0 out=9 finish=stop tools=- text="装配链已连通 M02.5"
+REAL_STAGE_OK M02.5 calls=1 ms=392 in=0 out=35 finish=stop
 
-════════ M02.6 · 把超长结果 spill 到本地文件（kind=mechanism）════════
-  ↳ 入口 probe 真实回复: "装配链已连通 M02.6"
+──── M02.6 · 把超长结果 spill 到本地文件 ────
 spillStore: {
   backend: 'LocalSpillStore',
   inlineBytes: 253,
   hasLocator: true,
   isError: false
 }
-REAL_STAGE_OK M02.6 kind=mechanism provider=anthropic-compat model=MiniMax-M3 calls=1 ms=2221 in=0 out=9 finish=stop tools=- text="装配链已连通 M02.6"
+REAL_STAGE_OK M02.6 calls=1 ms=5661 in=0 out=77 finish=stop
 
 REAL_MODULE_OK M02 stages=6 calls=6 failed=0
 [exit 0]

@@ -12,16 +12,17 @@ title: "能力缝 Seam 与服务全景"
 
 ## 3.1 seam 的三角色定义
 
-> 📐 **配套可跑示例**：[`M03.1 · llm-adapter`](../../dsh-example/M03-inference-service-access/steps/01-llm-adapter.ts) 是三角色模型的最小实例 ——
-> Definition 是真实包 `@deepseek-ai/dsh-llm` 导出的抽象类 `LlmAdapter`，Provider 是那个 `MockAdapter`，
-> Consumer 是 agent-loop（示例里换成 `ctx.llm.stream(...)` 直接消费）；`npm run M03`
-> 再用同一个循环消费真实 `anthropic-compat` 路由，验证"换 provider 不换 Consumer"。
+> 📐 **配套可跑示例**：[M03 推理服务接入](../../dsh-example/M03-inference-service-access/README.md) 是三角色模型的实例 ——
+> Definition 是真实包 `@deepseek-ai/dsh-llm` 导出的抽象类 `LlmAdapter`，Provider 是
+> `runtime/llm.ts` 的 `AnthropicCompatAdapter`，Consumer 是 agent-loop（示例里换成
+> `ctx.llm.stream(...)` 直接消费）；`npm run M03` 用同一个循环消费 `anthropic-compat` 路由，
+> 验证"换 provider 不换 Consumer"。
 >
 > ```ts
-> class MockAdapter extends LlmAdapter {        // ← Provider
->   async *stream(_options: GenerateOptions): AsyncIterable<StreamChunk> { /* … */ }
+> export default class AnthropicCompatAdapter extends LlmAdapter {   // ← Provider
+>   async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> { /* … */ }
 > }
-> ctx.llm.registerAdapter([config.routeName], new MockAdapter(config.reply))
+> ctx.llm.registerAdapter(['anthropic-compat'], new CountingAnthropicCompatAdapter(real))
 > ```
 
 
@@ -174,11 +175,11 @@ cordis 的 `waterfall(thisArg, name, ...)` 会用 `thisArg[Context.filter]` 过�
 ## 3.8 全部 seam 一览
 
 > 📐 **配套可跑示例**：下面这张表里的每个 seam 都有一个能真跑的最小 provider / consumer ——
-> `ctx.llm` → [M03.1](../../dsh-example/M03-inference-service-access/steps/01-llm-adapter.ts)、`ctx.fs` / `ctx.subprocess` → [M07.1](../../dsh-example/M07-execution-backends/steps/01-fs-shell-side-effects.ts)、
-> `ctx.shell` → [M07.2](../../dsh-example/M07-execution-backends/phases/02-run-and-start.ts)、`ctx.sandbox` → [M07.3](../../dsh-example/M07-execution-backends/steps/03-sandbox-seam.ts)、
-> `ctx.compaction` → [M02.3](../../dsh-example/M02-context-assembly-economics/steps/03-compaction-provider.ts)、`ctx.subagents` → [M08.1](../../dsh-example/M08-delegation-presets/steps/01-subagent-delegation.ts)、
-> `ctx.jobs` → [M09.1](../../dsh-example/M09-long-running-orchestration/phases/01-job-start-read-kill.ts)、`ctx.goals` → [M09.2](../../dsh-example/M09-long-running-orchestration/phases/02-goal-cas-conflict.ts)、
-> `ctx.settings` → [M11.1](../../dsh-example/M11-config-data-infrastructure/steps/01-settings-namespaces.ts)、`ctx.approval` → [M06.2](../../dsh-example/M06-human-in-the-loop/steps/02-approval-answerer.ts)。
+> `ctx.llm` → [M03](../../dsh-example/runtime/llm.ts)、`ctx.fs` / `ctx.subprocess` → [M07.1](../../dsh-example/M07-execution-backends/impl/01-fs-shell-side-effects.ts)、
+> `ctx.shell` → [M07.2](../../dsh-example/M07-execution-backends/scenes/02-run-and-start.ts)、`ctx.sandbox` → [M07.3](../../dsh-example/M07-execution-backends/impl/03-sandbox-seam.ts)、
+> `ctx.compaction` → [M02.3](../../dsh-example/M02-context-assembly-economics/impl/03-compaction-provider.ts)、`ctx.subagents` → [M08.1](../../dsh-example/M08-delegation-presets/impl/01-subagent-delegation.ts)、
+> `ctx.jobs` → [M09.1](../../dsh-example/M09-long-running-orchestration/scenes/01-job-start-read-kill.ts)、`ctx.goals` → [M09.2](../../dsh-example/M09-long-running-orchestration/scenes/02-goal-cas-conflict.ts)、
+> `ctx.settings` → [M11.1](../../dsh-example/M11-config-data-infrastructure/impl/01-settings-namespaces.ts)、`ctx.approval` → [M06.2](../../dsh-example/M06-human-in-the-loop/impl/02-approval-answerer.ts)。
 
 
 按 `ctx` 键整理（来自 `docs/architecture.md` 的映射表 + 包结构）：
