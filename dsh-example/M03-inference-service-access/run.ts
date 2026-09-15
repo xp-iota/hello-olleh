@@ -45,7 +45,7 @@ async function runLlmAdapterMinimax(): Promise<void> {
 }
 
 const stages: readonly StageSpec[] = [
-  { id: 'M03.2', title: '用 llm/stream waterfall 包装 chunk 流', kind: 'mechanism', path: './scenes/02-wrap-chunk-stream.ts' },
+  { id: 'M03.1', title: '用 llm/stream waterfall 包装 chunk 流', kind: 'mechanism', path: './scenes/wrap-chunk-stream.ts' },
 
   // 专项真实演示直接内联。
   { id: 'M03.d', title: '专项真实演示：同一消费循环接真实推理服务', kind: 'model', run: runLlmAdapterMinimax },

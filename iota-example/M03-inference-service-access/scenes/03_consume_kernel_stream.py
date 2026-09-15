@@ -29,7 +29,7 @@ async def run(harness: WorkshopHarness) -> dict[str, Any]:
     usage = final.usage
     reported = usage.to_dict() if isinstance(usage, TokenUsage) else dict(usage or {})
 
-    require(kinds[0] == "step_start", "编排层的 step 包在最外层", kinds)
+    require(kinds[0] == "step_start", "编排层的 step 包在最外侧", kinds)
     require(kinds[-1] == "step_end", "step_end 收尾", kinds)
     require(counts["final"] == 1, "终止事件只出现一次", counts)
     require_event_order(kinds, ("system_init", "text_delta", "final"))

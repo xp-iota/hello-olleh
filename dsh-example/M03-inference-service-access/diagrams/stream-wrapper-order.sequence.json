@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "注册顺序决定内外，next() 向内，chunk 向外",
+    "viewBox": [
+      1500,
+      700
+    ],
+    "column_fit": "spread",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    {
+      "id": "consumer",
+      "type": "frontend",
+      "label": "场景 Consumer",
+      "sublabel": "消费最外侧流"
+    },
+    {
+      "id": "uppercase",
+      "type": "backend",
+      "label": "外侧：大写改写",
+      "sublabel": "第 1 个 ctx.on 注册"
+    },
+    {
+      "id": "counter",
+      "type": "backend",
+      "label": "内侧：统计",
+      "sublabel": "第 2 个 ctx.on 注册"
+    },
+    {
+      "id": "adapter",
+      "type": "external",
+      "label": "Adapter",
+      "sublabel": "最终回调：HTTP / SSE"
+    }
+  ],
+  "messages": [
+    {
+      "id": "step-1",
+      "from": "consumer",
+      "to": "uppercase",
+      "y": 175,
+      "label": "① stream() 派发到第一个监听器",
+      "variant": "default"
+    },
+    {
+      "id": "step-2",
+      "from": "uppercase",
+      "to": "consumer",
+      "y": 220,
+      "label": "② 返回外侧生成器（尚未迭代）",
+      "variant": "return"
+    },
+    {
+      "id": "step-3",
+      "from": "consumer",
+      "to": "uppercase",
+      "y": 275,
+      "label": "③ for await 开始拉取",
+      "variant": "emphasis"
+    },
+    {
+      "id": "step-4",
+      "from": "uppercase",
+      "to": "counter",
+      "y": 330,
+      "label": "④ next()：取内侧流并迭代",
+      "variant": "default"
+    },
+    {
+      "id": "step-5",
+      "from": "counter",
+      "to": "adapter",
+      "y": 385,
+      "label": "⑤ next()：取 Adapter 流并迭代",
+      "variant": "default"
+    },
+    {
+      "id": "step-6",
+      "from": "adapter",
+      "to": "counter",
+      "y": 450,
+      "label": "⑥ 产出 text-delta：Hello",
+      "variant": "return"
+    },
+    {
+      "id": "step-7",
+      "from": "counter",
+      "to": "uppercase",
+      "y": 505,
+      "label": "⑦ chunks++；yield 原文 Hello",
+      "variant": "return"
+    },
+    {
+      "id": "step-8",
+      "from": "uppercase",
+      "to": "consumer",
+      "y": 560,
+      "label": "⑧ 转大写；yield 文本 HELLO",
+      "variant": "return"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "内外由顺序决定",
+      "items": [
+        "默认先注册在外；交换注册顺序，内外互换。"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "调用向内推进",
+      "items": [
+        "每层 next() 一次，取下游流；迭代才开始执行。"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "数据逐层返回",
+      "items": [
+        "Adapter 产出后，先统计，再改写，最后消费。"
+      ]
+    }
+  ]
+}

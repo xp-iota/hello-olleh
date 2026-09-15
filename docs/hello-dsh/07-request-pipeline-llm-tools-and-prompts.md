@@ -50,8 +50,8 @@ title: "请求管线：LLM、工具与 SystemPrompt"
 
 ## 7.3 `llm/stream`：waterfall 接缝
 
-> 📐 **配套可跑示例**：[`M03.2 · llm-stream`](../../dsh-example/M03-inference-service-access/impl/02-llm-stream.ts) 注册两个监听器包在真实适配器外层 ——
-> 外层改写 `text-delta`、内层统计 chunk 与 usage：
+> 📐 **配套可跑示例**：[`M03.1 · llm-stream`](../../dsh-example/M03-inference-service-access/impl/llm-stream.ts) 注册两个监听器包在真实适配器外侧 ——
+> 外侧改写 `text-delta`、内侧统计 chunk 与 usage：
 >
 > ```ts
 > ctx.on('llm/stream', (options, next) => (async function* () {

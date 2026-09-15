@@ -18,7 +18,7 @@ const lessons = [
   },
   {
     id: 'M03', title: '推理服务接入', goal: '区分 Provider seam、StreamChunk Consumer 与 llm/stream 中间件',
-    entry: 'M03-inference-service-access/run.ts', source: 'M03-inference-service-access/impl/02-llm-stream.ts',
+    entry: 'M03-inference-service-access/run.ts', source: 'M03-inference-service-access/impl/llm-stream.ts',
     observe: ['具名 provider 路由怎样注册', '统一 chunk 协议包含哪些不变量', 'waterfall 怎样包装而不替换后端'],
     takeaway: '后端、流中间件和 Consumer 分离后，业务代码不依赖供应商。', next: '真实模式默认就是 npm run M03；或继续 M04 看 AgentLoop。',
   },

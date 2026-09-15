@@ -1,8 +1,8 @@
 /**
- * consume.ts —— M03 各入口共享的 StreamChunk 消费循环。
+ * consume-stream.ts —— M03.d 的 StreamChunk 协议消费与检查 helper。
  *
- * 「换 provider 不换 Consumer」不能只停留在口头：M03.2 与 M03.d 走的是**这一个**函数，
- * 差异只有传给 llm.stream() 的 provider。
+ * 中间件场景用自己的 for-await 循环逐条打印；M03.d 用本函数聚合协议信息。
+ * 两者消费的类型都是 AsyncIterable<StreamChunk>，都使用 anthropic-compat 路由。
  *
  * 除聚合文本外，这里逐条核对 LlmAdapter 的协议硬约束（契约由 `AnthropicCompatAdapter`
  * 与 dsh-llm 的 `StreamChunk` 类型共同定义）：
