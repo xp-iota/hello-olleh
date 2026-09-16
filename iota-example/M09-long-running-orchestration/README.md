@@ -6,6 +6,7 @@ DSH 用 Job、Goal、workflow worker 与 schedule 表达长任务。iota 用带�
 
 对位的 DSH 模块：[M09 长任务与编排](../../dsh-example/M09-long-running-orchestration/README.md)。阶段编号与它逐一对齐 ——
 同一个编号指向同一个控制面，看 iota 这边是"有等价机制"还是"能力归内核/宿主"。
+本模块课件：[第 09 课 · 长任务与编排](../lessons/09-long-running-orchestration.md)。
 
 ## 学习目标
 

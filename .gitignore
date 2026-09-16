@@ -57,8 +57,7 @@ venv/
 
 # 真实模式与课程构建的临时产物（每次运行重新生成，不入库）
 dsh-example/runtime/.real-logs/
-dsh-workshop/.build-tmp/
-dsh-workshop/.validate-tmp/
-dsh-workshop/05-evidence/replay/
 iota-example/.wheels/
 .acceptance/
+
+# dsh-workshop 的生成物规则由 dsh-workshop/.gitignore 自己拥有（见 dsh-workshop/AGENTS.md）

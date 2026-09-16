@@ -6,6 +6,7 @@ DSH 的干预面是事件、steering 与四种 inbox 通道；iota 的干预面�
 
 对位的 DSH 模块：[M04 Agent 循环与干预面](../../dsh-example/M04-agent-loop-intervention/README.md)。阶段编号与它逐一对齐 ——
 同一个编号指向同一个控制面，看 iota 这边是"有等价机制"还是"能力归内核/宿主"。
+本模块课件：[第 04 课 · Agent 循环与干预面](../lessons/04-agent-loop-intervention.md)。
 
 ## 学习目标
 

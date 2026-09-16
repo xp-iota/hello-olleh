@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "kind": "course",
+  "courseId": "dsh-iota",
+  "brand": "DSH 与 iota 实操课",
+  "subtitle": "十二集，每集一个能自己跑完的任务",
+  "locale": "zh-CN",
+  "brief": "00-brief/topic-brief.json",
+  "themePreset": "profiles/theme.course.json",
+  "ttsProfile": "profiles/tts-profile.edge-tts.json",
+  "topicsDir": "topics",
+  "outputDir": "out",
+  "deck": {
+    "fps": 15,
+    "width": 1280,
+    "height": 720,
+    "tailFrames": 8,
+    "showCaptions": true,
+    "minDurationSec": 8
+  },
+  "pagePlan": [
+    {
+      "key": "task",
+      "type": "text",
+      "eyebrow": "本集任务",
+      "title": "任务、命令与预期结果"
+    },
+    {
+      "key": "terminal",
+      "type": "text",
+      "eyebrow": "真实输出",
+      "title": "这条命令真实打印了什么"
+    },
+    {
+      "key": "shell",
+      "type": "diagram",
+      "eyebrow": "运行外壳",
+      "title": "DSH 侧的机制"
+    },
+    {
+      "key": "orchestration",
+      "type": "diagram",
+      "eyebrow": "编排层",
+      "title": "iota 侧的同一件事，以及它不做的部分"
+    },
+    {
+      "key": "debug",
+      "type": "text",
+      "eyebrow": "错误定位",
+      "title": "症状、定位办法与修改"
+    },
+    {
+      "key": "code",
+      "type": "text",
+      "eyebrow": "代码在哪",
+      "title": "一条命令打开对应代码"
+    },
+    {
+      "key": "exercise",
+      "type": "text",
+      "eyebrow": "动手练习",
+      "title": "改哪里、怎么验证、答案是什么"
+    }
+  ],
+  "episodes": [
+    {
+      "id": "e01",
+      "module": "M01",
+      "slug": "tool-pipeline",
+      "title": "工具管线",
+      "task": "给 Agent 加一个 word_count 工具，让真实模型自己决定调用它；再在编排层给自有工具槽装一条可回收的处理阶段",
+      "command": "cd dsh-example && npm run M01",
+      "expect": "模型自己发出 word_count 调用，工具结果回灌成「7 词 / 49 字符」，然后模型用一句中文收尾",
+      "evidence": "E01-dsh-real.txt"
+    },
+    {
+      "id": "e02",
+      "module": "M02",
+      "slug": "context-assembly",
+      "title": "上下文装配与经济学",
+      "task": "让上下文不再是一根越来越长的字符串：按段落贡献、量一量压力、把旧的一段遮起来",
+      "command": "cd dsh-example && npm run M02",
+      "expect": "分段按顺序装配、token 压力被逐条估出来、压缩之后模型可见面明显变短，而原始日志一条都没少",
+      "evidence": "E02-dsh-real.txt"
+    },
+    {
+      "id": "e03",
+      "module": "M03",
+      "slug": "inference-access",
+      "title": "推理服务接入",
+      "task": "把推理服务换成 MiniMax：注册一个适配器，让同一个消费循环拿到真实流",
+      "command": "cd dsh-example && npm run M03",
+      "expect": "同一个循环消费真实 SSE：block 先开始再有增量，结束时给出 finish 原因，还有 usage 里的 token 数",
+      "evidence": "E03-dsh-real.txt"
+    },
+    {
+      "id": "e04",
+      "module": "M04",
+      "slug": "loop-intervention",
+      "title": "Agent 循环与干预面",
+      "task": "不复制主循环，也能在循环里插一脚：订阅事件、在生命周期边界引导下一步",
+      "command": "cd dsh-example && npm run M04",
+      "expect": "遥测插件把一轮、一步、一次请求逐条打出来；在准备停下来的那个边界上引导一次，本轮就多跑了一个 step",
+      "evidence": "E04-dsh-real.txt"
+    },
+    {
+      "id": "e05",
+      "module": "M05",
+      "slug": "session-surface",
+      "title": "会话面",
+      "task": "把「发生过的事」和「模型看见的事」分成两份：日志只往后加，可见面可以换",
+      "command": "cd dsh-example && npm run M05",
+      "expect": "四个可验证的点：序号连续、事件被冻结改不动、替换可见面之后投影以摘要开头、而日志长度一条没少",
+      "evidence": "E05-dsh-real.txt"
+    },
+    {
+      "id": "e06",
+      "module": "M06",
+      "slug": "human-in-the-loop",
+      "title": "人在环路",
+      "task": "让危险操作先回到人这里：工具在执行前请示，没有应答方就必须拒绝",
+      "command": "cd dsh-example && npm run M06",
+      "expect": "同一次部署请求在三种应答局面下分别得到 unavailable、allowed-once、rejected",
+      "evidence": "E06-dsh-real.txt"
+    },
+    {
+      "id": "e07",
+      "module": "M07",
+      "slug": "execution-backends",
+      "title": "执行侧后端",
+      "task": "让工具只提意图，由服务决定谁执行、在哪执行，沙箱把策略落到进程边界上",
+      "command": "cd dsh-example && npm run M07",
+      "expect": "同一个意图经过文件和命令服务派发，沙箱把只读工作区里的写入挡在进程边界上，被挡住的那次有明确的拒绝原因",
+      "evidence": "E07-dsh-real.txt"
+    },
+    {
+      "id": "e08",
+      "module": "M08",
+      "slug": "delegation-presets",
+      "title": "委派与预设",
+      "task": "把活儿分给子代理：注册能力之外，还要给模型一个看得见的工具，并用预设收紧权限",
+      "command": "cd dsh-example && npm run M08",
+      "expect": "子代理提供方注册好了，模型还是不会自动委派；包装成模型看得见的工具才行，未隔离命令行的权限预设会被直接拒绝",
+      "evidence": "E08-dsh-real.txt"
+    },
+    {
+      "id": "e09",
+      "module": "M09",
+      "slug": "long-running",
+      "title": "长任务与编排",
+      "task": "把「还在跑吗」和「这事要干成什么」拆开：后台句柄管运行，目标日志管意图",
+      "command": "cd dsh-example && npm run M09",
+      "expect": "后台任务可起可读可等可杀，目标状态用版本比对挡掉过期写入，计划从耐久日志恢复",
+      "evidence": "E09-dsh-real.txt"
+    },
+    {
+      "id": "e10",
+      "module": "M10",
+      "slug": "external-capabilities",
+      "title": "外部能力接入",
+      "task": "能写成数据的先别写成代码：把一份清单注入模型视野，再看它答得有什么不同",
+      "command": "cd dsh-example && npm run M10",
+      "expect": "不注入清单时模型自由发挥；注入之后第一行就是结论，条目按严重性排序",
+      "evidence": "E10-dsh-real.txt"
+    },
+    {
+      "id": "e11",
+      "module": "M11",
+      "slug": "config-data",
+      "title": "配置与数据设施",
+      "task": "让配置不再是一个随便丢东西的口袋：命名空间、格式声明、版本号，凭证只看状态",
+      "command": "cd dsh-example && npm run M11",
+      "expect": "每个插件只拥有自己的命名空间；并发写入不是悄悄覆盖，而是显式失败；凭证只显示状态，从头到尾不打印内容",
+      "evidence": "E11-dsh-real.txt"
+    },
+    {
+      "id": "e12",
+      "module": "M12",
+      "slug": "framework-mechanisms",
+      "title": "框架机制本体",
+      "task": "把底座看清楚：五种派发模式怎么选，副作用怎么随插件一起回收",
+      "command": "cd dsh-example && npm run M12",
+      "expect": "五种派发模式返回值与执行顺序各不相同；插件卸载后定时器被拒、监听器消失",
+      "evidence": "E12-dsh-real.txt"
+    }
+  ]
+}

@@ -6,6 +6,7 @@ DSH 有 fs、subprocess、shell、terminal 与 sandbox 五层可换后端。iota
 
 对位的 DSH 模块：[M07 执行侧后端](../../dsh-example/M07-execution-backends/README.md)。阶段编号与它逐一对齐 ——
 同一个编号指向同一个控制面，看 iota 这边是"有等价机制"还是"能力归内核/宿主"。
+本模块课件：[第 07 课 · 执行侧后端](../lessons/07-execution-backends.md)。
 
 ## 学习目标
 

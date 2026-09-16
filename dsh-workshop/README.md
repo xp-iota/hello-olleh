@@ -1,13 +1,24 @@
 # DSH 与 iota 实操课（12 集）
 
 十二集，每集一个能自己跑完的任务，对应 `dsh-example` / `iota-example` 的 M01–M12。
-每集独立交付：一个 MP4、一份 PPT、一份讲稿、一份真实命令证据。
+每集独立交付：一份旁白内嵌的 MP4、一份可编辑 PPTX、逐页讲稿与真实命令证据。
 
-每集的第一张画面就给齐三件事，学员不用等：
+## 旁白音色建议（Edge TTS）
 
-1. **本集任务** —— 这一集要做完的那件事；
-2. **可复制的运行命令** —— 暂停就能敲；
-3. **将看到的结果** —— 拿它对照自己的输出。
+以下建议来自当前已安装 Edge TTS runtime 的在线音色清单；`zh-CN-XiaoxiaoNeural` 已在 Ubuntu 上实际合成并通过 24 kHz、单声道 WAV 的可听度验证：
+
+| 用途 | 推荐音色 |
+| --- | --- |
+| 主旁白 | `zh-CN-XiaoxiaoNeural` |
+| 第二女声 | `zh-CN-XiaoyiNeural` |
+| 男声 1 | `zh-CN-YunxiNeural` |
+| 男声 2 | `zh-CN-YunjianNeural` |
+| 另一女声 | `zh-CN-YunxiaNeural` |
+| 新闻／播报备选 | `zh-CN-YunyangNeural` |
+| 粤语角色 | `zh-HK-WanLungNeural` / `zh-HK-HiuMaanNeural` |
+| 台湾普通话 | `zh-TW-YunJheNeural` / `zh-TW-HsiaoYuNeural` |
+
+每一集只能通过该集所选的 **全局 TTS profile** 选择一个固定音色；不要在单个 slide 中写入 voice 覆盖。需要换声时，复制并修改调用方自己的 Edge TTS profile，再在该集生成命令中通过 `--profile` 显式选择。
 
 ## 12 集清单
 
@@ -29,75 +40,33 @@
 每集同时给出 iota 侧的对照命令（`python -m runtime.runner MXX --real`），
 所以同一个任务能看到两层的做法与各自的边界。
 
-## 每集的七页结构
+## 每集交付
 
-| 页 | 类型 | 作用 |
-|---|---|---|
-| 1 | 任务 | 任务 + 可复制命令 + 预期结果（首帧即给齐） |
-| 2 | 真实输出 | 该命令的真实终端输出（取自 `05-evidence/commands/`） |
-| 3 | 运行外壳 | DSH 侧机制 |
-| 4 | 编排层 | iota 侧同一件事，以及它明确不做的部分 |
-| 5 | 错误定位 | 真会遇到的症状 → 定位办法 → 修改 |
-| 6 | 代码在哪 | 一条命令打开对应代码，并说明看哪几处 |
-| 7 | 动手练习 | 改哪里 + 验证命令 + 可验证答案 |
+- 一份旁白内嵌的 MP4：`e01.mp4` … `e12.mp4`；
+- 一份可编辑 PPTX：`e01.pptx` … `e12.pptx`；
+- 逐页讲稿：每集 `presentation.json` 的 `narration` 字段，视频旁白即由它合成；
+- 真实命令证据：每集 `evidence/` 下脱敏后的运行日志。
 
-## 交付物
+## 内容结构与生成
 
-- `04-out/E01.mp4` … `E12.mp4`：12 集视频（1280×720、h264 + aac，每集 4–7 分钟）。
-- `04-out/E01.pptx` … `E12.pptx`：12 份 PPT，每页备注含标题、旁白与该页命令。
-- `01-scripts/E01.md` … `E12.md`：逐页讲稿（旁白、命令、真实输出节选、练习答案）。
-- `02-decks/E01` … `E12`：每集的 `presentation.json` 与 `audio-manifest.json`。
-- `03-public/E01` … `E12`：每集 7 段旁白 MP3 与 7 张画面。
-- `05-evidence/commands/`：24 份真实运行日志（每集 DSH 与 iota 各一份，均已脱敏）。
+- 每集七页：任务、真实输出、运行外壳、编排层、错误定位、代码在哪、动手练习；
+  页数与页面类型由 [course.json](course.json) 的 `pagePlan` 定义，设计细则见 [AGENTS.md](AGENTS.md)。
+- 本目录持有内容与外观：[course.json](course.json)（品牌、语言、画布、12 集清单）、
+  [profiles/](profiles/)（调色板、字体栈、语音参数）、`00-brief/` 与 `topics/<id>/presentation.json`。
+- 演讲稿与视频由 lusine-a-reves 渲染（仓库 `git@github.com:feuyeux/lusine-a-reves.git`，
+  默认检出 `~/coding/lusine-a-reves`，可用 `LUSINE_ROOT` 覆盖）。
 
-## 重新生成
+### 三条命令
 
-四步，顺序固定；后一步依赖前一步的产物。
+全平台相同，不需要按操作系统改写：
 
 ```bash
-# 1. 采集真实运行证据（会发起真实 MiniMax 请求）
-env -u PYTHONHOME -u PYTHONPATH \
-  iota-example/.venv/bin/python dsh-workshop/tools/capture_evidence.py
-
-# 2. 生成 12 集 deck 与讲稿
-env -u PYTHONHOME -u PYTHONPATH \
-  iota-example/.venv/bin/python dsh-workshop/tools/build_content.py
-
-# 3. 生成旁白音频（edge-tts，只发送 narration）
-env -u PYTHONHOME -u PYTHONPATH \
-  iota-example/.venv/bin/python dsh-workshop/tools/build_audio.py
-
-# 4. 渲染画面、拼视频、打包 PPT
-env -u PYTHONHOME -u PYTHONPATH \
-  iota-example/.venv/bin/python dsh-workshop/tools/build_course.py
+uv sync
+uv run workshop doctor                      # 自检工具链、渲染器与字体栈
+uv run workshop scaffold --episode e01      # 按 course.json 生成骨架（或 --all）
+uv run workshop build --episode e01         # 旁白 → manifest → 校验 → PPTX → MP4
 ```
 
-渲染时强制两条版式纪律：文字不得越界或压到页脚；画面不得与空背景无差别
-（防止渲染失败却静默产出空白页）。单集重建加 `--only E03`。
-
-## 验收
-
-```bash
-env -u PYTHONHOME -u PYTHONPATH \
-  iota-example/.venv/bin/python dsh-workshop/tools/validate_workshop.py
-```
-
-验收器逐集检查：
-
-- 12 集结构（decks / scripts / public / 视频 / PPT 各 12 份，无遗留产物）；
-- 首帧是任务页而不是静态标题页，且旁白在前 10 秒念出命令与预期结果；
-- 终端页的每一行都能在真实日志里找到，日志本身以 `[exit 0]` 结束；
-- 练习页三件齐全：改哪里、验证命令、可验证答案；
-- 讲稿与旁白逐字一致；
-- 旁白不含建设过程、内部批次、文档制作术语与 AI 自述；
-- 每集 4–7 分钟、1280×720、h264 + aac 48 kHz、有声占比不低于 90%；
-- 视频第 2 秒的画面与任务页首帧一致（视频真的从任务页开始）；
-- 24 份证据里没有密钥、endpoint、请求头或本机路径。
-
-加 `--commands` 会把 12 条运行命令重跑一遍，日志写到 `05-evidence/replay/`。
-
-## TTS 隐私边界
-
-`requirements-tts.txt` 固定 `edge-tts==7.2.3`。edge-tts 是在线服务，因此只允许发送
-`narration`：命令、路径、源码、endpoint 与凭证都留在本地。`build_audio.py` 在合成前会扫描
-旁白，命中 URL、本机路径、疑似密钥、请求头或内部服务名时直接拒绝合成。
+交付物落在 `out/e01/e01.pptx` 与 `out/e01/e01.mp4`。换主题只改 `course.json`、`profiles/`、
+`00-brief/` 与 `topics/`；换操作系统只可能改环境变量，生成行为不变。
+完整路径分类、分步命令、内容纪律与验收见 [AGENTS.md](AGENTS.md)。

@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "id": "e03",
+  "title": "M03 · 推理服务接入",
+  "subtitle": "十二集，每集一个能自己跑完的任务",
+  "author": "DSH 与 iota 实操课",
+  "brand": "DSH 与 iota 实操课",
+  "locale": "zh-CN",
+  "fps": 15,
+  "width": 1280,
+  "height": 720,
+  "tailFrames": 8,
+  "showCaptions": true,
+  "theme": {
+    "paper": "#08111f",
+    "ink": "#e6edf3",
+    "muted": "#8da2b8",
+    "accent": "#2dd4bf",
+    "accent2": "#60a5fa",
+    "accent3": "#fbbf24",
+    "panel": "#122238"
+  },
+  "style": {
+    "mood": "engineering-evidence",
+    "density": "balanced",
+    "motion": "restrained",
+    "headingFont": "Noto Sans CJK SC, Source Han Sans SC, PingFang SC, Microsoft YaHei, WenQuanYi Micro Hei, sans-serif",
+    "bodyFont": "Noto Sans CJK SC, Source Han Sans SC, PingFang SC, Microsoft YaHei, WenQuanYi Micro Hei, sans-serif",
+    "cornerRadius": 14,
+    "backgroundPattern": "grid"
+  },
+  "slides": [
+    {
+      "id": "e03-task",
+      "type": "text",
+      "eyebrow": "本集任务",
+      "title": "任务、命令与预期结果",
+      "minDurationSec": 8,
+      "subtitle": "推理服务接入",
+      "body": "把推理服务换成 MiniMax：注册一个适配器，让同一个消费循环拿到真实流",
+      "bullets": [
+        "命令：cd dsh-example && npm run M03",
+        "预期：同一个循环消费真实 SSE：block 先开始再有增量，结束时给出 finish 原因，还有 usage 里的 token 数"
+      ]
+    },
+    {
+      "id": "e03-terminal",
+      "type": "text",
+      "eyebrow": "真实输出",
+      "title": "这条命令真实打印了什么",
+      "minDurationSec": 8,
+      "body": "TODO：填写本页正文",
+      "callout": "证据：evidence/E03-dsh-real.txt"
+    },
+    {
+      "id": "e03-shell",
+      "type": "diagram",
+      "eyebrow": "运行外壳",
+      "title": "DSH 侧的机制",
+      "minDurationSec": 8,
+      "body": "TODO：填写本页正文",
+      "nodes": [
+        {
+          "label": "TODO 入口"
+        },
+        {
+          "label": "TODO 机制"
+        },
+        {
+          "label": "TODO 边界"
+        }
+      ]
+    },
+    {
+      "id": "e03-orchestration",
+      "type": "diagram",
+      "eyebrow": "编排层",
+      "title": "iota 侧的同一件事，以及它不做的部分",
+      "minDurationSec": 8,
+      "body": "TODO：填写本页正文",
+      "nodes": [
+        {
+          "label": "TODO 入口"
+        },
+        {
+          "label": "TODO 机制"
+        },
+        {
+          "label": "TODO 边界"
+        }
+      ]
+    },
+    {
+      "id": "e03-debug",
+      "type": "text",
+      "eyebrow": "错误定位",
+      "title": "症状、定位办法与修改",
+      "minDurationSec": 8,
+      "body": "TODO：填写本页正文"
+    },
+    {
+      "id": "e03-code",
+      "type": "text",
+      "eyebrow": "代码在哪",
+      "title": "一条命令打开对应代码",
+      "minDurationSec": 8,
+      "body": "TODO：填写本页正文"
+    },
+    {
+      "id": "e03-exercise",
+      "type": "text",
+      "eyebrow": "动手练习",
+      "title": "改哪里、怎么验证、答案是什么",
+      "minDurationSec": 8,
+      "body": "TODO：填写本页正文",
+      "bullets": [
+        "TODO 改哪里",
+        "TODO 验证命令",
+        "TODO 可验证答案"
+      ]
+    }
+  ]
+}

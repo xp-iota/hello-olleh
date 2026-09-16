@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 1,
+  "project": "dsh-example",
+  "source": "lessons/*.md",
+  "artifactsRoot": "dist/lessons",
+  "qualityContract": {
+    "pptx": "editable vector",
+    "mp4": "1920x1080@30fps",
+    "intermediateFrames": "PNG",
+    "h264Crf": 12
+  },
+  "lessons": [
+    {
+      "lesson": "dsh-example/lessons/00-getting-started.md",
+      "id": "dsh-00-getting-started",
+      "voice": "zh-CN-XiaoxiaoNeural",
+      "voiceRole": "主旁白",
+      "slideCount": 7,
+      "video": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "intermediateFrames": "png",
+        "h264Crf": 12
+      },
+      "paths": {
+        "deck": "dist/lessons/00-getting-started/presentation.json",
+        "profile": "dist/lessons/00-getting-started/tts-profile.json",
+        "pptx": "dist/lessons/00-getting-started/out/dsh-00-getting-started.pptx",
+        "mp4": "dist/lessons/00-getting-started/out/dsh-00-getting-started.mp4"
+      }
+    },
+    {
+      "lesson": "dsh-example/lessons/01-tool-pipeline.md",
+      "id": "dsh-01-tool-pipeline",
+      "voice": "zh-CN-XiaoyiNeural",
+      "voiceRole": "第二女声",
+      "slideCount": 7,
+      "video": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "intermediateFrames": "png",
+        "h264Crf": 12
+      },
+      "paths": {
+        "deck": "dist/lessons/01-tool-pipeline/presentation.json",
+        "profile": "dist/lessons/01-tool-pipeline/tts-profile.json",
+        "pptx": "dist/lessons/01-tool-pipeline/out/dsh-01-tool-pipeline.pptx",
+        "mp4": "dist/lessons/01-tool-pipeline/out/dsh-01-tool-pipeline.mp4"
+      }
+    },
+    {
+      "lesson": "dsh-example/lessons/02-context-assembly.md",
+      "id": "dsh-02-context-assembly",
+      "voice": "zh-CN-YunxiNeural",
+      "voiceRole": "男声 1",
+      "slideCount": 7,
+      "video": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "intermediateFrames": "png",
+        "h264Crf": 12
+      },
+      "paths": {
+        "deck": "dist/lessons/02-context-assembly/presentation.json",
+        "profile": "dist/lessons/02-context-assembly/tts-profile.json",
+        "pptx": "dist/lessons/02-context-assembly/out/dsh-02-context-assembly.pptx",
+        "mp4": "dist/lessons/02-context-assembly/out/dsh-02-context-assembly.mp4"
+      }
+    },
+    {
+      "lesson": "dsh-example/lessons/03-inference-service-access.md",
+      "id": "dsh-03-inference-service-access",
+      "voice": "zh-CN-YunjianNeural",
+      "voiceRole": "男声 2",
+      "slideCount": 7,
+      "video": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "intermediateFrames": "png",
+        "h264Crf": 12
+      },
+      "paths": {
+        "deck": "dist/lessons/03-inference-service-access/presentation.json",
+        "profile": "dist/lessons/03-inference-service-access/tts-profile.json",
+        "pptx": "dist/lessons/03-inference-service-access/out/dsh-03-inference-service-access.pptx",
+        "mp4": "dist/lessons/03-inference-service-access/out/dsh-03-inference-service-access.mp4"
+      }
+    },
+    {
+      "lesson": "dsh-example/lessons/04-agent-loop-intervention.md",
+      "id": "dsh-04-agent-loop-intervention",
+      "voice": "zh-CN-YunxiaNeural",
+      "voiceRole": "另一女声",
+      "slideCount": 7,
+      "video": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "intermediateFrames": "png",
+        "h264Crf": 12
+      },
+      "paths": {
+        "deck": "dist/lessons/04-agent-loop-intervention/presentation.json",
+        "profile": "dist/lessons/04-agent-loop-intervention/tts-profile.json",
+        "pptx": "dist/lessons/04-agent-loop-intervention/out/dsh-04-agent-loop-intervention.pptx",
+        "mp4": "dist/lessons/04-agent-loop-intervention/out/dsh-04-agent-loop-intervention.mp4"
+      }
+    },
+    {
+      "lesson": "dsh-example/lessons/05-session-surface.md",
+      "id": "dsh-05-session-surface",
+      "voice": "zh-CN-YunyangNeural",
+      "voiceRole": "新闻／播报备选",
+      "slideCount": 7,
+      "video": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "intermediateFrames": "png",
+        "h264Crf": 12
+      },
+      "paths": {
+        "deck": "dist/lessons/05-session-surface/presentation.json",
+        "profile": "dist/lessons/05-session-surface/tts-profile.json",
+        "pptx": "dist/lessons/05-session-surface/out/dsh-05-session-surface.pptx",
+        "mp4": "dist/lessons/05-session-surface/out/dsh-05-session-surface.mp4"
+      }
+    },
+    {
+      "lesson": "dsh-example/lessons/06-human-in-the-loop.md",
+      "id": "dsh-06-human-in-the-loop",
+      "voice": "zh-CN-XiaoxiaoNeural",
+      "voiceRole": "主旁白",
+      "slideCount": 7,
+      "video": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "intermediateFrames": "png",
+        "h264Crf": 12
+      },
+      "paths": {
+        "deck": "dist/lessons/06-human-in-the-loop/presentation.json",
+        "profile": "dist/lessons/06-human-in-the-loop/tts-profile.json",
+        "pptx": "dist/lessons/06-human-in-the-loop/out/dsh-06-human-in-the-loop.pptx",
+        "mp4": "dist/lessons/06-human-in-the-loop/out/dsh-06-human-in-the-loop.mp4"
+      }
+    },
+    {
+      "lesson": "dsh-example/lessons/07-execution-backends.md",
+      "id": "dsh-07-execution-backends",
+      "voice": "zh-CN-XiaoyiNeural",
+      "voiceRole": "第二女声",
+      "slideCount": 7,
+      "video": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "intermediateFrames": "png",
+        "h264Crf": 12
+      },
+      "paths": {
+        "deck": "dist/lessons/07-execution-backends/presentation.json",
+        "profile": "dist/lessons/07-execution-backends/tts-profile.json",
+        "pptx": "dist/lessons/07-execution-backends/out/dsh-07-execution-backends.pptx",
+        "mp4": "dist/lessons/07-execution-backends/out/dsh-07-execution-backends.mp4"
+      }
+    },
+    {
+      "lesson": "dsh-example/lessons/08-delegation-presets.md",
+      "id": "dsh-08-delegation-presets",
+      "voice": "zh-CN-YunxiNeural",
+      "voiceRole": "男声 1",
+      "slideCount": 7,
+      "video": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "intermediateFrames": "png",
+        "h264Crf": 12
+      },
+      "paths": {
+        "deck": "dist/lessons/08-delegation-presets/presentation.json",
+        "profile": "dist/lessons/08-delegation-presets/tts-profile.json",
+        "pptx": "dist/lessons/08-delegation-presets/out/dsh-08-delegation-presets.pptx",
+        "mp4": "dist/lessons/08-delegation-presets/out/dsh-08-delegation-presets.mp4"
+      }
+    },
+    {
+      "lesson": "dsh-example/lessons/09-long-running-orchestration.md",
+      "id": "dsh-09-long-running-orchestration",
+      "voice": "zh-CN-YunjianNeural",
+      "voiceRole": "男声 2",
+      "slideCount": 7,
+      "video": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "intermediateFrames": "png",
+        "h264Crf": 12
+      },
+      "paths": {
+        "deck": "dist/lessons/09-long-running-orchestration/presentation.json",
+        "profile": "dist/lessons/09-long-running-orchestration/tts-profile.json",
+        "pptx": "dist/lessons/09-long-running-orchestration/out/dsh-09-long-running-orchestration.pptx",
+        "mp4": "dist/lessons/09-long-running-orchestration/out/dsh-09-long-running-orchestration.mp4"
+      }
+    },
+    {
+      "lesson": "dsh-example/lessons/10-external-capabilities.md",
+      "id": "dsh-10-external-capabilities",
+      "voice": "zh-CN-YunxiaNeural",
+      "voiceRole": "另一女声",
+      "slideCount": 7,
+      "video": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "intermediateFrames": "png",
+        "h264Crf": 12
+      },
+      "paths": {
+        "deck": "dist/lessons/10-external-capabilities/presentation.json",
+        "profile": "dist/lessons/10-external-capabilities/tts-profile.json",
+        "pptx": "dist/lessons/10-external-capabilities/out/dsh-10-external-capabilities.pptx",
+        "mp4": "dist/lessons/10-external-capabilities/out/dsh-10-external-capabilities.mp4"
+      }
+    },
+    {
+      "lesson": "dsh-example/lessons/11-config-data-infrastructure.md",
+      "id": "dsh-11-config-data-infrastructure",
+      "voice": "zh-CN-YunyangNeural",
+      "voiceRole": "新闻／播报备选",
+      "slideCount": 7,
+      "video": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "intermediateFrames": "png",
+        "h264Crf": 12
+      },
+      "paths": {
+        "deck": "dist/lessons/11-config-data-infrastructure/presentation.json",
+        "profile": "dist/lessons/11-config-data-infrastructure/tts-profile.json",
+        "pptx": "dist/lessons/11-config-data-infrastructure/out/dsh-11-config-data-infrastructure.pptx",
+        "mp4": "dist/lessons/11-config-data-infrastructure/out/dsh-11-config-data-infrastructure.mp4"
+      }
+    },
+    {
+      "lesson": "dsh-example/lessons/12-framework-mechanisms.md",
+      "id": "dsh-12-framework-mechanisms",
+      "voice": "zh-CN-XiaoxiaoNeural",
+      "voiceRole": "主旁白",
+      "slideCount": 7,
+      "video": {
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "intermediateFrames": "png",
+        "h264Crf": 12
+      },
+      "paths": {
+        "deck": "dist/lessons/12-framework-mechanisms/presentation.json",
+        "profile": "dist/lessons/12-framework-mechanisms/tts-profile.json",
+        "pptx": "dist/lessons/12-framework-mechanisms/out/dsh-12-framework-mechanisms.pptx",
+        "mp4": "dist/lessons/12-framework-mechanisms/out/dsh-12-framework-mechanisms.mp4"
+      }
+    }
+  ]
+}

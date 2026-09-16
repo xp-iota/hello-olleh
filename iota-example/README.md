@@ -1,17 +1,74 @@
-# iota-example：DSH 能力方向的 iota 对照
+# iota-example：DSH 能力方向的 iota 对照 · 13 课自学课程
 
 与 `dsh-example/M01–M12` 同编号、同目录名的 Python 示例工程，使用本地 editable 安装的
 iota-core `2026.9.8`，对比两个框架在工具、上下文、会话和任务编排等 12 个方向上的实现。
 各模块说明可复用的能力、需要补充的机制，以及由内核或宿主负责的功能。
-逐模块对照与源码引用见 [`docs/dsh-vs-iota.md`](docs/dsh-vs-iota.md)。
 
-工程包含 12 个模块、60 个可跑阶段，**阶段编号与 `dsh-example` 一一对齐**（含 M03 的编号空档
-与三个 `.d` 专项演示）：同一个编号在两边指向同一个控制面，所以两边的日志可以逐行对读。
+这套工程配了 **13 课自学课程**：`lessons/00` 教你跑通环境，`lessons/01`–`lessons/12` 每个模块一课。
+每课都包含**真实运行输出**、**机制原理**、**常见排障**和**动手练习**，可以脱离讲师自学；
+同编号的 DSH 侧教材在 `dsh-example/lessons/`，两边可以逐课对读。
+
+工程包含 12 个模块、60 个可跑阶段，**阶段编号与 `dsh-example` 一一对齐**（含三个 `.d` 专项演示）：同一个编号在两边指向同一个控制面，所以两边的日志可以逐行对读。
 每个模块只有一个入口 `run.py`（阶段清单），每个阶段指向 `scenes/` 下的一个场景脚本，可复用
 实现放在 `impl/`，编排与输出收敛在共享的 `runtime/`。
 
 同一个编号下，iota 这边要么给出**语义等价**的机制，要么给出**结构性边界**的可运行证据
 （例如"编排层没有这个注册面，能力归内核"），不会为了凑齐编号编造能力。
+
+---
+
+## 从哪开始
+
+**第一次来**：按顺序读 [`lessons/00-getting-started.md`](lessons/00-getting-started.md)，
+跑通 M12，再回到这份 README 挑路线。
+
+**想建立直觉**（约 15 分钟，3 个模块）：
+
+```bash
+cd iota-example && uv sync --extra dev --extra real
+uv run python -m runtime.learn --tour   # M01 工具管线 → M02 上下文装配 → M03 推理服务
+```
+
+**想按目标挑**：
+
+| 我现在想做什么 | 学哪几课 | 直接运行 |
+|---|---|---|
+| 看清一层包装能做到哪、做不到哪 | [01](lessons/01-tool-pipeline.md) | `uv run python -m runtime.runner M01` |
+| 管住"哪些内容进入下一轮" | [02](lessons/02-context-assembly.md) | `uv run python -m runtime.runner M02` |
+| 换内核 / 看事件流协议 | [03](lessons/03-inference-service-access.md) | `uv run python -m runtime.runner M03` |
+| 看懂一轮运行，在节点边界干预 | [04](lessons/04-agent-loop-intervention.md) | `uv run python -m runtime.runner M04` |
+| 分清"发生过的事"与"内核看到的事" | [05](lessons/05-session-surface.md) | `uv run python -m runtime.runner M05` |
+| 看清无人值守时权限如何闭合 | [06](lessons/06-human-in-the-loop.md) | `uv run python -m runtime.runner M06` |
+| 确认副作用归内核，输入只有工作目录 | [07](lessons/07-execution-backends.md) | `uv run python -m runtime.runner M07` |
+| 让委派顺序在编译期就确定 | [08](lessons/08-delegation-presets.md) | `uv run python -m runtime.runner M08` |
+| 做幂等、可恢复的长任务 | [09](lessons/09-long-running-orchestration.md) | `uv run python -m runtime.runner M09` |
+| 用数据资产和协议接入外部能力 | [10](lessons/10-external-capabilities.md) | `uv run python -m runtime.runner M10` |
+| 管配置投影，不碰凭证 | [11](lessons/11-config-data-infrastructure.md) | `uv run python -m runtime.runner M11` |
+| 理解 effect 栈与注册表纪律 | [12](lessons/12-framework-mechanisms.md) | `uv run python -m runtime.runner M12` |
+
+---
+
+## 13 课清单
+
+每课的结构一致：**本课任务 → 真实输出 → 机制原理 → 排障 → 代码在哪 → 动手练习**。
+
+| 课 | 模块 | 一句话任务 | 命令 | 阶段数 |
+|---|---|---|---|---|
+| [00 跑起来](lessons/00-getting-started.md) | — | 跑通环境，看懂验收契约 | `uv run python -m runtime.runner M12` | — |
+| [01 工具管线](lessons/01-tool-pipeline.md) | M01 | 一层具名可逆包装能做什么、不能做什么 | `uv run python -m runtime.runner M01` | 6 |
+| [02 上下文装配](lessons/02-context-assembly.md) | M02 | 作用域记忆代替装配治理链 | `uv run python -m runtime.runner M02` | 6 |
+| [03 推理服务接入](lessons/03-inference-service-access.md) | M03 | 替换单元是整个 KernelAdapter，能力声明编译期兑现 | `uv run python -m runtime.runner M03` | 2 |
+| [04 循环干预](lessons/04-agent-loop-intervention.md) | M04 | 先观察，再干预：节点边界与编译期校验 | `uv run python -m runtime.runner M04` | 5 |
+| [05 会话面](lessons/05-session-surface.md) | M05 | 两条存储协议，不承诺 seq/surface | `uv run python -m runtime.runner M05` | 5 |
+| [06 人在环路](lessons/06-human-in-the-loop.md) | M06 | 权限必答、fail closed，其余归内核或宿主 | `uv run python -m runtime.runner M06` | 6 |
+| [07 执行侧后端](lessons/07-execution-backends.md) | M07 | 副作用归内核，工作目录是唯一输入 | `uv run python -m runtime.runner M07` | 5 |
+| [08 委派与预设](lessons/08-delegation-presets.md) | M08 | 显式 DAG：roster 与模型路由都写出来 | `uv run python -m runtime.runner M08` | 4 |
+| [09 长任务与编排](lessons/09-long-running-orchestration.md) | M09 | 幂等键、租约与 checkpoint 序号 | `uv run python -m runtime.runner M09` | 4 |
+| [10 外部能力接入](lessons/10-external-capabilities.md) | M10 | 数据改变作答：Skill、MCP 与运行时注册 | `uv run python -m runtime.runner M10` | 6 |
+| [11 配置与数据设施](lessons/11-config-data-infrastructure.md) | M11 | 配置投影成真实文件，凭证只来自环境 | `uv run python -m runtime.runner M11` | 6 |
+| [12 框架机制本体](lessons/12-framework-mechanisms.md) | M12 | 可逆 effect、身份安全与配置叠加 | `uv run python -m runtime.runner M12` | 5 |
+
+---
 
 ## 快速开始
 
@@ -34,6 +91,8 @@ uv run python -m runtime.runner --all
 | `uv run python MXX-name/run.py` | 同上，按路径运行模块入口（入口会把工程根加进 `sys.path`）。 |
 | `uv run python -m MXX-name.run --scene <场景>` | 只跑阶段清单里的一个场景。 |
 | `uv run python -m runtime.runner --all` | 先检查运行环境，输出 `REAL_PREFLIGHT_OK`，再依次运行 12 个模块；全部成功时输出 `REAL_ALL_OK`。 |
+| `uv run python -m runtime.learn --list` | 精选学习入口（带导读三段：目标、观察点、收获）。 |
+| `uv run python -m runtime.learn --tour` | 路线：M01 → M02 → M03。 |
 
 两种 `-m` 形式要求工作目录是 `iota-example/`（`-m` 从当前目录解析模块）；`uv run python MXX-name/run.py` 在任何目录下都能跑 —— 入口按文件位置解析工程根，`.env` 也一样。
 
@@ -63,12 +122,12 @@ REAL_MODULE_OK M01 stages=6 calls=7 failed=0
 阶段分两类，与 dsh 同一套口径：`mechanism` 阶段先用完整装配链打一次真实内核 probe（证明这条
 装配链能把内核回答送回运行记录），再跑本地机制断言；`model` 阶段由场景自己调用内核。
 每个阶段都必须留下真实调用证据，否则输出 `REAL_STAGE_FAIL` 并以非零状态退出；空回答最多重试
-3 次，仍为空即失败，不会换用其他模型。教学正文（目标、三类边界、结论）都在各模块 README 里，
-运行日志只留骨架。
+3 次，仍为空即失败，不会换用其他模型。教学正文（目标、三类边界、结论）都在各模块 README 和
+`lessons/` 课件里，运行日志只留骨架。
 
 `--all` 在独立子进程中运行各模块，隔离注册表与事件循环状态；任一模块失败即停止，全部通过时末行输出 `REAL_ALL_OK modules=12 stages=60 provider=anthropic-compat`。
 
-⏱️ 全量真实运行会发起 60 次以上内核请求（每个 mechanism 阶段一次 probe），按当前端点通常需要几十分钟。只想看某个控制面时用 `--scene`。
+⏱️ 全量真实运行会发起 60 次以上内核请求（每个 mechanism 阶段一次 probe），按当前端点通常需要几十分钟。只想看某个控制面时用 `--scene`；自学时按课节单独跑对应模块，不要用 `--all`。
 
 ### 一条不是错误的输出
 
@@ -116,15 +175,20 @@ REAL_MODULE_OK M01 stages=6 calls=7 failed=0
 12 个模块结构相同，与 `dsh-example` 一一对应：
 
 ```text
-MXX-name/
-  README.md       对照关系、目标、文件关系、阶段表、完整链路与边界
-  run.py          运行入口：阶段清单（编号、标题、场景脚本名）
-  scenes/*.py     一个阶段一个场景脚本：async def run(harness) 返回观察到的事实
-  impl/*.py       该模块可复用的实现（网关、图、任务素材……）
-runtime/
-  harness.py      配置、内核装配、模块元数据与断言
-  runner.py       编排入口：读阶段清单、内核证据、逐阶段输出；`--all` 用 12 个隔离子进程
-  typecheck.sh    共享层一次 + 12 个模块各一次的类型检查
+iota-example/
+  README.md       本页（课程首页：路线、13 课清单、能力索引）
+  lessons/        13 课自学教材（00 环境 + 01–12 每模块一课）
+  docs/           DSH 与 iota 的逐模块证据表（dsh-vs-iota.md）
+  MXX-name/
+    README.md     对照关系、目标、文件关系、阶段表、完整链路与边界
+    run.py        运行入口：阶段清单（编号、标题、场景脚本名）
+    scenes/*.py   一个阶段一个场景脚本：async def run(harness) 返回观察到的事实
+    impl/*.py     该模块可复用的实现（网关、图、任务素材……）
+  runtime/
+    harness.py    配置、内核装配、模块元数据与断言
+    runner.py     编排入口：读阶段清单、内核证据、逐阶段输出；--all 用 12 个隔离子进程
+    learn.py      精选学习入口：--list / --tour / --module
+    typecheck.sh  共享层一次 + 12 个模块各一次的类型检查
 ```
 
 模块目录名带连字符（与 `dsh-example` 同名），不是合法 Python 包名，所以模块内部统一用顶层
@@ -133,8 +197,8 @@ runtime/
 
 建议按以下顺序阅读一个模块：
 
-1. 先读模块 README：对照关系、阶段表（含 `model`/`mechanism`）、三类边界与完整链路。
-2. 运行 `python -m runtime.runner MXX`，按 banner 与 `REAL_STAGE_OK` 逐阶段核对事实，
+1. 先读对应课件 `lessons/NN-*.md`：本课任务、真实输出、机制原理、排障与动手练习。
+2. 运行 `uv run python -m runtime.runner MXX`，按 banner 与 `REAL_STAGE_OK` 逐阶段核对事实，
    再打开 `dsh-example` 同编号阶段的输出对读。
 3. 只读对应的 `scenes/*.py`，文件名就是这个阶段的名字。
 4. 需要理解可复用部分时读 `impl/*.py`，需要理解装配时读 `runtime/harness.py`。
@@ -145,7 +209,7 @@ runtime/
 - **内核替换**：`KernelAdapter` 是替换单元。ACP 不支持的模型 middleware 在编译期被拒绝。
 - **共享运行时**：12 个模块复用 `runtime/harness.py`。断言失败时抛出包含期望值和实际值的 `TeachingCheckError`。
 - **事件顺序**：按子序列校验标准事件，允许不同内核在其间插入自有事件。
-- **内核能力**：工具可见性与执行前策略（M01）、完整 Prompt 装配与历史压缩（M02）、单次模型调用 middleware（M03）、mid-turn 注入（M04）由具体内核负责。
+- **内核能力**：工具可见性与执行前政策（M01）、完整 Prompt 装配与历史压缩（M02）、单次模型调用 middleware（M03）、mid-turn 注入（M04）由具体内核负责。
 - **会话与宿主**：iota 的日志模型与 DSH seq/surface 不同（M05）；计划模式（M06）、fs/shell/sandbox（M07）、凭证与附件（M11）由内核或宿主管理。
 - **框架机制**：M12 使用 effect 和注册表；Cordis 的事件总线、Proxy Context 与运行期热替换不在示例范围内。
 - **工具权限**：默认使用空工具表及显式 `disallowed_tools`。M07 开启 `Bash`，在一次性临时工作目录中演示内核执行命令。
@@ -158,10 +222,45 @@ uv run ruff check .                          # E/F/I/UP/B，行宽 100
 ./runtime/typecheck.sh                       # 共享层 + 12 个模块，末行 IOTA_TYPECHECK_OK
 uv run python -m runtime.surface_coverage    # 覆盖面统计，门槛 45
 uv run pytest -q                             # 阶段清单门禁、启动错误、文档引用与输出脱敏
-uv run python -m runtime.runner --all        # 末行 REAL_ALL_OK
+uv run python -m runtime.runner --all       # 末行 REAL_ALL_OK
 ```
 
 pytest 不调用模型：它检查**阶段编号与 dsh 的 `run.ts` 逐一相等**、阶段与 `scenes/` 文件一一
 对应、只有执行侧演示能打开内核 shell、模块目录与 DSH 同名、README 覆盖每个编号、对照表锚点
 真实存在，以及缺少内核或配置时会失败。`runtime.runner --all` 连接模型服务，检查全部 12 个
 模块、60 个阶段的运行结果。
+
+## 常见误解对照表
+
+写这套对照的过程本身是一次**保真度审计**。以下是读 iota 时最容易搞错的直觉，每条都有
+可运行证据（场景断言或真实运行输出），详见对应课节：
+
+| 直觉 | 真实情况 | 详见 |
+|---|---|---|
+| 给工具装一层"守卫" stage 就能拦住危险调用 | 通用包装不是单调守卫：外层包装能把内层拒绝改写成成功（`rescued = audit:rescued`） | [第 01 课](lessons/01-tool-pipeline.md) |
+| `AgentConfig.tools` 是编排层的授权清单 | 它只是给内核的**请求**清单；编排层注册面为空，披露由内核裁定 | [第 01 课](lessons/01-tool-pipeline.md) |
+| 想压缩历史/裁剪结果，在编排层配一下就行 | `AgentConfig` 里没有这些字段；装配与压缩归内核，iota 治理的是"哪些内容进入下一轮" | [第 02 课](lessons/02-context-assembly.md) |
+| 给节点配了模型 middleware 就能生效 | ACP 内核不声明的能力，图编译期就抛 `GraphValidationError`，不进运行 | [第 03 课](lessons/03-inference-service-access.md) |
+| 往进行中的一轮里插一条消息，像 DSH 那样有 inbox | iota 的干预面只在节点边界；进行中的一轮属于内核 | [第 04 课](lessons/04-agent-loop-intervention.md) |
+| 在 iota 事件里能找到 `seq`/`surface` 字段 | `TextDeltaEvent` / `FinalEvent` 没有这些字段；iota 不承诺 DSH 的投影语义 | [第 05 课](lessons/05-session-surface.md) |
+| 权限请求没人应答，先放行或先跳过 | 匹配不到选项时抛 `KernelError`——fail closed；策略在部署期声明 | [第 06 课](lessons/06-human-in-the-loop.md) |
+| 在编排层加一道 shell 黑名单更安全 | fs/shell/sandbox 一层都不属于 iota：工具注册表为空，副作用归内核 | [第 07 课](lessons/07-execution-backends.md) |
+| 委派交给模型自由发挥 | 顺序来自 `depends_on`，拓扑序在编译期冻结；roster 与模型路由都显式注册 | [第 08 课](lessons/08-delegation-presets.md) |
+| 任务入队了就会有人来跑 | 队列不自带 worker：没人 claim 就一直 pending，worker 由调用方驱动 | [第 09 课](lessons/09-long-running-orchestration.md) |
+| 编排层挂一个 webhook/上传入口 | Host plane 归宿主；Registry 注册面里没有这类能力 | [第 10 课](lessons/10-external-capabilities.md) |
+| `AgentConfig` 直接带上凭证更方便 | `AgentConfig` 不伪造 credential/attachment 字段；凭证只来自环境 | [第 11 课](lessons/11-config-data-infrastructure.md) |
+| iota 是 Cordis 的 Python 移植 | 只借可逆 effect 与注册表；事件总线、Proxy Context 与运行期热替换不在范围 | [第 12 课](lessons/12-framework-mechanisms.md) |
+
+## 与其他文档集的分工
+
+| 位置 | 回答的问题 | 形态 |
+|---|---|---|
+| [`docs/hello-dsh/`](../docs/hello-dsh/README.md) | DSH 源码怎么实现、在哪一行 | 按章节编排的长文 |
+| [`dsh-example/`](../dsh-example/README.md) | 同编号方向在 DSH 怎么亲手跑一遍 | 13 课自学教材 + 可执行示例 |
+| **`iota-example/`（本目录）** | 同编号方向在 iota 怎么对位、边界在哪 | 13 课自学教材 + 可执行对照 |
+| [`docs/dsh-vs-iota.md`](docs/dsh-vs-iota.md) | 每个编号两侧的证据逐条对位 | 带源码锚点的对照表 |
+| [`docs/hello-dsh/12-iota-cross-framework-comparison.md`](../docs/hello-dsh/12-iota-cross-framework-comparison.md) | 两个框架的架构级对照 | 分析长文 |
+
+---
+
+**开始** → [第 00 课 · 跑起来](lessons/00-getting-started.md) ｜ **最短路线** → `uv run python -m runtime.learn --tour`

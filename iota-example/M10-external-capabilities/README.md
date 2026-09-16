@@ -6,6 +6,7 @@ DSH 有 Skill、跨进程 MCP、Webhook Host plane、动态 Cordis 扩展与默�
 
 对位的 DSH 模块：[M10 外部能力接入](../../dsh-example/M10-external-capabilities/README.md)。阶段编号与它逐一对齐 ——
 同一个编号指向同一个控制面，看 iota 这边是"有等价机制"还是"能力归内核/宿主"。
+本模块课件：[第 10 课 · 外部能力接入](../lessons/10-external-capabilities.md)。
 
 ## 学习目标
 

@@ -6,6 +6,7 @@ DSH 展示 Cordis 的五种派发模式、Fiber 状态机、realm 隔离与 inte
 
 对位的 DSH 模块：[M12 框架机制本体](../../dsh-example/M12-framework-mechanisms/README.md)。阶段编号与它逐一对齐 ——
 同一个编号指向同一个控制面，看 iota 这边是"有等价机制"还是"能力归内核/宿主"。
+本模块课件：[第 12 课 · 框架机制本体](../lessons/12-framework-mechanisms.md)。
 
 ## 学习目标
 

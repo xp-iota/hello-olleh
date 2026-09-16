@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "paletteId": "dsh-iota-engineering-dark",
+  "theme": {
+    "paper": "#08111f",
+    "ink": "#e6edf3",
+    "muted": "#8da2b8",
+    "accent": "#2dd4bf",
+    "accent2": "#60a5fa",
+    "accent3": "#fbbf24",
+    "panel": "#122238"
+  },
+  "style": {
+    "mood": "engineering-evidence",
+    "density": "balanced",
+    "motion": "restrained",
+    "headingFont": "Noto Sans CJK SC, Source Han Sans SC, PingFang SC, Microsoft YaHei, WenQuanYi Micro Hei, sans-serif",
+    "bodyFont": "Noto Sans CJK SC, Source Han Sans SC, PingFang SC, Microsoft YaHei, WenQuanYi Micro Hei, sans-serif",
+    "cornerRadius": 14,
+    "backgroundPattern": "grid"
+  }
+}

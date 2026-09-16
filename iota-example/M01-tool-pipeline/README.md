@@ -6,6 +6,7 @@ DSH 的工具管线有注册、pre 裁决、post 变换、按 Agent 收紧和单
 
 对位的 DSH 模块：[M01 工具管线](../../dsh-example/M01-tool-pipeline/README.md)。阶段编号与它逐一对齐 ——
 同一个编号指向同一个控制面，看 iota 这边是"有等价机制"还是"能力归内核/宿主"。
+本模块课件：[第 01 课 · 工具管线](../lessons/01-tool-pipeline.md)。
 
 ## 学习目标
 

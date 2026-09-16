@@ -2,10 +2,11 @@
 
 > **对照关系：结构性边界**
 
-DSH 的替换单位是 Provider 与流中间件；iota 的替换单位是整个 `KernelAdapter`。编号刻意留出空档：dsh 那边删掉了离线 Adapter 阶段，这里同样没有 M03.1。
+DSH 的替换单位是 Provider 与流中间件；iota 的替换单位是整个 `KernelAdapter`。编号与 dsh 逐一对齐：M03.1 对位流中间件控制面，M03.d 是专项真实演示。
 
 对位的 DSH 模块：[M03 推理服务接入](../../dsh-example/M03-inference-service-access/README.md)。阶段编号与它逐一对齐 ——
 同一个编号指向同一个控制面，看 iota 这边是"有等价机制"还是"能力归内核/宿主"。
+本模块课件：[第 03 课 · 推理服务接入](../lessons/03-inference-service-access.md)。
 
 ## 学习目标
 
@@ -16,7 +17,7 @@ DSH 的替换单位是 Provider 与流中间件；iota 的替换单位是整个 
 ```bash
 uv run python -m runtime.runner M03
 uv run python M03-inference-service-access/run.py
-uv run python -m M03-inference-service-access.run --scene 02_reject_model_middleware
+uv run python -m M03-inference-service-access.run --scene 01_reject_model_middleware
 ```
 
 日志骨架与 dsh 一致：模块 banner + `provider=… model=… timeout=…ms` → 每阶段
@@ -28,8 +29,8 @@ uv run python -m M03-inference-service-access.run --scene 02_reject_model_middle
 
 | 阶段 | 类型 | 场景脚本 | 观察什么 |
 |---|---|---|---|
-| M03.2 包装单次模型调用被编译期拒绝 | `mechanism` | [02_reject_model_middleware.py](scenes/02_reject_model_middleware.py) | 替换单元是 KernelAdapter；ACP 不声明 per_session_middleware；引用它的图编译期被拒 |
-| M03.d 专项真实演示：同一事件消费循环接真实内核 | `model` | [03_consume_kernel_stream.py](scenes/03_consume_kernel_stream.py) | 真实事件流的类型统计、finish、usage 与文本样本，消费循环不认供应商 |
+| M03.1 包装单次模型调用被编译期拒绝 | `mechanism` | [01_reject_model_middleware.py](scenes/01_reject_model_middleware.py) | 替换单元是 KernelAdapter；ACP 不声明 per_session_middleware；引用它的图编译期被拒 |
+| M03.d 专项真实演示：同一事件消费循环接真实内核 | `model` | [02_consume_kernel_stream.py](scenes/02_consume_kernel_stream.py) | 真实事件流的类型统计、finish、usage 与文本样本，消费循环不认供应商 |
 
 ## 三类边界
 

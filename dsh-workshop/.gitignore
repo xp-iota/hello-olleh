@@ -1,0 +1,9 @@
+# 生成物：每次运行可重建，不入库
+out/
+topics/*/audio-manifest.json
+topics/*/public/audio/
+
+# uv / Python
+.venv/
+__pycache__/
+*.py[cod]

@@ -6,6 +6,7 @@ DSH 有 settings、storage domain、attachment、file reference、credential 与
 
 对位的 DSH 模块：[M11 配置与数据设施](../../dsh-example/M11-config-data-infrastructure/README.md)。阶段编号与它逐一对齐 ——
 同一个编号指向同一个控制面，看 iota 这边是"有等价机制"还是"能力归内核/宿主"。
+本模块课件：[第 11 课 · 配置与数据设施](../lessons/11-config-data-infrastructure.md)。
 
 ## 学习目标
 

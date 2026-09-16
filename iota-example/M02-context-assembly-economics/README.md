@@ -6,6 +6,7 @@ DSH 把 Prompt section、变量装配、压缩、token 计量、结果裁剪与 
 
 对位的 DSH 模块：[M02 上下文装配与经济学](../../dsh-example/M02-context-assembly-economics/README.md)。阶段编号与它逐一对齐 ——
 同一个编号指向同一个控制面，看 iota 这边是"有等价机制"还是"能力归内核/宿主"。
+本模块课件：[第 02 课 · 上下文装配与经济学](../lessons/02-context-assembly.md)。
 
 ## 学习目标
 

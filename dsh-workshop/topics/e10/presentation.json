@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "id": "e10",
+  "title": "M10 · 外部能力接入",
+  "subtitle": "十二集，每集一个能自己跑完的任务",
+  "author": "DSH 与 iota 实操课",
+  "brand": "DSH 与 iota 实操课",
+  "locale": "zh-CN",
+  "fps": 15,
+  "width": 1280,
+  "height": 720,
+  "tailFrames": 8,
+  "showCaptions": true,
+  "theme": {
+    "paper": "#08111f",
+    "ink": "#e6edf3",
+    "muted": "#8da2b8",
+    "accent": "#2dd4bf",
+    "accent2": "#60a5fa",
+    "accent3": "#fbbf24",
+    "panel": "#122238"
+  },
+  "style": {
+    "mood": "engineering-evidence",
+    "density": "balanced",
+    "motion": "restrained",
+    "headingFont": "Noto Sans CJK SC, Source Han Sans SC, PingFang SC, Microsoft YaHei, WenQuanYi Micro Hei, sans-serif",
+    "bodyFont": "Noto Sans CJK SC, Source Han Sans SC, PingFang SC, Microsoft YaHei, WenQuanYi Micro Hei, sans-serif",
+    "cornerRadius": 14,
+    "backgroundPattern": "grid"
+  },
+  "slides": [
+    {
+      "id": "e10-task",
+      "type": "text",
+      "eyebrow": "本集任务",
+      "title": "任务、命令与预期结果",
+      "minDurationSec": 8,
+      "subtitle": "外部能力接入",
+      "body": "能写成数据的先别写成代码：把一份清单注入模型视野，再看它答得有什么不同",
+      "bullets": [
+        "命令：cd dsh-example && npm run M10",
+        "预期：不注入清单时模型自由发挥；注入之后第一行就是结论，条目按严重性排序"
+      ]
+    },
+    {
+      "id": "e10-terminal",
+      "type": "text",
+      "eyebrow": "真实输出",
+      "title": "这条命令真实打印了什么",
+      "minDurationSec": 8,
+      "body": "TODO：填写本页正文",
+      "callout": "证据：evidence/E10-dsh-real.txt"
+    },
+    {
+      "id": "e10-shell",
+      "type": "diagram",
+      "eyebrow": "运行外壳",
+      "title": "DSH 侧的机制",
+      "minDurationSec": 8,
+      "body": "TODO：填写本页正文",
+      "nodes": [
+        {
+          "label": "TODO 入口"
+        },
+        {
+          "label": "TODO 机制"
+        },
+        {
+          "label": "TODO 边界"
+        }
+      ]
+    },
+    {
+      "id": "e10-orchestration",
+      "type": "diagram",
+      "eyebrow": "编排层",
+      "title": "iota 侧的同一件事，以及它不做的部分",
+      "minDurationSec": 8,
+      "body": "TODO：填写本页正文",
+      "nodes": [
+        {
+          "label": "TODO 入口"
+        },
+        {
+          "label": "TODO 机制"
+        },
+        {
+          "label": "TODO 边界"
+        }
+      ]
+    },
+    {
+      "id": "e10-debug",
+      "type": "text",
+      "eyebrow": "错误定位",
+      "title": "症状、定位办法与修改",
+      "minDurationSec": 8,
+      "body": "TODO：填写本页正文"
+    },
+    {
+      "id": "e10-code",
+      "type": "text",
+      "eyebrow": "代码在哪",
+      "title": "一条命令打开对应代码",
+      "minDurationSec": 8,
+      "body": "TODO：填写本页正文"
+    },
+    {
+      "id": "e10-exercise",
+      "type": "text",
+      "eyebrow": "动手练习",
+      "title": "改哪里、怎么验证、答案是什么",
+      "minDurationSec": 8,
+      "body": "TODO：填写本页正文",
+      "bullets": [
+        "TODO 改哪里",
+        "TODO 验证命令",
+        "TODO 可验证答案"
+      ]
+    }
+  ]
+}
