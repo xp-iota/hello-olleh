@@ -70,3 +70,4 @@ uv run workshop build --episode e01         # 旁白 → manifest → 校验 →
 交付物落在 `out/e01/e01.pptx` 与 `out/e01/e01.mp4`。换主题只改 `course.json`、`profiles/`、
 `00-brief/` 与 `topics/`；换操作系统只可能改环境变量，生成行为不变。
 完整路径分类、分步命令、内容纪律与验收见 [AGENTS.md](AGENTS.md)。
+迁移背景、跨 OS/换主题原则、媒体质量与清理边界见 [MAINTENANCE.md](MAINTENANCE.md)。
