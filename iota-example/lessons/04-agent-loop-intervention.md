@@ -4,7 +4,7 @@
 > 边界**：一轮真实运行产出标准事件且按**子序列**成立；mid-turn 注入在三处公开面上都找不到
 > 入口（负证据）；节点 hook 在节点边界拿到真实结果；未注册引用在编译期被点名拒绝。
 > **运行命令**：`cd iota-example && uv run python -m runtime.runner M04`
-> **你将看到**：`events = [step_start, system_init, text_delta, final, step_end]` 里标准
+> **你将看到**：`events = [step_start, text_delta, final, step_end]` 里标准
 > 三事件按序出现，两头是内核自己插的事件；`mid_turn_injection = kernel-owned`——三处
 > 注入入口全为空；`refusal = node 'work': unknown code_handler 'm04-not-registered'`。
 
@@ -42,8 +42,8 @@ cd iota-example && uv run python -m runtime.runner M04
 provider=anthropic-compat model=fuyao-coding timeout=180000ms
 
 ──── M04.1 · 观察一轮的标准事件顺序 ────
-   events = [step_start, system_init, text_delta, final, step_end]
-   standard_subsequence = [system_init, text_delta, final]
+   events = [step_start, text_delta, final, step_end]
+   standard_subsequence = [text_delta, final]
 REAL_STAGE_OK M04.1 calls=1 ms=1375 in=12225 out=7 finish=success "事件顺序已观察。"
 
 ──── M04.2 · 生命周期边界上没有 steering 入口 ────
@@ -74,7 +74,7 @@ REAL_MODULE_OK M04 stages=5 calls=5 failed=0
 
 **对照自己的输出**：末行必须原样出现 `REAL_MODULE_OK M04 stages=5 calls=5 failed=0`；
 `ms=` / `in=` / `out=` 随端点浮动。要盯的是结构：M04.1 的 `standard_subsequence` 恒为
-`[system_init, text_delta, final]`，`events` 因内核而异，子序列成立即可（第 3 节）；
+`[text_delta, final]`，`events` 因内核而异，子序列成立即可（第 3 节）；
 M04.2 的三个列表恒为 `[]`，非空即 `REAL_STAGE_FAIL`；M04.5 恒点名 `m04-not-registered`。
 若混着 `[claude-code:unrecognized_model]` 行，见第 00 课第 7 节——它不是错误。
 
@@ -87,7 +87,7 @@ M04.2 的三个列表恒为 `[]`，非空即 `REAL_STAGE_FAIL`；M04.5 恒点名
 一次完整往返收成 `list[AgentEvent]`：
 
 ```python
-STANDARD = ("system_init", "text_delta", "final")
+STANDARD = ("text_delta", "final")
 
 
 async def run(harness: WorkshopHarness) -> dict[str, Any]:
@@ -96,7 +96,7 @@ async def run(harness: WorkshopHarness) -> dict[str, Any]:
     return {"events": events, "standard_subsequence": list(STANDARD)}
 ```
 
-真实日志观察到 `events = [step_start, system_init, text_delta, final, step_end]`：5 个事件
+真实日志观察到 `events = [step_start, text_delta, final, step_end]`：4 个事件
 里 3 个是标准事件，`step_start` 与 `step_end` 是**内核自己插进来的**。断言交给
 [`runtime/harness.py`](../runtime/harness.py) 的 `require_event_order`，按**子序列**校验：
 
@@ -112,7 +112,7 @@ def require_event_order(observed: Sequence[str], expected: tuple[str, ...]) -> N
 
 这是"不同内核都能通过"的关键设计，值得讲透：
 
-- **契约只锚定编排层自己的语义**：`system_init`（内核握手完成的初始化快照）先于
+- **契约只锚定编排层自己的语义**：内核自有事件（如 claude 的 `system_init`）先于
   `text_delta`（过程叙述），`final`（内核裁定的终态答案）在最后——与第 01 课
   "`final` 与 `text_delta` 不能拼接"是同一条顺序语义。
 - **不锚定某个内核的事件清单**：游标只向前、不要求相邻；换成会产出 `thinking`、工具调用

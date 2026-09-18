@@ -29,7 +29,7 @@ uv run python -m M04-agent-loop-intervention.run --scene 01_observe_event_order
 
 | 阶段 | 类型 | 场景脚本 | 观察什么 |
 |---|---|---|---|
-| M04.1 观察一轮的标准事件顺序 | `model` | [01_observe_event_order.py](scenes/01_observe_event_order.py) | `system_init → text_delta → final` 以子序列成立 |
+| M04.1 观察一轮的标准事件顺序 | `model` | [01_observe_event_order.py](scenes/01_observe_event_order.py) | `text_delta → final` 以子序列成立（标准事件只取内核无关的那些） |
 | M04.2 生命周期边界上没有 steering 入口 | `model` | [02_no_mid_turn_steering.py](scenes/02_no_mid_turn_steering.py) | 真实跑完一轮；`AgentConfig`、运行时公开面与事件流里都没有注入入口 |
 | M04.3 节点 hook 是唯一干预通道 | `mechanism` | [03_hook_node_result.py](scenes/03_hook_node_result.py) | `after_node_result` 拿到 `succeeded`，整图运行成功 |
 | M04.4 捕获运行遥测账本 | `mechanism` | [04_capture_run_telemetry.py](scenes/04_capture_run_telemetry.py) | run_id 由 RunStore 分配，状态与事件可读回 |

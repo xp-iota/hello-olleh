@@ -38,9 +38,10 @@ from runtime.harness import (
     CallEvidence,
     WorkshopHarness,
     all_evidence,
-    anthropic_compat_settings,
     create_harness,
+    kernel_settings,
     preflight,
+    provider_label,
     require,
     sample,
     selected_provider,
@@ -190,6 +191,15 @@ def report_stage(stage: Stage, slice_: list[CallEvidence]) -> None:
             f"REAL_STAGE_FAIL {stage.id} 真实调用失败："
             + " / ".join(str(item.failure) for item in failures)
         )
+    # 内核把失败当"错误最终事件"送回（而不是抛异常）时——认证失败、限流、内部错误——
+    # 错误文案本身是非空文本，若只查空文本就会把 403 放行成 REAL_STAGE_OK。dsh 侧的
+    # 对应口径是"调用失败"：适配器抛错记 failure；这里等价地按 finish=error 判失败。
+    errored = [item for item in slice_ if item.finish == "error"]
+    if errored:
+        raise RuntimeError(
+            f"REAL_STAGE_FAIL {stage.id} 内核返回错误终态："
+            + " / ".join(item.text_sample or item.finish for item in errored)
+        )
     if not slice_:
         raise RuntimeError(f"REAL_STAGE_FAIL {stage.id} 本阶段没有产生任何内核调用证据")
     answered = [item for item in slice_ if item.text_chars > 0 or item.tool_calls]
@@ -237,9 +247,12 @@ def run_module(module_dir: Path, *, scene: str | None = None) -> None:
         if not stages:
             raise RuntimeError(f"unknown scene: {scene!r}")
     module = module_dir.name[:3]
-    settings = anthropic_compat_settings()
+    settings = kernel_settings()
     print(f"\n████ {module} · {MODULE_TITLES[module_dir.name]} ████")
-    print(f"provider={REAL_PROVIDER} model={settings.model} timeout={REAL_TIMEOUT_MS}ms")
+    print(
+        f"provider={provider_label()} kernel={settings.kernel}"
+        f" model={settings.model} timeout={REAL_TIMEOUT_MS}ms"
+    )
     asyncio.run(_execute(module_dir, stages))
     evidence = all_evidence()
     failed = len([item for item in evidence if item.failure])
@@ -289,7 +302,7 @@ def run_all_modules() -> int:
         if completed.returncode != 0:
             return completed.returncode
 
-    print(f"\nREAL_ALL_OK modules=12 stages={expected} provider={REAL_PROVIDER}")
+    print(f"\nREAL_ALL_OK modules=12 stages={expected} provider={provider_label()}")
     return 0
 
 
