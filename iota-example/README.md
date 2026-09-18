@@ -1,7 +1,7 @@
 # iota-example：DSH 能力方向的 iota 对照 · 13 课自学课程
 
 与 `dsh-example/M01–M12` 同编号、同目录名的 Python 示例工程，使用本地 editable 安装的
-iota-core `2026.9.8`，对比两个框架在工具、上下文、会话和任务编排等 12 个方向上的实现。
+iota-core `2026.9.16`，对比两个框架在工具、上下文、会话和任务编排等 12 个方向上的实现。
 各模块说明可复用的能力、需要补充的机制，以及由内核或宿主负责的功能。
 
 这套工程配了 **13 课自学课程**：`lessons/00` 教你跑通环境，`lessons/01`–`lessons/12` 每个模块一课。
@@ -72,18 +72,32 @@ uv run python -m runtime.learn --tour   # M01 工具管线 → M02 上下文装�
 
 ## 快速开始
 
-要求 Python `>=3.11,<3.14`；iota-core `2026.9.8` 以本地 editable source 装配
-（`pyproject.toml` 的 `[tool.uv.sources]` 指向 `../../../codingx/petite/sources/iota-core`）。
+要求 Python `>=3.11,<3.14`；iota-core `2026.9.16` 以本地 editable source 装配
+（`pyproject.toml` 的 `[tool.uv.sources]` 指向 `../../petite/sources/iota-core`，
+即 `code/640/petite/sources/iota-core`）。
 
 ```bash
-uv sync --extra dev --extra real
+uv sync --extra dev --extra hermes
 uv run python -m runtime.runner --all
 ```
 
-### 运行模式
+### 内核选择
 
-模块通过 `ClaudeAdapter` 调用 Claude Agent SDK 和 Claude Code CLI，连接 MiniMax 或 Fuyao 的 Anthropic 兼容端点。
-运行需要配置凭证、安装 `claude-agent-sdk`，并确保 `claude` CLI 位于 `PATH`。
+`KernelAdapter` 是 iota-core 的替换单元，示例通过 `IOTA_KERNEL` 选择走哪条真实内核路径：
+
+| `IOTA_KERNEL` | 适配器 | 协议 | 依赖 | 日志 provider 标签 |
+|---|---|---|---|---|
+| `hermes_direct`（默认） | `HermesDirectAdapter` | **OpenAI 兼容**（`/v1/chat/completions`） | `hermes-agent`，同进程直调 | `openai-compat` |
+| `claude` | `ClaudeAdapter` | Anthropic 兼容（Messages API） | `claude-agent-sdk` + `claude` CLI | `anthropic-compat` |
+
+两条路径读同一份 `.env`：Hermes 用 `HERMES_BASE_URL / HERMES_API_KEY / HERMES_MODEL`，
+缺失时回落到工程既有的 `LLM_BASE_URL / LLM_API_KEY / LLM_MODEL`（再其次 `OPENAI_*`）；
+`claude` 用 `LLM_*`（兼容 `ANTHROPIC_*`）。`base_url` 未带 `/v1` 时自动补上——多数网关的
+OpenAI 端点都在 `/v1` 下。
+
+默认选 Hermes Direct：它同进程直调，既不需要 `claude` CLI，也不依赖 Anthropic 网关。
+
+### 运行模式
 
 | 命令 | 行为 |
 |---|---|
@@ -96,9 +110,8 @@ uv run python -m runtime.runner --all
 
 两种 `-m` 形式要求工作目录是 `iota-example/`（`-m` 从当前目录解析模块）；`uv run python MXX-name/run.py` 在任何目录下都能跑 —— 入口按文件位置解析工程根，`.env` 也一样。
 
-配置从工程根 `.env` 读取，该文件已加入 git 忽略规则。统一配置项为
-`LLM_API_KEY / LLM_VENDOR / LLM_BASE_URL / LLM_MODEL`，兼容旧 `ANTHROPIC_*` 键。
-`preflight()` 检查凭证、SDK 和 CLI；缺少依赖时抛出 `KernelUnavailable` 并提示配置方法，
+配置从工程根 `.env` 读取，该文件已加入 git 忽略规则。`preflight()` 检查凭证、内核依赖
+与（`claude` 路径下的）CLI；缺少依赖时抛出 `KernelUnavailable` 并提示配置方法，
 未知 `IOTA_PROVIDER` 也会在模块启动前报错。模块运行需要连接模型服务，不支持离线模式。
 
 传给内核子进程的凭证、端点和模型分别使用 `ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_BASE_URL` 和
@@ -185,10 +198,11 @@ iota-example/
     scenes/*.py   一个阶段一个场景脚本：async def run(harness) 返回观察到的事实
     impl/*.py     该模块可复用的实现（网关、图、任务素材……）
   runtime/
-    harness.py    配置、内核装配、模块元数据与断言
+    harness.py    配置、内核装配（hermes_direct / claude）、模块元数据与断言
     runner.py     编排入口：读阶段清单、内核证据、逐阶段输出；--all 用 12 个隔离子进程
     learn.py      精选学习入口：--list / --tour / --module
     typecheck.sh  共享层一次 + 12 个模块各一次的类型检查
+    fix_venv_flags.sh  macOS：清 .venv 隐藏标志，修回 editable 安装
 ```
 
 模块目录名带连字符（与 `dsh-example` 同名），不是合法 Python 包名，所以模块内部统一用顶层
@@ -218,6 +232,7 @@ iota-example/
 ## 检查与测试
 
 ```bash
+bash runtime/fix_venv_flags.sh               # macOS：清 .venv 隐藏标志，修 editable 安装
 uv run ruff check .                          # E/F/I/UP/B，行宽 100
 ./runtime/typecheck.sh                       # 共享层 + 12 个模块，末行 IOTA_TYPECHECK_OK
 uv run python -m runtime.surface_coverage    # 覆盖面统计，门槛 45
@@ -227,8 +242,19 @@ uv run python -m runtime.runner --all       # 末行 REAL_ALL_OK
 
 pytest 不调用模型：它检查**阶段编号与 dsh 的 `run.ts` 逐一相等**、阶段与 `scenes/` 文件一一
 对应、只有执行侧演示能打开内核 shell、模块目录与 DSH 同名、README 覆盖每个编号、对照表锚点
-真实存在，以及缺少内核或配置时会失败。`runtime.runner --all` 连接模型服务，检查全部 12 个
-模块、60 个阶段的运行结果。
+真实存在，以及缺少内核或配置时会失败（两种内核各测一遍）。`runtime.runner --all` 连接模型
+服务，检查全部 12 个模块、60 个阶段的运行结果。
+
+### macOS：`.venv` 的隐藏标志会让 editable 安装消失
+
+症状是 `ModuleNotFoundError: No module named 'iota_core'`，但 `uv pip list` 明明列着它、
+`.venv/.../__editable__.iota_core-*.pth` 也在、内容也对。原因是 CPython 3.12 的
+`site.addpackage()` 会**跳过带隐藏标志（`UF_HIDDEN`）的 `.pth` 文件**，而 editable 安装
+正是靠 `.pth` 生效——普通包不受影响，所以症状极具误导性。修复：
+
+```bash
+bash runtime/fix_venv_flags.sh   # 幂等；清标志后自检 iota_core 能否导入
+```
 
 ## 常见误解对照表
 

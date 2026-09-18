@@ -1,7 +1,7 @@
 # 第 00 课 · 跑起来：环境、命令与验收契约
 
 > **本课任务**：把 12 个对照模块里的任意一个真正跑起来，并看懂它的输出结构。
-> **运行命令**：`cd iota-example && uv sync --extra dev --extra real && uv run python -m runtime.runner M12`
+> **运行命令**：`cd iota-example && uv sync --extra dev --extra hermes && uv run python -m runtime.runner M12`
 > **你将看到**：末行输出 `REAL_MODULE_OK M12 stages=5 calls=5 failed=0`。
 
 这一课不涉及任何 iota 概念。它只解决一件事：**让你能用真实内核跑通第一个模块，并知道"跑通了"长什么样**。
@@ -19,9 +19,9 @@
 
 | 事实 | 含义 |
 |---|---|
-| iota-core `2026.9.8` 以**本地 editable source** 装配（`[tool.uv.sources]` 指向本地源码树） | 你读到的是本地真实实现，不是 PyPI 快照 |
+| iota-core `2026.9.16` 以**本地 editable source** 装配（`[tool.uv.sources]` 指向本地源码树） | 你读到的是本地真实实现，不是 PyPI 快照 |
 | **没有 mock，没有离线路径** | 每个阶段都真的调用推理服务；缺密钥就当场抛 `KernelUnavailable` |
-| 模块通过 `ClaudeAdapter` 驱动 **Claude Agent SDK + Claude Code CLI**，连接 MiniMax 或 Fuyao 的 Anthropic 兼容端点 | "内核"是一个真实子进程，编排层只是它的一个消费者 |
+| 默认内核是 `hermes_direct`（同进程、**OpenAI 兼容**协议）；也可切到 `claude`（Claude Agent SDK + CLI、Anthropic 兼容） | "内核"是一份真实实现，编排层只是它的一个消费者；**换内核不改编排层** |
 | 12 个模块共享一套装配（`runtime/harness.py`）与编排（`runtime/runner.py`） | 日志骨架与 `dsh-example` 逐行对齐，两边输出可对读 |
 
 工程共 **60 个阶段**，与 dsh 同一套编号（含三个 `.d` 专项演示）。
@@ -34,8 +34,13 @@
 | 要求 | 为什么 |
 |---|---|
 | **Python `>=3.11,<3.14`** + [uv](https://docs.astral.sh/uv/) | 依赖锁定与 editable source 装配都走 uv |
-| 一个可用的推理服务密钥（MiniMax 或 Fuyao） | 所有阶段都要真实调用模型 |
-| `claude` CLI 在 `PATH` 上 | `claude-agent-sdk` 靠它驱动内核子进程 |
+| 一个可用的推理服务密钥与端点 | 所有阶段都要真实调用模型 |
+| —— 走默认的 `hermes_direct` 时 —— | |
+| `hermes-agent`（`uv sync --extra hermes`） | 同进程内核实现 |
+| 一个 **OpenAI 兼容**端点（`/v1/chat/completions`） | Hermes 的协议 |
+| —— 走 `claude` 时（`IOTA_KERNEL=claude`）—— | |
+| `claude-agent-sdk`（`uv sync --extra real`） | 驱动内核子进程 |
+| `claude` CLI 在 `PATH` 上 | SDK 靠它拉起内核 |
 
 先确认解释器版本：
 
@@ -44,7 +49,7 @@ python3 --version   # 需要 3.11 … 3.13
 uv --version
 ```
 
-`runtime/harness.py::preflight()` 在每个模块启动前核对凭证、SDK 与 CLI，缺任何一样都会
+`runtime/harness.py::preflight()` 在每个模块启动前核对凭证与所选内核的依赖，缺任何一样都会
 **在模块开始前失败**，不会跑到一半才挂。
 
 ---
@@ -54,16 +59,21 @@ uv --version
 配置放在工程根的 `.env`，模板是 [`.env.example`](../.env.example)：
 
 ```bash
+IOTA_KERNEL=hermes_direct        # 或 claude
 LLM_API_KEY=
-LLM_VENDOR=minimax              # 或 fuyao
-LLM_BASE_URL=https://api.minimaxi.com/anthropic
-LLM_MODEL=MiniMax-M3
+LLM_BASE_URL=
+LLM_MODEL=fuyao-coding
 ```
 
-[`runtime/harness.py`](../runtime/harness.py) 启动时自动加载它（`load_project_env()`），
-旧 `ANTHROPIC_*` 键仍然兼容。传给内核子进程的凭证、端点与模型分别是
-`ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_BASE_URL` 与 `ANTHROPIC_MODEL`；三档默认模型别名
-统一指向配置的模型，防止内核悄悄挑一个自带的默认模型。
+> **shell 里的同名变量优先级更高**：`load_project_env` 只填空缺、不覆盖已有 env。若发现
+> 跑起来的端点不是 `.env` 里写的，先 `unset` 掉 shell 里那几个（`env | grep -E '^(LLM|ANTHROPIC|HERMES)_'`）。
+> 这个坑很难自查——`preflight` 报的 model 和你以为的配置不一致时，第一嫌疑就是它。
+
+[`runtime/harness.py`](../runtime/harness.py) 启动时自动加载它（`load_project_env()`）。
+两种内核读同一份配置：`hermes_direct` 用 `HERMES_BASE_URL / HERMES_API_KEY / HERMES_MODEL`，
+缺失时回落到 `LLM_*`；`claude` 用 `LLM_*`（兼容 `ANTHROPIC_*`），并把凭证、端点与模型
+翻译成 `ANTHROPIC_AUTH_TOKEN / ANTHROPIC_BASE_URL / ANTHROPIC_MODEL` 交给子进程，
+三档默认模型别名统一指向配置的模型，防止内核悄悄挑一个自带的默认模型。
 
 **缺密钥时会立即抛错，不存在静默退化**：
 
@@ -86,7 +96,7 @@ LLM_API_KEY=<your-key> uv run python -m runtime.runner M12
 
 ```bash
 cd iota-example
-uv sync --extra dev --extra real
+uv sync --extra dev --extra hermes
 ```
 
 先跑 **M12**——它观察的是编排层自己的机制（effect 栈、注册表），对模型回答内容不敏感，
@@ -133,8 +143,8 @@ REAL_MODULE_OK M12 stages=5 calls=5 failed=0
 全量跑 `--all` 先输出环境检查行，末行是：
 
 ```text
-REAL_PREFLIGHT_OK kernel=claude vendor=fuyao model=fuyao-coding sdk=claude-agent-sdk cli=claude
-REAL_ALL_OK modules=12 stages=60 provider=anthropic-compat
+REAL_PREFLIGHT_OK kernel=hermes_direct vendor=openai-compat model=fuyao-coding sdk=hermes-agent cli=(in-process)
+REAL_ALL_OK modules=12 stages=60 provider=openai-compat
 ```
 
 ### 阶段分两类，但都必须留下真实证据
@@ -151,15 +161,22 @@ REAL_ALL_OK modules=12 stages=60 provider=anthropic-compat
 [`runtime/runner.py`](../runtime/runner.py) 逐阶段校验：
 
 ```python
-if failures:
+if failures:                      # 适配器抛异常
     raise RuntimeError(f"REAL_STAGE_FAIL {stage.id} 真实调用失败：…")
+if errored:                       # 内核把失败当"错误终态"送回
+    raise RuntimeError(f"REAL_STAGE_FAIL {stage.id} 内核返回错误终态：…")
 if not slice_:
     raise RuntimeError(f"REAL_STAGE_FAIL {stage.id} 本阶段没有产生任何内核调用证据")
 if not answered:
     raise RuntimeError(f"REAL_STAGE_FAIL {stage.id} 真实调用返回空文本且无工具调用")
 ```
 
-三种失败形态：**调用失败**、**没有调用证据**、**返回空文本且无工具调用**。
+四种失败形态：**调用失败**、**内核返回错误终态**、**没有调用证据**、**返回空文本且无工具调用**。
+
+第三种值得单独说：认证失败、限流、内核内部错误都会以"错误终态 + 一段错误文案"的形式回来，
+而**错误文案本身是非空文本**。只查"有没有文本"就会把一次 403 放行成 `REAL_STAGE_OK`——
+验收契约会因此彻底失去意义。所以 `finish=error` 与抛异常同等对待，都判失败。
+
 空回答最多重试 3 次，仍为空即失败——重试**同一个真实内核**不是回退，静默接受或换模型顶上才是。
 任一阶段失败即非零退出，`--all` 随即停止。
 
@@ -185,7 +202,7 @@ def redact(value: str) -> str:
 
 ```bash
 cd iota-example
-uv sync --extra dev --extra real       # 安装依赖（real = claude-agent-sdk，dev = 检查工具）
+uv sync --extra dev --extra hermes     # 安装依赖（hermes = 默认内核，dev = 检查工具）
 
 uv run python -m runtime.runner M12     # 跑单个模块（M01 … M12）
 uv run python -m runtime.runner M12 --scene 01_dispose_lifo   # 只跑该模块清单里的一个场景
@@ -234,7 +251,7 @@ KernelUnavailable: 运行缺少配置：LLM_API_KEY（兼容 ANTHROPIC_AUTH_TOKE
 **修改**：`cp .env.example .env` 再填密钥。注意 `.env` 必须在 **`iota-example/` 目录下**，
 不是仓库根目录——`load_project_env()` 按工程根解析路径。
 
-### 症状 C：`找不到 Claude Code CLI` 或 `缺少 claude-agent-sdk`
+### 症状 C：内核依赖缺失（`缺少 hermes-agent` / `找不到 Claude Code CLI`）
 
 ```text
 KernelUnavailable: 缺少 claude-agent-sdk（真实内核的运行依赖）。

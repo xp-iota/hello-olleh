@@ -147,6 +147,9 @@ def test_build_adapter_passes_fuyao_thinking_guards(
     monkeypatch.setattr(harness_module, "preflight", lambda: {})
     monkeypatch.setattr(harness_module, "resolve_cli", lambda: "claude")
     monkeypatch.setattr(claude_module, "ClaudeAdapter", FakeClaudeAdapter)
+    # build_adapter 现在按 IOTA_KERNEL 分派，默认 hermes_direct；本用例验证的是
+    # claude 那条 Anthropic 网关路径的 thinking 开关，所以要显式选中它。
+    monkeypatch.setenv("IOTA_KERNEL", "claude")
 
     adapter = harness_module.build_adapter(workspace=tmp_path)
     assert isinstance(adapter, FakeClaudeAdapter)

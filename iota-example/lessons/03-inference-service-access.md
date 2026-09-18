@@ -6,7 +6,7 @@
 > **运行命令**：`cd iota-example && uv run python -m runtime.runner M03`
 > **你将看到**：`replaceable_unit = KernelAdapter`、`registered_adapters = [dsh, hermes, hermes_direct, m03-kernel, nanobot]`；M03.1 的拒绝原文
 > `acp_refusal = node 'infer': kernel 'acp' cannot activate per-node model middleware/hooks ['llm_execution']; remove them or use a kernel that advertises per_session_middleware`；
-> M03.d 的 `event_counts = {step_start: 1, system_init: 1, thinking: 1, text_delta: 1, final: 1, step_end: 1}`。
+> M03.d 的 `event_counts = {step_start: 1, text_delta: 1, final: 1, step_end: 1}`（Hermes 内核）。
 
 前置：[第 02 课 · 上下文装配与经济学](02-context-assembly.md)。本课所有输出都来自真实运行，不是示意。
 同一编号的 DSH 侧教材见 [dsh-example/lessons/03-inference-service-access.md](../../dsh-example/lessons/03-inference-service-access.md)——那边讲 Provider 路由与流中间件 waterfall，本课讲 iota 的替换单元为什么是整个适配器、能力声明为什么在编译期兑现。
@@ -30,7 +30,7 @@ M03 两边都只有两个阶段，编号逐一对齐（[`run.py`](../M03-inferen
 |---|---|---|
 | Provider 路由：请求参数把这次调用发给某个适配器 | `register_adapter()` 以**整个 `KernelAdapter`** 为单位登记，返回 disposer | **结构性边界**：替换粒度是整个内核，不是单次调用 |
 | 流中间件：`llm/stream` waterfall 逐条包装/接管 chunk 流 | 图节点可用 `middleware_refs` 声明同样的诉求；内核声明里没有时 `GraphCompiler` 抛 `GraphValidationError` | **结构性边界**：单次模型调用的 middleware 属于内核 |
-| 流协议：`StreamChunk` 序列的不变量在真实 SSE 上核对 | 同一个事件消费循环核对 `system_init → text_delta → final` 子序列、`final` 唯一、step 包裹 | **语义等价**：消费循环只认事件协议，不认供应商 |
+| 流协议：`StreamChunk` 序列的不变量在真实 SSE 上核对 | 同一个事件消费循环核对 `text_delta → final` 子序列、`final` 唯一、step 包裹 | **语义等价**：消费循环只认事件协议，不认供应商 |
 
 ```bash
 cd iota-example && uv run python -m runtime.runner M03
@@ -56,7 +56,7 @@ provider=anthropic-compat model=fuyao-coding timeout=180000ms
 REAL_STAGE_OK M03.1 calls=1 ms=1646 in=12239 out=10 finish=success
 
 ──── M03.d · 专项真实演示：同一事件消费循环接真实内核 ────
-   event_counts = {step_start: 1, system_init: 1, thinking: 1, text_delta: 1, final: 1, step_end: 1}
+   event_counts = {step_start: 1, thinking: 1, text_delta: 1, final: 1, step_end: 1}
    text_sample = 事件协议已核对。
    finish = success
    usage = {input_tokens: 12237, output_tokens: 38}
@@ -306,7 +306,7 @@ found in one graph spec."）；场景里 `"; ".join(exc.problems)` 就是为多 
 
 对位 DSH 的"同一 StreamChunk 消费循环接真实 SSE"：消费循环不认供应商，只认事件协议。
 iota 这边的协议是"编排层的 step 包裹内核事件"——`step_start` 开头、`step_end` 收尾，
-中间按子序列出现 `system_init → text_delta → final`，而且 `final` 只出现一次。
+中间按子序列出现 `text_delta → final`，而且 `final` 只出现一次。
 """
 ```
 
@@ -323,25 +323,27 @@ iota 这边的协议是"编排层的 step 包裹内核事件"——`step_start` 
     require(kinds[0] == "step_start", "编排层的 step 包在最外侧", kinds)
     require(kinds[-1] == "step_end", "step_end 收尾", kinds)
     require(counts["final"] == 1, "终止事件只出现一次", counts)
-    require_event_order(kinds, ("system_init", "text_delta", "final"))
+    require_event_order(kinds, STANDARD)
     require(bool((final.text or text).strip()), "真实事件流里有非空文本")
 ```
 
 前四条是协议不变量，对上日志的这行事实：
 
 ```text
-   event_counts = {step_start: 1, system_init: 1, thinking: 1, text_delta: 1, final: 1, step_end: 1}
+   event_counts = {step_start: 1, thinking: 1, text_delta: 1, final: 1, step_end: 1}
 ```
 
 - **step 包最外侧**：`step_start` 开头、`step_end` 收尾——编排层的 step 包裹内核事件；
 - **`final` 恰好一次**：终止事件不重复，下游可以放心"见到 final 就收尾"；
-- **`system_init → text_delta → final` 按序出现**：`system_init` 是内核握手完成的初始化快照
-  （`iota-core/src/iota_core/types.py::class SystemInitEvent`）。
+- **`text_delta → final` 按序出现**：标准事件只取**内核无关**的那些。`system_init`
+  （`iota-core/src/iota_core/types.py::class SystemInitEvent`）虽然确实存在，但它是
+  Claude 适配器特有的启动握手快照，Hermes 不产出——所以它**不进标准子序列**。
 
 ### `thinking: 1` 是这份日志的隐藏考点
 
-本次运行里，内核在 `system_init` 与 `text_delta` 之间真的发了一个思考事件——四条不变量
-依然全部成立。原因写在 [`runtime/harness.py`](../runtime/harness.py) 的 `require_event_order`
+在 claude 内核下，事件流里还会插入 `system_init`、`thinking` 这类**内核自有事件**——
+它们不影响标准子序列的成立。这正是"按子序列校验"的意义：`events` 因内核而异，
+契约不绑死在某一家的序列上。原因写在 [`runtime/harness.py`](../runtime/harness.py) 的 `require_event_order`
 注释里：
 
 ```python

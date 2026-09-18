@@ -65,7 +65,7 @@ REAL_STAGE_OK M05.3 calls=1 ms=1516 in=12241 out=74 finish=success
 
 ──── M05.4 · 运行记录可读回 ────
    run_status = succeeded
-   events = [step_start, system_init, text_delta, final, step_end]
+   events = [step_start, text_delta, final, step_end]
 REAL_STAGE_OK M05.4 calls=1 ms=689 in=12225 out=6 finish=success "会话已记录。"
 
 ──── M05.5 · 事件 schema 不承诺 seq/surface ────
@@ -243,11 +243,11 @@ Returns a list of dicts containing at least ``session_id``, ``role``,
 turn = await run_one_turn(harness, namespace="m05-run")
 events = [event.type for event in turn.events]
 require(turn.run_record["status"] == "succeeded", "运行记录状态成功", turn.run_record)
-require_event_order(events, ("system_init", "text_delta", "final"))
+require_event_order(events, STANDARD)
 return {"run_status": turn.run_record["status"], "events": events}
 ```
 
-日志里事件有 5 条（`events = [step_start, system_init, text_delta, final, step_end]`），
+日志里事件有 4 条（`events = [step_start, text_delta, final, step_end]`），
 断言却只点名 3 条——因为校验是**子序列**：
 
 ```python
