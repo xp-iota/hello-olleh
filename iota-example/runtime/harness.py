@@ -1,16 +1,18 @@
 """Unified runtime assembly for iota-example M01-M12.
 
-This single module owns environment loading, the MiniMax/Fuyao Anthropic-compatible kernel,
-lesson metadata, fail-loud checks and the WorkshopHarness assembly path.
+This single module owns environment loading, the real kernel adapters, lesson metadata,
+fail-loud checks and the WorkshopHarness assembly path.
 
-There is exactly one kernel. A missing credential, SDK or CLI aborts before a module starts;
-nothing is substituted for the model, so an unconfigured run fails instead of quietly
-answering itself.
+Two real kernels can be selected with ``IOTA_KERNEL`` — ``hermes_direct`` (default, OpenAI
+compatible, in-process) and ``claude`` (Anthropic compatible, drives the Claude Code CLI).
+Either way a missing credential, package or CLI aborts before a module starts; nothing is
+substituted for the model, so an unconfigured run fails instead of quietly answering itself.
 """
 
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import os
 import re
 import shutil
@@ -82,6 +84,20 @@ CONFIG_VARIABLES = (
 FORWARDED = ("ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_MODEL")
 
 CONFIG_SOURCE = "iota-example/.env（已被 git 忽略；模板见 .env.example）"
+
+
+#: 可选内核实现在 iota-core 里各有登记名。示例默认用 ``hermes_direct``：它走
+#: **OpenAI 兼容**协议（``HERMES_BASE_URL`` / ``HERMES_API_KEY`` / ``HERMES_MODEL``），
+#: 同进程直调，既不需要 claude CLI，也不依赖 Anthropic 网关。``claude`` 仍然保留，
+#: 用于对照 anthropic-compat 那条路径。
+KERNEL_ADAPTERS = ("hermes_direct", "claude")
+DEFAULT_KERNEL = "hermes_direct"
+
+#: 内核名 → 日志/证据行里的 provider 标签。内核换了标签就得跟着走：``anthropic-compat``
+#: 只对 claude 那条 Anthropic 网关路径成立，Hermes 走的是 OpenAI 兼容协议。
+REAL_PROVIDER = "anthropic-compat"
+PROVIDER_LABELS = {"claude": "anthropic-compat", "hermes_direct": "openai-compat"}
+PROVIDERS = (REAL_PROVIDER,)
 
 
 class KernelUnavailable(RuntimeError):
@@ -193,12 +209,110 @@ def resolve_cli() -> str | None:
     return shutil.which("claude")
 
 
+def selected_kernel(kernel: str | None = None) -> str:
+    """Resolve the kernel adapter from the argument, then ``IOTA_KERNEL``."""
+    load_project_env()
+    value = (kernel or os.environ.get("IOTA_KERNEL") or DEFAULT_KERNEL).strip().lower()
+    if value not in KERNEL_ADAPTERS:
+        raise KernelUnavailable(
+            f"未知 IOTA_KERNEL={value!r}；可选：{', '.join(KERNEL_ADAPTERS)}。"
+            " 默认 hermes_direct（OpenAI 兼容，同进程直调）。"
+        )
+    return value
+
+
+@dataclass(frozen=True, slots=True)
+class HermesSettings:
+    """Values that point a Hermes kernel at any OpenAI-compatible endpoint.
+
+    Hermes 读 ``HERMES_BASE_URL`` / ``HERMES_API_KEY`` / ``HERMES_MODEL``（其次
+    ``OPENAI_*``）。这里把工程既有的 ``LLM_*`` 约定翻译过去，并在 base_url 缺少
+    ``/v1`` 时补上 —— 多数网关（含 fuyao）的 OpenAI 端点在 ``/v1`` 下。
+    """
+
+    base_url: str
+    api_key: str
+    model: str
+
+    def kernel_env(self) -> dict[str, str]:
+        return {
+            "HERMES_BASE_URL": self.base_url,
+            "HERMES_API_KEY": self.api_key,
+            "HERMES_MODEL": self.model,
+        }
+
+    def redacted(self) -> str:
+        return f"model={self.model} endpoint=<openai-compatible> token=<redacted>"
+
+
+def hermes_settings() -> HermesSettings:
+    """Read OpenAI-compatible configuration for the Hermes kernel.
+
+    ``HERMES_*`` is canonical; ``LLM_*`` / ``OPENAI_*`` remain compatible so the
+    project keeps one ``.env`` across both kernel paths.
+    """
+    load_project_env()
+    base_url = (
+        os.environ.get("HERMES_BASE_URL")
+        or os.environ.get("LLM_BASE_URL")
+        or os.environ.get("OPENAI_BASE_URL")
+        or ""
+    ).strip()
+    api_key = (
+        os.environ.get("HERMES_API_KEY")
+        or os.environ.get("LLM_API_KEY")
+        or os.environ.get("OPENAI_API_KEY")
+        or ""
+    ).strip()
+    model = (
+        os.environ.get("HERMES_MODEL") or os.environ.get("LLM_MODEL") or "fuyao-coding"
+    ).strip()
+
+    missing: list[str] = []
+    if not api_key:
+        missing.append("LLM_API_KEY（兼容 HERMES_API_KEY / OPENAI_API_KEY）")
+    if not base_url:
+        missing.append("LLM_BASE_URL（兼容 HERMES_BASE_URL / OPENAI_BASE_URL）")
+    if missing:
+        raise KernelUnavailable(
+            "运行缺少配置：" + ", ".join(missing) + "。\n"
+            f"  配置来源：{CONFIG_SOURCE}\n"
+            "  Hermes 内核走 OpenAI 兼容协议，需要 base_url 与 api_key。\n"
+            "  没有配置就没有内核：工程不提供任何替代模型的本地实现。"
+        )
+
+    # 网关的 OpenAI 端点统一在 /v1 下；已带路径的 base_url 原样保留。
+    normalized = base_url.rstrip("/")
+    if not Path(normalized).name.startswith("v1") and "/v1" not in normalized:
+        normalized = f"{normalized}/v1"
+    return HermesSettings(base_url=normalized, api_key=api_key, model=model)
+
+
 def preflight() -> dict[str, str]:
     """Check every real-kernel prerequisite before a module starts."""
-    settings = anthropic_compat_settings()
+    kernel = selected_kernel()
+    if kernel == "hermes_direct":
+        hermes = hermes_settings()
+        # 发行包叫 hermes-agent，导入名却是 `agent`（见 top_level.txt）——按发行名做
+        # find_spec("hermes_agent") 会永远为假，把装好的环境误判成缺依赖。
+        if importlib.util.find_spec("agent") is None:
+            raise KernelUnavailable(
+                "缺少 hermes-agent（Hermes 内核的运行依赖）。\n"
+                "  安装：uv sync --extra hermes\n"
+                "  然后用 uv run 执行，例如：uv run python -m runtime.runner --all"
+            )
+        return {
+            "kernel": kernel,
+            "vendor": "openai-compat",
+            "model": hermes.model,
+            "sdk": "hermes-agent",
+            "cli": "(in-process)",
+        }
+
+    anthropic = anthropic_compat_settings()
     if importlib.util.find_spec("claude_agent_sdk") is None:
         raise KernelUnavailable(
-            "缺少 claude-agent-sdk（真实内核的运行依赖）。\n"
+            "缺少 claude-agent-sdk（claude 内核的运行依赖）。\n"
             "  安装：uv sync --extra real\n"
             "  然后用 uv run 执行，例如：uv run python -m runtime.runner --all"
         )
@@ -210,8 +324,8 @@ def preflight() -> dict[str, str]:
         )
     return {
         "kernel": "claude",
-        "vendor": settings.vendor,
-        "model": settings.model,
+        "vendor": anthropic.vendor,
+        "model": anthropic.model,
         "sdk": "claude-agent-sdk",
         "cli": Path(cli).name,
     }
@@ -222,10 +336,86 @@ def create_workspace() -> Path:
     return Path(tempfile.mkdtemp(prefix="iota-real-"))
 
 
+@dataclass(frozen=True, slots=True)
+class KernelSummary:
+    """当前内核的展示信息（供 banner / 结论行使用，不含凭证）。"""
+
+    kernel: str
+    model: str
+    provider: str
+
+
+def kernel_settings() -> KernelSummary:
+    """按当前 ``IOTA_KERNEL`` 读出用于展示的内核信息。
+
+    日志里的 provider 标签必须跟内核走：``anthropic-compat`` 只对 claude 那条 Anthropic
+    网关路径成立，Hermes 走 OpenAI 兼容协议。写死一个标签会让证据行自相矛盾。
+    """
+    kernel = selected_kernel()
+    if kernel == "hermes_direct":
+        model = hermes_settings().model
+    else:
+        model = anthropic_compat_settings().model
+    return KernelSummary(
+        kernel=kernel,
+        model=model,
+        provider=PROVIDER_LABELS.get(kernel, REAL_PROVIDER),
+    )
+
+
+def provider_label() -> str:
+    """当前内核的 provider 标签（banner 与 ``REAL_ALL_OK`` 行共用）。"""
+    return kernel_settings().provider
+
+
 def build_adapter(
     *, allow_shell: bool = False, timeout: float | None = None, workspace: Path | None = None
 ) -> Any:
-    """Build an Anthropic-compatible ClaudeAdapter for MiniMax or Fuyao."""
+    """按 ``IOTA_KERNEL`` 构造真实内核适配器（默认 hermes_direct）。"""
+    kernel = selected_kernel()
+    if kernel == "hermes_direct":
+        return _build_hermes_adapter(allow_shell=allow_shell, workspace=workspace)
+    return _build_claude_adapter(allow_shell=allow_shell, timeout=timeout, workspace=workspace)
+
+
+def _build_hermes_adapter(*, allow_shell: bool, workspace: Path | None) -> Any:
+    """构造同进程直调的 HermesDirectAdapter（OpenAI 兼容协议）。
+
+    **不传 ``project_root`` / ``hermes_home``**：两者都会走 ``ConfigProfileManager``
+    投影，而投影要求目标目录里预先存在 ``config.yaml``。示例的内核配置就是端点三件套，
+    直接经 ``HERMES_HOME`` 环境变量指向临时目录即可 —— 配置投影那一层归 M11 课专门演示。
+
+    工作目录经 ``TERMINAL_CWD`` 环境变量指定，**不是** ``cwd=`` 参数：``AIAgent`` 的
+    构造签名里根本没有 ``cwd``，传了会被 ``_filter_aiagent_kwargs`` 静默丢掉（正是
+    iota-core 自己警告的 configured-but-ignored）；Hermes 的工作目录唯一来源是
+    ``agent/runtime_cwd.py`` 读的 ``TERMINAL_CWD``。这样 ``harness.workspace`` 才等于
+    内核真正读写的目录，M07 "工作目录是唯一输入"那条证据才成立。
+    """
+    from iota_core.adapters.hermes_direct import HermesDirectAdapter
+
+    settings = hermes_settings()
+    preflight()
+    root = workspace or create_workspace()
+    home = root / "hermes-home"
+    home.mkdir(parents=True, exist_ok=True)
+    return HermesDirectAdapter(
+        base_url=settings.base_url,
+        api_key=settings.api_key,
+        model=settings.model,
+        env={
+            **settings.kernel_env(),
+            "HERMES_HOME": str(home),
+            "TERMINAL_CWD": str(root),
+        },
+        quiet_mode=True,
+        verbose_logging=False,
+    )
+
+
+def _build_claude_adapter(
+    *, allow_shell: bool, timeout: float | None, workspace: Path | None
+) -> Any:
+    """构造 Anthropic 兼容的 ClaudeAdapter（MiniMax / Fuyao）。"""
     from iota_core.adapters.claude import ClaudeAdapter
 
     settings = anthropic_compat_settings()
@@ -373,7 +563,12 @@ class CountingKernelAdapter(KernelAdapter):
         await self._inner.start()
 
     async def capabilities(self) -> dict[str, Any]:
-        return await self._inner.capabilities()
+        # hermes_direct 的 capabilities() 是同步实现（与 base 的 async 签名不一致），
+        # claude 则是 async；两种形状都要能透传，否则换内核会在装配期直接炸。
+        result = self._inner.capabilities()
+        if inspect.isawaitable(result):
+            return await result
+        return result
 
     async def create_session(self, cfg: Any, tools: Any, mcps: Any) -> Any:
         return await self._inner.create_session(cfg, tools, mcps)
@@ -420,8 +615,6 @@ class CountingKernelAdapter(KernelAdapter):
 
 
 # ── Runtime assembly ───────────────────────────────────────────────────────
-REAL_PROVIDER = "anthropic-compat"
-PROVIDERS = (REAL_PROVIDER,)
 
 
 def selected_provider(provider: str | None = None) -> str:
@@ -524,7 +717,7 @@ async def create_harness(
         conversation_store=conversation_store,
         run_store=run_store,
         runtime=runtime,
-        provider=REAL_PROVIDER,
+        provider=PROVIDER_LABELS.get(kernel, REAL_PROVIDER),
         kernel=kernel,
         model=report["model"],
         preflight_report=report,

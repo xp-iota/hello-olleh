@@ -45,6 +45,6 @@ uv run python -m M03-inference-service-access.run --scene 01_reject_model_middle
 1. `register_adapter()` 以整个适配器为单位登记 Provider，并返回 disposer。
 2. `KernelCapabilities.from_adapter_payload()` 把适配器声明投影成编译器读得懂的能力。
 3. 节点引用模型 middleware 时，`GraphCompiler` 在运行前抛 `GraphValidationError`。
-4. 同一个事件消费循环接真实内核：`system_init → text_delta → final` 的协议不变量在真实流上成立。
+4. 同一个事件消费循环接真实内核：`text_delta → final` 的协议不变量在真实流上成立。
 
 实现位置与架构决策见[逐模块对照表](../docs/dsh-vs-iota.md)。

@@ -4,12 +4,15 @@ version = "0.1.0"
 description = "Comparison examples aligned with dsh-example M01-M12, run against a real kernel"
 requires-python = ">=3.11,<3.14"
 dependencies = [
-  "iota-core==2026.9.8",
+  "iota-core==2026.9.16",
 ]
 
 [project.optional-dependencies]
-# 运行依赖：ClaudeAdapter 通过它驱动内核进程。
-# 只有真实内核这一条路径，但装了它才能跑模块，所以留在 optional 里由 uv sync --extra real 声明。
+# 默认内核：Hermes Direct 同进程直调，走 OpenAI 兼容协议（不需要 claude CLI）。
+hermes = [
+  "hermes-agent>=0.19.0",
+]
+# 对照内核：ClaudeAdapter 通过它驱动内核子进程（Anthropic 兼容网关）。
 real = [
   "claude-agent-sdk>=0.2,<1",
 ]
@@ -70,6 +73,6 @@ url = "http://nexus.logan.xiaopeng.local:8081/nexus/repository/pypi-hosted/simpl
 explicit = true
 
 [tool.uv.sources]
-iota-core = { path = "../../../codingx/petite/sources/iota-core", editable = true }
+iota-core = { path = "../../petite/sources/iota-core", editable = true }
 iota-memory-protocol = { index = "xp-nexus-pypi" }
 iota-observability = { index = "xp-nexus-pypi" }

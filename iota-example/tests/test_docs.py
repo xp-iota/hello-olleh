@@ -45,7 +45,7 @@ def test_every_evidence_file_and_anchor_exist() -> None:
     )
     assert locations
     roots = {
-        "iota-core": ROOT.parents[2] / "codingx/petite/sources/iota-core",
+        "iota-core": ROOT.parents[1] / "petite/sources/iota-core",
         "iota-example": ROOT,
         "dsh-example": ROOT.parent / "dsh-example",
     }
