@@ -109,7 +109,8 @@
     {
       "id": "Core",
       "type": "backend",
-      "label": "ThreadManager + codex.rs",
+      "label": "ThreadManager + CodexThread",
+      "sublabel": "thread_manager.rs:248 · codex_thread.rs:208",
       "pos": [
         391,
         205

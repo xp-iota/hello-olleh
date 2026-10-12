@@ -25,7 +25,7 @@ title: "REPL 与交互层：Ink TUI、非交互模式与输入分发"
 - **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
 - **要点**：首节点：gemini [--prompt ...] [--no-i… · 末节点：标准输入/输出
 
-真实分流点在 CLI 入口：`startInteractiveUI()` 负责启动 Ink UI（`sources/gemini-cli/packages/cli/src/gemini.tsx:227`），最终导入 `interactiveCli.tsx` 并渲染 `AppContainer`（`sources/gemini-cli/packages/cli/src/interactiveCli.tsx:56`, `sources/gemini-cli/packages/cli/src/interactiveCli.tsx:115`）。非交互模式走 `runNonInteractive()`（`sources/gemini-cli/packages/cli/src/nonInteractiveCli.ts:59`），主入口根据 `config.isInteractive()` 分派到两条路径（`sources/gemini-cli/packages/cli/src/gemini.tsx:648`, `sources/gemini-cli/packages/cli/src/gemini.tsx:737`）。
+真实分流点在 CLI 入口：`startInteractiveUI()` 负责启动 Ink UI（`sources/gemini-cli/packages/cli/src/gemini.tsx:446`），最终导入 `interactiveCli.tsx` 并渲染 `AppContainer`（`sources/gemini-cli/packages/cli/src/interactiveCli.tsx:56`, `sources/gemini-cli/packages/cli/src/interactiveCli.tsx:115`）。非交互模式走 `runNonInteractive()`（`sources/gemini-cli/packages/cli/src/nonInteractiveCli.ts:72`），主入口 `main()`（`sources/gemini-cli/packages/cli/src/gemini.tsx:466`）按 `config.isInteractive()` 分派：交互路径调用 `startInteractiveUI()`（`sources/gemini-cli/packages/cli/src/gemini.tsx:913`），非交互路径调用 `runNonInteractive()`（`sources/gemini-cli/packages/cli/src/gemini.tsx:993`）。
 
 ## 2. Ink TUI 组件树
 
@@ -60,7 +60,7 @@ function AssistantMessage({ turnId }: { turnId: string }) {
 
 ### 2.2 工具审批 UI
 
-当 `autoAcceptTools` 为 false 时，工具调用前展示审批界面：
+当审批模式为默认的 `ApprovalMode.DEFAULT` 时，工具调用前展示审批界面：
 
 ```
 ╔═══════════════════════════════════╗
@@ -77,8 +77,8 @@ function AssistantMessage({ turnId }: { turnId: string }) {
 # 管道输入
 echo "分析 README.md" | gemini
 
-# 直接参数
-gemini --prompt "列出所有 TODO 注释" --no-interactive
+# 直接参数（提供 --prompt 即进入非交互模式）
+gemini --prompt "列出所有 TODO 注释"
 
 # CI 场景（自动批准所有工具）
 gemini --prompt "运行测试并修复失败" --yolo
@@ -114,7 +114,7 @@ export async function runNonInteractive(flags: CliFlags) {
 | 特性 | Gemini CLI | Claude Code |
 | :------| :------------| :-------------|
 | **UI 框架** | Ink（React/TS）| Ink（React/TS）|
-| **Headless** | `--no-interactive` / pipe | `--print` / pipe |
+| **Headless** | `--prompt` / pipe | `--print` / pipe |
 | **Markdown 渲染** | ✅ | ✅ |
 | **Slash 命令** | 少量（`/help`, `/clear`）| 丰富（可扩展）|
 | **多行输入** | `Shift+Enter` | `Shift+Enter` |
@@ -125,12 +125,12 @@ export async function runNonInteractive(flags: CliFlags) {
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `AppContainer` | `sources/gemini-cli/packages/cli/src/ui/AppContainer.tsx:794` | CLI 顶层 React 组件：持有 resume、UI Action、生命周期管理 |
-| `useGeminiStream` | `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:214` | 核心 hook：管理流处理、工具调度触发、工具结果回注 |
-| `UIStateContext` | `sources/gemini-cli/packages/cli/src/ui/contexts/UIStateContext.tsx:213` | React Context：持有 currentTurn/messages/tools/status 等 UI 状态 |
-| `startInteractiveUI()` | `sources/gemini-cli/packages/cli/src/gemini.tsx:227` | 交互模式启动入口：初始化 Ink + React render |
-| `runNonInteractive()` | `sources/gemini-cli/packages/cli/src/nonInteractiveCli.ts:59` | Headless 模式入口：读取 stdin 或 prompt，直接调用模型 |
-| `ToolScheduler` hook | `sources/gemini-cli/packages/cli/src/ui/hooks/useToolScheduler.ts:219` | 把工具确认、执行中、结果回注状态接入 stream |
+| `AppContainer` | `sources/gemini-cli/packages/cli/src/ui/AppContainer.tsx:223` | CLI 顶层 React 组件：持有 resume、UI Action、生命周期管理 |
+| `useGeminiStream` | `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:224` | 核心 hook：管理流处理、工具调度触发、工具结果回注 |
+| `UIStateContext` | `sources/gemini-cli/packages/cli/src/ui/contexts/UIStateContext.tsx:219` | React Context：持有 currentTurn/messages/tools/status 等 UI 状态 |
+| `startInteractiveUI()` | `sources/gemini-cli/packages/cli/src/gemini.tsx:446` | 交互模式启动入口：初始化 Ink + React render |
+| `runNonInteractive()` | `sources/gemini-cli/packages/cli/src/nonInteractiveCli.ts:72` | Headless 模式入口：读取 stdin 或 prompt，直接调用模型 |
+| `ToolScheduler` hook | `sources/gemini-cli/packages/cli/src/ui/hooks/useToolScheduler.ts:71` | 把工具确认、执行中、结果回注状态接入 stream |
 
 ---
 
@@ -144,20 +144,20 @@ export async function runNonInteractive(flags: CliFlags) {
 
 **风险与改进点**
 
+- **Ink 渲染性能瓶颈**：长会话下 `UIStateContext` 持有大量历史消息，每次状态更新触发全量 Context re-render，无虚拟化列表机制，可能导致UI 卡顿。
+- **Headless 模式没有确认 UI**：非交互模式复用同一套 `Scheduler` 与 `MessageBus`，但没有交互式审批界面，需要通过 `--yolo` / `--approval-mode` 等 flag 预先决定工具审批策略。
+- **`useGeminiStream` 与 `UIStateContext` 双向依赖**：hook 内部同时读写 Context，组件重渲后触发 hook 重新运行可能产生循环更新，需要依赖 `useCallback`/`useMemo` 谨慎防范。
+
 ## 横向对齐补强：REPL 状态由 CLI hook 聚合
 
 Gemini CLI 的交互状态主要分布在 Ink UI、`useGeminiStream`、Scheduler 状态和 core client 流事件之间。它不是 OpenCode 那种 durable DB 真相，也不是 Codex 那种 Rust thread event 真相。
 
 | 状态来源 | 职责 |
 | --- | --- |
-| Ink UI state | `sources/gemini-cli/packages/cli/src/ui/contexts/UIStateContext.tsx:213` | 输入框、渲染、用户确认、进度显示 |
-| `useGeminiStream` | `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:214` | 把用户输入、模型流、工具结果和 continuation 串起来 |
-| Scheduler state | `sources/gemini-cli/packages/cli/src/ui/hooks/useToolScheduler.ts:219` | 管理待确认、执行中、完成/失败工具 |
-| Core client stream | `sources/gemini-cli/packages/core/src/core/client.ts:887` | 提供模型事件和 tool call 请求 |
+| Ink UI state | `sources/gemini-cli/packages/cli/src/ui/contexts/UIStateContext.tsx:219` | 输入框、渲染、用户确认、进度显示 |
+| `useGeminiStream` | `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:224` | 把用户输入、模型流、工具结果和 continuation 串起来 |
+| Scheduler state | `sources/gemini-cli/packages/cli/src/ui/hooks/useToolScheduler.ts:71` | 管理待确认、执行中、完成/失败工具 |
+| Core client stream | `sources/gemini-cli/packages/core/src/core/client.ts:924` | 提供模型事件和 tool call 请求 |
 | LoopDetectionService | `sources/gemini-cli/packages/core/src/services/loopDetectionService.ts:133` | 在 turn 前和流处理中插入自愈/中断信号 |
 
 横向看，Gemini 的状态模型可读但分散；完善文档时要避免只讲 UI hook，而要把 Scheduler 和 core client 放进同一张状态图。
-
-- **Ink 渲染性能瓶颈**：长会话下 `UIStateContext` 持有大量历史消息，每次状态更新触发全量 Context re-render，无虚拟化列表机制，可能导致UI 卡顿。
-- **Headless 模式无流式输出**：非交互模式等待完整响应后才输出，对长输出场景用户体验差，无法像交互模式那样看到逐字流式结果。
-- **`useGeminiStream` 与 `UIStateContext` 双向依赖**：hook 内部同时读写 Context，组件重渲后触发 hook 重新运行可能产生循环更新，需要依赖 `useCallback`/`useMemo` 谨慎防范。

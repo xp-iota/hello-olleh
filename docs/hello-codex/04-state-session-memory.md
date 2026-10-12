@@ -132,13 +132,19 @@ thread_created_tx: broadcast::Sender<ThreadId>  // 容量 1024
 
 ```rust
 pub(crate) struct SessionState {
-    history: ContextManager,
-    latest_rate_limits: Option<RateLimitSnapshot>,
-    dependency_env: HashMap<String, String>,
-    mcp_dependency_prompted: HashSet<String>,
-    previous_turn_settings: Option<TurnSettings>,
-    startup_prewarm: Option<StartupPrewarm>,
-    granted_permissions: GrantedPermissions,
+    pub(crate) session_configuration: SessionConfiguration,
+    pub(crate) active_disabled_plugin_ids: Vec<String>,
+    pub(crate) base_instructions_provenance: Option<BaseInstructionsProvenance>,
+    pub(crate) history: ContextManager,
+    pub(crate) history_reset: CancellationToken,
+    pub(crate) latest_rate_limits: Option<RateLimitSnapshot>,
+    pub(crate) mcp_dependency_prompted: HashSet<String>,
+    pub(crate) additional_context: AdditionalContextStore,
+    previous_turn_settings: Option<PreviousTurnSettings>,
+    auto_compact_window: AutoCompactWindow,
+    pub(crate) startup_prewarm: Option<SessionStartupPrewarmHandle>,
+    pub(crate) pending_session_start_sources: VecDeque<codex_hooks::SessionStartSource>,
+    // ...另有 turn 归因、reasoning effort pin、connector 选择等字段
 }
 ```
 
@@ -146,7 +152,7 @@ pub(crate) struct SessionState {
 
 ```rust
 pub(crate) struct ActiveTurn {
-    pub(crate) tasks: IndexMap<String, RunningTask>,
+    pub(crate) task: Option<RunningTask>,
     pub(crate) turn_state: Arc<Mutex<TurnState>>,
 }
 ```
@@ -156,8 +162,9 @@ TurnState 含：
 - `pending_approvals: HashMap<String, oneshot::Sender<ReviewDecision>>`
 - `pending_request_permissions: HashMap<...>`
 - `pending_user_input: HashMap<...>`
+- `pending_elicitations: HashMap<...>`
 - `pending_dynamic_tools: HashMap<...>`
-- `pending_input: Vec<ResponseInputItem>`
+- `pending_input: TurnInputQueue`
 - `mailbox_delivery_phase: MailboxDeliveryPhase`
 - `tool_calls: u64`
 - `token_usage_at_turn_start: TokenUsage`
@@ -166,7 +173,7 @@ TurnState 含：
 
 #### 持久化：双 SQLite 数据库
 
-**双数据库设计**（文件名常量在 `state/src/sqlite.rs:34-38`，`StateRuntime` 在 `state/src/runtime.rs:91`；rust-v0.162 起状态持久化从 core 拆到独立的 `state` crate）：
+**双数据库设计**（文件名常量在 `state/src/sqlite.rs:34-38`，`StateRuntime` 在 `state/src/runtime.rs:91`）：
 
 | 数据库 | 文件名 | 用途 |
 | --- | --- | --- |
@@ -291,9 +298,9 @@ pub struct ThreadMetadata {
 
 | 层 | 关键代码 | 作用 |
 | --- | --- | --- |
-| 项目级指令层 | `sources/codex/codex-rs/core/src/agents_md.rs`（0.154 的 `project_doc.rs` 在 0.162 更名） | 读取 `Config::user_instructions`、层级 `AGENTS.md`、可选 JS REPL / child-agents 附加说明 |
+| 项目级指令层 | `sources/codex/codex-rs/core/src/agents_md.rs` | 读取 `Config::user_instructions`、层级 `AGENTS.md`、可选 JS REPL / child-agents 附加说明 |
 | 会话上下文层 | `sources/codex/codex-rs/core/src/context_manager/history.rs` | 维护模型可见历史、做规范化、估算 token、处理 compaction 与 rollback 基线 |
-| 轻量记忆层 | `sources/codex/codex-rs/memories/write/src/*`（rust-v0.162 起从 core 拆到独立的 `codex-memories-write` crate） | 从 rollout 抽取 raw memories、做两阶段 consolidation，并把 memory citation 写回线程结果 |
+| 轻量记忆层 | `sources/codex/codex-rs/memories/write/src/*` | 从 rollout 抽取 raw memories、做两阶段 consolidation，并把 memory citation 写回线程结果 |
 
 ![三层链路](diagrams/04-state-session-memory-diagram-04.svg)
 
@@ -312,7 +319,7 @@ pub struct ThreadMetadata {
 3. `BaseInstructions`
 4. 人格、并行工具调用能力、结构化输出 schema
 
-`agents_md.rs::load_project_instructions()`（`core/src/agents_md.rs:58`；0.154 中名为 `project_doc.rs::get_user_instructions()`）构造 `base_instructions` 的路径：
+`agents_md.rs::load_project_instructions()`（`core/src/agents_md.rs:58`）构造 `base_instructions` 的路径：
 
 - 先取 `config.user_instructions`
 - 再按"项目根 -> 当前目录"的顺序拼接所有 `AGENTS.md`
@@ -331,7 +338,7 @@ pub struct ThreadMetadata {
 
 #### memories pipeline 的异步特性
 
-rust-v0.162 起，`memories` 模块从 `core` 拆出为独立的 `codex-memories-write` crate（`memories/write/src/*`），不再由 `codex.rs` 直接触发：改由 app-server 在线程启动后调用 `codex_memories_write::start_memories_startup_task()`（定义在 `memories/write/src/start.rs:24`，调用点 `app-server/src/request_processors/turn_processor.rs:698`），由四个模块协作：
+memories 管线位于独立的 `codex-memories-write` crate（`memories/write/src/*`），由 app-server 在线程启动后调用 `codex_memories_write::start_memories_startup_task()`（定义在 `memories/write/src/start.rs:24`，调用点 `app-server/src/request_processors/turn_processor.rs:698`），由四个模块协作：
 
 - `memories/write/src/phase1.rs`：选择 rollout、提取 stage-1 raw memories
 - `memories/write/src/phase2.rs`：选择可用 raw memories、做 consolidation
@@ -346,7 +353,7 @@ rust-v0.162 起，`memories` 模块从 `core` 拆出为独立的 `codex-memories
 
 - **比 Claude Code 更协议化**：Claude 会把 prompt、memory、context collapse 明确分成多个运行时专题；Codex 更强调"线程历史 + 指令拼接 + 异步 memory pipeline"。
 - **比 Gemini CLI 更少依赖层级文件常驻注入**：Gemini CLI 会持续读取 `GEMINI.md` 分层记忆；Codex 更依赖 `AGENTS.md` + rollout 反刍。
-- **比 OpenCode 更少显式 prompt compiler**：OpenCode 有很强的 `prompt -> loop -> processor -> durable writeback` 主线；Codex 在这一主题上把复杂度藏进 `ContextManager`、`agents_md`（0.154 为 `project_doc`）和 memories startup 里。
+- **比 OpenCode 更少显式 prompt compiler**：OpenCode 有很强的 `prompt -> loop -> processor -> durable writeback` 主线；Codex 在这一主题上把复杂度藏进 `ContextManager`、`agents_md` 和 memories startup 里。
 
 ---
 
@@ -361,7 +368,7 @@ rust-v0.162 起，`memories` 模块从 `core` 拆出为独立的 `codex-memories
 
 #### 会话内记忆管道
 
-每个 turn 结束后，Codex 会从当前 rollout（执行历史）中自动提取"值得记住"的信息（下面两个代码块是示意性伪代码；rust-v0.162 的真实实现位于 `codex-memories-write` 的 `phase1.rs` / `phase2.rs`，并非这两个文件名）：
+每个 turn 结束后，Codex 会从当前 rollout（执行历史）中自动提取"值得记住"的信息（下面两个代码块是示意性伪代码；真实实现位于 `codex-memories-write` 的 `phase1.rs` / `phase2.rs`）：
 
 ```rust
 // 示意：对应 codex-rs/memories/write/src/phase1.rs 的 raw memory 提取
@@ -465,13 +472,13 @@ Codex 的 Memory 设计偏向简洁：
 **场景一：新会话启动**
 
 1. `ThreadManager::start_thread()` 创建 Thread，写入 `state_5.sqlite`
-2. `agents_md.rs`（0.154 为 `project_doc.rs`）读取 `AGENTS.md` 与 `config.user_instructions`，构建 `base_instructions`
-3. app-server 调用 `codex_memories_write::start_memories_startup_task()` 异步启动（rust-v0.162 起不再由 core 触发），从历史 rollout 提取 memories
+2. `agents_md.rs` 读取 `AGENTS.md` 与 `config.user_instructions`，构建 `base_instructions`
+3. app-server 调用 `codex_memories_write::start_memories_startup_task()` 异步启动，从历史 rollout 提取 memories
 4. `build_prompt()` 将 base_instructions + 工具声明 + 空历史收束为首轮请求
 
 **场景二：会话恢复（resume）**
 
-1. `ThreadManager::resume_thread_with_history()` 按优先级（history > path > thread_id）定位历史（0.154 名为 `resume_thread_from_rollout()`）
+1. `ThreadManager::resume_thread_with_history()` 按优先级（history > path > thread_id）定位历史
 2. `ContextManager` 加载历史并做规范化，重置 `reference_context_item` 基线
 3. memories pipeline 从已有 rollout 中补充 phase1/phase2 记忆
 4. 恢复后的会话对模型透明，历史连续
@@ -512,13 +519,19 @@ pub struct ThreadMetadata {
 
 ```rust
 pub(crate) struct SessionState {
-    history: ContextManager,
-    latest_rate_limits: Option<RateLimitSnapshot>,
-    dependency_env: HashMap<String, String>,
-    mcp_dependency_prompted: HashSet<String>,
-    previous_turn_settings: Option<TurnSettings>,
-    startup_prewarm: Option<StartupPrewarm>,
-    granted_permissions: GrantedPermissions,
+    pub(crate) session_configuration: SessionConfiguration,
+    pub(crate) active_disabled_plugin_ids: Vec<String>,
+    pub(crate) base_instructions_provenance: Option<BaseInstructionsProvenance>,
+    pub(crate) history: ContextManager,
+    pub(crate) history_reset: CancellationToken,
+    pub(crate) latest_rate_limits: Option<RateLimitSnapshot>,
+    pub(crate) mcp_dependency_prompted: HashSet<String>,
+    pub(crate) additional_context: AdditionalContextStore,
+    previous_turn_settings: Option<PreviousTurnSettings>,
+    auto_compact_window: AutoCompactWindow,
+    pub(crate) startup_prewarm: Option<SessionStartupPrewarmHandle>,
+    pub(crate) pending_session_start_sources: VecDeque<codex_hooks::SessionStartSource>,
+    // ...另有 turn 归因、reasoning effort pin、connector 选择等字段
 }
 ```
 
@@ -526,7 +539,7 @@ pub(crate) struct SessionState {
 
 ```rust
 pub(crate) struct ActiveTurn {
-    pub(crate) tasks: IndexMap<String, RunningTask>,
+    pub(crate) task: Option<RunningTask>,
     pub(crate) turn_state: Arc<Mutex<TurnState>>,
 }
 ```
@@ -543,7 +556,7 @@ pub fn apply_rollout_item(
 
 ### memories 提取与 consolidation
 
-（示意性伪代码；rust-v0.162 的真实实现位于 `codex-memories-write` crate 的 `memories/write/src/phase1.rs` 与 `phase2.rs`。）
+（示意性伪代码；真实实现位于 `codex-memories-write` crate 的 `memories/write/src/phase1.rs` 与 `phase2.rs`。）
 
 ```rust
 // 示意：对应 codex-rs/memories/write/src/phase1.rs 的 raw memory 提取
@@ -584,18 +597,16 @@ pub async fn consolidate(
 | `ContextManager` | `codex-rs/core/src/context_manager/history.rs`（:93） | 管理模型可见历史边界：决定哪些 turn/item 进入请求 |
 | `build_prompt()` | `codex-rs/core/src/session/turn.rs`（:1562） | 三类输入收束：system message + tool descriptions + conversation history |
 | `auto_compact_limit` check | `codex-rs/core/src/session/turn.rs:183`（`run_pre_sampling_compact()` :1303） | token 预算在 `run_turn()` 入口检查，触发 compaction 或停止 |
-| memories pipeline (`codex_memories_write`) | `codex-rs/memories/write/src/` | 异步 memory 提取 pipeline：从历史 rollout 中提取结构化记忆（rust-v0.162 起从 core 拆出） |
+| memories pipeline (`codex_memories_write`) | `codex-rs/memories/write/src/` | 异步 memory 提取 pipeline：从历史 rollout 中提取结构化记忆 |
 | `TurnContext.token_usage_at_turn_start` | `codex-rs/core/src/state/turn.rs`（`ActiveTurn` :30；`TurnContext` 在 `session/turn_context.rs:321`） | 记录每轮 token 基线，用于判断本轮消耗 |
 
 ### 记忆系统
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `start_memories_startup_task()` | `codex-rs/memories/write/src/start.rs:24`（crate `codex-memories-write`） | 启动异步 memories pipeline；rust-v0.162 起由 app-server 的 `turn_processor.rs:698` 触发 |
+| `start_memories_startup_task()` | `codex-rs/memories/write/src/start.rs:24`（crate `codex-memories-write`） | 启动异步 memories pipeline；由 app-server 的 `turn_processor.rs:698` 触发 |
 | phase1 raw memory 提取 | `codex-rs/memories/write/src/phase1.rs` | 从 rollout 中提取 raw memories |
 | phase2 consolidation | `codex-rs/memories/write/src/phase2.rs` | 两阶段去重、评分与筛选 memories |
-
-（注：早期版本此处还列有 `RollingWindowContext`、`TokenBudgetManager`、`context_trim()`、`ConversationHistory`、`write_history_file()`、`load_history_file()` 及 `extract_memories()` / `consolidate()` 等条目；这些符号在 rust-v0.162 快照中已无法定位 —— `core/src/context.rs`、`core/src/conversation.rs`、`core/src/persist.rs`、`core/src/memory/` 与 `core/src/memories/extractor.rs`、`consolidator.rs` 均不存在，其中部分疑似从未对应真实符号，故删除。真实的历史窗口与 token 治理在 `context_manager/history.rs` 与 `session/context_window.rs` / `session/token_budget.rs`。）
 
 ---
 
@@ -618,7 +629,7 @@ pub async fn consolidate(
 
 **记忆系统层面**：
 
-- **（rust-v0.162 校正）早期版本此处的三个条目不可靠**：`RollingWindowContext`、`TokenBudgetManager` / `context_trim()`、`write_history_file()` / `load_history_file()` 及 `~/.codex/history/` 明文历史文件均无法在 0.154 / 0.162 快照中定位，相关"滚动窗口""明文历史"论述不成立。真实的对应机制是：历史持久化走 rollout 文件（`rollout` crate）+ 双 SQLite（`state` crate）；历史窗口与 token 治理在 `core/src/session/context_window.rs` 与 `core/src/session/token_budget.rs`，按模型 context window 动态判断 `token_limit_reached` / `auto_compact_limit` 并触发压缩。
+- **持久化与 token 治理路径清晰**：历史持久化走 rollout 文件（`rollout` crate）+ 双 SQLite（`state` crate）；历史窗口与 token 治理在 `core/src/session/context_window.rs` 与 `core/src/session/token_budget.rs`，按模型 context window 动态判断 `token_limit_reached` / `auto_compact_limit` 并触发压缩。
 
 ### 风险与改进点
 
@@ -637,4 +648,4 @@ pub async fn consolidate(
 
 **记忆系统层面**：
 
-- **（rust-v0.162 校正）早期版本此处关于 `~/.codex/history/` 明文历史与 `context_trim()` 固定截断的两个风险条目无法在快照中定位，对应的"明文历史文件无加密""trim 策略不可配置"论述不再成立**。真实的持久化路径是 rollout 文件（`rollout` crate，JSONL 逐项落盘）+ `state_5.sqlite` / `logs_2.sqlite`；rollout 文件同样以明文保存对话与命令输出，访问控制依赖文件系统权限，"历史落盘无加密"这一安全关切对 rollout 文件依然成立。
+- **rollout 明文落盘**：持久化路径是 rollout 文件（`rollout` crate，JSONL 逐项落盘）+ `state_5.sqlite` / `logs_2.sqlite`；rollout 文件以明文保存对话与命令输出，访问控制依赖文件系统权限，没有额外的加密层。

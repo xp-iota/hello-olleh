@@ -155,6 +155,10 @@ title: "Gemini CLI Prompt 系统：PromptProvider、片段组合与技能注入"
 
 **风险与改进点**
 
+- **`PromptProvider` 依赖 `Config`/`ToolRegistry`/`AgentRegistry`/`SkillManager` 四个外部依赖**：测试时需要 mock 大量外部状态，单元测试复杂度较高。
+- **`renderFinalShell()` 中 memory 直接字符串拼接**：HierarchicalMemory 展平后直接拼进 system prompt，没有 token 预算保护，记忆文件过大时可能推低可用 context 窗口。
+- **Plan mode prompt 切换缺乏中间态**：plan mode 和普通模式是两条完全不同的 snippet 分支，若用户在会话中途手动切换 approval mode，prompt 与历史对话可能出现语义不连贯。
+
 ## 横向对齐补强：PromptProvider 是构造器，GeminiClient 是注入点
 
 Gemini CLI 的 Prompt 系统容易被误读成 `snippets.ts` 模板集合。更准确的生命周期是：`PromptProvider` 选择和拼接片段，`GeminiClient.startChat()` / `sendMessageStream()` 才把 system instruction 和消息输入带入模型调用。
@@ -168,10 +172,6 @@ Gemini CLI 的 Prompt 系统容易被误读成 `snippets.ts` 模板集合。更�
 
 横向看，Gemini 的优势是 prompt 片段结构清楚；短板是 prompt 与工具/skill 激活之间的链路需要跨 core、cli hooks 阅读。
 
-- **`PromptProvider` 依赖 `Config`/`ToolRegistry`/`AgentRegistry`/`SkillManager` 四个外部依赖**：测试时需要 mock 大量外部状态，单元测试复杂度较高。
-- **`renderFinalShell()` 中 memory 直接字符串拼接**：HierarchicalMemory 展平后直接拼进 system prompt，没有 token 预算保护，记忆文件过大时可能推低可用 context 窗口。
-- **Plan mode prompt 切换缺乏中间态**：plan mode 和普通模式是两条完全不同的 snippet 分支，若用户在会话中途手动切换 approval mode，prompt 与历史对话可能出现语义不连贯。
-
 ## 源码锚点补强：PromptProvider 构造，GeminiClient 注入
 
 | 源码位置 | 说明 | 横向意义 |
@@ -180,5 +180,5 @@ Gemini CLI 的 Prompt 系统容易被误读成 `snippets.ts` 模板集合。更�
 | `sources/gemini-cli/packages/core/src/prompts/promptProvider.ts` | system/compression prompt 构造器 | Gemini prompt 主体 |
 | `sources/gemini-cli/packages/core/src/prompts/snippets.ts` | 现代模板片段 | 对应 Claude/Gemini 模型特化 prompt |
 | `sources/gemini-cli/packages/core/src/tools/activate-skill.ts` | skill 激活工具把指令注入上下文 | 与 skill 章节联读 |
-| `sources/gemini-cli/packages/core/src/core/client.ts:354` | `updateSystemInstruction()` 注入 system instruction | Prompt 进入模型会话的位置 |
-| `sources/gemini-cli/packages/core/src/core/client.ts:883` | `sendMessageStream()` 使用已构造 prompt 和 history | 连接 agent loop |
+| `sources/gemini-cli/packages/core/src/core/client.ts:384` | `updateSystemInstruction()` 注入 system instruction | Prompt 进入模型会话的位置 |
+| `sources/gemini-cli/packages/core/src/core/client.ts:924` | `sendMessageStream()` 使用已构造 prompt 和 history | 连接 agent loop |

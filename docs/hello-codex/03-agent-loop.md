@@ -42,17 +42,21 @@ Codex 的 Agent 执行由四层嵌套函数驱动：
 
 **位置**：`sources/codex/codex-rs/core/src/session/handlers.rs:439`
 
-submission_loop 是每个会话的单线程事件消费者。它通过 bounded channel（容量 512）接收 `Submission`：
+submission_loop 是每个会话的单线程事件消费者。它通过 bounded channel（容量 512，`SUBMISSION_CHANNEL_CAPACITY`，`session/mod.rs:515`）接收 `Submission`：
 
 ```rust
-pub struct Submission {
+pub(crate) struct Submission {
     pub id: String,                      // 唯一提交 ID
     pub op: Op,                          // 操作枚举（20+ 种）
-    pub trace: Option<W3cTraceContext>,  // OpenTelemetry 追踪
+    pub turn_extension_init: Option<ExtensionDataInit>,
+    pub trace: Option<W3cTraceContext>,  // W3C/OpenTelemetry 追踪
+    pub parent_turn_id: Option<String>,
+    pub root_turn_id: Option<String>,
+    pub residency_guard: Option<OwnedRwLockReadGuard<()>>,
 }
 ```
 
-主循环 `while let Ok(sub) = rx_sub.recv().await` 逐一处理操作，不做批处理。操作类型包括 `TurnInput`（0.154 中的 `UserInput` 在 0.162 合并为 `Op::TurnInput`）、`Interrupt`、`ExecApproval`、`DynamicToolResponse`、`Shutdown` 等 20+ 种（`Op` 枚举定义在 `protocol/src/protocol.rs:576`）。
+主循环在 `tokio::select!` 中同时监听关闭信号、`rx_sub.recv()` 与 mailbox 更新，取到提交后逐一处理，不做批处理。操作类型包括 `TurnInput`、`Interrupt`、`ExecApproval`、`DynamicToolResponse`、`Shutdown` 等 20+ 种（`Op` 枚举定义在 `protocol/src/protocol.rs:576`）。
 
 要先澄清一个边界：**submission_loop 不是 WebSocket/HTTP server 的监听循环**。监听连接的是 app-server 传输层，在 `sources/codex/codex-rs/app-server/src/lib.rs` 里按 `stdio` 或 `WebSocket` 启动连接接入；submission_loop 只负责消费已经进入 core 的 `Submission` 队列。
 
@@ -68,7 +72,7 @@ pub struct Submission {
 
 - **组成**：6 个参与方
 - **关系**：源图 5 条消息
-- **要点**：app-server/codexmessageprocessor.rs 自调用：turnstart() -> submitcoreop() · core::submissionloop 自调用：recv() -> match Op::TurnInput
+- **要点**：app-server/messageprocessor.rs 自调用：turnstart() -> submitcoreop() · core::submissionloop 自调用：recv() -> match Op::TurnInput
 
 ### 关键代码文件与方法
 
@@ -114,7 +118,7 @@ pub(crate) struct ContextManager {
 
 ### 预采样准备（`session/turn.rs:171-401`）
 
-在正式调用 LLM 之前，Codex 需要完成一系列准备工作（rust-v0.162 起，插件 / 技能 / 连接器 / 注入项的加载被合并进 `build_skills_and_plugins()`，`session/turn.rs:1030`）：
+在正式调用 LLM 之前，Codex 需要完成一系列准备工作。插件 / 技能 / 连接器 / 注入项的加载统一由 `build_skills_and_plugins()` 完成（`session/turn.rs:1030`）：
 
 #### 1. 上下文压缩检查（`session/turn.rs:183`）
 
@@ -159,7 +163,6 @@ async fn run_pre_sampling_compact(sess, turn_context) -> CodexResult<()> {
 5. **构建压缩后历史**：
    - 收集用户消息 + 生成摘要：`format!("{SUMMARY_PREFIX}\n{summary_suffix}")`
    - 决定是否注入初始上下文（`BeforeLastUserMessage` 或 `DoNotInject`）
-   - （rust-v0.162 起：ghost snapshot 机制已从采样与压缩路径整体移除，压缩历史不再保留 GhostSnapshot 项，兼容配置 `GhostSnapshotConfig` 仅存于 `core/src/config/mod.rs:237`）
 6. **替换历史**：
 
    ```rust
@@ -250,7 +253,6 @@ let mentioned_skills = collect_explicit_skill_mentions(&input, &outcome.skills, 
 
 #### 8. 处理技能依赖
 
-- 若启用 `SkillEnvVarDependencyPrompt` 特性：`collect_env_var_dependencies()` + 技能依赖解析（0.154 的 `resolve_skill_dependencies_for_turn()` 在 0.162 中已不在 `skills.rs`，环境变量依赖改由 `build_skills_and_plugins()` 内部处理）
 - `maybe_prompt_and_install_mcp_dependencies()`（`core/src/mcp_skill_dependencies.rs:40`）检查并提示安装 MCP 依赖
 
 #### 9. 构建技能注入
@@ -337,18 +339,13 @@ pub(crate) async fn record_conversation_items(&self, turn_context, items) {
 pub(crate) fn record_items<I>(&mut self, items: I, policy: TruncationPolicy) {
     for item in items {
         // 只保留 API 消息（is_api_message 过滤在 record_item_with_metadata 内，history.rs:558）
-        // （rust-v0.162 起：GhostSnapshot 已从历史类型中移除，不再有 ghost snapshot 保留分支）
         let processed = self.record_item_with_metadata(item, None, policy);  // 截断处理
         self.items.push(processed);
     }
 }
 ```
 
-#### 17. 启动 Ghost Snapshot（rust-v0.162 起：已移除）
-
-0.154 中此处调用 `sess.maybe_start_ghost_snapshot(...)`，可能启动影子快照用于后续上下文恢复。rust-v0.162 起 `maybe_start_ghost_snapshot()` 及整套 ghost snapshot 机制已从采样路径移除（仅保留兼容配置 `GhostSnapshotConfig`，`core/src/config/mod.rs:237`），该步骤不复存在。完整分析见 [26-ghost-snapshot.md](26-ghost-snapshot.md)。
-
-#### 18. 创建客户端会话（`session/turn.rs:174`）
+#### 17. 创建客户端会话（`session/turn.rs:174`）
 
 ```rust
 let mut client_session = prewarmed_client_session.unwrap_or_else(|| sess.services.model_client.new_session());
@@ -411,8 +408,6 @@ let sampling_request_input = sess.clone_history().await
 pub(crate) fn for_prompt(mut self, input_modalities) -> Vec<ResponseItem> {
     self.normalize_history(input_modalities);  // 修复 call/output 对、剥离图片
     self.items
-    // （rust-v0.162 起：GhostSnapshot 变体已从 ResponseItem 移除，
-    //  0.154 中此处还有一条 retain 剥离 GhostSnapshot 的语句）
 }
 ```
 
@@ -427,7 +422,7 @@ pub(crate) fn for_prompt(mut self, input_modalities) -> Vec<ResponseItem> {
 **`needs_follow_up` 为 true 时继续循环**：
 
 1. 工具调用需要后续处理（执行结果待返回）
-2. 存在待处理的用户输入（`sess.has_pending_input()`）
+2. 存在待处理的用户输入（`sess.input_queue.has_pending_input()`，`session/input_queue.rs:438`）
 
 **返回值**：`Option<String>` — 最后一条 agent 消息文本，或 None（被 hook 中断）。
 
@@ -476,7 +471,7 @@ pub(crate) fn build_prompt(
 }
 ```
 
-**关键细节**：0.154 中这里还有一段 `deferred_dynamic_tools` 过滤（延迟加载的 dynamic tools 不塞进模型可见工具列表）；rust-v0.162 起该职责移入工具注册层 —— `core/src/tools/registry.rs:81` 的 `is_third_party_tool()` 标记 MCP/app 与客户端动态工具，动态工具的执行处理在 `core/src/tools/handlers/dynamic.rs`，模型可见性由 `ToolRouter::model_visible_specs()` 统一裁决。
+**关键细节**：延迟启用的动态工具不会塞进模型可见工具列表 —— `core/src/tools/registry.rs:81` 的 `is_third_party_tool()` 标记 MCP/app 与客户端动态工具（built-in 同名也不抢占），动态工具的执行处理在 `core/src/tools/handlers/dynamic.rs`，模型可见性由 `ToolRouter::model_visible_specs()` 统一裁决。
 
 ### 重试循环（`session/turn.rs:1638` 起；重试决策在 `core/src/responses_retry.rs:57`）
 
@@ -500,7 +495,7 @@ loop {
 
 1. 调用 `try_run_sampling_request()`
 2. 若 `ContextWindowExceeded` 或 `UsageLimitReached`：直接返回错误
-3. `CodexErr::retry_delay(retry_count)`（`protocol/src/error.rs:397`）返回 `None` 即不可重试（0.154 的 `is_retryable()` 已被这个方法取代）：直接返回错误
+3. `CodexErr::retry_delay(retry_count)`（`protocol/src/error.rs:397`）返回 `None` 即不可重试的终态错误：直接返回错误
 4. 若可重试且 `retries >= max_retries`：尝试 WebSocket 到 HTTPS 回退（`try_switch_fallback_transport()`，`core/src/client.rs:2296`；回退分支在 `responses_retry.rs:121`），重置计数器继续
 5. 若可重试且 `retries < max_retries`：优先使用 server-provided delay（`retry_after`），否则指数退避 `200ms * 2^retries`（±10% 抖动，`async-utils/src/backoff.rs:12`）
 6. 若开启 `UnboundedConnectionRetries` 特性且是 `ConnectionFailed`：按 5s 起步、最长 60s 的连接重试节奏无限等待网络恢复（`responses_retry.rs:96` 起）
@@ -668,7 +663,7 @@ pub(crate) struct ContextManager {
 
 ```rust
 pub(crate) struct ActiveTurn {
-    pub(crate) tasks: IndexMap<String, RunningTask>,
+    pub(crate) task: Option<RunningTask>,
     pub(crate) turn_state: Arc<Mutex<TurnState>>,
 }
 ```
@@ -678,8 +673,9 @@ TurnState 包含：
 - `pending_approvals` — 待审批的工具调用
 - `pending_request_permissions` — 待请求的权限
 - `pending_user_input` — 待用户输入
+- `pending_elicitations` — 待补全的 elicit 响应
 - `pending_dynamic_tools` — 待动态工具响应
-- `pending_input: Vec<ResponseInputItem>` — 待处理输入
+- `pending_input: TurnInputQueue` — 待处理输入
 - `mailbox_delivery_phase` — 控制邮箱消息加入当前轮还是下一轮
 - `tool_calls: u64` — 本轮工具调用计数
 - `token_usage_at_turn_start` — 轮开始时的 token 用量
@@ -762,13 +758,12 @@ Codex 独特之处在于审批不在 loop 内部轮询，而是通过 `submissio
 | :----------| :---------| :----------| :------|
 | 命令执行审批 | `Op::ExecApproval` | `session/handlers.rs:638` | `approval_store` 查找 → 解除阻塞 |
 | Patch 审批 | `Op::PatchApproval` | `session/handlers.rs:646` | `ReviewDecision` 路由 → apply/reject/review |
-| 历史回滚 | `Op::ThreadRollback` | （rust-v0.162 起：已移除）| 0.154 中从 history 移除最后 N 个 turn；0.162 起 `Op::ThreadRollback` / `thread_rollback()` 不复存在，回滚仅在 rollout 回放（`core/src/session/rollout_reconstruction.rs`）中重建 |
 
 这种设计让审批请求可以在 turn 运行期间随时到达，不需要 loop 主动检查。
 
 ### 传输层降级
 
-`run_sampling_request()` 实现了 WebSocket → HTTPS 的传输降级（rust-v0.162 起降级决策移入 `core/src/responses_retry.rs`，由 `handle_response_stream_error()` 在 `session/turn.rs:1705` 调用）：
+`run_sampling_request()` 实现了 WebSocket → HTTPS 的传输降级（降级决策在 `core/src/responses_retry.rs` 的 `handle_response_stream_error()`，由 `session/turn.rs:1705` 调用）：
 
 ```rust
 // responses_retry.rs:121（turn.rs:1705 调用）
@@ -794,7 +789,6 @@ if retry_state.retries >= max_retries
 | `TurnContext` | `codex-rs/core/src/session/turn_context.rs` | 321 | 单轮不可变设置（~40字段）：model、approval_policy、sandbox_policy 等 |
 | `ActiveTurn` | `codex-rs/core/src/state/turn.rs` | 30 | 单轮可变状态：pending tools、approvals、token 计数、mailbox phase |
 | `SamplingRequestResult` | `codex-rs/core/src/session/turn.rs` | 1869 | 工具执行结果聚合，决定下一轮是否继续的 `needs_follow_up` 标志 |
-| `maybe_start_ghost_snapshot()` | （rust-v0.162 起：已移除） | — | 0.154 在采样前启动 ghost snapshot 以支持快速取消；0.162 起从采样路径整体移除，详见 [26-ghost-snapshot.md](26-ghost-snapshot.md) |
 
 ---
 
@@ -811,7 +805,6 @@ if retry_state.retries >= max_retries
 
 - **四层嵌套调用栈深**：一次请求要穿越四层函数，调试和错误追踪需要跨多个抽象层级，日志定位成本较高。
 - **`needs_follow_up` 单标志位**：下一轮是否继续推理完全由 `bool needs_follow_up` 决定，没有携带结构化的"退出原因"，复杂决策逻辑难以扩展。
-- **ghost snapshot 与 cancel token 生命周期耦合**：`maybe_start_ghost_snapshot` 接收的 `child_token` 生命周期与 turn 挂钩，若 turn 异常提前终止，snapshot 清理依赖 cancel 传播的正确性，存在遗漏风险。（rust-v0.162 起该风险已随 ghost snapshot 机制整体移除而不复存在；兼容配置 `GhostSnapshotConfig` 仍留在 `core/src/config/mod.rs:237`）
 - **并发工具结果缺乏超时保护**：`FuturesOrdered` 会一直等待最慢的工具，如果某个工具挂起，整个 turn 会阻塞直到外层 cancel 触发。
 
 ## 源码锚点：Codex Loop 是 core submission 到 sampling 的四层闭环

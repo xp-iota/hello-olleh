@@ -35,7 +35,7 @@ export const getUserContext = memoize(async (): Promise<{ [k: string]: string }>
 
 ### Codex
 
-Codex 的 Context 分层更复杂，因为它是跨 session 的。`stage_one_system.md` 的 Phase 1 每次从 rollout 历史里提取结构化上下文，`consolidation.md` 的 Phase 2 把多次 Phase 1 的输出整合成全局记忆。这意味着 Codex 的"当前上下文"不只是当前 session 的信息，而是包含了历史 session 的提炼。从控制论角度看，这是跨 session 的状态持久化——是四个工程里唯一真正实现了这一点的。（rust-v0.162 起：`core/templates/memories/` 下的模板与 memories pipeline 已迁移到独立的 `codex-memories-write` crate，现位于 `codex-rs/memories/write/templates/memories/` 与 `codex-rs/memories/write/src/phase1.rs` / `phase2.rs`，机制仍在，下文路径按新版标注。）
+Codex 的 Context 分层更复杂，因为它是跨 session 的。`codex-rs/memories/write/templates/memories/stage_one_system.md` 的 Phase 1 每次从 rollout 历史里提取结构化上下文，`consolidation.md` 的 Phase 2 把多次 Phase 1 的输出整合成全局记忆（管线位于独立的 `codex-memories-write` crate，由 app-server 的启动任务触发）。这意味着 Codex 的"当前上下文"不只是当前 session 的信息，而是包含了历史 session 的提炼。从控制论角度看，这是跨 session 的状态持久化——是四个工程里唯一真正实现了这一点的。
 
 `ContextManager` 同时承担三件事，构成 Codex 上下文分层的核心：
 
@@ -43,7 +43,7 @@ Codex 的 Context 分层更复杂，因为它是跨 session 的。`stage_one_sys
 2. **上下文基线维护**：`reference_context_item` 记录下一轮 settings diff 的参考快照；发生 compaction、rollback 或历史替换时，这个基线会一起被重置。
 3. **窗口压力治理**：`estimate_token_count_with_base_instructions()` 用近似 token 估算配合 compaction 任务判断是否需要压缩。
 
-`agents_md.rs::load_project_instructions()`（`codex-rs/core/src/agents_md.rs:58`；rust-v0.154 时为 `project_doc.rs::get_user_instructions()`）构造 `base_instructions` 时，先取 `config.user_instructions`，再按"项目根 → 当前目录"的顺序拼接所有 `AGENTS.md`，受 `project_doc_max_bytes` 限制，超出预算时截断。这意味着 Codex 的项目级约束不是某个单点 prompt 文件，而是配置层和目录层共同生成的 developer context。
+`agents_md.rs::load_project_instructions()`（`codex-rs/core/src/agents_md.rs:58`）构造 `base_instructions` 时，先取 `config.user_instructions`，再按"项目根 → 当前目录"的顺序拼接所有 `AGENTS.md`，受 `project_doc_max_bytes` 限制，超出预算时截断。这意味着 Codex 的项目级约束不是某个单点 prompt 文件，而是配置层和目录层共同生成的 developer context。
 
 ### Gemini CLI
 
@@ -63,9 +63,9 @@ Gemini CLI 采用 **JIT context 分层注入**策略，而非全量预注入：`
 
 ### OpenCode
 
-`sources/opencode/packages/core/src/plugin/skill.ts` 通过 `Config.directories()` 扫描目录来发现 Skill 文件。Context 分层不是显式定义的，而是通过目录结构隐式表达的：越靠近项目的目录里的 Skill，优先级越高。这是声明式的分层，但对不熟悉约定的工程师来说，需要先理解目录扫描逻辑才能推断优先级。
+`sources/opencode/packages/core/src/config/plugin/skill.ts` 通过目录扫描发现 Skill 文件（`:121` 用 `fs.scan("{*.md,**/SKILL.md}")` 匹配各配置目录），URL 形式的 Skill 源则由 `packages/core/src/skill/discovery.ts` 的 `pull()` 按 `index.json` 清单拉取（`:92`）。Context 分层不是显式定义的，而是通过目录结构隐式表达的：越靠近项目的目录里的 Skill，优先级越高。这是声明式的分层，但对不熟悉约定的工程师来说，需要先理解目录扫描逻辑才能推断优先级。
 
-OpenCode 的上下文来自六个来源：用户原始输入、文件/MCP/agent 附件展开、provider/agent 基础提示、环境/技能/指令文件、运行时提醒、durable history 投影。这六个来源经过三层编译：**输入编译**（`createUserMessage()` 把文件展开成 synthetic text、把 `@agent` 改写成上下文提示）→ **system 编译**（`system.ts` 四层叠加：agent.prompt + 运行时片段 + user.system）→ **历史投影**（`toModelMessages()` 把 durable history 转成 AI SDK `ModelMessage[]`）。OpenCode 的上下文不是"message string + system string"，而是一份 runtime 编译产物。
+OpenCode 的上下文是运行时聚合出来的：`session/context.ts` 汇总 InstructionBuiltIns、McpInstructions、ReferenceInstructions、SkillInstructions、CodeModeInstructions 等多个指令源；`session/system-prompt.ts` 按当前可用工具条件渲染 system prompt 片段（`:9` 的 `render(prompt, tools)`）；`session/history.ts` 的 `entriesForRunner()`（`:118`）把持久化历史投影成 runner 输入。OpenCode 的上下文不是"message string + system string"，而是一份 runtime 编译产物。
 
 ---
 
@@ -88,13 +88,13 @@ Claude Code 的 Compact 策略是四个工程里最精细的梯度体系。触�
 
 ### Codex
 
-Codex 的 compaction 机制集中在 `ContextManager` 内部。`auto_compact_limit` 在 `run_turn()` 入口检查 token 预算（rust-v0.162 起入口与压缩执行都在 `core/src/session/turn.rs`：`run_turn()` 在 `:163`，`run_auto_compact()` 在 `:1434`），触发 compaction 任务时 `ContextManager` 压缩历史，`reference_context_item` 基线随之重置。rust-v0.162 起 memories pipeline 模块已移除，压缩前的关键信息不再异步固化到 `~/.codex/memories/`（该行为为 rust-v0.154.0 所述，保留作历史分析）。
+Codex 的 compaction 机制集中在 `ContextManager` 内部。`auto_compact_limit` 在 `run_turn()` 入口检查 token 预算（入口与压缩执行都在 `core/src/session/turn.rs`：`run_turn()` 在 `:163`，`run_auto_compact()` 在 `:1434`），触发 compaction 任务时 `ContextManager` 压缩历史，`reference_context_item` 基线随之重置。与 compaction 解耦的是 memories 管线：rollout 持续落盘后，app-server 在会话启动任务里调用 `codex_memories_write::start_memories_startup_task()`（`app-server/src/request_processors/turn_processor.rs:698`）异步提取跨会话记忆。
 
-memories pipeline 还有一个 **memory_mode_polluted 降级**机制：一旦上下文掺入外部 MCP 或 web search 结果（标记入口在 `core/src/stream_events_utils.rs:168` 与 `mcp_tool_call.rs:929`，最终落库到 `state_db::mark_thread_memory_mode_polluted`），memory 会被主动降级，避免把高噪声输入错误固化为长期记忆。配置里的 `no_memories_if_mcp_or_web_search` 控制这一行为（rust-v0.162 起该键降级为 legacy 配置别名，`codex-rs/config/src/key_aliases.rs:18`）。
+memories 管线还有一个 **memory_mode_polluted 降级**机制：一旦上下文掺入外部 MCP 或 web search 结果（标记入口在 `core/src/stream_events_utils.rs:168` 与 `mcp_tool_call.rs:136`，最终落库到 `state_db::mark_thread_memory_mode_polluted`），memory 会被主动降级，避免把高噪声输入错误固化为长期记忆。配置键 `no_memories_if_mcp_or_web_search` 是这一行为的 legacy 别名（规范键为 `disable_on_external_context`，`codex-rs/config/src/key_aliases.rs:18`）。
 
 ### Gemini CLI
 
-`packages/core/src/services/chatCompressionService.ts` 实现了 **ChatCompressionService**，策略如下：
+`packages/core/src/context/chatCompressionService.ts` 实现了 **ChatCompressionService**，策略如下：
 
 - 默认在上下文约达模型上限的 **50%** 时触发压缩
 - 尽量保留最近约 **30%** 的历史
@@ -104,9 +104,9 @@ memories pipeline 还有一个 **memory_mode_polluted 降级**机制：一旦上
 
 ### OpenCode
 
-OpenCode 的 compaction 触发链路为：**CompactionTask → summary agent → SessionProcessor.process() → 生成 summary assistant message → SessionSummary.summarize() 被调用 → 写 session_diff + Session.setSummary()**。
+OpenCode 的 compaction 由 `SessionCompaction`（`packages/core/src/session/compaction.ts`）统一管理：`compact()`（`:205`）按触发器启动流程——auto 触发时先检查上下文余量是否命中压缩水位（`:394`），native compaction 模型则直接采用 provider 侧的 providerContext 检查点；否则派发专门的 compaction agent，`summarize()`（`:272`）生成结构化摘要，`:302` 校验摘要是否填满模板要求的段落。摘要填充 `text` 与 `recent` 两部分：`recent` 保留压缩点之前最近若干轮的逐字对话，其余历史被摘要文本替换。
 
-`MessageV2.filterCompacted()` 过滤已压缩历史，确保模型不会看到已被 summary 替换的旧消息。compaction 后历史被 summary 替换，原始消息从活跃 durable 中移除，无法在当前 session 中恢复原始 turn 级别的工具调用详情——这是 OpenCode compaction 不可逆的代价。
+compaction 后，投影给 runner 的输入只剩摘要加上最近的逐字对话（`session/compaction.ts:459` 附近：前一次 summary 始终保留在最前，其 `recent` 部分降级为最旧的 transcript 条目），原始 turn 级别的工具调用详情无法在当前 session 中恢复——这是 OpenCode compaction 不可逆的代价。
 
 ---
 
@@ -133,27 +133,21 @@ Claude Code 还引入了 **KAIROS daily log 模式**：启用后，`loadMemoryPr
 
 ### Codex
 
-`sources/codex/codex-rs/memories/write/templates/memories/consolidation.md` 的 Phase 2 产物包括 `raw_memories.md`（原始记忆合并）和 `rollout_summaries/`（每次 rollout 的摘要）。这些产物存储在 DB 里，有时间戳和 usage_count，支持基于使用频率的知识衰减（`max_unused_days` 窗口）。Codex 的知识版本化最完整：不只是"文件在 Git 里"，而是"知识有时间戳、有使用统计、有主动遗忘机制"。（rust-v0.162 起该模板从 `core/templates/memories/` 迁移到 `codex-rs/memories/write/templates/memories/`。）
+`sources/codex/codex-rs/memories/write/templates/memories/consolidation.md` 的 Phase 2 产物包括 `raw_memories.md`（原始记忆合并）和 `rollout_summaries/`（每次 rollout 的摘要）。这些产物存储在 DB 里，有 `last_usage` 时间戳和 `usage_count` 统计（`codex-rs/state/src/runtime/memories.rs:75`），支持基于使用频率的知识衰减（`max_unused_days` 窗口，`:401`）。Codex 的知识版本化最完整：不只是"文件在 Git 里"，而是"知识有时间戳、有使用统计、有主动遗忘机制"。
 
-memories pipeline 采用**两阶段 consolidation**：phase1（`memories/write/src/phase1.rs`）选择 rollout、提取 stage-1 raw memories；phase2（`memories/write/src/phase2.rs`）选择可用 raw memories、做去重评分筛选。这套 pipeline 的中心不是当前 turn，而是已经落盘的 rollout，因此 memory 更偏离线整理，而不是每轮都做复杂注入。（rust-v0.162 起这两个 phase 模块从 `core` 迁入 `codex-rs/memories/write/src/`。）
+memories 管线采用**两阶段 consolidation**：phase1（`codex-rs/memories/write/src/phase1.rs`）选择 rollout、提取 stage-1 raw memories；phase2（`codex-rs/memories/write/src/phase2.rs`）选择可用 raw memories、做去重评分筛选。这套管线的中心不是当前 turn，而是已经落盘的 rollout，因此 memory 更偏离线整理，而不是每轮都做复杂注入。
 
 ### Gemini CLI
 
-`sources/gemini-cli/packages/core/src/tools/memoryTool.ts` 实现了 Memory Tool，Agent 可以通过工具调用来读写记忆（`getAllGeminiMdFilenames()` 发现所有 GEMINI.md 文件）。记忆存储在文件系统里，通过 Git 版本化。Agent 可访问记忆工具，意味着它可以主动写入记忆，而不只是被动读取规则——这是 Gemini CLI 记忆系统的独特能力。
+Gemini CLI 的跨会话记忆不再由模型工具写入：`packages/core/src/tools/memoryTool.ts` 现在只是 memory 文件名助手（`setGeminiMdFilename()` 等维护当前 GEMINI.md 文件名），记忆文件本身存储在文件系统里、通过 Git 版本化。
 
-**save_memory 工具实现**（`packages/core/src/tools/memoryTool.ts`）很直接：读取当前全局 memory 文件 → 在 `## Gemini Added Memories` 段落下追加条目（写入内容做简单清洗，把换行压成单行，避免把任意 markdown 结构直接注进去）→ 展示 diff 并请求确认 → 写回磁盘。所以 `save_memory` 是一个**显式的文件修改工具**，存储目标默认是全局 `GEMINI.md` 类文件，而不是独立的 `memory.json` 键值数据库。
+跨会话知识沉淀改由 `packages/core/src/services/memoryService.ts:1133` 的 `startMemoryService()` 后台任务完成：会话启动时 fire-and-forget，先用 `O_CREAT | O_EXCL` 锁文件协调多个 CLI 实例并做节流，再扫描历史会话，派发一个 **Skill 提取子代理**（`agents/skill-extraction-agent.js`）从过往对话中提炼可复用模式，写成 `SKILL.md` 文件。所以 Gemini 的记忆写入是"系统对历史的离线整理"，而不是当前会话里模型的主动写操作。
 
 ### OpenCode
 
-`sources/opencode/packages/core/src/plugin/skill.ts` 的 Skill 解析通过 Effect Schema 验证 frontmatter 结构：
+`sources/opencode/packages/core/src/config/plugin/skill-file.ts` 的 `SkillFile.parse` 解析 Skill 文件的 frontmatter（名称、描述、metadata）。Skill 文件是知识的主要载体，存储在文件系统里。没有 DB 层的时间戳或使用统计，知识版本化完全依赖文件系统 + Git。
 
-```typescript
-const parsed = Info.pick({ name: true, description: true }).safeParse(md.data)
-```
-
-Skill 文件是知识的主要载体，存储在文件系统里。没有 DB 层的时间戳或使用统计，知识版本化完全依赖文件系统 + Git。
-
-OpenCode 的 **SessionSummary** 是记忆系统的核心，定位更准确的说法是"session 级别的文件变更追踪系统"：每个 step 的开始/结束快照构成一个可差分的版本链，`FileDiff` 包含 `additions/deletions/changes`（不是模糊文字），diff 数据存在 `Storage`（JSON 文件）里，通过 `Bus.publish` 实时推给前端。`computeDiff()` 从 message history 中找最早和最晚的 step 快照（step-start/step-finish 快照边界），调用 `Snapshot.diffFull(from, to)` 计算 diff，写进 `Storage.write(["session_diff", sessionID])`。
+OpenCode 的 **SessionDiff**（`packages/core/src/session/diff.ts:38`）是记忆系统的核心，定位更准确的说法是"session 级别的文件变更追踪系统"：每个 turn 对仓库快照做对比，产出按文件组织的 patch（不是模糊文字），diff 数据存在 SQLite 数据库里，通过 Bus 事件实时推给前端。`SessionDiff.turn()` 从消息历史中取最早和最晚的快照边界计算 diff，写进 session 关联的数据库记录。
 
 ---
 
@@ -176,13 +170,13 @@ Progressive Disclosure（渐进式揭示）在 UX 设计里指"只在需要时�
 
 ### Codex
 
-`default.md` 的 276 行按节（Personality → AGENTS.md spec → Planning → Task execution → Validating）组织。每个节负责不同的任务阶段，这是一种隐式的 Progressive Disclosure：不同阶段的 Agent 关注不同的节，而不是每次都处理整个文档。节与节之间有清晰的边界，Agent 可以通过节标题快速定位相关规则。
+`default.md` 的 275 行按节（Personality → AGENTS.md spec → Planning → Task execution → Validating）组织。每个节负责不同的任务阶段，这是一种隐式的 Progressive Disclosure：不同阶段的 Agent 关注不同的节，而不是每次都处理整个文档。节与节之间有清晰的边界，Agent 可以通过节标题快速定位相关规则。
 
-**AGENTS.md 层级发现**（rust-v0.154 为 `project_doc.rs`，rust-v0.162 起为 `agents_md.rs`）受 `project_doc_max_bytes` 限制，超出预算时截断，避免把整个项目文档树无限制地塞进上下文。这是 Codex 在 Progressive Disclosure 上的主要工程约束：不是"按需加载"，而是"有上限的层级拼接"。
+**AGENTS.md 层级发现**（`agents_md.rs`）受 `project_doc_max_bytes` 限制，超出预算时截断，避免把整个项目文档树无限制地塞进上下文。这是 Codex 在 Progressive Disclosure 上的主要工程约束：不是"按需加载"，而是"有上限的层级拼接"。
 
 ### Gemini CLI
 
-`snippets.ts:123-151` 的 `getCoreSystemPrompt()` 通过条件渲染（`options.planningWorkflow ? renderPlanningWorkflow : renderPrimaryWorkflows`）实现了真正的 Progressive Disclosure：不同的 Agent 模式激活不同的 Snippet 组合，不相关的 Snippet 不被包含。这使 System Prompt 的内容和当前任务模式高度相关，减少了噪音。
+`snippets.ts:136-166` 的 `getCoreSystemPrompt()` 通过条件渲染（`options.planningWorkflow ? renderPlanningWorkflow : renderPrimaryWorkflows`）实现了真正的 Progressive Disclosure：不同的 Agent 模式激活不同的 Snippet 组合，不相关的 Snippet 不被包含。这使 System Prompt 的内容和当前任务模式高度相关，减少了噪音。
 
 Gemini CLI 还实现了 **LoopDetectionService**（`packages/core/src/services/loopDetectionService.ts`），包含三类检测：
 
@@ -196,7 +190,7 @@ Gemini CLI 还实现了 **LoopDetectionService**（`packages/core/src/services/l
 
 Skill 系统在 `sign()` 函数里（`skill/index.ts`）把 Skill 定义分散在多处（`skill/index.ts`、`permission/index.ts`、`config/config.ts`）。这是适度的分散，不是 Progressive Disclosure 的积极实现，但至少避免了百科全书式的单点聚合。
 
-OpenCode 的 **InstructionPrompt loaded/claim 机制**（`instruction.ts:168-190`）是 Progressive Disclosure 的一个具体实现：`InstructionPrompt.loaded(messages)` 会从历史里的 `read` 工具结果 metadata 中提取已经加载过的 instruction 路径；`claim/clear` 用于避免同一 message 内重复注入。当 agent 读取一个深层文件时，OpenCode 还能补发现该子目录局部的 `AGENTS.md`/`CLAUDE.md`（`InstructionPrompt.resolve()` 在 `168-190` 围绕被读取的文件路径向上查找尚未加载的 instruction 文件），实现了"读到哪里、发现到哪里"的按需加载。
+OpenCode 的 **InstructionDiscovery 变更渲染**（`packages/core/src/instruction-discovery.ts:127-149`）是 Progressive Disclosure 的一个具体实现：instruction 文件集合发生变化时不重发全文，而是按 key 做 diff——移除的文件渲染成"The instructions from … no longer apply"，新增的只渲染该文件，内容变更的文件优先渲染成 3 行上下文的 unified diff，diff 文本比全文重发更短时才用 diff。指令栈本身由 `config/plugin/` 下的发现层维护，首次发现即注入，后续只投递增量。
 
 ---
 
@@ -214,9 +208,9 @@ OpenCode 的 **InstructionPrompt loaded/claim 机制**（`instruction.ts:168-190
 
 | 维度 | Claude Code | Codex | Gemini CLI | OpenCode |
 | :------| :-------------| :-------| :------------| :----------|
-| **state 是什么** | 进程内 `AppState` + store / selector 驱动的 UI 运行态 | `SessionState / ActiveTurn` 运行态 + `Thread / Turn / ThreadItem` 协议状态 | `Scheduler / MessageBus / UIStateContext` + recording 运行态 | 内存 `SessionStatus` + durable `Session / MessageV2 / Part` |
+| **state 是什么** | 进程内 `AppState` + store / selector 驱动的 UI 运行态 | `SessionState / ActiveTurn` 运行态 + `Thread / Turn / ThreadItem` 协议状态 | `Scheduler / MessageBus / UIStateContext` + recording 运行态 | 内存 `SessionStatus` + durable `Session / Message / Part` |
 | **session 是什么** | transcript 文件边界 + compact boundary 后的有效模型视图 | `Thread` 是会话容器，`Turn` 是轮次边界 | `ChatRecording` JSON 文件就是整个会话 | `SessionTable` 一条 session 记录，下面挂 message / part 树 |
-| **memory 是什么** | `MEMORY.md`、topic files、KAIROS daily log、SessionMemory notes | `AGENTS.md` 长期记忆 + memories pipeline 提取的会话经验 | `GEMINI.md` 三层记忆 + `save_memory` 工具写入 | `session_diff`、summary、instruction 重发现，更偏 session memory |
+| **memory 是什么** | `MEMORY.md`、topic files、KAIROS daily log、SessionMemory notes | `AGENTS.md` 长期记忆 + memories 管线提取的会话经验 | `GEMINI.md` 三层记忆 + 后台 Skill 提取任务沉淀 | `SessionDiff`、summary、instruction 重发现，更偏 session memory |
 | **模型真正读到什么** | compact 后历史 + relevant memories + 系统提示 | `ContextManager` 规范化历史 + `AGENTS.md` + tool spec + memories 结果 | global memory 进 system，extension/project memory 进会话内容 | durable history 投影 + instruction stack + runtime reminders + tool set |
 | **最像单一事实来源的对象** | transcript 负责恢复，`AppState` 负责当前运行 | thread / rollout 是线程事实源 | `ChatRecording` 是事实源，UI 状态只是投影 | SQLite durable state 是事实源，UI / SSE 是投影 |
 
@@ -241,10 +235,10 @@ OpenCode 的 **InstructionPrompt loaded/claim 机制**（`instruction.ts:168-190
 
 | 维度 | Claude Code | Codex | Gemini CLI | OpenCode |
 | :------| :-------------| :-------| :------------| :----------|
-| **持久化后端** | JSONL transcript | SQLite WAL + rollout / logs | JSON session file | SQLite + `Storage` JSON |
+| **持久化后端** | JSONL transcript | SQLite WAL + rollout / logs | JSON session file | SQLite |
 | **写入时机** | transcript entry 追加写，运行态主要留内存 | 线程元数据写 SQLite，rollout 持续记录 | recording 增量更新后整体重写 JSON | message / part 流式写库 |
-| **恢复粒度** | 读 transcript，重建 compact boundary | 按 `thread_id` / rollout 恢复到 `Thread / Turn / Item` | 读取 recording JSON 恢复整段会话 | `MessageV2.stream()` + `hydrate()` 回放整个 session |
-| **长会话治理** | snip / microcompact / collapse / autocompact 梯度体系 | `ContextManager` compaction + memories pipeline | `ChatCompressionService` + `ToolOutputMaskingService` | `CompactionTask` + summary agent + `filterCompacted()` |
+| **恢复粒度** | 读 transcript，重建 compact boundary | 按 `thread_id` / rollout 恢复到 `Thread / Turn / Item` | 读取 recording JSON 恢复整段会话 | 按 `session_id` 读 SQLite `SessionMessage` 历史重建会话（`toLLMMessages`） |
+| **长会话治理** | snip / microcompact / collapse / autocompact 梯度体系 | `ContextManager` compaction + memories 管线 | `ChatCompressionService` + `ToolOutputMaskingService` | `SessionCompaction` + compaction agent + 历史投影 |
 | **fork / 分支** | 复制 transcript 或从某边界继续 | `fork_thread()` 基于 rollout 截断 | 复制 JSON recording | 父子 session / `parent_id` |
 | **事务与一致性** | 很弱 | SQLite ACID + WAL | 很弱 | `Database.effect()` 保证先写库后发事件 |
 | **多端共享友好度** | 偏单端 | 强 | 中 | 最强 |
@@ -288,9 +282,9 @@ OpenCode 的 **InstructionPrompt loaded/claim 机制**（`instruction.ts:168-190
 | 工具 | 控长主策略 | 保形方式 |
 | :------| :-----------| :---------|
 | Claude Code | tool result budget → snip → microcompact → collapse → autocompact | compact boundary、SessionMemory、relevant memory recall 共同维持语义连续 |
-| Codex | `ContextManager` + compaction + memories pipeline | 压缩历史后重建 `reference_context_item` 基线，并让 memories pipeline 异步补知识 |
+| Codex | `ContextManager` + compaction + memories 管线 | 压缩历史后重建 `reference_context_item` 基线，并让 memories 管线异步补知识 |
 | Gemini CLI | `ChatCompressionService` + `ToolOutputMaskingService` | 保留最近约 30%，旧大输出落盘 |
-| OpenCode | `CompactionTask` → summary agent → `filterCompacted()` | 用 durable summary 显式替换旧历史，后续只投影活动历史 |
+| OpenCode | `SessionCompaction` → compaction agent → 历史投影 | 用 durable summary 显式替换旧历史，后续只投影活动历史 |
 
 ![场景 B：长会话如何控长又保形](diagrams/06-context-and-memory-b.svg)
 
@@ -314,9 +308,9 @@ OpenCode 的 **InstructionPrompt loaded/claim 机制**（`instruction.ts:168-190
 | 工具 | 长期知识载体 | 进入 prompt 的方式 | 关键取舍 |
 | :------| :--------------| :-------------------| :---------|
 | Claude Code | `MEMORY.md`、topic files、KAIROS daily log、SessionMemory | system prompt + relevant memory attachment + compact notes | 召回更智能，但系统复杂度最高 |
-| Codex | `AGENTS.md` + memories pipeline 结果 | `agents_md.rs` 拼 base instructions，memory pipeline 异步补充（rust-v0.162 起 pipeline 已移除） | 长期知识显式，短期经验半自动 |
+| Codex | `AGENTS.md` + memories 管线结果 | `agents_md.rs` 拼 base instructions，memories 管线由 app-server 启动任务异步补充 | 长期知识显式，短期经验半自动 |
 | Gemini CLI | global / extension / project `GEMINI.md` | global 进 system，extension / project 进会话内容 | 文件系统透明，但越久越容易膨胀 |
-| OpenCode | `AGENTS.md` / `CLAUDE.md` / `CONTEXT.md` 栈 + `session_diff` / summary | instruction stack + durable history 投影 + reminder | 更像 session 续航，不像独立长期知识库 |
+| OpenCode | `AGENTS.md` / `CLAUDE.md` / `CONTEXT.md` 栈 + `SessionDiff` / summary | instruction stack + durable history 投影 + reminder | 更像 session 续航，不像独立长期知识库 |
 
 ![场景 C：跨会话知识如何回流到下一轮 prompt](diagrams/06-context-and-memory-c-prompt.svg)
 
@@ -341,7 +335,7 @@ OpenCode 的 **InstructionPrompt loaded/claim 机制**（`instruction.ts:168-190
 | Claude Code | System/User Context + CLAUDE.md 四层 + compact boundary 梯度体系 | git status, date, CLAUDE.md 内容，relevant memory recall（最多5个） |
 | Codex | 当前 session + Phase 1/2 记忆整合 + ContextManager 三件事 | rollout 历史提炼 + 当前任务，MCP/web search 污染时降级 |
 | Gemini CLI | GEMINI.md 三层（JIT 分层注入）+ Tool 调用结果 | global memory 进 system prompt，extension/project memory 作会话内容注入 |
-| OpenCode | Skill 文件 + Config + Permission + 六来源三层编译 | 目录内 Skill + 配置，loaded/claim 机制避免重复注入 |
+| OpenCode | Skill 文件 + Config + Permission + 运行时上下文聚合 | 目录内 Skill + 配置，InstructionDiscovery 增量渲染变更 |
 
 ---
 
@@ -349,10 +343,10 @@ OpenCode 的 **InstructionPrompt loaded/claim 机制**（`instruction.ts:168-190
 
 | 维度 | Claude Code | Codex | Gemini CLI | OpenCode |
 | :------| :-------------| :-------| :------------| :----------|
-| Context 分层 | System/User 两层 + compact boundary 梯度体系 | Phase 1/2 跨 session 分离 + ContextManager 三件事，最深 | Global/Ext/Project 三层，JIT 分层注入 | 六来源三层编译，目录堆栈隐式分层 |
-| Compact 策略 | 梯度体系（tool result budget→snip→microcompact→context collapse→autocompact→reactive compact），autocompact 先试 SessionMemory 快路径 | ContextManager compaction + memories pipeline memory_mode_polluted 降级 | ChatCompressionService（50%触发、保留最近30%、大工具输出落盘）+ ToolOutputMaskingService | CompactionTask→summary agent→SessionSummary.summarize()，不可逆 |
-| 知识版本化 | Git + 文件系统（四层）+ KAIROS daily log + team memory scope | DB + 时间戳 + 使用统计 + 两阶段 consolidation，最完整 | 文件系统 + Agent 可主动写入（save_memory 追加到 ## Gemini Added Memories） | 文件系统（无使用统计）+ SessionSummary 文件级 diff 追踪 |
-| Progressive Disclosure | 实验路径：relevant memory recall（最多5个，Sonnet side query，异步prefetch） | AGENTS.md 层级发现（project_doc_max_bytes 限制） | 条件 Snippet 渲染 + LoopDetectionService（工具重复阈值5、内容重复阈值10、LLM辅助30轮后） | InstructionPrompt loaded/claim 机制（避免重复灌上下文） |
+| Context 分层 | System/User 两层 + compact boundary 梯度体系 | Phase 1/2 跨 session 分离 + ContextManager 三件事，最深 | Global/Ext/Project 三层，JIT 分层注入 | 运行时聚合多指令源，目录堆栈隐式分层 |
+| Compact 策略 | 梯度体系（tool result budget→snip→microcompact→context collapse→autocompact→reactive compact），autocompact 先试 SessionMemory 快路径 | ContextManager compaction + memories 管线 memory_mode_polluted 降级 | ChatCompressionService（50%触发、保留最近30%、大工具输出落盘）+ ToolOutputMaskingService | SessionCompaction→compaction agent→模板校验，不可逆 |
+| 知识版本化 | Git + 文件系统（四层）+ KAIROS daily log + team memory scope | DB + 时间戳 + 使用统计 + 两阶段 consolidation，最完整 | 文件系统 + 后台 Skill 提取任务（锁文件 + 节流） | 文件系统（无使用统计）+ SessionDiff 文件级 diff 追踪 |
+| Progressive Disclosure | 实验路径：relevant memory recall（最多5个，Sonnet side query，异步prefetch） | AGENTS.md 层级发现（project_doc_max_bytes 限制） | 条件 Snippet 渲染 + LoopDetectionService（工具重复阈值5、内容重复阈值10、LLM辅助30轮后） | InstructionDiscovery 变更 diff 渲染（避免重复灌全文） |
 | 综合评分 (1-5) | **3** | **4** | **3** | **2** |
 
 上下文与记忆工程的分析揭示了一个关键差异：Codex 是唯一把记忆当作工程系统设计（有 DB、时间戳、使用统计、遗忘机制）的工程，其他三个都把记忆视为文件系统操作。这个差异在[熵管理](./08-entropy-management.md)这个维度会体现得更明显——记忆系统的工程化程度，直接决定了知识库腐烂的速度。接下来先看[可驾驭性](./07-harnessability.md)，它从代码库结构的角度回答"这个工程是否本身就容易被 harness"。

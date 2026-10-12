@@ -41,8 +41,8 @@
     {
       "id": "CM",
       "type": "backend",
-      "label": "ContextManager",
-      "sublabel": "三层记忆",
+      "label": "MemoryContextManager",
+      "sublabel": "分层记忆",
       "pos": [
         737,
         65
@@ -222,8 +222,8 @@
       "title": "要点",
       "items": [
         "GEMINI.md 文件 / （global… → memoryDiscovery.ts / 扫描…",
-        "memoryDiscovery.ts / 扫描… → ContextManager / 三层记忆",
-        "ContextManager / 三层记忆 → System Prompt / getSystem…（global memory）"
+        "memoryDiscovery.ts / 扫描… → MemoryContextManager / 分层记忆",
+        "MemoryContextManager / 分层记忆 → System Prompt / getSystem…（global memory）"
       ]
     }
   ]

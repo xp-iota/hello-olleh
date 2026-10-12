@@ -3,9 +3,9 @@ title: "Gemini CLI 源码分析 README"
 ---
 # Gemini CLI 源码分析 README
 
-本目录记录 Gemini CLI `v0.47.0` 的源码分析。分析对象是 `sources/gemini-cli/` 上游快照，技术栈是 TypeScript monorepo：`packages/core` 承载 Agent runtime，`packages/cli` 承载 Ink TUI 和非交互入口，扩展面包括 MCP、Extensions、Skills、A2A 和 IDE 集成。
+本目录记录 Gemini CLI `v0.63.0` 的源码分析。分析对象是 `sources/gemini-cli/` 上游快照，技术栈是 TypeScript monorepo：`packages/core` 承载 Agent runtime，`packages/cli` 承载 Ink TUI 和非交互入口，扩展面包括 MCP、Extensions、Skills、A2A 和 IDE 集成。
 
-> **版本基线：** 各章节撰写并校验于 `v0.47.0`；`sources/gemini-cli/` 快照已由 `sync_repos.sh` 前进到 `v0.63.0`。0.47 → 0.63 之间的源码移动尚未逐章重新校验，章节内行号锚点可能存在漂移；文件级路径以实际快照为准。
+> **版本基线：** 各章节已按上游 `v0.63.0` 快照逐章校对，源码锚点（文件路径与行号）以该版本为准。
 
 ## 阅读入口
 
@@ -61,5 +61,5 @@ title: "Gemini CLI 源码分析 README"
 
 ## 维护注意
 
-- 源码引用统一写成 repo-root 路径，例如 `sources/gemini-cli/packages/core/src/core/client.ts:883`。
+- 源码引用统一写成 repo-root 路径，例如 `sources/gemini-cli/packages/core/src/core/client.ts:924`。
 - 修改源码锚点后运行 `powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/check_doc_refs.ps1 -DocDirs hello-gemini-cli`。

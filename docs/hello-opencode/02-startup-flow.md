@@ -3,7 +3,7 @@ title: "启动链路：CLI 入口、命令树分发与宿主启动"
 ---
 # 启动链路：CLI 入口、命令树分发与宿主启动
 
-> 基于 `sources/opencode/packages/cli/` 与 `sources/opencode/packages/tui/` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/packages/cli/` 与 `sources/opencode/packages/tui/` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 
@@ -25,7 +25,7 @@ OpenCode v2 的用户侧入口集中在 `packages/cli`，默认命令启动 TUI 
 入口是 Bun 脚本（`#!/usr/bin/env bun`），启动顺序：
 
 1. **ssh-askpass 子进程分支**：若 `OPENCODE_SSH_ASKPASS_PORT` 存在，直接运行 askpass 并退出——这是给 SSH 凭据弹窗用的辅助进程，与主流程完全隔离。
-2. **构建懒加载命令表**：`Runtime.handlers(Commands, {...})` 把每个命令映射到动态 `import()`，handler 模块只在命令命中时才加载（`$` 默认、`upgrade`、`auth.*`、`debug.*`、`mcp.*`、`plugin.*`、`run`、`mini`、`pair`、`session.*` 等）。
+2. **构建懒加载命令表**：`Runtime.handlers(Commands, {...})` 把每个命令映射到动态 `import()`，handler 模块只在命令命中时才加载（`$` 默认、`upgrade`、`uninstall`、`auth.*`、`debug.*`、`mcp.*`、`plugin.*`、`run`、`mini`、`pair`、`session.*`、`service.*`、`serve`、`reload` 等）。
 3. **装配基础设施层**：`NodeRuntime` / `NodeServices`（Effect platform-node）、`Observability`、`Updater`、`Heap`、`CpuProfile`、`Config`、`Npm`、`Global`、`AppProcess`、`LayerNode`。
 4. 版本常量 `OPENCODE_VERSION` / `OPENCODE_CHANNEL` / `OPENCODE_ARTIFACT` / `OPENCODE_LOCAL` 决定更新通道与构建形态。
 
@@ -40,10 +40,11 @@ OpenCode v2 的用户侧入口集中在 `packages/cli`，默认命令启动 TUI 
 | `mini` | 迷你宿主（`mini-host.ts`） |
 | `acp` | 以 ACP（Agent Client Protocol）服务运行，接入 IDE |
 | `api` / `stats` / `models` / `pair` | API 信息、用量统计、模型清单、配对 |
-| `auth list/login/logout/switch` | 凭据管理 |
+| `serve` / `service` / `reload` | 启动 v2 API 与 web server；后台 service 管理（`start/restart/status/stop/get/set/unset`）；重载配置 |
+| `auth list/login/logout/export/import/switch` | 凭据管理 |
 | `mcp list/add/auth/logout` | MCP server 管理与 OAuth |
 | `plugin list/add/check/update/remove` | 插件生命周期 |
-| `session list/delete/...` | 会话管理 |
+| `session list/delete/export/import` | 会话管理 |
 | `debug agents/config/paths` | 调试检视（见 [25-debugging.md](./25-debugging.md)） |
 | `upgrade`（别名 `update`）/ `uninstall` | 自更新与卸载 |
 
@@ -61,7 +62,7 @@ OpenCode v2 的用户侧入口集中在 `packages/cli`，默认命令启动 TUI 
 
 默认路径下 CLI 不内嵌 server，而是连接一个**后台常驻 service**：
 
-- `packages/client/src/service-contender.ts`、`service.ts`、`service-timing.ts`、`service-version.ts` 负责发现/竞争/接管后台 service 进程；
+- `packages/client/src/service-contender.ts`、`service-probe.ts`、`service.ts`、`service-timing.ts`、`service-version.ts` 负责发现/竞争/接管后台 service 进程；
 - `packages/cli/src/server-process.ts` 负责拉起私有 server 进程（`--standalone` 或未命中后台 service 时）；
 - 该策略让多个 CLI/TUI/Desktop 宿主共享同一 runtime，会话执行的所有权仍在 server 进程内（见 [03-agent-loop.md](./03-agent-loop.md) 的进程内所有权）。
 

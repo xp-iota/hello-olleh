@@ -3,7 +3,7 @@ title: "Agent 循环：准入、执行所有权与 Step/Attempt 模型"
 ---
 # Agent 循环：准入、执行所有权与 Step/Attempt 模型
 
-> 基于 `sources/opencode/specs/v2/session.md` 与 `sources/opencode/packages/core/src/session/` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/specs/v2/session.md` 与 `sources/opencode/packages/core/src/session/` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 
@@ -54,7 +54,7 @@ OpenCode v2 的 agent 循环由三段拼成：**Session 操作层**（准入策�
 - continuation-state 拒绝后的立即全量重建；
 - 溢出触发的 compaction 重建同一逻辑 Step。
 
-通用重试预算为**首次请求 + 至多 4 次重试**，使用带抖动的指数退避；provider 给出更长重试延迟时从其值。细节上，durable 输出前的重试保留逻辑步号与 assistant message ID；durable 输出后的 incomplete stream 则保留失败的部分 assistant、追加 synthetic continuation 指令、换用新 assistant message ID，且共享同一重试预算。
+通用重试预算为**首次请求 + 至多 10 次重试**，使用带抖动的指数退避（2s 起指数增长、每格封顶 10s）；provider 给出更长重试延迟时从其值，超时类失败的尝试次数另被压到 3 次，避免死掉的 provider 把一个 Step 拖住近一小时。细节上，durable 输出前的重试保留逻辑步号与 assistant message ID；durable 输出后的 incomplete stream 则保留失败的部分 assistant、追加 synthetic continuation 指令、换用新 assistant message ID，且共享同一重试预算。
 
 ## 5. 工具调用的 durable 边界
 

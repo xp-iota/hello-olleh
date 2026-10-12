@@ -33,7 +33,7 @@ Rust 类型系统作为前馈控制的有效性是毋庸置疑的：如果一段
 
 #### OpenCode
 
-OpenCode 使用 Effect Schema 进行运行时验证，见 `sources/opencode/packages/core/src/permission.ts`。Effect Schema 的关键区别在于：它是**运行时**验证，不是编译期验证。这意味着类型不合法的数据在被 Effect Schema 检测到之前，仍然可以在代码里流动。Effect-ts 的类型系统提供了一定的编译期保证，但 `z.record(z.string(), z.any())` 这类宽松 schema 在实践中削弱了严格性。
+OpenCode 使用 Effect Schema 进行运行时验证，见 `sources/opencode/packages/core/src/permission.ts`。Effect Schema 的关键区别在于：它是**运行时**验证，不是编译期验证。这意味着类型不合法的数据在被 Effect Schema 检测到之前，仍然可以在代码里流动。Effect-ts 的类型系统提供了一定的编译期保证，但校验主要发生在运行时而非编译期。
 
 **横向对比**：类型系统严格度排序为 Codex（Rust，编译期保证）> Gemini CLI（TypeScript，中等）≈ OpenCode（Effect Schema，运行时）>> Claude Code（TypeScript 失效，~1341 错误）。这个排序向后渗透：越靠前的工程，harness 代码的维护摩擦越低。
 
@@ -47,7 +47,7 @@ Linter 是编辑期/提交期的计算型前馈：它在代码进入版本库之
 
 **Gemini CLI**：无独立 Linter 配置可见。`confirmation-policy.test.ts` 等测试文件部分替代了 Linter 的角色——通过测试来保证行为边界正确，而不是通过静态分析来保证代码形式合规。测试和 Linter 不是等价的，但在实际效果上有部分重叠。
 
-**OpenCode**：Bun 工具链包含基本格式化，但无独立 Linter。`ConfigMarkdown.parse()` 在 `skill/index.ts:72-102` 里对 Skill 文件 frontmatter 进行结构验证，是领域特定的结构 Lint，不覆盖通用代码质量。
+**OpenCode**：Bun 工具链包含基本格式化，但无独立 Linter。`SkillFile.parse()`（`config/plugin/skill-file.ts`）对 Skill 文件 frontmatter 进行结构验证，是领域特定的结构 Lint，不覆盖通用代码质量。
 
 ### Pre-commit Hooks
 
@@ -78,7 +78,7 @@ export const ASYNC_AGENT_ALLOWED_TOOLS = new Set([
 
 #### Codex
 
-`sources/codex/codex-rs/prompts/templates/permissions/approval_policy/` 的四种 approval policy 文件（`never.md`、`on_failure.md`、`on_request_rule_request_permission.md`、`unless_trusted.md`），加上 `execpolicy` 对 shell 命令的约束，构成两层正交约束：approval policy 管"何时需要人工批准"，exec policy 管"允许执行哪些命令"。两层不冗余，合在一起才覆盖完整的工具执行决策树。这是四个工程里架构依赖约束最系统化的实现。
+`sources/codex/codex-rs/prompts/templates/permissions/approval_policy/` 的四种 approval policy 文件（`never.md`、`on_request.md`、`on_request_rule_request_permission.md`、`unless_trusted.md`），加上 `execpolicy` 对 shell 命令的约束，构成两层正交约束：approval policy 管"何时需要人工批准"，exec policy 管"允许执行哪些命令"。两层不冗余，合在一起才覆盖完整的工具执行决策树。这是四个工程里架构依赖约束最系统化的实现。
 
 #### Gemini CLI
 
@@ -100,11 +100,11 @@ Skill 是推断型前馈的核心载体：它告诉 Agent"遇到这类任务要�
 
 **Claude Code**：`src/tools/SkillTool/` 实现了 Skill 工具，在 `tools.ts:212` 注册。Skill 通过 CLAUDE.md 的 @include 引用链注入，没有独立的版本化管理机制。Skill 和普通上下文文件耦合在同一套加载体系里，无法单独审计 Skill 覆盖范围。
 
-**Codex**：`sources/codex/codex-rs/skills/src/assets/samples/` 目录提供基于 frontmatter 的结构化 Skill 定义（示例：`sources/codex/codex-rs/skills/src/assets/samples/skill-installer/SKILL.md`；rust-v0.154 时另有 `.codex/skills/` 目录，rust-v0.162 检出中已不存在）。frontmatter 定义了 Skill 的元数据（名称、触发条件、版本），使 Skill 库的管理有结构可循，比自由格式更规范。Skill 文件是独立的版本化资产。
+**Codex**：`sources/codex/codex-rs/skills/src/assets/samples/` 目录提供基于 frontmatter 的结构化 Skill 定义（示例：`sources/codex/codex-rs/skills/src/assets/samples/skill-installer/SKILL.md`）。frontmatter 定义了 Skill 的元数据（名称、描述、metadata），使 Skill 库的管理有结构可循，比自由格式更规范。Skill 文件是独立的版本化资产。
 
-**Gemini CLI**：`activate-skill.ts` 的 `ActivateSkillTool` 把 Skill 建模为"Agent 可主动激活的工具"，而不是"隐式注入的上下文"（`snippets.ts:107-115`）。这要求 Agent 先识别需要哪个 Skill 再调用 `ActivateSkillTool`，增加了一层推断，但也让 Skill 的使用在对话记录里更可见、可审计。
+**Gemini CLI**：`activate-skill.ts` 的 `ActivateSkillTool` 把 Skill 建模为"Agent 可主动激活的工具"，而不是"隐式注入的上下文"（渲染在 `snippets.ts:314` 的 `renderAgentSkills()`）。这要求 Agent 先识别需要哪个 Skill 再调用 `ActivateSkillTool`，增加了一层推断，但也让 Skill 的使用在对话记录里更可见、可审计。
 
-**OpenCode**：`skill/index.ts:1-262` 是四个工程里最完整的 Skill 系统实现：Effect Schema 验证结构合法性，glob 目录扫描支持多种约定路径，URL 远程拉取支持跨仓库 Skill 共享，且有失效回退逻辑（`add()` 函数里的 try-catch）。URL pull 是特别值得注意的能力：它允许团队把 Skill 库独立维护在另一个仓库，实现 Skill 版本化和跨项目复用。
+**OpenCode**：Skill 系统分三层实现：`skill.ts` 维护 Skill 状态服务，`config/plugin/skill.ts:121` 用 `{*.md,**/SKILL.md}` glob 扫描目录源（frontmatter 由 `SkillFile.parse()` 用 Effect Schema 验证），`skill/discovery.ts:92` 的 `pull()` 支持 URL 远程拉取——基于 `index.json` 清单下载文件，带 `.opencode-version` 版本文件和 staging/backup 原子替换。URL pull 是特别值得注意的能力：它允许团队把 Skill 库独立维护在另一个仓库，实现 Skill 版本化和跨项目复用。
 
 ### AGENTS.md 的 ToC vs 百科全书结构
 
@@ -112,7 +112,7 @@ Skill 是推断型前馈的核心载体：它告诉 Agent"遇到这类任务要�
 
 **Claude Code**：实现代码 `claudemd.ts` 是 1166 行单文件，体现了一种百科全书式的文化倾向。实际的 CLAUDE.md 文件没有强制结构约定，内容质量完全取决于写作者的意识。对 Agent 来说，从无结构的长文档提取规则比从有目录的分节文档提取的准确率更低。这是 Claude Code 推断型前馈质量的隐性短板。
 
-**Codex**：`default.md` 的 276 行按主题分节（Personality → AGENTS.md spec → Responsiveness → Planning → Task execution → Validating），每个节都有明确的 `##` 标题。Agent 可以通过标题快速定位相关规则，而不必解析整个文档。这是四个工程里规则文档最结构化的实现。
+**Codex**：`default.md` 的 275 行按主题分节（Personality → AGENTS.md spec → Responsiveness → Planning → Task execution → Validating），每个节都有明确的 `##` 标题。Agent 可以通过标题快速定位相关规则，而不必解析整个文档。这是四个工程里规则文档最结构化的实现。
 
 **Gemini CLI**：`snippets.ts` 的 Snippet 函数组合是更激进的 ToC 结构：每个主题是独立的函数，有独立参数类型。不同主题的规则在代码层面完全隔离，可以独立修改和测试。这是"把 prompt 当代码"的极致实现。
 
@@ -126,9 +126,9 @@ Skill 是推断型前馈的核心载体：它告诉 Agent"遇到这类任务要�
 
 **Codex**：`sources/codex/docs/agents_md.md` 是给工程师读的 AGENTS.md 规范，`default.md` 里的 AGENTS.md spec 是给 Agent 读的同一套规范。两个受众的文档分开维护——这是规约完备性最高的实现，也是其他三个工程应该借鉴的模式。
 
-**Gemini CLI**：`snippets.ts:188-191` 的关键权衡注释（`// ⚠️ IMPORTANT: the Context Efficiency changes strike a delicate balance...`）解释了为什么这段代码必须保持现状，以及改动的前置条件。这是部分规约——覆盖了"为什么"，但没有专门的规约文档。
+**Gemini CLI**：`snippets.ts:209-212` 的关键权衡注释（`// ⚠️ IMPORTANT: the Context Efficiency changes strike a delicate balance...`）解释了为什么这段代码必须保持现状，以及改动的前置条件。这是部分规约——覆盖了"为什么"，但没有专门的规约文档。
 
-**OpenCode**：`permission/index.ts` 的 Effect Schema 和类型定义把规约写进了代码里，避免了文档和代码不同步的问题。但对不熟悉 Effect-ts 的工程师来说，读代码比读文档更难快速理解规约的全貌。
+**OpenCode**：`permission.ts` 与 `packages/schema/src/permission.ts` 的 Effect Schema 和类型定义把规约写进了代码里，避免了文档和代码不同步的问题。但对不熟悉 Effect-ts 的工程师来说，读代码比读文档更难快速理解规约的全貌。
 
 ---
 
@@ -138,7 +138,7 @@ Skill 是推断型前馈的核心载体：它告诉 Agent"遇到这类任务要�
 | :------| :-----------------| :---------------------| :-----------|
 | Claude Code | **3** — 分层文件体系完整，但类型系统失效，百科全书结构削弱规约清晰度 | **3** — Feature flag + 工具 Allowlist，但 feature() 始终 false | **2** — VerifyPlanExecutionTool 存在但 feature-flagged |
 | Codex | **4** — Rust 类型 + Clippy + AGENTS.md 规范完备 | **4** — Approval policy + Exec policy 双层机械执行 | **4** — 两阶段记忆管道 + outcome 标签实现持续行为约束 |
-| Gemini CLI | **4** — vitest + 29+ eval 文件全覆盖 | **3** — Snippet 函数边界清晰，但无跨模块机械执行约束 | **3** — Hook System 提供生命周期约束 |
+| Gemini CLI | **4** — vitest + 38 个 eval 文件全覆盖 | **3** — Snippet 函数边界清晰，但无跨模块机械执行约束 | **3** — Hook System 提供生命周期约束 |
 | OpenCode | **3** — Effect-ts + Effect Schema 结构验证 | **3** — Effect Layer 强制依赖注入，Permission Schema 清晰 | **3** — Permission 即代码，但无持续漂移检测 |
 
 **核心发现**：前馈机制的有效性上限由[控制平面](./02-control-plane.md)的显式度决定。Codex 控制平面最透明，四个前馈维度都有实质性实现；Claude Code 控制平面的 feature flag 体系因反编译失效，直接导致 Behaviour 维度的前馈评分最低。接下来的[反馈控制](./04-feedback-controls.md)，关注的是当前馈防线被穿透之后，工程如何发现和纠正。

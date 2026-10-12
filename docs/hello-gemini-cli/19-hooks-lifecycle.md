@@ -158,8 +158,8 @@ Gemini CLI 的生命周期事件至少分成三层，不能混写：
 | 层级 | 源码锚点 | 稳定性判断 | 用途 |
 | --- | --- | --- | --- |
 | HookSystem | `sources/gemini-cli/packages/core/src/hooks/hookSystem.ts:151` | 最接近稳定扩展 API | session、agent、model、tool 前后事件 |
-| MessageBus | `sources/gemini-cli/packages/core/src/confirmation-bus/message-bus.ts:79` | 运行时内部治理面 | tool confirmation、PolicyEngine 决策、request/response |
-| coreEvents | `sources/gemini-cli/packages/core/src/utils/events.ts:249` | 宿主可观察事件面 | UI、日志、状态广播 |
+| MessageBus | `sources/gemini-cli/packages/core/src/confirmation-bus/message-bus.ts:15` | 运行时内部治理面 | tool confirmation、PolicyEngine 决策、request/response |
+| coreEvents | `sources/gemini-cli/packages/core/src/utils/events.ts:494` | 宿主可观察事件面 | UI、日志、状态广播 |
 | ExtensionLoader | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:129` | 装配/重载控制面 | extension 变更后刷新 hooks |
 
 ### HookSystem 的关键生命周期
@@ -173,4 +173,4 @@ Gemini CLI 的生命周期事件至少分成三层，不能混写：
 
 ### MessageBus 不是普通事件总线
 
-`MessageBus` 在 `sources/gemini-cli/packages/core/src/confirmation-bus/message-bus.ts:101-121` 直接处理 `ALLOW`、`DENY`、`ASK_USER` 三类 policy decision；`derive()`（`message-bus.ts:51`）还能为 subagent 派生作用域化 bus。因此它的核心职责是确认和策略闭环，不是 UI 通知。
+`MessageBus` 在 `sources/gemini-cli/packages/core/src/confirmation-bus/message-bus.ts:105-138` 直接处理 `ALLOW`、`DENY`、`ASK_USER` 三类 policy decision；`derive()`（`message-bus.ts:52`）还能为 subagent 派生作用域化 bus。因此它的核心职责是确认和策略闭环，不是 UI 通知。

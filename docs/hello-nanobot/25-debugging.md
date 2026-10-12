@@ -3,7 +3,7 @@ title: "调试指南：日志、状态命令与定位路径"
 ---
 # 调试指南：日志、状态命令与定位路径
 
-> 基于 `sources/nanobot/nanobot/cli/commands.py`、`sources/nanobot/nanobot/config/paths.py` 与 `sources/nanobot/docs/troubleshooting.md` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/cli/commands.py`、`sources/nanobot/nanobot/config/paths.py` 与 `sources/nanobot/docs/troubleshooting.md` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
@@ -16,13 +16,13 @@ title: "调试指南：日志、状态命令与定位路径"
 
 ## 1. 调试面总览
 
-nanobot 的调试入口分三层：**日志**（loguru 文件与 stderr）、**检视命令**（`nanobot status`、`channels status`、`/status`）、**回合内 trace**（StateTraceEntry，见 [09-observability.md](./09-observability.md) §3）。由于一切状态都是文件（config.json + JSONL + Markdown），多数问题可以直接打开数据目录检查。
+nanobot 的调试入口分三层：**日志**（loguru 文件与 stderr）、**检视命令**（`nanobot status`、`channels status`、`/status`）、**回合内 trace**（`_run_turn_stage` 的阶段计时日志，见 [09-observability.md](./09-observability.md) §3）。由于一切状态都是文件（config.json + JSONL + Markdown），多数问题可以直接打开数据目录检查。
 
 ## 2. 日志
 
 - 日志目录：`get_logs_dir()`（实例数据目录下 `logs/`）；
 - CLI 交互模式默认压低日志输出（`_set_nanobot_logs`），排障时跑常驻形态或查看日志文件；
-- 渠道/插件加载失败、legacy entry point、配置废弃键都以 warning 级记录——启动异常先翻日志头部。
+- 渠道/插件加载失败等异常路径都以 warning 级记录——启动异常先翻日志头部。
 
 ## 3. 检视命令
 
@@ -44,7 +44,7 @@ nanobot 的调试入口分三层：**日志**（loguru 文件与 stderr）、**�
 | 工具"不存在" | `ToolRegistry._suggest_name` 的纠错文本；MCP 名字清洗（[24-mcp-system.md](./24-mcp-system.md) §3） |
 | 会话历史异常 | 直接读 `sessions/<key>.jsonl`；`_repair` 截尾记录见日志 |
 | 配置不生效 | `config.json` 键名别名（camelCase/snake_case）与 `_migrate_config` 迁移；env 插值是否解析 |
-| 回合卡住 | 回合 StateTraceEntry 找停在哪态；`/stop` 取消后重试 |
+| 回合卡住 | 回合阶段日志找停在哪一段；`/stop` 取消后重试 |
 | 自动化不触发 | cron 目录与 `pending_cron_job_ids_for_session`；`nanobot trigger` 手动复现 |
 
 ## 源码锚点

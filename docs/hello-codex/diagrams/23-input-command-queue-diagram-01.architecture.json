@@ -39,7 +39,8 @@
     {
       "id": "C",
       "type": "backend",
-      "label": "runexec",
+      "label": "codex_exec::run_main",
+      "sublabel": "exec 子命令",
       "pos": [
         737,
         65
@@ -52,7 +53,8 @@
     {
       "id": "D",
       "type": "cloud",
-      "label": "runmcp",
+      "label": "McpCli::run",
+      "sublabel": "mcp 子命令",
       "pos": [
         1083,
         65
@@ -65,7 +67,8 @@
     {
       "id": "E",
       "type": "frontend",
-      "label": "runinteractivetui",
+      "label": "run_interactive_tui()",
+      "sublabel": "main.rs:2402",
       "pos": [
         1429,
         65
@@ -78,7 +81,8 @@
     {
       "id": "F",
       "type": "frontend",
-      "label": "TUI runmain",
+      "label": "TUI run_main()",
+      "sublabel": "tui/src/lib.rs:1092",
       "pos": [
         1775,
         65
@@ -91,7 +95,8 @@
     {
       "id": "G",
       "type": "backend",
-      "label": "CodexThread.new",
+      "label": "CodexThread::new()",
+      "sublabel": "codex_thread.rs:239",
       "pos": [
         45,
         205
@@ -104,7 +109,8 @@
     {
       "id": "H",
       "type": "backend",
-      "label": "Mailbox 创建",
+      "label": "SessionIo 建立",
+      "sublabel": "tx_sub / rx_event",
       "pos": [
         391,
         205
@@ -144,6 +150,7 @@
       "id": "K",
       "type": "backend",
       "label": "Submission",
+      "sublabel": "session/submission.rs:8",
       "pos": [
         1429,
         205
@@ -156,7 +163,8 @@
     {
       "id": "L",
       "type": "backend",
-      "label": "Mailbox.tx.send",
+      "label": "submit_with_trace()",
+      "sublabel": "session/mod.rs:1007",
       "pos": [
         1775,
         205
@@ -169,7 +177,8 @@
     {
       "id": "M",
       "type": "backend",
-      "label": "Codex 处理",
+      "label": "Op::TurnInput 分派",
+      "sublabel": "handlers.rs:541 · turn.rs:163",
       "pos": [
         45,
         345
@@ -195,7 +204,8 @@
     {
       "id": "O",
       "type": "messagebus",
-      "label": "EventQueue",
+      "label": "rx_event 回流",
+      "sublabel": "session/mod.rs:419",
       "pos": [
         737,
         345
@@ -359,8 +369,8 @@
       "title": "要点",
       "items": [
         "CLI main.rs → 是否有子命令?",
-        "是否有子命令? → runexec（exec）",
-        "是否有子命令? → runmcp（mcp）"
+        "是否有子命令? → codex_exec::run_main（exec）",
+        "是否有子命令? → McpCli::run（mcp）"
       ]
     }
   ]

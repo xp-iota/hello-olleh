@@ -15,7 +15,7 @@ MCP（Model Context Protocol）是 AI 工具生态里的一个重要标准，它
 
 **Claude Code**：`sources/claude-code/src/tools/MCPTool/` 实现了 MCP 工具，在 `tools.ts:245-246` 注册 `ListMcpResourcesTool` 和 `ReadMcpResourceTool`。MCP 接入是运行时的——Agent 可以在运行时发现和调用 MCP Server 提供的工具，不需要修改代码来接入新的 MCP Server。
 
-**Codex**：`codex-rs/app-server/src/request_processors/plugins.rs:1829` 的 `start_plugin_mcp_oauth_logins()`（rust-v0.154 时位于 `codex_message_processor/plugin_mcp_oauth.rs`）表明 Codex 通过插件架构接入 MCP Server。OAuth 支持意味着 Codex 能接入需要认证的企业级 MCP Server（如 GitHub Enterprise、Jira、Confluence），这对团队级别的工具集成有实际价值。
+**Codex**：`codex-rs/app-server/src/request_processors/plugins.rs:1829` 的 `start_plugin_mcp_oauth_logins()` 表明 Codex 通过插件架构接入 MCP Server。OAuth 支持意味着 Codex 能接入需要认证的企业级 MCP Server（如 GitHub Enterprise、Jira、Confluence），这对团队级别的工具集成有实际价值。
 
 **Gemini CLI**：`sources/gemini-cli/packages/core/src/tools/mcp-client.ts` 的 `McpClient` 和 `mcp-client-manager.ts` 的 `McpClientManager` 构成了完整的 MCP 客户端。Client Manager 负责管理多个 MCP Server 连接的生命周期，这是四个工程里 MCP 接入最完整的实现—— MCP 不只是"能用"，而是有完整的连接管理和生命周期控制。
 
@@ -29,25 +29,20 @@ Skills 和 Plugin 是推断型前馈的主要扩展机制：通过添加新的 S
 
 **Claude Code**：SkillTool 在工具列表里（`tools.ts:212`），通过 CLAUDE.md 的 @include 引用链加载 Skill。无版本锁定机制——Skill 内容随 CLAUDE.md 文件一起更新，没有独立的版本管理。
 
-**Codex**：`codex-rs/skills/src/assets/samples/`（rust-v0.154 时为根目录的 `.codex/skills/`）的 Skill 文件用 frontmatter 定义元数据，`skill-installer/SKILL.md` 的格式示例展示了结构化 Skill 的写法。frontmatter 包含版本信息，这意味着 Skill 库可以有版本化的演进路径，不同项目可以锁定到不同版本的 Skill。
+**Codex**：`codex-rs/skills/src/assets/samples/` 的 Skill 文件用 frontmatter 定义元数据（名称、描述、metadata，如 `skill-installer/SKILL.md` 的格式示例），Skill 本体安装到 `$CODEX_HOME/skills`，可来自 openai/skills 策展库或任意 GitHub 仓库。Skill 的版本化依赖源仓库的演进，frontmatter 本身不携带版本字段。
 
-**Gemini CLI**：`activate-skill.ts` 的 `ActivateSkillTool` 把 Skill 激活建模为工具调用，`snippets.ts:107-115` 负责 Skills 渲染到 System Prompt。Skill 的版本化依赖文件系统，无独立版本锁定。
+**Gemini CLI**：`activate-skill.ts` 的 `ActivateSkillTool` 把 Skill 激活建模为工具调用，`snippets.ts:314` 的 `renderAgentSkills()` 负责把 Skills 渲染到 System Prompt。Skill 的版本化依赖文件系统，无独立版本锁定。
 
-**OpenCode**：`skill/index.ts:104-117` 的 `scan()` 函数支持 glob 目录扫描和 URL 远程拉取：
+**OpenCode**：`config/plugin/skill.ts:121` 用 `fs.scan("{*.md,**/SKILL.md}")` 做目录扫描，`skill/discovery.ts:92` 的 `pull()` 支持从 URL 远程拉取：
 
 ```typescript
-const scan = async (state: State, root: string, pattern: string, opts?) => {
-  return Glob.scan(pattern, {
-    cwd: root,
-    absolute: true,
-    include: "file",
-    symlink: true,
-    dot: opts?.dot,
-  }).then((matches) => Promise.all(matches.map((match) => add(state, match))))
-}
+const base = url.endsWith("/") ? url : `${url}/`
+const index = new URL("index.json", source).href
+// …按 index.json 清单下载文件，写入带哈希的缓存目录…
+const versionFile = path.join(root, ".opencode-version")
 ```
 
-URL pull 是 OpenCode Skill 系统的独特能力：团队可以把 Skill 库放在独立仓库（甚至 CDN），通过 URL 引用，实现 Skill 库的独立版本化和跨项目共享。这是四个工程里 Skill 扩展能力最强的实现。
+URL pull 是 OpenCode Skill 系统的独特能力：团队可以把 Skill 库放在独立仓库（甚至 CDN），通过 URL 引用，实现 Skill 库的独立版本化和跨项目共享。`index.json` 里声明的 skill 版本与本地 `.opencode-version` 文件不匹配时会走 staging/backup 原子替换，缓存目录按 URL 哈希隔离——这已经是可用的版本跟踪机制。这是四个工程里 Skill 扩展能力最强的实现。
 
 ---
 
@@ -105,7 +100,7 @@ Rust 的学习曲线和编译时间是实质性的成本。任何 Rust 代码修
 | 维度 | Claude Code | Codex | Gemini CLI | OpenCode |
 | :------| :-------------| :-------| :------------| :----------|
 | MCP 接入 | **3** — 运行时接入，简单实用 | **3** — Plugin + OAuth，企业级认证支持 | **4** — 完整 MCP Client Manager，连接生命周期管理 | **3** — MCP 命名空间，无 Manager 层 |
-| Skill 版本化 | **1** — 无独立版本管理 | **3** — frontmatter 版本化，可锁定版本 | **1** — 依赖文件系统，无版本锁定 | **2** — URL pull 支持独立仓库，但无锁定机制 |
+| Skill 版本化 | **1** — 无独立版本管理 | **3** — 策展库 + 任意 repo 安装，依赖源仓库演进 | **1** — 依赖文件系统，无版本锁定 | **4** — URL pull 支持独立仓库 + `.opencode-version` 版本比对与原子替换 |
 | 扩展最小成本 | **3** — 中等（TypeScript + 注册，类型不安全） | **2** — 高（Rust 编译 + 学习曲线） | **4** — 低（模块化 TypeScript，eval 快速验证） | **3** — 低（熟悉 Effect-ts 后）或高（学习期） |
 | 迁移可行性 | **3** — Markdown 资产易迁，feature flag 不可迁 | **5** — Markdown 格式通用，几乎完整迁移 | **3** — Markdown 易迁，Snippet TS 绑定 | **3** — Skill 易迁，架构层不可迁 |
 | 热加载 | **1** — 无热加载，所有变更需重启 session | **1** — 无热加载 | **1** — 无热加载 | **2** — Effect Layer 理论支持，实践取决于实现 |

@@ -170,10 +170,10 @@ Gemini CLI 的插件面应按 `ExtensionLoader` 来读，而不是寻找一个�
 
 | 阶段 | 源码锚点 | 说明 |
 | --- | --- | --- |
-| 初始化 | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:33` | `start()` 在 Config 初始化后启动所有 active extensions |
-| 启动 extension | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:65` | `startExtension()` 要求 loader 已经初始化 |
-| MCP 注入 | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:75` | extension 的 MCP server 交给 `McpClientManager.startExtension()` |
-| Policy 注入 | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:80` | extension rules/checkers 注册进 PolicyEngine |
+| 初始化 | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:37` | `start()` 在 Config 初始化后启动所有 active extensions |
+| 启动 extension | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:64` | `startExtension()` 要求 loader 已经初始化 |
+| MCP 注入 | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:74` | extension 的 MCP server 交给 `McpClientManager.startExtension()` |
+| Policy 注入 | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:79` | extension rules/checkers 注册进 PolicyEngine |
 | Hook 刷新 | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:129` | extension 变更后重新初始化 HookSystem |
 | 停止 extension | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:172` | stop 时卸载 MCP server，并移除 policy/checker |
 | 重启 extension | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:241` | restart 是 stop + start 的组合 |

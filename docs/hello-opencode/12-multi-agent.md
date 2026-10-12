@@ -3,7 +3,7 @@ title: "多代理：Agent 目录、子代理任务与代理选择"
 ---
 # 多代理：Agent 目录、子代理任务与代理选择
 
-> 基于 `sources/opencode/packages/core/src/agent.ts` 与 `session/subagent-*.ts` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/packages/core/src/agent.ts` 与 `session/subagent-*.ts` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 
@@ -20,7 +20,7 @@ title: "多代理：Agent 目录、子代理任务与代理选择"
 
 - 标识与形状来自 `packages/schema/src/agent.ts`：`Agent.ID`、`Agent.Name`、`Agent.Info`、`Agent.Color`，以及 `Event`（agent 事件，`agent.updated` 会被事件日志器桥接进进程日志）。
 - 内建默认 agent 的 ID 是 `build`（`defaultID = ID.make("build")`）。
-- Agent 目录参与数据清理约定：`SHELL_OUTPUT_GLOB` 与 `TOOL_OUTPUT_GLOB` 定义了 shell 输出与工具输出的受管存储 glob——工具的受管输出按 agent 数据目录组织。
+- 数据清理约定与受管输出：工具输出与 shell 输出由 `tool-output.ts` 与 `shell.ts` 经 `FileRetention.cleanup` 按保留期清理（工具输出默认保留 7 天，存于全局数据目录的 `tool-output` 目录）。
 
 ## 2. 代理选择与步数配额
 
@@ -38,7 +38,7 @@ title: "多代理：Agent 目录、子代理任务与代理选择"
 
 ## 4. 与插件体系的关系
 
-- `plugin/agent.ts` 与 `plugin/plan.ts` 让插件参与 agent 目录与 plan 形态的塑造；catalog 变换管线决定最终生效的 agent 集合（见 [17-settings-config.md](./17-settings-config.md)）。
+- `plugin/agent.ts` 与 `plugin/plan.ts` 让插件参与 agent 目录与 plan 形态的塑造；`config/plugin/` 的按域 config 插件变换决定最终生效的 agent 集合（见 [17-settings-config.md](./17-settings-config.md)）。
 - 权限、工具快照、instruction 组合都按"当前 agent"维度生效：所选 agent 的 skill 指引是 instruction 来源之一，工具可用集随 agent 变化（system prompt 的工具指引也随之条件化，见 [11-prompt-system.md](./11-prompt-system.md)）。
 
 ## 源码锚点

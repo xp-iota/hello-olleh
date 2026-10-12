@@ -3,7 +3,7 @@ title: "REPL 与状态：Solid TUI 的装配与事件驱动渲染"
 ---
 # REPL 与状态：Solid TUI 的装配与事件驱动渲染
 
-> 基于 `sources/opencode/packages/tui/` 与 `packages/cli/src/run/` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/packages/tui/` 与 `packages/cli/src/run/` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 

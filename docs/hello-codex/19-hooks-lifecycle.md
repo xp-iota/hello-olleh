@@ -47,58 +47,61 @@ pub enum Op {
 }
 ```
 
-rust-v0.162 起，旧版 `UserInput` / `UserTurn` 变体合并为 `Op::TurnInput`（`session/handlers.rs:541` 分派给 `turn_input::handle`）。`submission_loop` 对每个 Op 分派处理，这是 Codex 的核心事件驱动点。
+`Op::TurnInput` 在 `session/handlers.rs:541` 解构后分派给 `turn_input::handle`（`:550`）。`submission_loop` 对每个 Op 分派处理，这是 Codex 的核心事件驱动点。
 
 ## 3. 可扩展的拦截点
 
 ### 3.1 工具调用前后
 
-通过 `ToolRouter` 的包装层可以注入前后处理逻辑：
+`core/src/tools/registry.rs` 在工具执行链路中插入前后钩子（`run_pre_tool_use_hooks` 在 `:610`，`run_post_tool_use_hooks` 在 `:726`）：
 
 ```rust
-// 工具执行前：权限审批
-let approved = approval_handler.check(&tool_call)?;
-if !approved { return ToolOutput::denied(); }
+// 工具执行前：权限审批（hook_runtime.rs:188）
+let pre = run_pre_tool_use_hooks(...).await;
 
 // 工具执行
-let result = tool.execute(input).await?;
 
-// 工具执行后：结果审计/日志
-audit_log.record(&tool_call, &result);
+// 工具执行后：审计/结果转换（hook_runtime.rs:297）
+run_post_tool_use_hooks(...).await;
 ```
 
 ### 3.2 Turn 边界
 
-每个 `run_turn()` 结束时触发 turn stop hooks 和 Thread 状态持久化（`core/src/hook_runtime.rs:392` 的 `run_turn_stop_hooks()`；rust-v0.162 起 memories 提取模块已整体移除，此段描述 rust-v0.154 行为）：
+每个 `run_turn()` 收尾时触发 turn stop hooks（`core/src/hook_runtime.rs:392` 的 `run_turn_stop_hooks()`）：
 
 ```rust
-// run_turn 结束后
-run_turn_stop_hooks(&sess, &turn_context).await;
-thread.persist().await?;
+// core/src/session/turn.rs —— turn 收尾时
+let stop_outcome = run_turn_stop_hooks(
+    &sess, &step_context, stop_hook_active, last_agent_message,
+).await;
+// stop_outcome.should_block 时，构建 hook prompt 消息并送回当前 turn
 ```
+
+`run_turn_stop_hooks` 按 session 来源区分目标：普通 turn 走 `Stop`，线程派生的子 agent turn 走 `SubagentStop`，memory consolidation 内部 turn 走 `MemoryConsolidation`。Stop hook 可以阻塞收尾并注入 continuation（`session/turn.rs:667` 起：memory consolidation turn 被 Stop hook 拒绝时直接报 `InvalidRequest`，不再回灌循环；普通 turn 则把 hook prompt 消息记入 thread item 后继续）。
+
+memories 的当前实现是独立的 `codex-memories-write` crate（存储布局在 `memories/write/src/lib.rs:118`，两阶段/合并提示模板在 `memories/write/templates/memories/`），由 `Feature::MemoryTool` 与 `MemoriesConfig`（`core/src/config/mod.rs:963`，门控见 `:4200`）启用，作为内部 session 运行而不是内嵌在 turn 收尾里。
 
 ### 3.3 会话边界
 
 `Op::Shutdown` 触发时执行清理：
 
 ```rust
-Op::Shutdown => {
-    thread_manager.flush_all().await;
-    mcp_clients.close_all().await;
-    break;
-}
+// core/src/session/handlers.rs:696
+Op::Shutdown => shutdown(&sess, sub.id.clone()).await,
 ```
+
+`shutdown()`（`session/handlers.rs:349`）先经 `shutdown_session_runtime()`（`:290`）终止任务、hook 与子进程，再优雅 flush 并关闭 thread 持久化，最后发出 `EventMsg::ShutdownComplete` 并让 `submission_loop` 退出。
 
 ## 4. 与 Claude Code Hooks 的对比
 
 | 特性 | Codex | Claude Code |
 | :------| :-------| :-------------|
-| **Hook 注册方式** | 代码级（Rust trait）| 配置级（settings.json hooks 字段）|
-| **触发事件** | Op 枚举 | PreToolCall / PostToolCall / 等 |
-| **用户可配置** | 否（需修改源码）| 是（JSON 配置）|
-| **执行位置** | 同进程 | Shell 命令（独立进程）|
+| **Hook 注册方式** | 配置级（`HooksConfig` 的 trigger → command 映射，`hooks/src/registry.rs:42`）| 配置级（settings.json hooks 字段）|
+| **触发事件** | session start/end、pre/post tool use、turn stop、permission request | PreToolCall / PostToolCall / 等 |
+| **用户可配置** | 是（外部命令，需通过 hook trust 校验）| 是（JSON 配置）|
+| **执行位置** | 独立进程（外部命令）| Shell 命令（独立进程）|
 
-Codex 的生命周期拦截是代码层面的扩展点，适合二次开发；Claude Code 的 Hooks 则是配置驱动的用户扩展。
+两边都是配置驱动的用户扩展；Codex 的差别在于事件面直接绑定 session/turn/tool 生命周期，并且 hook 事件会同时投影为 app-server 通知与 thread item。
 
 ---
 
@@ -150,7 +153,7 @@ Codex 的 hook 生命周期分成两类：运行时治理 hook 和 app-server �
 | Hook 事件过滤 | `sources/codex/codex-rs/core/src/session/turn.rs:2158` | `HookStarted` / `HookCompleted` 属于特殊事件类型，和普通模型输出区分 |
 | app-server 投影 | `sources/codex/codex-rs/app-server/src/bespoke_event_handling.rs:1144` | `HookStarted` 转换成 app-server notification |
 | 完成事件投影 | `sources/codex/codex-rs/app-server/src/bespoke_event_handling.rs:1154` | `HookCompleted` 同样作为通知给外部宿主 |
-| hook prompt 持久化 | `sources/codex/codex-rs/app-server-protocol/src/protocol/v2/item.rs:881` | hook prompt message 可被解析成 `ThreadItem::HookPrompt` |
+| hook prompt 持久化 | `sources/codex/codex-rs/app-server-protocol/src/protocol/v2/item.rs:246` | hook prompt message 可被解析成 `ThreadItem::HookPrompt` |
 | Permission hook | `sources/codex/codex-rs/core/src/hook_runtime.rs:258`（由 `tools/approvals.rs:508` 调用） | shell escalation 前先跑 `run_permission_request_hooks()`，可直接 allow、deny 或继续 prompt |
 
 失败策略上，permission hook 不只是“记录一个事件”：它能短路后续交互审批。`tools/approvals.rs:508` 对 hook decision 做分支，失败或拒绝会改变 shell 执行路径。输出是否进入 prompt 要看事件类型：hook notification 面向宿主可见性，hook prompt item 才会进入 thread item 语义。

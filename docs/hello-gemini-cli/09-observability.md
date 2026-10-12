@@ -33,7 +33,7 @@ Gemini CLI 的可观测性围绕三个核心机制：
 
 | 特性 | Claude Code | Codex | OpenCode | Gemini CLI |
 | --- | --- | --- | --- | --- |
-| 结构化日志 | Logger | tracing | Log + 轮转 | console 基础 |
+| 结构化日志 | Logger | tracing | Log + 轮转 | debugLogger 薄封装 |
 | 事件总线 | 专用 Bus | 无 | Bus + GlobalBus | MessageBus |
 | 状态追踪 | SessionStatus | ThreadState | SessionStatus | UIStateContext |
 | 实时订阅 | 支持 | 无 | 支持 | React Context |
@@ -42,15 +42,17 @@ Gemini CLI 的可观测性围绕三个核心机制：
 
 ## 2. 日志系统
 
-### 2.1 console 日志
+### 2.1 debugLogger 集中日志
 
-Gemini CLI 使用标准 console 输出：
+开发者的调试日志统一走 `debugLogger`（`sources/gemini-cli/packages/core/src/utils/debugLogger.ts:69`）—— 一个对原生 console 的薄封装。lint 规则禁止直接使用 `console.*`，保证日志出口单一：
 
 ```typescript
-console.log('Starting initialization')
-console.error('Failed to connect:', error)
-console.warn('Retry attempt:', attempt)
+debugLogger.log('Starting initialization')
+debugLogger.error('Failed to connect:', error)
+debugLogger.warn('Retry attempt:', attempt)
 ```
+
+设置 `GEMINI_DEBUG_LOG_FILE` 时，每条日志以 `[ISO 时间戳] [LEVEL] message` 格式追加写入文件（`debugLogger.ts:40-45`）；CLI 侧的 `ConsolePatcher`（`sources/gemini-cli/packages/cli/src/gemini.tsx`）还会拦截这些调用，把日志路由到 UI 的 debug drawer。
 
 ### 2.2 Ink 组件的日志
 
@@ -184,7 +186,7 @@ messageBus.on('turn:end', async ({ turnId, result }) => {
 
 | 能力 | OpenCode | Gemini CLI |
 | --- | --- | --- |
-| 结构化日志 | Log + 文件轮转 | console 基础 |
+| 结构化日志 | Log + 文件轮转 | debugLogger（timestamp+level，无轮转） |
 | 事件总线 | Bus + GlobalBus | MessageBus (local) |
 | 日志持久化 | 10 文件保留策略 | JSON 文件 |
 | 实时订阅 | SSE/WebSocket | React Context |
@@ -194,7 +196,7 @@ messageBus.on('turn:end', async ({ turnId, result }) => {
 
 1. **日志文件轮转**：无自动清理
 2. **全局事件广播**：MessageBus 仅本地
-3. **结构化日志**：无 service tag
+3. **结构化日志**：debugLogger 有 timestamp 与 level，但无 service tag
 4. **OpenTelemetry**：无分布式追踪
 
 ---
@@ -222,10 +224,11 @@ messageBus.on('turn:end', async ({ turnId, result }) => {
 
 | 主题 | 代码锚点 | 说明 |
 | --- | --- | --- |
-| MessageBus | `sources/gemini-cli/packages/core/src/confirmation-bus/message-bus.ts` | 事件总线 |
-| UIStateContext | `sources/gemini-cli/packages/cli/src/ui/contexts/UIStateContext.tsx` | UI 状态 |
-| Storage | `sources/gemini-cli/packages/core/src/config/storage.ts` | 持久化根目录与路径接口 |
+| MessageBus | `sources/gemini-cli/packages/core/src/confirmation-bus/message-bus.ts:15` | 事件总线 |
+| UIStateContext | `sources/gemini-cli/packages/cli/src/ui/contexts/UIStateContext.tsx:219` | UI 状态 |
+| Storage | `sources/gemini-cli/packages/core/src/config/storage.ts:277` | 持久化根目录与路径接口 |
 | TUI 渲染 | `sources/gemini-cli/packages/cli/src/ui/App.tsx` | Ink 组件 |
+| debugLogger | `sources/gemini-cli/packages/core/src/utils/debugLogger.ts:69` | 开发者日志统一入口 |
 
 ---
 
@@ -233,12 +236,12 @@ messageBus.on('turn:end', async ({ turnId, result }) => {
 
 Gemini CLI 的可观测性相比 OpenCode 较为基础：
 
-1. **日志**：console 基础输出
+1. **日志**：debugLogger 薄封装 console 输出，可落盘到 GEMINI_DEBUG_LOG_FILE
 2. **MessageBus**：本地 EventEmitter 事件总线
 3. **UIStateContext**：React Context 状态管理
 4. **Storage**：JSON 文件持久化
 
-相比 OpenCode 的 Log + Bus + GlobalBus 三支柱，Gemini CLI 缺少日志轮转、全局广播和结构化日志。对于本地开发调试，当前架构足以支撑。
+相比 OpenCode 的 Log + Bus + GlobalBus 三支柱，Gemini CLI 缺少日志轮转、全局广播和 service tag 级结构化日志。对于本地开发调试，当前架构足以支撑。
 
 ---
 
@@ -254,6 +257,7 @@ Gemini CLI 的可观测性相比 OpenCode 较为基础：
 | `UIStateContext` | `sources/gemini-cli/packages/cli/src/ui/contexts/UIStateContext.tsx` | React Context 状态容器：持有 currentTurn、messages、status |
 | `Storage.initialize()` | `sources/gemini-cli/packages/core/src/config/storage.ts` | 计算 `~/.gemini/`、项目级 `.gemini/` 等持久化根路径 |
 | `ChatRecordingService.recordMessage()` | `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts` | 实时录制用户/模型/工具/思考消息并序列化到 JSON 文件 |
+| `debugLogger` | `sources/gemini-cli/packages/core/src/utils/debugLogger.ts` | 开发者日志统一入口：lint 禁止直接 console.*，文件模式带 timestamp+level |
 | `JsonStorage.saveSession()` | — | 将 session 对象序列化为 JSON 文件写入 Storage 目录 |
 
 ---
@@ -269,7 +273,7 @@ Gemini CLI 的可观测性相比 OpenCode 较为基础：
 **风险与改进点**
 
 - **MessageBus 仅本地 EventEmitter**：无法跨进程广播，不支持多 session 全局事件（相比 OpenCode GlobalBus 功能弱）。
-- **日志无结构化格式与文件轮转**：仅使用 `console.log/error`，无 timestamp、level、service tag，也无自动日志清理机制，长期运行 log 会无限增长。
+- **日志无轮转与 service tag**：`debugLogger` 文件模式带 timestamp+level，但无 service tag，追加写不做自动清理，长期运行 log 文件会无限增长。
 - **UIStateContext 无虚拟化**：长会话下持有大量历史消息的 Context 会导致 Ink 组件频繁全量 re-render，存在性能瓶颈。
 
 ## 横向对齐补强：Gemini 可观测性要补结构化事件

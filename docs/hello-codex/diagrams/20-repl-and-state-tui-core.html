@@ -4939,19 +4939,19 @@
         </g>
         </g>
 
-        <g data-edge-from="MSP" data-edge-to="CORE" data-edge-label="submitcoreop()" data-edge-key="2" data-edge-id="message3">
+        <g data-edge-from="MSP" data-edge-to="CORE" data-edge-label="submit_core_op()" data-edge-key="2" data-edge-id="message3">
           <path data-composition-edge-from="MSP" data-composition-edge-to="CORE" data-composition-edge-id="message3" data-composition-points="607.1,270;814.9000000000001,270" d="M 607.1 270 L 814.9000000000001 270" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <g data-detail="context">
-          <rect x="668.6" y="250" width="84.8" height="16" rx="3" class="c-mask"/>
-          <text x="711" y="260" class="t-backend" font-size="9" text-anchor="middle">submitcoreop()</text>
+          <rect x="663.4" y="250" width="95.2" height="16" rx="3" class="c-mask"/>
+          <text x="711" y="260" class="t-backend" font-size="9" text-anchor="middle">submit_core_op()</text>
         </g>
         </g>
 
-        <g data-edge-from="CORE" data-edge-to="LOOP" data-edge-label="Op::UserInput / Op::Interrupt / approval" data-edge-key="3" data-edge-id="message4">
+        <g data-edge-from="CORE" data-edge-to="LOOP" data-edge-label="Op::TurnInput / Op::Interrupt / approval" data-edge-key="3" data-edge-id="message4">
           <path data-composition-edge-from="CORE" data-composition-edge-to="LOOP" data-composition-edge-id="message4" data-composition-points="828.9000000000001,315;1036.7,315" d="M 828.9000000000001 315 L 1036.7 315" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <g data-detail="context">
           <rect x="822.8000000000001" y="295" width="220" height="16" rx="3" class="c-mask"/>
-          <text x="932.8000000000001" y="305" class="t-backend" font-size="9" text-anchor="middle">Op::UserInput / Op::Interrupt / approval</text>
+          <text x="932.8000000000001" y="305" class="t-backend" font-size="9" text-anchor="middle">Op::TurnInput / Op::Interrupt / approval</text>
         </g>
         </g>
 
@@ -4992,14 +4992,15 @@
           <text data-detail="context" x="378.3" y="111" class="t-muted" font-size="7" text-anchor="middle">app-server session/</text>
         </g>
 
-        <g id="node-MSP" data-node-id="MSP" data-node-label="codexmessageprocess…" tabindex="0" role="button" aria-label="Focus codexmessageprocess…, Sequence participant" aria-pressed="false" data-node-kind="backend" data-node-context="Sequence participant">
-          <title>codexmessageprocess… · Sequence participant</title>
+        <g id="node-MSP" data-node-id="MSP" data-node-label="message_processor.rs" tabindex="0" role="button" aria-label="Focus message_processor.rs, request_processors 分派, Sequence participant" aria-pressed="false" data-node-kind="backend" data-node-sublabel="request_processors 分派" data-node-context="Sequence participant">
+          <title>message_processor.rs · request_processors 分派 · Sequence participant</title>
           <rect x="505.6" y="72" width="189" height="54" rx="6" class="c-mask"/>
           <rect x="505.6" y="72" width="189" height="54" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(511.6 78) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text x="600.1" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">codexmessageprocess…</text>
+          <text data-detail-anchor x="600.1" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">message_processor.rs</text>
+          <text data-detail="context" x="600.1" y="111" class="t-muted" font-size="7" text-anchor="middle">request_processors 分派</text>
         </g>
 
         <g id="node-CORE" data-node-id="CORE" data-node-label="CodexThread" tabindex="0" role="button" aria-label="Focus CodexThread, Sequence participant" aria-pressed="false" data-node-kind="backend" data-node-context="Sequence participant">
@@ -5012,14 +5013,15 @@
           <text x="821.9000000000001" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">CodexThread</text>
         </g>
 
-        <g id="node-LOOP" data-node-id="LOOP" data-node-label="submissionloop" tabindex="0" role="button" aria-label="Focus submissionloop, Sequence participant" aria-pressed="false" data-node-kind="backend" data-node-context="Sequence participant">
-          <title>submissionloop · Sequence participant</title>
+        <g id="node-LOOP" data-node-id="LOOP" data-node-label="submission_loop" tabindex="0" role="button" aria-label="Focus submission_loop, handlers.rs:439, Sequence participant" aria-pressed="false" data-node-kind="backend" data-node-sublabel="handlers.rs:439" data-node-context="Sequence participant">
+          <title>submission_loop · handlers.rs:439 · Sequence participant</title>
           <rect x="949.2" y="72" width="189" height="54" rx="6" class="c-mask"/>
           <rect x="949.2" y="72" width="189" height="54" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(955.2 78) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text x="1043.7" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">submissionloop</text>
+          <text data-detail-anchor x="1043.7" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">submission_loop</text>
+          <text data-detail="context" x="1043.7" y="111" class="t-muted" font-size="7" text-anchor="middle">handlers.rs:439</text>
         </g>
 
         <g id="node-LOOP-" data-node-id="LOOP-" data-node-label="LOOP-" tabindex="0" role="button" aria-label="Focus LOOP-, Sequence participant" aria-pressed="false" data-node-kind="backend" data-node-context="Sequence participant">
@@ -5249,7 +5251,7 @@
           <h3>要点</h3>
         </div>
         <ul>
-          <li>&bull; 消息标签保留源图中的调用名</li>
+          <li>&bull; submit_core_op() 桥接 app-server 到 core（turn_processor.rs:492）</li>
         </ul>
       </div>
     </div>

@@ -27,19 +27,19 @@ Claude Code 的前馈控制中枢是 `sources/claude-code/src/utils/systemPrompt
 
 Codex 的前馈控制完全依赖 Markdown 模板文件。`sources/codex/codex-rs/protocol/src/prompts/base_instructions/default.md:1-275` 是一份 275 行的结构化行为规范，涵盖人格、AGENTS.md 语义、规划流程、验证要求等。这与 Claude Code 的 TypeScript 硬编码形成对比：Codex 的前馈内容是版本化的、可差量审查的、对人类工程师透明的。
 
-反馈方面，Codex 最重要的机制是两阶段记忆管道。`sources/codex/codex-rs/memories/write/templates/memories/stage_one_system.md` 的 Phase 1 并行提取每次 rollout 的结构化输出，`consolidation.md` 的 Phase 2 整合这些输出并维护一个带 `max_unused_days` 窗口的知识库。这不是普通的"工具返回值注入上下文"，而是主动的、跨 session 的反馈回路。
+反馈方面，Codex 最重要的机制是两阶段记忆管道，位于独立的 `codex-memories-write` crate（`sources/codex/codex-rs/memories/write/`），由 app-server 在会话启动任务中触发（`sources/codex/codex-rs/app-server/src/request_processors/turn_processor.rs:698` 调用 `start_memories_startup_task()`）。`sources/codex/codex-rs/memories/write/templates/memories/stage_one_system.md` 的 Phase 1 把每次 rollout 提炼成结构化输出，`consolidation.md` 的 Phase 2 整合这些输出；未被使用的记忆由状态层按 `memories.max_unused_days` 窗口主动淘汰（`sources/codex/codex-rs/state/src/runtime/memories.rs:401` 的 `prune_stage1_outputs_for_retention()`）。这不是普通的"工具返回值注入上下文"，而是主动的、跨 session 的反馈回路。
 
 ### Gemini CLI
 
-Gemini CLI 的前馈控制通过 `sources/gemini-cli/packages/core/src/prompts/promptProvider.ts:38-265` 的 `getCoreSystemPrompt()` 以函数组合方式构建。每个片段（preamble、coreMandates、hookContext 等）都是独立的 snippet 函数，这使得 prompt 内容本身成为可以单元测试的代码。这是四个工程里最接近"prompt-as-code"理念的实现。
+Gemini CLI 的前馈控制通过 `getCoreSystemPrompt()` 以函数组合方式构建（定义在 `sources/gemini-cli/packages/core/src/prompts/snippets.ts:136`，由 `sources/gemini-cli/packages/core/src/prompts/promptProvider.ts:259-262` 组装调用）。每个片段（preamble、coreMandates、hookContext 等）都是独立的 snippet 函数，这使得 prompt 内容本身成为可以单元测试的代码。这是四个工程里最接近"prompt-as-code"理念的实现。
 
-反馈方面，`sources/gemini-cli/packages/core/src/hooks/hookSystem.ts:259-305` 实现了完整的 BeforeModel/AfterModel 生命周期，且 `hookOutput?.shouldStopExecution()` 提供了显式的执行阻断路径。更重要的是，Gemini CLI 拥有 29+ 个 eval 文件（`sources/gemini-cli/evals/*.eval.ts`），这意味着它的反馈机制不仅在运行时生效，还在开发期以自动化测试的形式存在。
+反馈方面，`sources/gemini-cli/packages/core/src/hooks/hookSystem.ts:261-321` 实现了完整的 BeforeModel/AfterModel 生命周期，且 `hookOutput?.shouldStopExecution()` 提供了显式的执行阻断路径。更重要的是，Gemini CLI 拥有 38 个 eval 文件（`sources/gemini-cli/evals/*.eval.ts`），这意味着它的反馈机制不仅在运行时生效，还在开发期以自动化测试的形式存在。
 
 ### OpenCode
 
-OpenCode 的前馈控制通过 `sources/opencode/packages/core/src/plugin/skill.ts` 实现的 Skill 系统传递。Skill 文件通过 SKILL.md + Effect Schema 定义结构，由 `Config.directories()` 决定扫描路径。这是声明式的前馈：规则不写在代码里，写在目录里。
+OpenCode 的前馈控制通过 Skill 系统与 instruction 文件传递：`sources/opencode/packages/core/src/config/plugin/skill.ts` 用 `{*.md,**/SKILL.md}` glob 扫描 Skill 目录（`:121`），`skill/discovery.ts` 支持从 URL 拉取 Skill 库，`instruction-discovery.ts` 负责项目与全局指令文件的发现。这是声明式的前馈：规则不写在代码里，写在目录里。
 
-反馈方面，`sources/opencode/packages/core/src/permission.ts` 的 Permission 系统通过 `ask()` 方法暂停执行并等待用户判断。这是一种人工参与的反馈，而非自动化反馈。Effect-ts 的 `Deferred.await()` 模型保证了不会有竞争条件，但也意味着每次反馈都需要人类在场。
+反馈方面，`sources/opencode/packages/core/src/permission.ts` 的 Permission 系统在规则判定为 `ask` 时通过 `assert()` 挂起执行、等待用户回复（`Deferred.await()` 在 `:247`）。这是一种人工参与的反馈，而非自动化反馈。Effect-ts 的 `Deferred` 模型保证了不会有竞争条件，但也意味着每次反馈都需要人类在场。
 
 ### 横向对比：前馈/反馈的时序质量
 
@@ -69,11 +69,11 @@ Codex 的计算型传感器是四个工程里最强的：Rust 的 borrow checker
 
 Gemini CLI 的计算型传感器包括工具注册表 `sources/gemini-cli/packages/core/src/tools/tool-registry.ts` 和确认策略测试 `sources/gemini-cli/packages/core/src/tools/confirmation-policy.test.ts`。测试作为计算型传感器是一个值得注意的设计选择：测试能在 CI 阶段机械地检测出行为退化，而不需要人类观察每次 Agent 运行。
 
-推断型传感器以 `sources/gemini-cli/packages/core/src/hooks/hookPlanner.ts` 为代表，以及 29+ eval 文件里的 LLM-as-Judge 模式。
+推断型传感器以 `sources/gemini-cli/packages/core/src/hooks/hookPlanner.ts` 为代表，以及 38 个 eval 文件里的 LLM-as-Judge 模式。
 
 ### OpenCode
 
-OpenCode 的计算型传感器主要是 Effect Schema 验证，见 `sources/opencode/packages/core/src/permission.ts` 和 `sources/opencode/packages/core/src/plugin/skill.ts`。Effect Schema 验证是运行时的，不是编译期的，这是与 Rust/TypeScript strict 的本质区别。Effect-ts 的类型系统提供了一定的编译期保证，但 `z.record(z.string(), z.any())` 这类宽松 schema 削弱了其有效性。
+OpenCode 的计算型传感器主要是 Effect Schema 验证，见 `sources/opencode/packages/core/src/permission.ts` 和 Skill 文件的 frontmatter 解析（`config/plugin/skill-file.ts`）。Effect Schema 验证是运行时的，不是编译期的，这是与 Rust/TypeScript strict 的本质区别。Effect-ts 的类型系统提供了一定的编译期保证，但校验主要发生在运行时而非编译期。
 
 ### 横向对比：计算型/推断型的成本与可靠性
 
@@ -98,14 +98,14 @@ Harness Engineering 借鉴软件质量保证的分层概念，把控制行为分
 | 维度 | 实现 | 证据 |
 | :------| :------| :------|
 | Maintainability | Rust 类型系统 + clippy | `codex-rs/Cargo.toml` |
-| Architecture Fitness | approval policy 四模式 | `unless_trusted.md`、`on_failure.md` |
+| Architecture Fitness | approval policy 四模式 | `unless_trusted.md`、`on_request.md` |
 | Behaviour | 两阶段记忆管道 + outcome 标签 | `stage_one_system.md:1-569` |
 
 ### Gemini CLI
 
 | 维度 | 实现 | 证据 |
 | :------| :------| :------|
-| Maintainability | vitest 测试 + 29+ eval 文件 | `sources/gemini-cli/evals/*.eval.ts` |
+| Maintainability | vitest 测试 + 38 个 eval 文件 | `sources/gemini-cli/evals/*.eval.ts` |
 | Architecture Fitness | 模型选择约束 + Snippet 函数边界 | `config.ts`、`models.ts` |
 | Behaviour | Hook System BeforeModel/AfterModel | `hookSystem.ts:149-444` |
 
@@ -113,9 +113,9 @@ Harness Engineering 借鉴软件质量保证的分层概念，把控制行为分
 
 | 维度 | 实现 | 证据 |
 | :------| :------| :------|
-| Maintainability | Bun + TypeScript strict | `sources/opencode/tsconfig.json` |
-| Architecture Fitness | Effect-ts Layer 模式 | `permission/index.ts:138` |
-| Behaviour | Permission 即代码（allow/deny/ask） | `permission/index.ts:292-307` |
+| Maintainability | Bun + TypeScript（`@tsconfig/bun` 基线） | `sources/opencode/tsconfig.json` |
+| Architecture Fitness | Effect-ts Layer 模式 | `permission.ts:113` |
+| Behaviour | Permission 即代码（allow/deny/ask） | `permission.ts:87-101`、`packages/schema/src/permission.ts:56` |
 
 这个对比揭示了一个模式：Codex 和 Gemini CLI 在三个维度上都有可观察的实现，Claude Code 的 Architecture Fitness 和 Behaviour 维度因反编译副作用而失效，OpenCode 的 Maintainability 和 Architecture Fitness 强，但 Behaviour 维度过度依赖人工决策。
 
@@ -135,17 +135,17 @@ Harness Engineering 借鉴软件质量保证的分层概念，把控制行为分
 
 - **Level 1（启动时）**: `sources/codex/codex-rs/prompts/templates/permissions/approval_policy/unless_trusted.md:1` — 默认拒绝策略在启动时即生效，无需运行 Agent 才能确立安全边界。
 - **Level 2（测试时）**: Phase 1/2 记忆管道本身是一种测试：每次 rollout 后，记忆提取结果都会被验证结构化合规。
-- **Level 3（运行时持续监控）**: 持续记忆整合是唯一实现 Level 3 的工程。`consolidation.md` 的 `max_unused_days` 窗口使知识库能被主动清理。
+- **Level 3（运行时持续监控）**: 持续记忆整合是唯一实现 Level 3 的工程。状态层按 `memories.max_unused_days` 窗口（`codex-rs/config/src/types.rs:337`）主动清理未被使用的记忆（`codex-rs/state/src/runtime/memories.rs:401`）。
 
 ### Gemini CLI
 
 - **Level 1（启动时）**: `sources/gemini-cli/packages/core/src/tools/confirmation-policy.test.ts` — 测试即文档，覆盖确认策略的所有边界情况。
 - **Level 2（测试时）**: `sources/gemini-cli/evals/` 完整 eval 套件，对 Agent 行为做端到端验证。
-- **Level 3（运行时持续监控）**: `hookSystem.ts:230-237` 的 `fireSessionEndEvent` 提供运行时清理钩子，但无主动漂移扫描。
+- **Level 3（运行时持续监控）**: `hookSystem.ts:229-233` 的 `fireSessionEndEvent` 提供运行时清理钩子，但无主动漂移扫描。
 
 ### OpenCode
 
-- **Level 1（启动时）**: `permission/index.ts:292-307` — `Permission.disabled()` 在服务初始化时静态过滤工具列表。
+- **Level 1（启动时）**: `tool.ts:225-231` — `Tool.snapshot(permissions)` 在组装工具列表时按权限规则过滤被整体禁用的工具（`whollyDisabled()`，`tool.ts:292-295`）。
 - **Level 2（测试时）**: Effect-ts 的编译时类型验证覆盖了服务依赖图的合法性。
 - **Level 3（运行时持续监控）**: 无持续漂移检测。这是 OpenCode 最明显的工程欠债之一。
 
@@ -181,7 +181,7 @@ Ashby 的必要多样性定律说：控制系统必须具备至少与被控系�
 
 - **Claude Code**：`sources/claude-code/src/constants/tools.ts:36-112` 的 Allowlist 机制通过精确列出允许/禁止的工具集合来限制空间，这是一种朴素但有效的拓扑承诺。feature flag 系统（即使当前失效）的设计意图是通过条件启用来进一步划定子空间。
 - **Codex**：`sources/codex/codex-rs/prompts/templates/permissions/approval_policy/` 的四种 policy 变体，加上 `execpolicy` 对 shell 命令的约束，形成了两层正交的空间限制。
-- **Gemini CLI**：`sources/gemini-cli/packages/core/src/core/prompts.ts:20-40` 的组合式 prompt 构建器通过条件渲染（plan mode vs primary workflows）来切换子空间，而 `models.ts` 的模型约束限制了推断引擎的选择空间。
+- **Gemini CLI**：`sources/gemini-cli/packages/core/src/core/prompts.ts:23` 的 `getCoreSystemPrompt()` 包装器通过条件渲染（plan mode vs primary workflows）来切换子空间，而 `config/models.ts` 的模型约束限制了推断引擎的选择空间。
 - **OpenCode**：`sources/opencode/packages/core/src/config.ts` 定义了配置 schema，间接约束了 Agent 可以读取的操作参数空间。但当前缺少对工具调用空间的系统性限制。
 
 ---
@@ -213,9 +213,9 @@ Ashby 的必要多样性定律说：控制系统必须具备至少与被控系�
 熵管理这个维度问的是：当 Agent 持续运行、不断积累上下文和记忆时，这些积累会不会自然走向腐烂？知识积累的必然结局是"过时信息污染新的判断"，除非工程主动设计了清理机制。
 
 - **Claude Code**：`sources/claude-code/src/utils/claudemd.ts:790` 的 `memoize()` 缓存一旦建立就不会主动过期，这意味着 CLAUDE.md 内容的漂移（比如项目规则被废弃但文件未删除）无法被自动检测。这是明确的缺失。
-- **Codex**：两阶段管道（Phase 1 并行提取 + Phase 2 整合）是四个工程里唯一真正实现后台 GC 的工程。`consolidation.md` 的 `max_unused_days` 窗口和 usage_count 排序，是在 Agent 运行时自动淘汰过时知识的机制。
-- **Gemini CLI**：`hookSystem.ts:226-237` 的 `fireSessionEndEvent` 提供了 session 结束时的清理钩子，但清理行为由 Hook 实现者决定，框架本身没有强制的 GC 策略。
-- **OpenCode**：Effect-ts 的 Finalizer 机制（`permission/index.ts:151-160`）保证了资源在 Effect 作用域结束时被清理，但这是 runtime 资源清理，不是知识库漂移检测。无熵管理设计是 OpenCode 的另一个主要工程欠债。
+- **Codex**：两阶段管道（Phase 1 提取 + Phase 2 整合）是四个工程里唯一真正实现后台 GC 的工程。状态层的 `usage_count`/`last_usage` 统计（`codex-rs/state/src/runtime/memories.rs:75`）与 `max_unused_days` 遗忘窗口（`:401`），是在 Agent 运行时自动淘汰过时知识的机制。
+- **Gemini CLI**：`hookSystem.ts:229-233` 的 `fireSessionEndEvent` 提供了 session 结束时的清理钩子，但清理行为由 Hook 实现者决定，框架本身没有强制的 GC 策略。
+- **OpenCode**：Effect-ts 的 Finalizer 机制（`permission.ts:133-146`）保证了资源在 Effect 作用域结束时被清理，但这是 runtime 资源清理，不是知识库漂移检测。无熵管理设计是 OpenCode 的另一个主要工程欠债。
 
 ---
 
@@ -225,11 +225,11 @@ Ashby 的必要多样性定律说：控制系统必须具备至少与被控系�
 
 **Claude Code — Runtime-first**：主循环围绕 `sources/claude-code/src/query.ts` 的 query 函数展开；系统提示构建依赖运行时条件（`systemPrompt.ts:41-123`）。这条路线的优势是灵活——可以根据会话状态动态调整行为；风险是隐式约定多，模块级单例状态难以追踪。
 
-**Codex — Control-plane-first**：行为规则写在 Markdown 文件里（`protocol/src/prompts/permissions/approval_policy/`），记忆模板版本化管理。这条路线的优势是行为可预测、变更可审查；代价是团队需要先建立制度（写好 Approval policy），才能享受控制带来的收益。
+**Codex — Control-plane-first**：行为规则写在 Markdown 文件里（`prompts/templates/permissions/approval_policy/`），记忆模板版本化管理。这条路线的优势是行为可预测、变更可审查；代价是团队需要先建立制度（写好 Approval policy），才能享受控制带来的收益。
 
 **Gemini CLI — 混合路线**：Hook System 是推断型控制平面（`hooks/hookSystem.ts`），Snippet 函数是计算型前馈（`prompts/promptProvider.ts`），两者协同工作。这是兼顾灵活性和可测试性的设计，但也意味着调试时需要两个心智模型同时在线。
 
-**OpenCode — Runtime-first（Effect-driven）**：Permission 是运行时 Effect（`permission/index.ts`），Skill 通过 `load()` 异步初始化（`skill/index.ts:126-176`）。Effect-ts 的 Service Layer 理论上提供了很强的可组合性，但当前实现中，各 Service 之间的依赖图尚未被充分利用来建立控制链。
+**OpenCode — Runtime-first（Effect-driven）**：Permission 是运行时 Effect（`permission.ts:121-341` 的 `Layer.effect`），Skill 通过 `config/plugin/skill.ts` 的 `load()` 异步加载（`:105`）。Effect-ts 的 Service Layer 理论上提供了很强的可组合性，但当前实现中，各 Service 之间的依赖图尚未被充分利用来建立控制链。
 
 ---
 
@@ -238,8 +238,8 @@ Ashby 的必要多样性定律说：控制系统必须具备至少与被控系�
 验证的独立性是 Harness Engineering 的核心原则之一。如果验证在与执行相同的上下文中进行，验证者会看到和执行者相同的前提假设，确认偏差（Confirmation Bias）就无法被对冲。真正的验证需要在不同的上下文、不同的权限集、甚至不同的代理角色中完成。
 
 - **Claude Code**：`VerifyPlanExecutionTool` 的存在表明有这个设计意图，但 `process.env.CLAUDE_CODE_VERIFY_PLAN === 'true'` 在反编译环境下不触发，实际上是一个死代码路径。主循环在 `query.ts` 里同一上下文内处理工具调用和验证，无对抗确认偏差的机制。
-- **Codex**：`consolidation.md` 里的 Phase 2 验证子代理运行在严格限制的环境下（`no approvals, no network, local write access only`，且禁用 collab 防止递归委派）。这是四个工程里唯一真正实现验证隔离的实现。
-- **Gemini CLI**：`hookSystem.ts:259-305` 的 BeforeModel/AfterModel 分离使 Hook 链独立于 Agent 执行——Hook 可以在 Agent 运行结果已知之前或之后介入，而不共享 Agent 的决策上下文。29+ eval 文件则在测试层面提供了独立验证覆盖。
+- **Codex**：`consolidation.md` 的 Phase 2 整合子代理运行在严格限制的环境下（`codex-rs/memories/write/src/phase2.rs:314` 审批策略固定为 never，`:315-317` 禁用 collab/MemoryTool/Plugins 等特性，`:333-336` 沙箱只开放记忆根目录写且禁网）。这是四个工程里唯一真正实现验证隔离的实现。
+- **Gemini CLI**：`hookSystem.ts:259-305` 的 BeforeModel/AfterModel 分离使 Hook 链独立于 Agent 执行——Hook 可以在 Agent 运行结果已知之前或之后介入，而不共享 Agent 的决策上下文。38 个 eval 文件则在测试层面提供了独立验证覆盖。
 - **OpenCode**：Effect-ts 的 ServiceMap 模式在理论上支持角色分离，`Service` 定义（`permission/index.ts:138`）在隔离的 Effect 作用域中运行。但当前架构是单代理，没有多代理验证链。
 
 ---
@@ -251,4 +251,4 @@ Ashby 的必要多样性定律说：控制系统必须具备至少与被控系�
 - **Claude Code**：`sources/claude-code/src/utils/claudemd.ts:1-26` 定义了清晰的文件发现顺序和优先级，`.claude/rules/*.md` 的条件规则使团队可以按文件路径分配不同规则集。这是完整的团队治理层级，但缺少 lifecycle 约定文档（何时审查规则、何时清理废弃规则）。
 - **Codex**：`sources/codex/docs/agents_md.md` 是专门给团队工程师阅读的 AGENTS.md 规范，`protocol/src/prompts/base_instructions/default.md:17-27` 里的 AGENTS.md 语义给出了嵌套优先规则。这是对团队制度化投入最高的工程。
 - **Gemini CLI**：`sources/gemini-cli/packages/core/src/config/memory.ts` 的 `HierarchicalMemory` 接口（global / extension / project 三层）提供了清晰的规则来源层次，每层可由不同角色管理。
-- **OpenCode**：`sources/opencode/packages/core/src/plugin/skill.ts` 的 `Config.directories()` 和 `permission/index.ts:278-290` 的 `Permission.fromConfig()` 提供了配置驱动的制度化路径，但团队协作规范（谁写 Skill、谁审批 Permission 规则）需要团队自行建立。
+- **OpenCode**：`config/plugin/skill.ts` 的目录/URL Skill 源与 `permission/saved.ts` 的持久化批准规则（用户选择 always 后按项目保存 allow 规则）提供了配置驱动的制度化路径，但团队协作规范（谁写 Skill、谁审批 Permission 规则）需要团队自行建立。

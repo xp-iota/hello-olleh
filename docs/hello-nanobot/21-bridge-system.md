@@ -3,7 +3,7 @@ title: "Bridge / 外部集成：17 个渠道、gateway 与 WebUI"
 ---
 # Bridge / 外部集成：17 个渠道、gateway 与 WebUI
 
-> 基于 `sources/nanobot/nanobot/channels/`、`sources/nanobot/nanobot/gateway/` 与 `sources/nanobot/nanobot/webui/` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/channels/`、`sources/nanobot/nanobot/gateway/` 与 `sources/nanobot/nanobot/webui/` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
@@ -47,11 +47,11 @@ title: "Bridge / 外部集成：17 个渠道、gateway 与 WebUI"
 ## 4. gateway 与 WebUI
 
 - **gateway**：常驻编排（`gateway/runtime.py` + `service.py`），健康端口 18790，systemd/launchd 安装（见 [02-startup-flow.md](./02-startup-flow.md) §5）；
-- **WebUI**：`nanobot webui`（默认 8765）是 aiohttp 应用，`webui/` 下约 30 个模块覆盖设置（settings_api）、技能（skills_api）、媒体（media_api/media_gateway）、转写（transcription_ws）、分叉（forking）、token 统计（token_usage）、会话自动化（session_automations）、MCP 预设（mcp_presets_*）等——WebUI 不是独立后端，而是同一个 AgentLoop 的又一个渠道式宿主。
+- **WebUI**：`nanobot webui`（默认 8765）是 aiohttp 应用，`webui/` 下 48 个模块覆盖设置（settings_api）、技能（skills_api、skills_marketplace）、媒体（media_api/media_gateway）、转写（transcription_ws）、分叉（forking）、会话自动化（session_automations）、MCP 预设（mcp_presets_*）、工作区（workspaces）等——WebUI 不是独立后端，而是同一个 AgentLoop 的又一个渠道式宿主。
 
 ## 5. 渠道清单
 
-v0.3.0 内建 17 个渠道包：dingtalk、discord、email、feishu、matrix、mattermost、mochat、msteams、napcat、qq、signal、slack、telegram、wecom、weixin、whatsapp、websocket。`nanobot channels status` 检视激活状态，`channel_default_enabled(name)` 读取各包 descriptor 的默认激活策略。
+内建 17 个渠道包：dingtalk、discord、email、feishu、matrix、mattermost、mochat、msteams、napcat、qq、signal、slack、telegram、wecom、weixin、whatsapp、websocket。`nanobot channels status` 检视激活状态，`channel_default_enabled(name)` 读取各包 descriptor 的默认激活策略。
 
 ## 源码锚点
 

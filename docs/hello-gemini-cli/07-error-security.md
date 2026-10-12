@@ -23,7 +23,7 @@ Gemini CLI 采用多层嵌套防御机制，确保 Agent 在处理复杂任务�
 | 防御层 | 实现模块 | 核心机制 | 行号 |
 | --- | --- | --- | --- |
 | **沙箱层 (Sandbox)** | `sources/gemini-cli/packages/core/src/services/sandboxManager.ts` | **物理隔离**：结合 Linux/macOS/Windows sandbox manager 限制文件系统与命令执行。 | 1 |
-| **策略层 (Policy)** | `sources/gemini-cli/packages/core/src/policy/policy-engine.ts` | **逻辑控制**：`PolicyEngine.check()` 实时评估风险 | 492 |
+| **策略层 (Policy)** | `sources/gemini-cli/packages/core/src/policy/policy-engine.ts` | **逻辑控制**：`PolicyEngine.check()` 实时评估风险 | 610 |
 | **环境层 (Env)** | `sources/gemini-cli/packages/core/src/services/environmentSanitization.ts` | **数据清洗**：`sanitizeEnvironment()` 过滤环境变量 | 13 |
 | **工作区层 (Trust)** | `sources/gemini-cli/packages/cli/src/config/trustedFolders.ts` | **信任校验**：限制未信任目录中的 MCP stdio、扩展安装和 include dirs | 1 |
 
@@ -37,7 +37,7 @@ Gemini CLI 采用多层嵌套防御机制，确保 Agent 在处理复杂任务�
 
 ### 2.1 请求级重试
 
-`GeminiClient` 和 `GeminiChat` 都内置了 `retryWithBackoff()`（`sources/gemini-cli/packages/core/src/utils/retry.ts:198`）：
+`GeminiClient` 和 `GeminiChat` 都内置了 `retryWithBackoff()`（`sources/gemini-cli/packages/core/src/utils/retry.ts:258`）：
 
 - **429 降级**：当触发速率限制时，自动进行指数退避重试。
 - **坏流恢复**：`GeminiChat.sendMessageStream()` 对模型产出的无效或截断响应进行实时纠偏。
@@ -62,23 +62,23 @@ Gemini CLI 采用多层嵌套防御机制，确保 Agent 在处理复杂任务�
 
 ## 4. 关键代码定位
 
-- **策略引擎核心**：`sources/gemini-cli/packages/core/src/policy/policy-engine.ts:492` (`check()`), `sources/gemini-cli/packages/core/src/policy/policy-engine.ts:336` (`checkShellCommand()`)
+- **策略引擎核心**：`sources/gemini-cli/packages/core/src/policy/policy-engine.ts:610` (`check()`), `sources/gemini-cli/packages/core/src/policy/policy-engine.ts:447` (`checkShellCommand()`)
 - **沙箱管理器**：`sources/gemini-cli/packages/core/src/services/sandboxManager.ts`
 - **环境变量清洗**：`sources/gemini-cli/packages/core/src/services/environmentSanitization.ts:13` (`sanitizeEnvironment()`)
-- **重试机制**：`sources/gemini-cli/packages/core/src/utils/retry.ts:198` (`retryWithBackoff()`), `sources/gemini-cli/packages/core/src/core/geminiChat.ts:304` (`sendMessageStream()`)
+- **重试机制**：`sources/gemini-cli/packages/core/src/utils/retry.ts:258` (`retryWithBackoff()`), `sources/gemini-cli/packages/core/src/core/geminiChat.ts:480` (`sendMessageStream()`)
 
 ## 5. 核心函数清单 (Function List)
 
 | 函数/类 | 文件路径 | 行号 | 职责 |
 | :---| :---| :---| :---|
-| `PolicyEngine.check()` | `sources/gemini-cli/packages/core/src/policy/policy-engine.ts` | 492 | 工具调用风险评估 |
-| `PolicyEngine.checkShellCommand()` | `sources/gemini-cli/packages/core/src/policy/policy-engine.ts` | 336 | Shell 命令 parser + policy 规则匹配 |
-| `retryWithBackoff()` | `sources/gemini-cli/packages/core/src/utils/retry.ts` | 198 | 429、网络错误和连接期错误的指数退避 |
-| `GeminiChat.sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/geminiChat.ts` | 304 | 模型流式响应、流中 retry marker、历史记录 |
-| `Scheduler.schedule()` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts` | 191 | 工具执行调度与状态推进 |
-| `ToolExecutor.execute()` | `sources/gemini-cli/packages/core/src/scheduler/tool-executor.ts` | 60 | 软错误格式化为 ToolResponse |
+| `PolicyEngine.check()` | `sources/gemini-cli/packages/core/src/policy/policy-engine.ts` | 610 | 工具调用风险评估 |
+| `PolicyEngine.checkShellCommand()` | `sources/gemini-cli/packages/core/src/policy/policy-engine.ts` | 447 | Shell 命令 parser + policy 规则匹配 |
+| `retryWithBackoff()` | `sources/gemini-cli/packages/core/src/utils/retry.ts` | 258 | 429、网络错误和连接期错误的指数退避 |
+| `GeminiChat.sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/geminiChat.ts` | 480 | 模型流式响应、流中 retry marker、历史记录 |
+| `Scheduler.schedule()` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts` | 211 | 工具执行调度与状态推进 |
+| `ToolExecutor.execute()` | `sources/gemini-cli/packages/core/src/scheduler/tool-executor.ts` | 63 | 软错误格式化为 ToolResponse |
 | `sanitizeEnvironment()` | `sources/gemini-cli/packages/core/src/services/environmentSanitization.ts` | 13 | 环境变量过滤 |
-| `createTransport()` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | 2167 | MCP stdio/HTTP/SSE 传输创建，包含 trust 检查 |
+| `createTransport()` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | 2265 | MCP stdio/HTTP/SSE 传输创建，包含 trust 检查 |
 
 ## 6. 代码质量评估 (Code Quality Assessment)
 
@@ -90,7 +90,6 @@ Gemini CLI 采用多层嵌套防御机制，确保 Agent 在处理复杂任务�
 ### 6.2 改进点
 
 - **PolicyEngine 规则数量不透明**：外部用户无法直观了解当前策略覆盖了哪些 pattern，debug "为什么这个命令被拦截" 较困难。
-- **沙箱检测非原子性**：`loadSandboxConfig()` 检测与拉起之间存在时间窗口，非沙箱模式的进程可能已在做危险操作。
 - **错误恢复路径不完整**：`uncaughtException` 仅引导重启，缺乏现场保护（如 checkpoint 强制落盘），重启后可能丢失当前会话状态。
 - **MCP 与本地工具使用两套风险面**：MCP stdio 的危险点在 server 启动，内建 shell/edit 的危险点在每次 tool call；建议在调试输出里明确标注风险来自“server transport”还是“tool invocation”。
 

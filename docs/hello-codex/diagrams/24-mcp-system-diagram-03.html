@@ -4923,14 +4923,15 @@
         <path data-edge-from="J" data-edge-to="K" data-edge-key="8" data-edge-id="edge9" data-composition-points="1383,247;1429,247" d="M 1383 247 L 1429 247" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
         <!-- Components -->
-        <g id="node-A" data-node-id="A" data-node-label="Codex" tabindex="0" role="button" aria-label="Focus Codex, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-context="Architecture component">
-          <title>Codex · Architecture component</title>
+        <g id="node-A" data-node-id="A" data-node-label="CodexThread" tabindex="0" role="button" aria-label="Focus CodexThread, 发起工具调用, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="发起工具调用" data-node-context="Architecture component">
+          <title>CodexThread · 发起工具调用 · Architecture component</title>
           <rect x="45" y="65" width="300" height="84" rx="6" class="c-mask"/>
           <rect x="45" y="65" width="300" height="84" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(51 71) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text x="195" y="111" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Codex</text>
+          <text data-detail-anchor x="195" y="105" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">CodexThread</text>
+        <text data-detail="context" x="195" y="121" class="t-muted" font-size="9" text-anchor="middle">发起工具调用</text>
         </g>
 
         <g id="node-B" data-node-id="B" data-node-label="McpToolCall" tabindex="0" role="button" aria-label="Focus McpToolCall, Architecture component" aria-pressed="false" data-node-kind="cloud" data-node-context="Architecture component">
@@ -4953,14 +4954,15 @@
           <text x="887" y="111" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">MCP Tool?</text>
         </g>
 
-        <g id="node-D" data-node-id="D" data-node-label="McpConnectionManager" tabindex="0" role="button" aria-label="Focus McpConnectionManager, Architecture component" aria-pressed="false" data-node-kind="cloud" data-node-context="Architecture component">
-          <title>McpConnectionManager · Architecture component</title>
+        <g id="node-D" data-node-id="D" data-node-label="McpConnectionSet" tabindex="0" role="button" aria-label="Focus McpConnectionSet, call_tool() :977, Architecture component" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="call_tool() :977" data-node-context="Architecture component">
+          <title>McpConnectionSet · call_tool() :977 · Architecture component</title>
           <rect x="1083" y="65" width="300" height="84" rx="6" class="c-mask"/>
           <rect x="1083" y="65" width="300" height="84" rx="6" class="c-cloud" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(1089 71) scale(0.6875)">
             <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
           </g>
-          <text x="1233" y="111" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">McpConnectionManager</text>
+          <text data-detail-anchor x="1233" y="105" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">McpConnectionSet</text>
+        <text data-detail="context" x="1233" y="121" class="t-muted" font-size="9" text-anchor="middle">call_tool() :977</text>
         </g>
 
         <g id="node-E" data-node-id="E" data-node-label="RmcpClient" tabindex="0" role="button" aria-label="Focus RmcpClient, Architecture component" aria-pressed="false" data-node-kind="external" data-node-context="Architecture component">
@@ -5272,9 +5274,9 @@
           <h3>要点</h3>
         </div>
         <ul>
-          <li>&bull; Codex → McpToolCall</li>
+          <li>&bull; CodexThread → McpToolCall</li>
           <li>&bull; McpToolCall → MCP Tool?</li>
-          <li>&bull; MCP Tool? → McpConnectionManager（是）</li>
+          <li>&bull; MCP Tool? → McpConnectionSet（是）</li>
         </ul>
       </div>
     </div>

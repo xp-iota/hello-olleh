@@ -5,9 +5,9 @@ title: "cordis 源代码全面分析（中文）"
 
 本目录是对 [cordiverse/cordis](https://github.com/cordiverse/cordis) 的系统性源码分析。所有结论均基于源码实读，文中引用的路径均相对于源码根目录。
 
-> **版本基线：** 分析撰写并校验于 `4.0.0-rc.8`；`sources/cordis/` 快照已由 `sync_repos.sh` 前进到 `4.0.0-rc.10`。rc 间的行号锚点可能存在漂移；文件级路径以实际快照为准。
+> **版本基线：** 全部 9 篇正文与本文索引均撰写并校验于 `4.0.0-rc.10` 快照（commit `f8ea3cd5`，详见下节）。
 
-> **先读这里再决定要不要往下**：cordis 是一个**元框架**，实现只有 **4015 行**（核心包 1848 行）。它本身不提供任何业务能力，只提供"如何组装能力、并且能安全拆掉"的机制。
+> **先读这里再决定要不要往下**：cordis 是一个**元框架**，实现只有 **4991 行**（核心包 1874 行）。它本身不提供任何业务能力，只提供"如何组装能力、并且能安全拆掉"的机制。
 >
 > 它最重要的下游是 **[DeepSeek Harness](../hello-dsh/README.md)**（`dsh`，52912 stars）——DSH 的"Everything is a Plugin"架构完全建立在 cordis 之上。**想读懂 DSH，必须先读懂 cordis 的 Fiber 与 Service 模型。**
 >
@@ -16,9 +16,9 @@ title: "cordis 源代码全面分析（中文）"
 
 > **Source baseline:** Cordis `v4.0.0-rc.10` (`f8ea3cd5`): `cordis@4.0.0-rc.10`, loader `1.0.0-rc.7`, and HMR `1.1.0`.
 
-### 历史分析基线
+### 快照基线
 
-> 以下表格记录正文形成时的基线，用于判断哪些结论需要重新验证。
+> 以下表格记录 `sources/cordis/` 快照的采集基线，各项均可在快照内自行复核。
 
 | 项 | 值 |
 |---|---|
@@ -52,10 +52,10 @@ title: "cordis 源代码全面分析（中文）"
 
 | 指标 | 数值 |
 |---|---|
-| TS 文件 / 总行数 | 58 / **8365**（含仓库根 `vitest.config.ts` 10 行；`packages/` 内为 57 / 8355） |
-| **实现**（`*/src/*`） | 27 文件 / **4015 行** |
-| **测试**（`*/tests/*`） | 30 文件 / **4340 行** |
-| 测试 / 实现比 | **1.08**（测试多于实现） |
+| TS 文件 / 总行数 | 80 / **11498**（含仓库根 `vitest.config.ts` 10 行；`packages/` 内为 79 / 11488） |
+| **实现**（`*/src/*`） | 30 文件 / **4991 行** |
+| **测试**（`*/tests/*`） | 49 文件 / **6497 行** |
+| 测试 / 实现比 | **1.30**（测试多于实现） |
 
 各包实现行数见 [01 § 1.2](01-overview-and-design-philosophy.md)；核心包 9 个文件的逐文件行数与对应篇目见 [02 § 2.3](02-code-structure-and-package-boundaries.md)。本索引不重复这两张表。
 
@@ -64,7 +64,7 @@ title: "cordis 源代码全面分析（中文）"
 | 事实 | 含义 |
 |---|---|
 | 核心包 `4.0.0-rc.10` | 第 4 个大版本仍在 rc 阶段 |
-| `loader@1.0.0-rc.5` | 关键外围包同样是 rc |
+| `loader@1.0.0-rc.7` | 关键外围包同样是 rc |
 | **仓库无任何 git tag** | 版本靠 package.json，无发布快照可对照 |
 | README 明示 API 不稳定 | 会不通知即变更 |
 | 22 个 open issue | 活跃但未收敛 |
@@ -85,15 +85,15 @@ title: "cordis 源代码全面分析（中文）"
 
 | # | 篇目 | 行数 | 关键内容 |
 |---|---|---|---|
-| 01 | [项目概览与设计哲学](01-overview-and-design-philosophy.md) | 238 | 元框架定位、时空可组合性、四个核心抽象、与其它插件系统的对比、读源码前必知的六件事 |
-| 02 | [代码结构与包边界](02-code-structure-and-package-boundaries.md) | 270 | 9 个包的依赖方向、core 的 9 文件、四服务自举顺序、三种"树"的关系、为什么只要 1848 行 |
-| 03 | [Fiber 模型](03-fiber-model.md) ⭐ | 430 | `effect()` 的双重身份、四种有效返回形态 + 两种边界、**epoch 字符串**、6 态机与 `inertia` 锁、子 Fiber 是父的 effect、长堆栈 |
-| 04 | [Context 与 Reflect 代理](04-context-and-reflect-proxy.md) ⭐ | 438 | Proxy 的 `get` / `set` / `has` trap、`then` 保留字、三种派生、沿 fiber 链查找的三种失败、Symbol 作键的隔离、**traceable 与 shadow**、mixin |
-| 05 | [服务注册与依赖解析](05-service-registration-and-dependency-resolution.md) | 359 | 四种插件形态、`@Inject()` 双目标装饰器、`provide` 的 setup/teardown 顺序、**`notify()` 级联引擎**、Service 七符号 |
-| 06 | [事件系统与 Waterfall](06-event-system-and-waterfall.md) | 275 | 5 种派发模式、`isBailed` 的坑、**waterfall 原理全解（§ 6.3：契约 / 逐行解剖 / 执行语义 / 轨迹 / Koa 与责任链对照）**、`internal/listener` 劫持、8 个 internal 事件 |
-| 07 | [Loader 与配置树](07-loader-and-configuration-tree.md) | 431 | `EntryOptions` 全字段、`update()` 决策树、**`applyPatches` 三条语义**、原子写、**isolate realm 7 步算法**、6 case 自卸载判定 |
-| 08 | [HMR 热重载](08-hmr.md) | 278 | HMR 定义、三条变更路径、**accepted/declined 传播**、五阶段 partialReload、**Node 22/24 缓存差异**、双层回滚 |
-| 09 | [关键调用链速查](09-call-chain-reference.md) | 469 | 五条核心链、symbols 全表、逐文件符号表、**错误消息对照表**、配置速查、症状路由、spec 映射 |
+| 01 | [项目概览与设计哲学](01-overview-and-design-philosophy.md) | 155 | 元框架定位、时空可组合性、四个核心抽象、与其它插件系统的对比、读源码前必知的六件事 |
+| 02 | [代码结构与包边界](02-code-structure-and-package-boundaries.md) | 157 | 9 个包的依赖方向、core 的 9 文件、四服务自举顺序、三种"树"的关系、为什么只要 1874 行 |
+| 03 | [Fiber 模型](03-fiber-model.md) ⭐ | 308 | `effect()` 的双重身份、四种有效返回形态 + 两种边界、**epoch 字符串**、6 态机与 `inertia` 锁、子 Fiber 是父的 effect、长堆栈 |
+| 04 | [Context 与 Reflect 代理](04-context-and-reflect-proxy.md) ⭐ | 292 | Proxy 的 `get` / `set` / `has` trap、`then` 保留字、三种派生、沿 fiber 链查找的三种失败、Symbol 作键的隔离、**traceable 与 shadow**、mixin |
+| 05 | [服务注册与依赖解析](05-service-registration-and-dependency-resolution.md) | 223 | 四种插件形态、`@Inject()` 双目标装饰器、`provide` 的 setup/teardown 顺序、**`notify()` 级联引擎**、Service 七符号 |
+| 06 | [事件系统与 Waterfall](06-event-system-and-waterfall.md) | 288 | 5 种派发模式、`isBailed` 的坑、**waterfall 原理全解（§ 6.3：契约 / 逐行解剖 / 执行语义 / 轨迹 / Koa 与责任链对照）**、`internal/listener` 劫持、8 个 internal 事件 |
+| 07 | [Loader 与配置树](07-loader-and-configuration-tree.md) | 323 | `EntryOptions` 全字段、`update()` 决策树、**`applyPatches` 三条语义**、原子写、**isolate realm 7 步算法**、7 case 自卸载判定 |
+| 08 | [HMR 热重载](08-hmr.md) | 184 | HMR 定义、三条变更路径、**accepted/declined 传播**、四阶段 partialReload、**Node 22/24 缓存差异**、回滚边界 |
+| 09 | [关键调用链速查](09-call-chain-reference.md) | 432 | 五条核心链、symbols 全表、逐文件符号表、**错误消息对照表**、配置速查、症状路由、spec 映射 |
 
 ## 四、阅读路线
 
@@ -102,7 +102,7 @@ title: "cordis 源代码全面分析（中文）"
 **cordis 系列阅读路线** — [交互版](diagrams/00-reading-path.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/00-reading-path.architecture.json)
 
 - **03 与 04 互相依赖**：建议 03 先粗读，读完 04 再回头精读 03 · Fiber 的 effect 依赖 Context 的派生语义 · Context 的动态解析又依赖 Fiber 的 store
-- **两篇重点占全书一半难度**：03 Fiber 模型是 486 行的心脏 · 04 Context 与 Reflect 是 Proxy 元编程的集中区 · 其余各篇都建立在这两篇之上
+- **两篇重点占全书一半难度**：03 Fiber 模型是 496 行的心脏 · 04 Context 与 Reflect 是 Proxy 元编程的集中区 · 其余各篇都建立在这两篇之上
 - **09 是索引不是正文**：按调用链组织，便于回查 · 附错误信息到成因的对照表 · 读完任一篇都可以随时跳回
 
 ### 按身份选路

@@ -26,30 +26,32 @@ Gemini CLI 当前与 session 直接相关的主链主要由四个节点组成：
 | 组件 | 代码路径 | 作用 |
 | --- | --- | --- |
 | `Storage` | `sources/gemini-cli/packages/core/src/config/storage.ts` | 计算 `~/.gemini/`、项目级 `.gemini/` 与 `tmp/<project-hash>/` 等目录 |
-| `ChatRecordingService` | `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts` | 持续把用户/模型/工具/思考摘要写入当前 conversation JSON 文件 |
+| `ChatRecordingService` | `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts` | 持续把用户/模型/工具/思考摘要写入当前 conversation JSONL 文件 |
 | `SessionSelector` | `sources/gemini-cli/packages/cli/src/utils/sessionUtils.ts` | 把 `--resume latest|<index>|<uuid>` 解析成具体会话文件 |
 | `gemini.tsx` | `sources/gemini-cli/packages/cli/src/gemini.tsx` | 启动时处理 `--resume`，把已选会话传给交互式或非交互式入口 |
 
 核心判断要先立住：
 
 1. Gemini CLI 有“可恢复会话”，但没有 OpenCode 那种一等的 thread 协议对象。
-2. 会话恢复的基础单位是 conversation JSON 文件，而不是数据库里的 turn / item 表。
+2. 会话恢复的基础单位是 conversation JSONL 文件，而不是数据库里的 turn / item 表。
 3. Checkpoint 不是另一套 session 文件树，而是 Git 驱动的可选能力。
 
 ---
 
 ## 2. 会话文件是什么
 
-`ChatRecordingService` 的注释和 `initialize()` 实现已经把存储形态说得很清楚：会话以 JSON 文件存放在 `~/.gemini/tmp/<project-hash>/chats/` 下。新会话会创建一个带时间戳和 session 前缀的文件；恢复会话时则直接复用已有文件。
+`ChatRecordingService` 的注释和 `initialize()` 实现已经把存储形态说得很清楚：会话以 JSONL（每行一条 JSON 记录）文件存放在 `~/.gemini/tmp/<project-hash>/chats/` 下（`chatRecordingService.ts:512-519`），旧版 `.json` 路径会被自动迁移为 `.jsonl`（:585-586）。新会话会创建一个带时间戳和 session 前缀的文件；恢复会话时则直接复用已有文件。
 
-就源码可证实的字段看，会话文件至少包含：
+就源码可证实的字段看，会话文件首行的元数据至少包含：
 
 - `sessionId`
 - `projectHash`
 - `startTime`
 - `lastUpdated`
-- `messages`
 - `kind`（`main` 或 `subagent`）
+- `directories`（工作区目录列表，subagent 会话可省略）
+
+后续每条消息、工具调用与 token 统计都以独立 JSON 行追加（`appendRecord()`，`chatRecordingService.ts:561`）。
 
 这里最重要的一点是：Gemini CLI 持久化的重点不是抽象 `Session` 类，而是 **ConversationRecord**。也就是说，恢复时更多是在“重新拿回一份对话记录”，而不是重建一个复杂的运行时对象图。
 
@@ -57,13 +59,13 @@ Gemini CLI 当前与 session 直接相关的主链主要由四个节点组成：
 
 ## 3. `--resume` 真实是怎么走的
 
-启动恢复链路主要发生在 `sources/gemini-cli/packages/cli/src/gemini.tsx:577-609` 附近：
+启动恢复链路主要发生在 `sources/gemini-cli/packages/cli/src/gemini.tsx` 的 `resolveSessionId()`（:319-443，由 `main()` 在 :542 调用）：
 
-1. 如果传入 `argv.resume`，先创建 `SessionSelector(config)`。
-2. `resolveSession()` 负责把 `latest`、列表序号或显式会话标识解析成具体文件。
+1. 如果传入 `argv.resume`，先创建 `SessionSelector(storage)`。
+2. `resolveSession()`（`sessionUtils.ts:500`）负责把 `latest`、列表序号或显式会话标识解析成具体文件。
 3. CLI 把结果包装成 `resumedSessionData = { conversation, filePath }`。
-4. 随后调用 `config.setSessionId(...)`，确保后续录制继续写回同一个会话。
-5. 交互式路径把 `resumedSessionData` 传给 `startInteractiveUI(...)`；非交互路径则继续沿当前 CLI 入口传递。
+4. 解析出的 `sessionId` 随后被传入 `loadCliConfig(...)`（`gemini.tsx:615`/`:744`），确保后续录制继续写回同一个会话。
+5. 交互式路径把 `resumedSessionData` 传给 `startInteractiveUI(...)`（定义在 `gemini.tsx:449`，调用点 :916）；非交互路径同样接收 `resumedSessionData`（`gemini.tsx:993-998`），即非交互模式也支持会话恢复。
 
 这意味着 Gemini CLI 的“恢复”更像：
 
@@ -112,7 +114,7 @@ Gemini CLI 当前与 session 直接相关的主链主要由四个节点组成：
 
 | 特性 | OpenCode | Gemini CLI |
 | --- | --- | --- |
-| 存储后端 | SQLite | JSON 文件 |
+| 存储后端 | SQLite | JSONL 文件 |
 | Session 协议 | 完整 Thread 协议 | 简化版 |
 | Checkpoint | 完整 durable state | 有，但以 Git/restore 为主 |
 | 并发控制 | 支持多线程 | 无 |
@@ -170,11 +172,13 @@ Gemini CLI 的 session 机制本质上是“conversation 文件 + resume 解析 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
 | `Storage.initialize()` | `sources/gemini-cli/packages/core/src/config/storage.ts` | 计算 `~/.gemini/tmp/<project-hash>/chats/` 等持久化路径 |
-| `ChatRecordingService.recordMessage()` | `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts` | 增量录制消息到 conversation JSON 文件 |
+| `ChatRecordingService.recordMessage()` | `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts` | 增量录制消息到 conversation JSONL 文件 |
 | `SessionSelector.resolveSession()` | `sources/gemini-cli/packages/cli/src/utils/sessionUtils.ts` | 将 `--resume latest|<index>|<uuid>` 解析为具体会话文件路径 |
+| `resolveSessionId()` | `sources/gemini-cli/packages/cli/src/gemini.tsx` | 启动时解析 `--resume`/`--session-id`/`--session-file`，产出 sessionId 与 resumedSessionData |
+| `startInteractiveUI()` | `sources/gemini-cli/packages/cli/src/gemini.tsx` | 交互式恢复链路入口：将选中 session 传入 UI 启动 |
 | `config.setSessionId()` | `sources/gemini-cli/packages/core/src/config/config.ts` | 设置 session ID，确保后续录制续写同一文件 |
-| `startInteractiveUI()` | `sources/gemini-cli/packages/cli/src/gemini.tsx:577-609` | 恢复链路入口：将选中 session 传入 UI 启动 |
-| `GitService.getDiff()` | `sources/gemini-cli/packages/core/src/services/gitService.ts` | Checkpoint 时捕获工作区 Git diff |
+| `GitService.createFileSnapshot()` | `sources/gemini-cli/packages/core/src/services/gitService.ts` | Checkpoint 时用 shadow-git 创建工作区快照 |
+| `GitService.restoreProjectFromSnapshot()` | `sources/gemini-cli/packages/core/src/services/gitService.ts` | 从快照恢复工作区文件 |
 | `restore` command | `sources/gemini-cli/packages/core/src/commands/restore.ts` | Git 驱动的工作区还原命令 |
 
 ---
@@ -189,7 +193,7 @@ Gemini CLI 的 session 机制本质上是“conversation 文件 + resume 解析 
 
 **风险与改进点**
 
-- **会话存储为 JSON 文件**：JSON 文件无原子写入保证，多进程并发写同一文件时存在竞态风险，相比 SQLite 事务安全性低。
+- **会话存储为 JSONL 文件**：追加写无事务保证，多进程并发写同一文件时存在竞态风险，相比 SQLite 事务安全性低。
 - **无 Thread 协议抽象**：恢复语义是"续写 conversation 文件"，不是重建完整 runtime 对象图，部分工具调用上下文（如待审批、运行中 tool）无法恢复。
 - **无并发会话支持**：单进程模型，无法同时运行多个独立 session，相比 OpenCode thread 并发能力弱。
 
@@ -199,7 +203,7 @@ Gemini CLI 的 resume 语义更接近“选择一个历史 conversation 文件�
 
 | 恢复对象 | Gemini 侧含义 | 横向对比 |
 | --- | --- | --- |
-| conversation JSON | 历史消息主载体 | 简单可读，但事务性弱 |
+| conversation JSONL | 历史消息主载体 | 简单可读，但事务性弱 |
 | checkpoint | 可选 Git 工作区恢复 | 对应 Codex ghost snapshot、OpenCode revert |
 | tool context | 多数运行中状态不恢复 | 比 durable runtime 弱 |
 | UI state | 启动后重新派生 | 不像 OpenCode 多端共享 durable projection |

@@ -13,7 +13,8 @@
     {
       "id": "node1",
       "type": "backend",
-      "label": "Codex Agent",
+      "label": "CodexThread",
+      "sublabel": "codex_thread.rs:208",
       "pos": [
         45,
         65
@@ -132,7 +133,7 @@
       "dot": "orange",
       "title": "要点",
       "items": [
-        "首节点：Codex Agent",
+        "首节点：CodexThread",
         "末节点：文件系统 / API / 数据库"
       ]
     }

@@ -35,7 +35,7 @@ Codex 的可观测性相比 OpenCode 较为基础，主要依赖：
 | --- | --- | --- |
 | 结构化日志 | Log + 文件轮转 | tracing crate |
 | 事件总线 | Bus + GlobalBus | 无专用事件总线 |
-| 状态追踪 | SessionStatus | ThreadState |
+| 状态追踪 | SessionStatus | `SessionState` / `TurnState` |
 | 可配置观测 | 丰富 | 基础 |
 
 ---
@@ -44,7 +44,7 @@ Codex 的可观测性相比 OpenCode 较为基础，主要依赖：
 
 ### 2.1 tracing crate
 
-Codex 使用 Rust 的 `tracing` crate。TUI 主循环和工具任务会在异常路径上写 `warn!`/`debug!`/`error!`，例如 app-server shutdown、terminal input stream closed、用户 shell command failed 等（`sources/codex/codex-rs/tui/src/app.rs:686`, `sources/codex/codex-rs/tui/src/app.rs:1025`, `sources/codex/codex-rs/core/src/tasks/user_shell.rs:274`）。
+Codex 使用 Rust 的 `tracing` crate。TUI 主循环和工具任务会在异常路径上写 `warn!`/`debug!`/`error!`，例如 terminal input stream closed、app-server event stream closed、用户 shell command failed 等（`sources/codex/codex-rs/tui/src/app/startup.rs:1312`, `sources/codex/codex-rs/tui/src/app/startup.rs:1323`, `sources/codex/codex-rs/core/src/tasks/user_shell.rs:321`）。
 
 ```rust
 tracing::info!("Starting thread");
@@ -61,7 +61,7 @@ tracing::error!("Connection failed: {}", error);
 | tracing | core/TUI 内部诊断，主要面向开发者 |
 | rollout/state | 历史回放与 resume 相关记录 |
 
-`EventMsg` 是更重要的可观测性骨架：协议层枚举事件类型（`sources/codex/codex-rs/protocol/src/protocol.rs:1515`），regular turn 直接发出 `TurnStarted`（`sources/codex/codex-rs/core/src/tasks/regular.rs:47`），工具执行由 `ToolEmitter` 发出 begin/end/failure 事件（`sources/codex/codex-rs/core/src/tools/events.rs:151`）。
+`EventMsg` 是更重要的可观测性骨架：协议层枚举事件类型（`sources/codex/codex-rs/protocol/src/protocol.rs:1374`），regular turn 在任务可见后立即发出 `TurnStarted`（`sources/codex/codex-rs/core/src/tasks/regular.rs:51`），工具执行由 `ToolEmitter` 发出 begin/end/failure 事件（`sources/codex/codex-rs/core/src/tools/events.rs:194`）。
 
 ---
 
@@ -69,15 +69,15 @@ tracing::error!("Connection failed: {}", error);
 
 ### 3.1 AppEvent 与 EventMsg
 
-Codex 并不是靠一个单独 `ThreadState` 枚举完成观测，而是把 UI 内部事件、协议事件和工具事件分层：
+Codex 并不是靠一个单独状态枚举完成观测，而是把 UI 内部事件、协议事件和工具事件分层：
 
 | 层 | 源码锚点 | 触发时机 |
-| --- | --- |
-| TUI app event | `sources/codex/codex-rs/tui/src/app_event.rs:105` | UI 组件、后台请求、thread routing 之间的内部消息 |
-| protocol event | `sources/codex/codex-rs/protocol/src/protocol.rs:1515` | core 对 TUI/SDK 暴露的稳定事件 |
-| turn lifecycle | `sources/codex/codex-rs/core/src/tasks/regular.rs:47` | 回合开始 |
-| tool lifecycle | `sources/codex/codex-rs/core/src/tools/events.rs:74` | exec/apply_patch begin/end/failure |
-| timing state | `sources/codex/codex-rs/core/src/turn_timing.rs:43` | TTFT/TTFM 统计 |
+| --- | --- | --- |
+| TUI app event | `sources/codex/codex-rs/tui/src/app_event.rs:289` | UI 组件、后台请求、thread routing 之间的内部消息 |
+| protocol event | `sources/codex/codex-rs/protocol/src/protocol.rs:1374` | core 对 TUI/SDK 暴露的稳定事件 |
+| turn lifecycle | `sources/codex/codex-rs/core/src/tasks/regular.rs:51` | 回合开始 |
+| tool lifecycle | `sources/codex/codex-rs/core/src/tools/events.rs:194` | exec/apply_patch begin/end/failure |
+| timing state | `sources/codex/codex-rs/core/src/turn_timing.rs:44` | TTFT/TTFM 统计 |
 
 ---
 
@@ -87,11 +87,11 @@ Codex 的“可观测性”更接近三条链路：
 
 | 链路 | 源码锚点 | 说明 |
 | --- | --- | --- |
-| 事件流 | `sources/codex/codex-rs/protocol/src/protocol.rs:1515` | TUI/SDK 可消费的 turn/tool/approval/error 事件 |
-| 工具事件 | `sources/codex/codex-rs/core/src/tools/events.rs:151` | 将 exec/apply_patch begin/end/failure 映射成 protocol events |
+| 事件流 | `sources/codex/codex-rs/protocol/src/protocol.rs:1374` | TUI/SDK 可消费的 turn/tool/approval/error 事件 |
+| 工具事件 | `sources/codex/codex-rs/core/src/tools/events.rs:194` | 将 exec/apply_patch begin/end/failure 映射成 protocol events |
 | 反馈诊断 | `sources/codex/codex-rs/feedback/src/feedback_diagnostics.rs:14` | 收集 connectivity diagnostics 供用户反馈附带 |
-| rollout reconstruction | `sources/codex/codex-rs/core/src/session/rollout_reconstruction_tests.rs:1289` | 测试覆盖历史事件重建与 resume 边界 |
-| UI 路由 | `sources/codex/codex-rs/tui/src/app.rs:993` | TUI 主循环集中处理 app event、thread event、terminal event、app-server event |
+| rollout reconstruction | `sources/codex/codex-rs/core/src/session/rollout_reconstruction_tests.rs` | 测试覆盖历史事件重建与 resume 边界 |
+| UI 路由 | `sources/codex/codex-rs/tui/src/app/startup.rs:1238` | TUI 主循环 `select!` 同时处理 app event、active thread event、terminal event、app-server event |
 
 ---
 
@@ -140,11 +140,11 @@ OpenCode 有更完整的可观测性：
 
 | 主题 | 代码锚点 | 说明 |
 | --- | --- | --- |
-| 协议事件枚举 | `sources/codex/codex-rs/protocol/src/protocol.rs:1515` | UI/SDK 消费的主事件集合 |
-| TUI 内部事件 | `sources/codex/codex-rs/tui/src/app_event.rs:105` | UI 组件与 app loop 的内部消息总线 |
-| 主循环 select | `sources/codex/codex-rs/tui/src/app.rs:993` | 同时监听 app event、thread event、terminal event 和 app-server event |
-| 工具事件映射 | `sources/codex/codex-rs/core/src/tools/events.rs:151` | exec/apply_patch 事件发射 |
-| turn timing | `sources/codex/codex-rs/core/src/turn_timing.rs:43` | TTFT/TTFM 统计状态 |
+| 协议事件枚举 | `sources/codex/codex-rs/protocol/src/protocol.rs:1374` | UI/SDK 消费的主事件集合 |
+| TUI 内部事件 | `sources/codex/codex-rs/tui/src/app_event.rs:289` | UI 组件与 app loop 的内部消息总线 |
+| 主循环 select | `sources/codex/codex-rs/tui/src/app/startup.rs:1238` | 同时监听 app event、active thread event、terminal event 和 app-server event |
+| 工具事件映射 | `sources/codex/codex-rs/core/src/tools/events.rs:194` | exec/apply_patch 事件发射 |
+| turn timing | `sources/codex/codex-rs/core/src/turn_timing.rs:44` | TTFT/TTFM 统计状态 |
 | feedback diagnostics | `sources/codex/codex-rs/feedback/src/feedback_diagnostics.rs:14` | 反馈附件诊断结构 |
 
 ---
@@ -161,7 +161,7 @@ Codex 的可观测性相比 OpenCode 较为基础，但不是“没有结构”�
 
 ---
 
-> 关联阅读：[05-state-management.md](./04-state-session-memory.md) 了解线程状态、持久化与回放链路。
+> 关联阅读：[04-state-session-memory.md](./04-state-session-memory.md) 了解线程状态、持久化与回放链路。
 
 ---
 
@@ -171,7 +171,7 @@ Codex 的可观测性相比 OpenCode 较为基础，但不是“没有结构”�
 
 - **`tracing` crate 结构化日志**：Rust 端使用 `tracing` 提供 span/event 层级日志，可接入 OpenTelemetry collector，远优于 `console.log` 型日志。
 - **日志 SQLite 持久化**：事件持久化到数据库而非纯文件，支持时间戳索引查询，长期调试可回溯历史事件。
-- **线程状态追踪内置**：`ThreadState`/`TurnState` 是核心运行时对象，状态变更路径有记录，Thread 生命周期可追踪。
+- **线程状态追踪内置**：`SessionState`/`TurnState` 是核心运行时对象，状态变更路径有记录，Thread 生命周期可追踪。
 
 **风险与改进点**
 

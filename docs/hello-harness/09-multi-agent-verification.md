@@ -25,7 +25,7 @@ title: "多代理与验证隔离对比"
 
 ### Gemini CLI
 
-当前 Gemini CLI 已经不是“无多代理能力”的状态。`sources/gemini-cli/packages/core/src/agents/registry.ts` 负责加载和注册 agent 定义，`subagent-tool.ts` 把 agent 暴露成可调用工具，`local-executor.ts` 负责本地子代理执行，`remote-invocation.ts` 负责远程 A2A 代理调用。也就是说，多代理能力已经进入主运行时，不再只是概念性测试夹具。
+当前 Gemini CLI 已经不是“无多代理能力”的状态。`sources/gemini-cli/packages/core/src/agents/registry.ts` 负责加载和注册 agent 定义，`agents/agent-tool.ts:43` 的 AgentTool 把 agent 暴露成可调用工具，`local-executor.ts` 负责本地子代理执行，`remote-invocation.ts` 负责远程 A2A 代理调用。也就是说，多代理能力已经进入主运行时，不再只是概念性测试夹具。
 
 ### OpenCode
 
@@ -54,19 +54,19 @@ const VerifyPlanExecutionTool =
 
 ### Codex
 
-`consolidation.md` 的 Phase 2 子代理运行条件是四个工程里最严格的验证隔离实现：
+memories Phase 2 的子代理运行条件是四个工程里最严格的验证隔离实现（`codex-rs/memories/write/src/phase2.rs:314-336`）：
 
 - **独立子代理**：Phase 2 生成一个与 Phase 1 独立的子代理
-- **no approvals**：验证阶段不能发起新的审批请求
-- **no network**：验证阶段无网络访问
+- **no approvals**：`approval = ApprovalPolicy::Never`（`:314`），验证阶段不能发起新的审批请求
+- **no network**：workspace-write 沙箱只放行记忆根目录写入、禁用网络（`:333-336`）
 - **local write access only**：只有本地写访问
-- **collab disabled**：禁止再次委派，防止递归
+- **collab / memory tool / apps / plugins disabled**：禁用协作模式、MemoryTool、Apps 与 Plugins（`:315-317`），禁止再次委派，防止递归
 
 这五个约束共同构成了一个真正的验证隔离环境。验证子代理不继承 Phase 1 的上下文（它只看到 Phase 2 prompt 和整合后的 diff），不能修改它之外的资源，也不能把任务再次外包。
 
 ### Gemini CLI
 
-Gemini CLI 有一定程度的验证隔离，但还不到 Codex Phase 2 那样“强约束验证沙箱”的程度。`subagent-tool.ts` + `local-executor.ts` 允许把子任务放进独立 agent context；与此同时，`hookSystem.ts` 的 BeforeModel/AfterModel 也是与主生成路径并行的检查链：
+Gemini CLI 有一定程度的验证隔离，但还不到 Codex Phase 2 那样“强约束验证沙箱”的程度。`agents/agent-tool.ts` + `local-executor.ts` 允许把子任务放进独立 agent context；与此同时，`hookSystem.ts` 的 BeforeModel/AfterModel 也是与主生成路径并行的检查链：
 
 ```typescript
 async fireBeforeModelEvent(llmRequest): Promise<BeforeModelHookResult> {
@@ -106,7 +106,7 @@ Workflow:
 3. Return rollout_summary, rollout_slug, and raw_memory（输出结构化结果）
 ```
 
-NO-OP 门控防止了"全部通过"的偏见（无信号时返回空，而不是强制生成记忆）。Outcome 标签的三值系统（success/partial/uncertain/fail）强制审查者在不确定时承认不确定（而不是默认成功）。Preference evidence 要求引号原文而非摘要，防止事后合理化。这些设计共同提高了自我审查的可信度，但仍然不如独立的外部审查。
+NO-OP 门控防止了"全部通过"的偏见（无信号时返回空，而不是强制生成记忆）。Outcome 标签的四值系统（success/partial/uncertain/fail，`stage_one_system.md:158-161`）强制审查者在不确定时承认不确定（而不是默认成功）。Preference evidence 要求引号原文而非摘要，防止事后合理化。这些设计共同提高了自我审查的可信度，但仍然不如独立的外部审查。
 
 **Gemini CLI**：它没有内建的专用 review agent，但也不只是“完全没有自我审查”。当前可用的路径包括 Hook 检查、循环检测，以及显式委派给子代理追加分析。可信度高低取决于是否真的把任务切给了新的 agent context；如果只是主循环自我反思，确认偏差仍然存在。
 

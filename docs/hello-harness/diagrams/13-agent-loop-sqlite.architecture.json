@@ -13,7 +13,7 @@
     {
       "id": "node1",
       "type": "backend",
-      "label": "SessionTable MessageTable PartTable",
+      "label": "四张 durable 表",
       "pos": [
         45,
         65
@@ -21,12 +21,13 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "session_v2 / session_message / session_pending / session_inbox"
     },
     {
       "id": "node2",
       "type": "backend",
-      "label": "id (PK) id (PK) id (PK)",
+      "label": "session_v2",
       "pos": [
         391,
         65
@@ -34,12 +35,13 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "session 边界：permission、summary_diffs、claim（time_suspended）"
     },
     {
       "id": "node3",
       "type": "backend",
-      "label": "projectid (FK) sessionid (FK) messageid…",
+      "label": "session_message",
       "pos": [
         737,
         65
@@ -47,12 +49,13 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "durable 消息：type、seq 唯一有序、data (JSON)"
     },
     {
       "id": "node4",
       "type": "backend",
-      "label": "title data (JSON) sessionid (FK)",
+      "label": "session_pending",
       "pos": [
         1083,
         65
@@ -60,12 +63,13 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "已 admit 待提升输入：delivery、admitted_seq"
     },
     {
       "id": "node5",
       "type": "security",
-      "label": "permission timecreated data (JSON)",
+      "label": "session_inbox",
       "pos": [
         1429,
         65
@@ -73,12 +77,13 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "inbox 队列：type、payload (JSON)、delivery、enqueued_seq"
     },
     {
       "id": "node6",
       "type": "backend",
-      "label": "timecreated timecreated",
+      "label": "外键",
       "pos": [
         1775,
         65
@@ -86,7 +91,8 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "子表 session_id → session_v2.id（级联删除）"
     }
   ],
   "connections": [
@@ -151,8 +157,8 @@
       "dot": "orange",
       "title": "要点",
       "items": [
-        "首节点：SessionTable MessageTable Par…",
-        "末节点：timecreated timecreated"
+        "首节点：四张 durable 表（session/sql.ts）",
+        "末节点：外键 session_id → session_v2.id（级联删除）"
       ]
     }
   ]

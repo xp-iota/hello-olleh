@@ -85,7 +85,7 @@ Codex CLI 的核心目标不是“再做一个聊天终端”，而是把本地�
 | `codex-rs/cli/src/main.rs` | `cli_main` | 解析 `MultitoolCli`，决定进入哪种子命令 |
 | `codex-rs/cli/src/main.rs` | `run_interactive_tui` | 规范化 prompt、加载认证、进入 TUI |
 | `codex-rs/tui/src/lib.rs` | `run_main` | 组装 config、启动 app-server、准备 UI 环境 |
-| `codex-rs/tui/src/app.rs` | `App::run` | bootstrap、线程创建/恢复、事件主循环 |
+| `codex-rs/tui/src/app.rs` | `App::handle_tui_event` | bootstrap、线程创建/恢复后的事件分发；主循环位于 `tui/src/app/startup.rs`（`select!`） |
 
 ## 5. 分层模型
 
@@ -108,7 +108,7 @@ Codex 的分层非常清晰，可以概括为：
 
 ### 6.1 ThreadManager / CodexThread
 
-`ThreadManager` 是线程生命周期总控，负责新建、恢复、分叉、订阅创建事件，并持有模型、MCP、技能、插件、环境等管理器。真正的线程实例由 `CodexThread::new(...)` 创建（rust-v0.154 中该结构名为 `Codex`、由约 7500 行的 `core/src/codex.rs` 单体承载；v0.162 起更名为 `CodexThread` 并拆分到 `core/src/codex_thread.rs:208` 与 `session/` 模块）。
+`ThreadManager` 是线程生命周期总控，负责新建、恢复、分叉、订阅创建事件，并持有模型、MCP、技能、插件、环境等管理器。真正的线程实例由 `CodexThread` 承载（定义在 `core/src/codex_thread.rs:208`），turn 与事件处理拆分在 `core/src/session/` 模块树（`handlers.rs`、`turn.rs` 等）。
 
 关键函数清单：
 
@@ -136,7 +136,7 @@ Codex 的分层非常清晰，可以概括为：
 
 关键函数清单：
 
-- `codex-rs/core/src/tools/spec_plan.rs`（rust-v0.162 起 spec 生成由该文件承担，取代 rust-v0.154 的 `tools/spec.rs::build_specs_with_discoverable_tools`）
+- `codex-rs/core/src/tools/spec_plan.rs`（可见工具 spec 与 tool registry 计划的构建入口）
 - `codex-rs/core/src/tools/router.rs::ToolRouter::from_parts`（:114）
 - `codex-rs/core/src/tools/router.rs::build_tool_call`（:246）
 - `codex-rs/core/src/tools/router.rs::dispatch_tool_call_with_code_mode_result`（:302）
@@ -144,7 +144,7 @@ Codex 的分层非常清晰，可以概括为：
 
 ### 6.4 MessageProcessor
 
-`app-server` 并不直接耦合 TUI，而是通过 `message_processor.rs` 的 `MessageProcessor` 和 `request_processors/` 目录下的一系列 request processor 统一处理配置、线程、认证、文件、事件订阅等 RPC 请求（rust-v0.154 时集中在单文件 `codex_message_processor.rs`，v0.162 起拆分）。
+`app-server` 并不直接耦合 TUI，而是通过 `message_processor.rs` 的 `MessageProcessor` 和 `request_processors/` 目录下的一系列 request processor 统一处理配置、线程、认证、文件、事件订阅等 RPC 请求。
 
 关键函数清单：
 
@@ -158,7 +158,7 @@ Codex 的分层非常清晰，可以概括为：
 
 ### 7.1 Registry + Strategy
 
-spec 生成（rust-v0.154 的 `build_specs_with_discoverable_tools(...)`，v0.162 起迁移到 `tools/spec_plan.rs`）先产出可见 spec，再根据 `ToolHandlerKind` 注册不同 handler。工具本身通过 handler 策略对象切换，新增工具不需要修改推理主循环。
+spec 生成由 `tools/spec_plan.rs` 承担（`build_tool_router`、`build_core_tool_registry`、`append_source_tools` 等），先产出可见 spec，再根据 `ToolHandlerKind` 注册不同 handler。工具本身通过 handler 策略对象切换，新增工具不需要修改推理主循环。
 
 ### 7.2 Orchestrator
 
@@ -166,7 +166,7 @@ spec 生成（rust-v0.154 的 `build_specs_with_discoverable_tools(...)`，v0.16
 
 ### 7.3 Reactor / Event Loop
 
-`App::run(...)` 用 `tokio::select!` 同时监听 UI 事件、线程事件、app-server 事件和内部 app 事件，是标准的 reactor 风格。
+`codex-rs/tui/src/app/startup.rs` 的主循环用 `tokio::select!` 同时监听 UI 事件、线程事件、app-server 事件和内部 app 事件，是标准的 reactor 风格。
 
 ### 7.4 Adapter
 
@@ -178,7 +178,7 @@ spec 生成（rust-v0.154 的 `build_specs_with_discoverable_tools(...)`，v0.16
 
 - 线程表：`ThreadManagerState` 使用 `Arc<RwLock<HashMap<ThreadId, Arc<CodexThread>>>>`
 - 事件广播：线程创建使用 `broadcast::channel`
-- UI 主循环：`App::run` 中的 `select!`
+- UI 主循环：`tui/src/app/startup.rs` 中的 `select!`
 - 模型长连接：优先 WebSocket，失败回退 HTTPS Responses API
 - 数据持久化：`StateRuntime` 初始化 state db 与 logs db，使用 WAL、`busy_timeout`、增量 vacuum
 
@@ -188,13 +188,13 @@ spec 生成（rust-v0.154 的 `build_specs_with_discoverable_tools(...)`，v0.16
 
 ### 9.1 用户输入解析
 
-CLI 参数在 `cli_main()` 完成第一轮分派；交互模式下 `run_interactive_tui()` 负责把命令行 prompt、image、审批策略、sandbox 策略等转成 TUI 启动参数。真正的会话创建发生在 `App::run()` 里，通过 `app_server.start_thread / resume_thread / fork_thread` 打开主线程。
+CLI 参数在 `cli_main()` 完成第一轮分派；交互模式下 `run_interactive_tui()` 负责把命令行 prompt、image、审批策略、sandbox 策略等转成 TUI 启动参数。真正的会话创建发生在 TUI 启动流程里，通过 app-server session 的 `start_thread()` / `fork_thread()`（`tui/src/app_server_session.rs:842`/`:922`）以及 thread/resume 请求打开主线程。
 
 ### 9.2 Agent 决策链
 
-Prompt 构建和模型调用集中在 `codex-rs/core/src/session/turn.rs`（rust-v0.154 时位于约 7500 行的 `core/src/codex.rs` 单体）。
+Prompt 构建和模型调用集中在 `codex-rs/core/src/session/turn.rs`（`run_turn` 入口在 `session/turn.rs:163`）。
 
-- `load_project_instructions(...)`（`codex-rs/core/src/agents_md.rs:58`；rust-v0.154 时为 `project_doc.rs::get_user_instructions()`）会读取层级 `AGENTS.md`，并受字节预算限制
+- `load_project_instructions(...)`（`codex-rs/core/src/agents_md.rs:58`）会读取层级 `AGENTS.md`，并受字节预算限制
 - `build_prompt(...)`（`session/turn.rs:1562`）组合输入消息、可见工具、base instructions、personality、输出 schema
 - `run_sampling_request(...)`（`session/turn.rs:1603`）构建工具路由、启动 code mode worker、调用 `ModelClientSession::stream(...)`
 
@@ -218,7 +218,7 @@ Prompt 构建和模型调用集中在 `codex-rs/core/src/session/turn.rs`（rust
 
 ### 9.4 结果回传与 UI 更新
 
-模型流中的非工具输出和工具输出最终都会走回线程事件，再由 app-server 订阅机制推给 TUI。`request_processors/thread_lifecycle.rs` 的 `ensure_listener_task_running()`（:225）会为线程建立持续监听，把新事件广播给已订阅连接；`App::run(...)` 的主循环消费这些事件并刷新 `ChatWidget`。
+模型流中的非工具输出和工具输出最终都会走回线程事件，再由 app-server 订阅机制推给 TUI。`request_processors/thread_lifecycle.rs` 的 `ensure_listener_task_running()`（:225）会为线程建立持续监听，把新事件广播给已订阅连接；TUI 主循环消费这些事件并刷新 `ChatWidget`。
 
 ### 9.5 生命周期顺序图
 
@@ -228,13 +228,13 @@ Prompt 构建和模型调用集中在 `codex-rs/core/src/session/turn.rs`（rust
 
 - **组成**：画布 10 个参与方 · 源图共 11 个参与方，其余见正文
 - **关系**：源图 10 条消息 · 画布展示前 5 条主链消息，其余列在要点
-- **要点**：core::Codex 自调用：getuserinstructions + buildprompt · ToolRouter + ToolOrchestrator 自调用：approval + sandbox + execute · 未上画布的调用：buildtoolcall + dispatch
+- **要点**：CodexThread 自调用：get_base_instructions + build_prompt · ToolRouter + ToolOrchestrator 自调用：approval + sandbox + execute · 未上画布的调用：ToolRouter dispatch_tool_call_with_state
 
 ## 10. 工程健壮性专项分析
 
 ### 10.1 错误处理机制
 
-`CodexErr` 定义在 `codex-protocol/src/error.rs:77`（rust-v0.154 时位于 `core/src/error.rs` 并以 `is_retryable()` 区分；v0.162 起为携带 `CodexErrorDetails` 与 `retry_after` 的结构体，可重试性由 `CodexErrorDetails` 变体与流式重试状态机 `core/src/responses_retry.rs` 共同表达）。
+`CodexErr` 定义在 `codex-rs/protocol/src/error.rs:77`，是携带 `CodexErrorDetails` 与 `retry_after` 的结构体；可重试性由 `CodexErrorDetails` 变体与流式重试状态机 `core/src/responses_retry.rs` 共同表达。
 
 关键点：
 
@@ -275,7 +275,7 @@ Prompt 构建和模型调用集中在 `codex-rs/core/src/session/turn.rs`（rust
 通常不需要改 core 主链路。原因是：
 
 - `ToolRouter::build_tool_call(...)` 已能识别 namespaced MCP tool
-- `build_specs_with_discoverable_tools(...)` 会把 MCP tools 纳入注册计划
+- `tools/spec_plan.rs` 的 `append_source_tools(...)`/`build_model_visible_specs(...)` 会把 MCP tools 纳入注册计划
 - `McpHandler` 已是通用处理器
 
 这时主要工作是：
@@ -289,7 +289,7 @@ Prompt 构建和模型调用集中在 `codex-rs/core/src/session/turn.rs`（rust
 需要改这些核心位置：
 
 1. `codex-rs/core/src/tools/handlers/*`
-2. `codex-rs/core/src/tools/spec.rs`
+2. `codex-rs/core/src/tools/spec_plan.rs`
 3. `codex-rs/core/src/tools/router.rs`
 4. 必要时修改协议参数类型所在的 `codex_protocol`
 5. 若涉及新审批/沙箱语义，还要改 `tools/orchestrator.rs` 或对应 runtime
@@ -305,11 +305,11 @@ Prompt 构建和模型调用集中在 `codex-rs/core/src/session/turn.rs`（rust
 
 ### 风险与改进点
 
-- rust-v0.154 的 `core/src/codex.rs` 曾是约 7500 行的单体，v0.162 起已拆分为 `codex_thread.rs` 与 `session/`（`handlers.rs`、`turn.rs` 等）；`tui/src/app.rs` 仍偏大，局部维护成本高。
+- core 侧职责已按 `codex_thread.rs` 与 `session/` 模块树拆分；`tui/src/app.rs` 等文件仍偏大，局部维护成本高。
 - app-server 与 core 间的事件类型和状态机较多，新人上手成本不低。
 - 工具/审批/权限相关 feature flag 很强大，但组合复杂，测试矩阵会快速膨胀。
 - “内建工具”和“MCP 工具”的扩展路径并不完全一致，文档仍可再统一。
 
 ### 综合判断
 
-这是一个工程化程度很高的本地代理系统。其优势不在单个算法点，而在把模型流、工具系统、审批、安全和 UI 事件流收敛成了一个一致的运行时。真正的复杂度集中在 `core` 和 `tui/app-server` 交界处；如果后续要继续扩展，最值得优先治理的是 `tui/src/app.rs` 等剩余超大文件与权限组合测试覆盖（core 侧约 7500 行的 `codex.rs` 拆分已在 rust-v0.162 完成）。
+这是一个工程化程度很高的本地代理系统。其优势不在单个算法点，而在把模型流、工具系统、审批、安全和 UI 事件流收敛成了一个一致的运行时。真正的复杂度集中在 `core` 和 `tui/app-server` 交界处；如果后续要继续扩展，最值得优先治理的是 `tui/src/app.rs` 等超大文件与权限组合测试覆盖。

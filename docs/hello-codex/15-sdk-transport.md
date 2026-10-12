@@ -63,7 +63,7 @@ Codex 里至少有两层“传输”：
 
 ## 3. app-server protocol 才是多宿主复用的稳定面
 
-Codex 之所以能同时服务 TUI、`exec`、SDK 和 remote client，关键不在于每层都写了一遍逻辑，而在于 `app-server-protocol/src/protocol/v2/`（目录，rust-v0.162 起由单文件 `v2.rs` 拆为 `v2/` 多文件，`thread.rs` / `item.rs` 等）已经把核心对象固定下来：
+Codex 之所以能同时服务 TUI、`exec`、SDK 和 remote client，关键不在于每层都写了一遍逻辑，而在于 `app-server-protocol/src/protocol/v2/`（目录，`thread.rs` / `item.rs` 等多个协议模块）已经把核心对象固定下来：
 
 - `Thread`
 - `Turn`
@@ -108,13 +108,11 @@ SDK 不是第二实现，而是事件协议的消费者。
 
 主向导对应章节：`分发、SDK 与 shell 层`
 
-npm 层最核心的文件是 `codex-cli/bin/codex.js`。它用 `PLATFORM_PACKAGE_BY_TARGET` 把 target triple 映射到平台包名，再根据 `process.platform` / `process.arch` 选出当前二进制，必要时从已安装的平台包或本地 `vendor` 目录定位 `codex` 可执行文件（`sources/codex/codex-cli/bin/codex.js:15-21`; `sources/codex/codex-cli/bin/codex.js:27-118`）。后续 `spawn(binaryPath, process.argv.slice(2), { stdio: "inherit", env })` 和 `forwardSignal()` 只是把 Node 包装层变成一个忠实的过程代理（`sources/codex/codex-cli/bin/codex.js:168-204`）。换句话说，这一层做的是分发与进程桥接，不做业务决策。
+npm 层最核心的文件是 `codex-cli/bin/codex.js`。它用 `PLATFORM_PACKAGE_BY_TARGET` 把 target triple 映射到平台包名，再根据 `process.platform` / `process.arch` 选出当前二进制，必要时从已安装的平台包或本地 `vendor` 目录定位 `codex` 可执行文件（`sources/codex/codex-cli/bin/codex.js:16`; `sources/codex/codex-cli/bin/codex.js:74`）。后续 `spawn(binaryPath, process.argv.slice(2), { stdio: "inherit", env })` 和 `forwardSignal()` 只是把 Node 包装层变成一个忠实的过程代理（`sources/codex/codex-cli/bin/codex.js:241`; `sources/codex/codex-cli/bin/codex.js:259`）。换句话说，这一层做的是分发与进程桥接，不做业务决策。
 
-TypeScript SDK 也是类似思路。`sdk/typescript/src/codex.ts` 的 `Codex` 类只在构造时创建 `CodexExec`，然后让 `startThread()` / `resumeThread()` 返回 `Thread` 包装对象（`sources/codex/sdk/typescript/src/codex.ts:11-37`）。真正的调用细节在 `sdk/typescript/src/exec.ts` 的 `CodexExec.run()`：它把 JS 侧参数翻译成 `exec --experimental-json` 命令行，写 stdin，逐行读取 stdout，并在子进程非零退出时抛出错误（`sources/codex/sdk/typescript/src/exec.ts:72-226`）。
+TypeScript SDK 也是类似思路。`sdk/typescript/src/codex.ts` 的 `Codex` 类只在构造时创建 `CodexExec`，然后让 `startThread()` / `resumeThread()` 返回 `Thread` 包装对象（`sources/codex/sdk/typescript/src/codex.ts:11-39`）。真正的调用细节在 `sdk/typescript/src/exec.ts` 的 `CodexExec.run()`：它把 JS 侧参数翻译成 `exec --experimental-json` 命令行，写 stdin，逐行读取 stdout，并在子进程非零退出时抛出错误（`sources/codex/sdk/typescript/src/exec.ts:68`; `sources/codex/sdk/typescript/src/exec.ts:95`）。
 
-`sdk/typescript/src/thread.ts` 再在此基础上把“线程”暴露成更顺手的对象接口。`Thread.runStreamedInternal()` 先整理输入，再把 thread id、working directory、sandbox、approval policy、web search 等选项传给 `CodexExec.run()`；当收到 `thread.started` 事件时，它会把 `_id` 更新成真正的线程 id（`sources/codex/sdk/typescript/src/thread.ts:70-112`）。`Thread.run()` 则继续把事件流折叠成 `items`、`finalResponse` 和 `usage` 三元组（`sources/codex/sdk/typescript/src/thread.ts:115-138`）。所以 SDK 其实是在消费 app/CLI 已经存在的线程事件协议。
-
-`shell-tool-mcp` 展示的是另一种包装方式。`src/index.ts` 的 `main()` 先解析平台，再调用 `resolveBashPath()` 输出当前应使用的 Bash 路径（`sources/codex/codex-rs/shell-command/src/lib.rs:1`）。`src/bashSelection.ts` 里的 `selectLinuxBash()`、`selectDarwinBash()`、`resolveBashPath()` 则把 OS 识别、版本偏好和 fallback 路径明确编码出来（`sources/codex/codex-rs/shell-command/src/shell_detect.rs:1`）。它和主 CLI 一样，也是把运行时能力打包成可分发、可在外部系统消费的接口，而不是再造一套执行引擎。
+`sdk/typescript/src/thread.ts` 再在此基础上把“线程”暴露成更顺手的对象接口。`Thread.runStreamedInternal()` 先整理输入，再把 thread id、working directory、sandbox、approval policy、web search 等选项传给 `CodexExec.run()`；当收到 `thread.started` 事件时，它会把 `_id` 更新成真正的线程 id（`sources/codex/sdk/typescript/src/thread.ts:70-112`）。`Thread.run()` 则继续把事件流折叠成 `items`、`finalResponse` 和 `usage` 三元组（`sources/codex/sdk/typescript/src/thread.ts:119-138`）。所以 SDK 其实是在消费 app/CLI 已经存在的线程事件协议。
 
 把这三层连起来看，Codex 的外部表面有一个很统一的哲学：核心逻辑留在 Rust；Node/TypeScript 只做宿主对接、参数编译和事件解码。这样做的好处是所有宿主都共享同一条线程协议与行为语义，不会因为包装层不同而分叉实现。
 
@@ -128,7 +126,7 @@ TypeScript SDK 也是类似思路。`sdk/typescript/src/codex.ts` 的 `Codex` �
 | `ModelClient::new_session()` | `codex-rs/core/src/client.rs:609` | 创建会话级 API 状态：认证、provider、路由缓存 |
 | `stream_responses_websocket()` | `codex-rs/core/src/client.rs:1853` | Responses WebSocket 传输路径 |
 | `stream_responses_api()` | `codex-rs/core/src/client.rs:1662` | HTTPS Responses API（SSE）传输路径 |
-| `ResponsesStreamRetryState` | `codex-rs/core/src/responses_retry.rs:32` | 流式响应重试状态机（rust-v0.162 起流式重试收敛到 `responses_retry.rs`） |
+| `ResponsesStreamRetryState` | `codex-rs/core/src/responses_retry.rs:32` | 流式响应重试状态机 |
 | `handle_unauthorized()` | `codex-rs/core/src/client.rs:2640` | 401 触发凭证恢复 |
 
 ---

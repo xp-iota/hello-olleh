@@ -3,7 +3,7 @@ title: "Prompt 系统：system prompt 模板与 instruction 来源谱系"
 ---
 # Prompt 系统：system prompt 模板与 instruction 来源谱系
 
-> 基于 `sources/opencode/packages/core/src/session/system-prompt.ts`、`session/instructions.ts` 与 `specs/v2/session.md` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/packages/core/src/session/system-prompt.ts`、`session/instructions.ts` 与 `specs/v2/session.md` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 

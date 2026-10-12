@@ -164,11 +164,11 @@ Gemini CLI 的一个关键特点是：工作区 trust 不是外围功能，而�
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
 | `Config` class | `sources/gemini-cli/packages/core/src/config/config.ts` | 组合根兼服务容器：装配所有核心依赖，是运行时唯一真相源 |
-| `Config.initialize()` | `sources/gemini-cli/packages/core/src/config/config.ts:1289` | 装配入口：创建 ToolRegistry、MCP servers、GeminiClient、SkillManager |
-| `Config.getSettings()` | `config.ts` | 读取合并后配置，按 global → project → 环境变量 → CLI flag 优先级返回 |
-| `loadDotEnv()` | `sources/gemini-cli/packages/core/src/config/` | 加载 `.gemini/.env`，注入环境变量到进程 |
-| `Config.getWorkspaceTrustPolicy()` | `config.ts` | 返回当前工作区信任等级，影响工具权限与 sandbox 策略 |
-| `Storage.initialize()` | `sources/gemini-cli/packages/core/src/config/storage.ts` | 计算全局/项目级持久化根目录，确保目录存在 |
+| `Config.initialize()` | `sources/gemini-cli/packages/core/src/config/config.ts:1444` | 装配入口：创建 ToolRegistry、MCP servers、GeminiClient、SkillManager |
+| `Config.getMcpServers()` | `sources/gemini-cli/packages/core/src/config/config.ts:2488` | 读取 settings 文件合并后的 MCP server 配置 |
+| `findEnvFile()` | `sources/gemini-cli/packages/cli/src/config/settings.ts:561` | 定位并加载 `.gemini/.env` / 项目 `.env`，注入环境变量到进程 |
+| `Config.isTrustedFolder()` | `sources/gemini-cli/packages/core/src/config/config.ts:3181` | 返回当前工作区是否被信任，影响工具权限与 sandbox 策略 |
+| `Storage.initialize()` | `sources/gemini-cli/packages/core/src/config/storage.ts:277` | 计算全局/项目级持久化根目录，确保目录存在 |
 
 ---
 

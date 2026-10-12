@@ -3,7 +3,7 @@ title: "项目初始化报告：仓库总览与阅读入口"
 ---
 # 项目初始化报告：仓库总览与阅读入口
 
-> 基于 `sources/opencode/` 中的 OpenCode `v2.0.2` 源码校对。本文是首次进入仓库时的总览报告。
+> 基于 `sources/opencode/` 中的 OpenCode `v2.0.27` 源码校对。本文是首次进入仓库时的总览报告。
 
 **目录**
 
@@ -19,17 +19,17 @@ title: "项目初始化报告：仓库总览与阅读入口"
 
 | 项 | 值 |
 | --- | --- |
-| 包名 / 版本 | `opencode` / `2.0.2`（private monorepo 根） |
+| 包名 / 版本 | `opencode` / `2.0.27`（private monorepo 根） |
 | 包管理 | `bun@1.4.2`，`bunfig.toml` + turbo（`turbo.json`） |
 | 运行时 | Bun（CLI shebang 为 `#!/usr/bin/env bun`），内核 Effect-ts |
 | 基础设施 | SST（`sst.config.ts`）、Nix（`flake.nix`）、Bazel 不涉及 |
-| 多语言 | 30+ 语言 README（`README.<locale>.md`） |
+| 多语言 | 20+ 语言 README（`README.<locale>.md`） |
 
 ## 2. 顶层目录地图
 
 | 目录 | 内容 |
 | --- | --- |
-| `packages/` | 30+ 子包：schema、protocol、core、server、plugin、client、sdk、cli、tui、app、desktop、web、ai、codemode、session-ui、effect-drizzle-sqlite、httpapi-codegen、http-recorder、simulation、stats、console、enterprise、containers、storybook、theme、ui、util 等 |
+| `packages/` | 36 个子包：schema、protocol、core、server、plugin、client、sdk、cli、tui、app、desktop、web、ai、codemode、session-ui、effect-drizzle-sqlite、httpapi-codegen、http-recorder、simulation、stats、console、enterprise、containers、storybook、theme、ui、util，以及 function、gui-extensions、identity、latex、merman、plugin-browser、posts、script 等 |
 | `specs/v2/` | v2 跨包语义契约与决策记录（本目录分析的上游权威来源） |
 | `services/` | 部署形态（www 等） |
 | `sdks/` | 分发型 SDK |

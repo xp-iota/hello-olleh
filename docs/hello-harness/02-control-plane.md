@@ -29,16 +29,16 @@ if (overrideSystemPrompt) {
 
 ### Codex
 
-Codex 的 System Prompt 完全由 Markdown 模板文件承载，这是一个根本性的设计差异。`sources/codex/codex-rs/protocol/src/prompts/base_instructions/default.md:1-275` 是主规范，275 行全部是可读的结构化文本。协作模式通过独立目录（`collaboration_mode/pair_programming.md`、`plan.md`、`execute.md`）分类管理，压缩 prompt 也有独立文件（`compact/prompt.md`）。
+Codex 的 System Prompt 完全由 Markdown 模板文件承载，这是一个根本性的设计差异。`sources/codex/codex-rs/protocol/src/prompts/base_instructions/default.md:1-275` 是主规范，275 行全部是可读的结构化文本。协作模式通过独立 crate 管理（`codex-rs/collaboration-mode-templates/templates/` 下的 `default.md`、`plan.md`），压缩 prompt 也有独立文件（`codex-rs/prompts/templates/compact/prompt.md`）。
 
 这个架构的含义是：行为规则是可版本化的代码仓库文件，任何 diff 都能被代码审查过程捕捉。工程师不需要懂 TypeScript 就能修改 Agent 行为，也不需要重新编译就能看到变更效果。代价是：没有类型检查来保证 prompt 格式的合法性。
 
 ### Gemini CLI
 
-Gemini CLI 的 `getCoreSystemPrompt()`（`sources/gemini-cli/packages/core/src/prompts/promptProvider.ts:38-265`）代表了第三种路线：prompt 作为函数组合。每个维度（preamble、coreMandates、hookContext、planningWorkflow 等）都是独立的 snippet 函数，最终结果是所有 snippet 的拼接：
+Gemini CLI 的 `getCoreSystemPrompt()`（定义在 `sources/gemini-cli/packages/core/src/prompts/snippets.ts:136`，由 `sources/gemini-cli/packages/core/src/prompts/promptProvider.ts:259-262` 组装调用）代表了第三种路线：prompt 作为函数组合。每个维度（preamble、coreMandates、hookContext、planningWorkflow 等）都是独立的 snippet 函数，最终结果是所有 snippet 的拼接：
 
 ```typescript
-// snippets.ts:123-150
+// snippets.ts:136-166
 export function getCoreSystemPrompt(options: SystemPromptOptions): string {
   return `
 ${renderPreamble(options.preamble)}
@@ -104,19 +104,11 @@ Codex 把 AGENTS.md 的语义直接写进了 Agent 行为规范（`sources/codex
 
 ### Gemini CLI
 
-Gemini CLI 的 GEMINI.md 体系通过 `memory.ts` 的 `HierarchicalMemory` 接口（global / extension / project 三层）组织。上下文文件的发现通过 `getAllGeminiMdFilenames()`（`promptProvider.ts:73`）触发，结果被注入 System Prompt 的 hookContext 部分。Skill 渲染在 `snippets.ts:107-115` 中进行，与记忆加载是解耦的两条路径。
+Gemini CLI 的 GEMINI.md 体系通过 `memory.ts` 的 `HierarchicalMemory` 接口（global / extension / project 三层）组织。上下文文件的发现通过 `getAllGeminiMdFilenames()`（`promptProvider.ts:83` 调用）触发，结果被注入 System Prompt 的 hookContext 部分。Skill 渲染在 `snippets.ts:314` 的 `renderAgentSkills()` 中进行（在 `getCoreSystemPrompt()` 的 `:144` 处拼接），与记忆加载是解耦的两条路径。
 
 ### OpenCode
 
-OpenCode 的 Skill 系统（`sources/opencode/packages/core/src/plugin/skill.ts`）使用三种 glob 模式：
-
-```typescript
-const EXTERNAL_SKILL_PATTERN = "skills/**/SKILL.md"
-const OPENCODE_SKILL_PATTERN = "{skill,skills}/**/SKILL.md"
-const SKILL_PATTERN = "**/SKILL.md"
-```
-
-这允许 Skill 文件存放在多种约定路径下，并支持从远程 URL 拉取（`skill/index.ts:126-176` 的 `load()` 方法）。这是四个工程里唯一支持远程 Skill 拉取的实现，意味着 Skill 库可以和代码库分离存储和版本化。
+OpenCode 的 Skill 系统支持多种发现路径：`sources/opencode/packages/core/src/config/plugin/skill.ts:121` 用 `{*.md,**/SKILL.md}` glob 扫描目录源，`skill/discovery.ts` 的 `pull()` 从 URL 源拉取 Skill 库（基于 `index.json` 清单，带版本文件 `.opencode-version` 与 staging/backup 原子替换），兼容层 `config/plugin/compatibility.ts:47` 还会扫描 CLAUDE/AGENTS 兼容根目录下的 `skills/` 目录。这是四个工程里唯一支持远程 Skill 拉取的实现，意味着 Skill 库可以和代码库分离存储和版本化。
 
 ---
 
@@ -144,15 +136,15 @@ Gemini CLI 的覆盖通过 Snippet 函数的条件渲染实现：`planningWorkfl
 
 ### OpenCode
 
-OpenCode 的 Permission 规则通过 `merge()` 函数叠加（`permission/index.ts:292-294`）：
+OpenCode 的 Permission 规则通过 `merge()` 函数叠加（`permission.ts:99-101`）：
 
 ```typescript
-export function merge(...rulesets: Ruleset[]): Ruleset {
+export function merge(...rulesets: Permission.Ruleset[]): Permission.Ruleset {
   return rulesets.flat()
 }
 ```
 
-规则集的平铺意味着后来的规则不覆盖早先的，而是并列存在，由 `disabled()` 函数的逻辑决定最终效果。这比"后加载优先"的 Claude Code 更复杂，但也更灵活——你可以组合多个规则集而不担心它们相互覆盖。
+规则集的平铺意味着规则不互相覆盖，而是并列存在，最终效果由 `evaluate()`（`permission.ts:87-97`）对 action + resource 做通配符匹配、取最后一条命中规则决定，未命中时默认 `ask`。这比"后加载优先"的 Claude Code 更复杂，但也更灵活——你可以组合多个规则集而不担心它们相互覆盖。
 
 ---
 
@@ -162,7 +154,7 @@ export function merge(...rulesets: Ruleset[]): Ruleset {
 
 **Claude Code** 的 `overrideSystemPrompt` 直接替换所有其他内容（`systemPrompt.ts:56-57`），这表明系统设计者清楚地知道某些情况下需要完全重置控制信号，而不是叠加修补。Coordinator 模式使用专用 prompt（`systemPrompt.ts:67-75`），而非在默认 prompt 上打补丁，也表现出相同的工程意识。
 
-**Codex** 的行为规范（`default.md:131-144`）里的 Validating 章节：
+**Codex** 的行为规范（`default.md:149-152`）里的 Validating 章节：
 
 ```markdown
 ## Validating your work
@@ -171,16 +163,18 @@ If the codebase has tests or the ability to build or run, consider using them to
 
 这不是在描述 Claude 的"个性"，而是在规定 Agent 在任务完成后必须执行的检查流程。这是控制平面视角的典型写法。
 
-**Gemini CLI** 的 `snippets.ts:188-191` 里有一处不寻常的工程注释：
+**Gemini CLI** 的 `snippets.ts:209-212` 里有一处不寻常的工程注释：
 
 ```typescript
-// ⚠️ IMPORTANT: the Context Efficiency changes strike a delicate balance...
-// You must run the major benchmarks, such as SWEBench, prior to committing any changes...
+// ⚠️ IMPORTANT: the Context Efficiency changes strike a delicate balance that encourages
+// the agent to minimize response sizes while also taking care to avoid extra turns. You
+// must run the major benchmarks, such as SWEBench, prior to committing any changes to
+// the Context Efficiency section to avoid regressing this behavior.
 ```
 
 这条注释的存在说明：这段 Prompt 代码的设计者不认为它是文案，而是认为它是影响基准测试分数的工程代码，修改之前需要先跑测试。这是把 Prompt 当控制平面的最直接体现。
 
-**OpenCode** 的 `Permission.Action`（`permission/index.ts:22-25`）把权限决策建模为一个强类型枚举（allow/deny/ask），而非一段自然语言描述。这意味着权限控制的粒度是机械执行的，不依赖 Agent 对自然语言规则的理解。这是控制平面设计而非人格装饰的最纯粹形式。
+**OpenCode** 的 `Permission.Effect`（`packages/schema/src/permission.ts:56`，Effect Schema 的 `Schema.Literals(["allow", "deny", "ask"])`）把权限决策建模为一个强类型枚举，而非一段自然语言描述。这意味着权限控制的粒度是机械执行的，不依赖 Agent 对自然语言规则的理解。这是控制平面设计而非人格装饰的最纯粹形式。
 
 ---
 

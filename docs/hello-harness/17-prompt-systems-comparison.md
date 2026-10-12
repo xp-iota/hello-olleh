@@ -10,7 +10,7 @@ title: "Prompt 系统横向对比"
 - `docs/hello-claude-code/11-prompt-system.md`
 - `docs/hello-codex/11-prompt-system.md`
 - `docs/hello-gemini-cli/11-prompt-system.md`
-- `docs/hello-opencode/04-context-and-state.md`
+- `docs/hello-opencode/04-state-session-memory.md`, `11-prompt-system.md`
 
 ## 1. 一句话结论
 
@@ -19,17 +19,17 @@ title: "Prompt 系统横向对比"
 | Claude Code | Prompt 是产品人格、工具协议、缓存稳定性和 agent 能力的核心资产 |
 | Codex | Prompt 是 runtime 输入编译结果，重点在 AGENTS.md、工具声明和 turn context |
 | Gemini CLI | PromptProvider 负责片段组合，现代/旧模型、技能、计划模式按运行时状态切换 |
-| OpenCode | Prompt 阶段先生成 durable user message，文件、agent、resource 会被编译成 part |
+| OpenCode | Prompt 阶段先生成 durable user message（`SessionPrompt.prepare`），文件、agent、resource 附件在持久化前编译 |
 
 ## 2. 注入面矩阵
 
 | 注入面 | Claude | Codex | Gemini | OpenCode |
 | --- | --- | --- | --- | --- |
-| System prompt | 静态+动态边界，强 cache 意识 | build prompt 时合成 | PromptProvider 片段组合 | LLM.stream 前组装 |
-| 项目指令 | CLAUDE.md/user context | AGENTS.md | GEMINI.md/settings | `.opencode`/command/prompt |
+| System prompt | 静态+动态边界，强 cache 意识 | build prompt 时合成 | PromptProvider 片段组合 | `llm.stream` 前组装（`session/system-prompt.ts` + `model-request.ts`） |
+| 项目指令 | CLAUDE.md/user context | AGENTS.md | GEMINI.md/settings | `.opencode`/AGENTS.md/`instructions.ts` |
 | 工具 prompt | 工具本身携带微 prompt | tool spec 描述 | tool declaration | tool schema + system |
 | Skill | Markdown/command 注入 | skills dependency | discover then activate | skill/config command |
-| 文件上下文 | 工具读取或 user context | thread/context manager | config/tool 读取 | prompt 阶段编译为 part |
+| 文件上下文 | 工具读取或 user context | thread/context manager | config/tool 读取 | `SessionPrompt.prepare` 阶段物化为 durable message 附件 |
 
 ## 3. 关键差异
 
@@ -39,10 +39,10 @@ Claude Code 的文档最需要保留细节，因为它把 prompt 当成产品行
 
 | 项目 | Prompt 构造 / 注入点 | 项目指令 | 工具 / Skill 注入 |
 | --- | --- | --- | --- |
-| Claude Code | `sources/claude-code/src/constants/prompts.ts`, `sources/claude-code/src/query.ts:365` | `sources/claude-code/src/context.ts` | `sources/claude-code/src/tools/AgentTool/built-in/exploreAgent.ts`, `sources/claude-code/src/skills/loadSkillsDir.ts` |
-| Codex | `sources/codex/codex-rs/core/src/session/turn.rs`, `sources/codex/codex-rs/core/src/client.rs` | `sources/codex/codex-rs/core/src/agents_md.rs` | `sources/codex/codex-rs/tools/src/tool_spec.rs:17`, `sources/codex/codex-rs/core/src/compact.rs` |
+| Claude Code | `sources/claude-code/src/constants/prompts.ts`, `sources/claude-code/src/query.ts:449` | `sources/claude-code/src/context.ts` | `sources/claude-code/src/tools/AgentTool/built-in/exploreAgent.ts`, `sources/claude-code/src/skills/loadSkillsDir.ts` |
+| Codex | `sources/codex/codex-rs/core/src/session/turn.rs`, `sources/codex/codex-rs/core/src/client.rs` | `sources/codex/codex-rs/core/src/agents_md.rs` | `sources/codex/codex-rs/tools/src/tool_spec.rs:21`, `sources/codex/codex-rs/core/src/compact.rs` |
 | Gemini CLI | `sources/gemini-cli/packages/core/src/core/prompts.ts`, `sources/gemini-cli/packages/core/src/prompts/promptProvider.ts` | `sources/gemini-cli/packages/core/src/prompts/snippets.ts` | `sources/gemini-cli/packages/core/src/tools/activate-skill.ts`, `sources/gemini-cli/packages/core/src/tools/tool-registry.ts:635` |
-| OpenCode | `sources/opencode/packages/core/src/session/prompt.ts`, `sources/opencode/packages/core/src/session/runner/step.ts` | `sources/opencode/packages/core/src/session/prompt.ts` | `sources/opencode/packages/core/src/session/prompt.ts`, `sources/opencode/packages/core/src/config/plugin/command.ts` |
+| OpenCode | `sources/opencode/packages/core/src/session/prompt.ts:29`, `sources/opencode/packages/core/src/session/model-request.ts` | `sources/opencode/packages/core/src/session/instructions.ts`, `sources/opencode/packages/core/src/config/plugin/command.ts` | `sources/opencode/packages/core/src/session/system-prompt.ts`, `sources/opencode/packages/core/src/session/runner/prompt/system.txt` |
 
 ## 5. 建议统一章节结构
 
@@ -85,7 +85,7 @@ Prompt 系统不是“字符串模板”问题，而是每个工具的前馈控�
 | Claude Code | `queryLoop()` / `queryModel()` 中组装后的 `messages + system + tools` | `CLAUDE.md`、memory、skill、tool prompt、permission mode、API prefix | prompt cache、ToolSearch/deferred tools、tool availability、stop hook、compact |
 | Codex | `Prompt { input, tools, base_instructions, parallel_tool_calls }` | `AGENTS.md`、turn input、history、skills、MCP tools | Responses/WebSocket request、tool parallelism、approval prompt |
 | Gemini CLI | `PromptProvider` 片段 + `GeminiClient` 请求上下文 | `GEMINI.md`、settings、skills list、planning mode、tools | `sendMessageStream()`、Scheduler、loop detection |
-| OpenCode | durable user message + `LLM.stream()` 编译后的 system/tools/messages | command prompt、attachments、agent prompt、instruction stack、history projection | `streamText()`、tool execution、part 写回、compaction |
+| OpenCode | durable user message + `llm.stream()` 编译后的 system/tools/messages | command prompt、attachments、agent prompt、instruction stack、history projection | `llm.stream()`（`@opencode/ai`）、fiber tool execution、durable 结算、compaction |
 
 如果章节只讲“项目指令文件怎么读”，但没有追到最终模型请求，就仍然只是配置分析，不是 Prompt 系统分析。
 

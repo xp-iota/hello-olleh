@@ -3,7 +3,7 @@ title: "LSP 集成：无内建集成的边界说明"
 ---
 # LSP 集成：无内建集成的边界说明
 
-> 基于 `sources/nanobot/` 全树检索校对（nanobot `v0.3.0`）。
+> 基于 `sources/nanobot/` 全树检索校对（nanobot `v0.3.5`）。
 
 **目录**
 
@@ -16,7 +16,7 @@ title: "LSP 集成：无内建集成的边界说明"
 
 ## 1. 结论
 
-nanobot `v0.3.0` **没有 LSP 集成**：代码树中没有语言服务器客户端、没有 `lsp` 模块，代码语义理解不走 LSP。这与 Claude Code / Gemini CLI（有 IDE/LSP 周边）和 OpenCode v2（保留 `lsp.updated` 事件形状）形成对照。
+nanobot `v0.3.5` **没有 LSP 集成**：代码树中没有语言服务器客户端、没有 `lsp` 模块，代码语义理解不走 LSP。这与 Claude Code / Gemini CLI（有 IDE/LSP 周边）和 OpenCode v2（保留 `lsp.updated` 事件形状）形成对照。
 
 ## 2. 为什么可以没有
 

@@ -3,7 +3,7 @@ title: "架构全景：多宿主外壳、Core 组合根与 Agent 执行闭环"
 ---
 # 架构全景：多宿主外壳、Core 组合根与 Agent 执行闭环
 
-> 基于 `gemini-cli` `v0.47.0` 源码校对。本文重点核对 `packages/cli`、`packages/core`、`packages/sdk`、`packages/a2a-server` 与 `packages/vscode-ide-companion` 的真实调用关系，而不是沿用其它文档里的抽象名称。
+> 基于 `gemini-cli` `v0.63.0` 源码校对。本文重点核对 `packages/cli`、`packages/core`、`packages/sdk`、`packages/a2a-server` 与 `packages/vscode-ide-companion` 的真实调用关系，而不是沿用其它文档里的抽象名称。
 
 **目录**
 
@@ -86,7 +86,7 @@ Gemini CLI 很容易被误读成“CLI 调 `core`，`core` 再起个服务”。
 
 ### 4.1 `Config`：组合根，同时也是运行时上下文
 
-`Config` 定义在 `sources/gemini-cli/packages/core/src/config/config.ts:682`，它不是普通配置对象，而是整个 runtime 的组合根。更关键的是，它直接实现了 `AgentLoopContext`，所以它既负责装配，又直接作为执行上下文被下游复用。
+`Config` 定义在 `sources/gemini-cli/packages/core/src/config/config.ts:757`，它不是普通配置对象，而是整个 runtime 的组合根。更关键的是，它直接实现了 `AgentLoopContext`，所以它既负责装配，又直接作为执行上下文被下游复用。
 
 可以把它分成两个阶段理解：
 
@@ -103,9 +103,9 @@ Gemini CLI 很容易被误读成“CLI 调 `core`，`core` 再起个服务”。
 
 | 抽象 | 文件 | 职责 |
 | --- | --- | --- |
-| `GeminiClient` | `sources/gemini-cli/packages/core/src/core/client.ts:95` | 会话级控制器，负责系统提示词、模型路由、IDE 上下文、压缩、循环检测、hook、工具回注 |
-| `Turn` | `sources/gemini-cli/packages/core/src/core/turn.ts:238` | 单轮解释器，把模型流转换成 `Content` / `Thought` / `ToolCallRequest` / `Finished` 等事件 |
-| `GeminiChat` | `sources/gemini-cli/packages/core/src/core/geminiChat.ts:249` | 最贴近模型 API 的聊天适配层，维护 history、tool declarations、重试与录制 |
+| `GeminiClient` | `sources/gemini-cli/packages/core/src/core/client.ts:93` | 会话级控制器，负责系统提示词、模型路由、IDE 上下文、压缩、循环检测、hook、工具回注 |
+| `Turn` | `sources/gemini-cli/packages/core/src/core/turn.ts:254` | 单轮解释器，把模型流转换成 `Content` / `Thought` / `ToolCallRequest` / `Finished` 等事件 |
+| `GeminiChat` | `sources/gemini-cli/packages/core/src/core/geminiChat.ts:372` | 最贴近模型 API 的聊天适配层，维护 history、tool declarations、重试与录制 |
 
 理解这条栈时要特别区分两个层次：
 
@@ -120,9 +120,9 @@ Gemini CLI 很容易被误读成“CLI 调 `core`，`core` 再起个服务”。
 
 | 抽象 | 文件 | 职责 |
 | --- | --- | --- |
-| `Scheduler` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:94` | 批量调度工具请求，管理状态、队列与执行顺序 |
+| `Scheduler` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:115` | 批量调度工具请求，管理状态、队列与执行顺序 |
 | `MessageBus` | `sources/gemini-cli/packages/core/src/confirmation-bus/message-bus.ts:15` | 带 request-response 语义的事件总线，用于审批、确认与 UI 同步 |
-| `PolicyEngine` | `sources/gemini-cli/packages/core/src/policy/policy-engine.ts:191` | 根据 approval mode、规则、safety checker 决定 `allow/deny/ask_user` |
+| `PolicyEngine` | `sources/gemini-cli/packages/core/src/policy/policy-engine.ts:242` | 根据 approval mode、规则、safety checker 决定 `allow/deny/ask_user` |
 | `ToolRegistry` | `sources/gemini-cli/packages/core/src/tools/tool-registry.ts` | 提供工具 schema 与执行对象，统一承接内建工具、发现式工具、MCP 工具 |
 
 这里还有一个很关键的设计点：`MessageBus` 会在发布 `TOOL_CONFIRMATION_REQUEST` 时先询问 `PolicyEngine`。也就是说，UI 看到的“确认弹窗”并不是默认存在的，它只在策略结果为 `ASK_USER` 时才成为用户交互。
@@ -133,10 +133,10 @@ Gemini CLI 很容易被误读成“CLI 调 `core`，`core` 再起个服务”。
 
 | 系统 | 文件 | 真正职责 |
 | --- | --- | --- |
-| `PromptProvider` | `sources/gemini-cli/packages/core/src/prompts/promptProvider.ts:38` | 生成核心 system prompt；会把 approval mode、skills、agents、plan mode、git 状态等拼进去 |
+| `PromptProvider` | `sources/gemini-cli/packages/core/src/prompts/promptProvider.ts:43` | 生成核心 system prompt；会把 approval mode、skills、agents、plan mode、git 状态等拼进去 |
 | `PromptRegistry` | `sources/gemini-cli/packages/core/src/prompts/prompt-registry.ts:10` | 只保存 MCP 发现到的 prompts，不负责主 system prompt |
 | `ResourceRegistry` | `sources/gemini-cli/packages/core/src/resources/resource-registry.ts:22` | 跟踪 MCP 资源 |
-| `ContextManager` | `sources/gemini-cli/packages/core/src/context/contextManager.ts:21` | 管理 `GEMINI.md` / memory 的全局、扩展、项目和 JIT 子目录上下文 |
+| `ContextManager` | `sources/gemini-cli/packages/core/src/context/contextManager.ts:26` | 管理 `GEMINI.md` / memory 的全局、扩展、项目和 JIT 子目录上下文 |
 | `ModelRouterService` | `sources/gemini-cli/packages/core/src/routing/modelRouterService.ts:30` | 在 fallback、override、approval mode、classifier 等策略之间做 model routing |
 
 也就是说，Gemini CLI 的“上下文构建”不是单一模块，而是 `PromptProvider + ContextManager + ModelRouterService + GeminiClient` 共同完成。
@@ -145,14 +145,14 @@ Gemini CLI 很容易被误读成“CLI 调 `core`，`core` 再起个服务”。
 
 #### Agent
 
-`sources/gemini-cli/packages/core/src/agents/registry.ts:44` 的 `AgentRegistry` 负责加载：
+`sources/gemini-cli/packages/core/src/agents/registry.ts:50` 的 `AgentRegistry` 负责加载：
 
 - 内建 agents
 - 用户级 agents
 - 项目级 agents
 - extension 附带 agents
 
-更有意思的是，`Config.createToolRegistry()` 会把子 Agent 注册成 `AgentTool`（v0.63 前叫 `SubagentTool`）。也就是说，本地 subagent 在主循环里是“以工具形态暴露”的。
+更有意思的是，`Config.createToolRegistry()` 会把 `AgentTool` 注册进主工具表：所有子 Agent 统一通过单个 `invoke_agent` 工具暴露，由 `agent_name` 参数选择具体代理。也就是说，本地 subagent 在主循环里是“以工具形态暴露”的。
 
 当真正执行本地 subagent 时，`sources/gemini-cli/packages/core/src/agents/local-executor.ts` 会：
 
@@ -173,7 +173,7 @@ Gemini CLI 很容易被误读成“CLI 调 `core`，`core` 再起个服务”。
 
 #### MCP
 
-`sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts:34` 的 `McpClientManager` 管理多个 MCP client 的生命周期，并把发现到的 tools / prompts / resources 注入主 registry。它是 Gemini CLI 最重要的外部扩展总线。
+`sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts:37` 的 `McpClientManager` 管理多个 MCP client 的生命周期，并把发现到的 tools / prompts / resources 注入主 registry。它是 Gemini CLI 最重要的外部扩展总线。
 
 ### 4.6 `Storage + ChatRecordingService`：持久化不只是聊天记录
 
@@ -181,8 +181,8 @@ Gemini CLI 很容易被误读成“CLI 调 `core`，`core` 再起个服务”。
 
 | 抽象 | 文件 | 作用 |
 | --- | --- | --- |
-| `Storage` | `sources/gemini-cli/packages/core/src/config/storage.ts:29` | 负责全局 `~/.gemini` 目录、项目 ID、tmp/history/plans/policies/skills/agents 等路径组织 |
-| `ChatRecordingService` | `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts:128` | 把对话、thoughts、tool calls、token usage 持久化成 JSON session 文件 |
+| `Storage` | `sources/gemini-cli/packages/core/src/config/storage.ts:30` | 负责全局 `~/.gemini` 目录、项目 ID、tmp/history/plans/policies/skills/agents 等路径组织 |
+| `ChatRecordingService` | `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts:402` | 把对话、thoughts、tool calls、token usage 持久化成 JSON session 文件 |
 
 这意味着“恢复会话”并不是 UI 层的临时能力，而是 core 层就已经具备的 durability 机制。
 
@@ -216,10 +216,10 @@ Gemini CLI 很容易被误读成“CLI 调 `core`，`core` 再起个服务”。
 >
 > - [02-startup-flow.md](./02-startup-flow.md)
 > - [03-agent-loop.md](./03-agent-loop.md)
-> - [04-tool-system.md](./05-tool-system.md)
-> - [13-multi-agent.md](./12-multi-agent.md)
-> - [17-sdk-transport.md](./15-sdk-transport.md)
-> - [22-repl-and-state.md](./20-repl-and-state.md)
+> - [05-tool-system.md](./05-tool-system.md)
+> - [12-multi-agent.md](./12-multi-agent.md)
+> - [15-sdk-transport.md](./15-sdk-transport.md)
+> - [20-repl-and-state.md](./20-repl-and-state.md)
 
 ---
 
@@ -228,10 +228,10 @@ Gemini CLI 很容易被误读成“CLI 调 `core`，`core` 再起个服务”。
 | 类/函数 | 文件 | 职责 |
 | :--------| :------| :------|
 | `Config` | `sources/gemini-cli/packages/core/src/config/config.ts` | 组合根 + 服务容器：持有 GeminiClient、ToolRegistry、PromptProvider、Scheduler 等所有核心依赖 |
-| `Config.initialize()` | `sources/gemini-cli/packages/core/src/config/config.ts:1289` | 启动初始化：创建 ToolRegistry、MCP 服务器、Skills、GeminiClient |
+| `Config.initialize()` | `sources/gemini-cli/packages/core/src/config/config.ts:1444` | 启动初始化：创建 ToolRegistry、MCP 服务器、Skills、GeminiClient |
 | `GeminiClient` | `sources/gemini-cli/packages/core/src/core/client.ts` | 模型调用门面：管理 GeminiChat、processTurn、工具声明刷新 |
-| `GeminiClient.sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/client.ts:868` | 对外流式请求入口，循环调用 `processTurn()` |
-| `GeminiClient.processTurn()` | `sources/gemini-cli/packages/core/src/core/client.ts:585` | 单轮推理：上下文压缩、token 检查、loop detection、调用 `Turn.run()` |
+| `GeminiClient.sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/client.ts:924` | 对外流式请求入口，循环调用 `processTurn()` |
+| `GeminiClient.processTurn()` | `sources/gemini-cli/packages/core/src/core/client.ts:628` | 单轮推理：上下文压缩、token 检查、loop detection、调用 `Turn.run()` |
 | `Turn` | `sources/gemini-cli/packages/core/src/core/turn.ts` | 将 `GeminiChat` 流拆解为高层事件（Thought/Content/ToolCallRequest/Finished） |
 | `GeminiChat` | `sources/gemini-cli/packages/core/src/core/geminiChat.ts` | 底层 Gemini API 调用封装，维护多轮历史 |
 | `Scheduler` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts` | 工具调度状态机：安全闸门、并发控制、执行入口 |

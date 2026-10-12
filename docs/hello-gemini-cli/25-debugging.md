@@ -53,7 +53,7 @@ GEMINI_DEBUG_LOG_FILE=/tmp/gemini.log gemini
 | :------| :------|
 | `sources/gemini-cli/packages/core/src/utils/debugLogger.ts` | `DebugLogger` 类实现 |
 | `sources/gemini-cli/packages/core/src/core/logger.ts` | 会话日志记录器 |
-| `sources/gemini-cli/packages/cli/src/config/config.ts:171-176` | CLI debug 选项定义 |
+| `sources/gemini-cli/packages/cli/src/config/config.ts:177` | CLI debug 选项定义 |
 
 ## 5. IDE 调试
 
@@ -116,12 +116,12 @@ npm test -- --testNamePattern="mcp"
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `--debug` flag | CLI 入口 | 启用调试输出：打印 API 请求、工具调用详情 |
-| `LOG_LEVEL` env var | 进程环境 | 控制日志详细程度（debug/info/warn/error）|
-| `GEMINI_SANDBOX` env var | 进程环境 | 控制 sandbox 策略，设为 `none` 可跳过沙箱调试 |
+| `--debug` / `-d` flag | `sources/gemini-cli/packages/cli/src/config/config.ts:177` | 启用调试输出：打印 API 请求、工具调用详情 |
+| `GEMINI_DEBUG_LOG_FILE` env var | `sources/gemini-cli/packages/core/src/utils/debugLogger.ts:27` | 把调试日志写到指定文件而不是控制台 |
+| `-s` / `--sandbox` flag | `sources/gemini-cli/packages/cli/src/config/config.ts:327` | 切换 sandbox 执行环境，可对照定位沙箱边界问题 |
 | `inspector` / `--inspect-brk` | Node.js | Node.js debugger 入口，VS Code 附加调试 |
 | `ChatRecordingService` | `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts` | 对话录制兼调试日志：所有交互写入 JSON 文件可回放 |
-| `LoopDetectionService.disable()` | `sources/gemini-cli/packages/core/src/services/loopDetectionService.ts` | 调试时临时禁用循环检测，避免干扰重复测试用例 |
+| `LoopDetectionService.disableForSession()` | `sources/gemini-cli/packages/core/src/services/loopDetectionService.ts:166` | 调试时临时禁用循环检测，避免干扰重复测试用例 |
 
 ---
 
@@ -131,7 +131,7 @@ npm test -- --testNamePattern="mcp"
 
 - **`--debug` flag 全局启用**：一个 flag 切换到详细输出，无需修改代码或设置多个环境变量，调试上手快。
 - **Conversation JSON 文件可回放**：`ChatRecordingService` 的 JSON 录制既是持久化机制也是调试快照，可以直接 `cat` 或 `jq` 分析。
-- **沙箱策略可单独关闭**：`GEMINI_SANDBOX=none` 可以快速定位是否是沙箱策略导致的工具执行失败，调试 sandbox 边界问题便捷。
+- **沙箱策略可单独关闭**：`security.sandbox` 设置或 `-s` 开关可以快速对照“有无沙箱”两种执行结果，定位是否是沙箱策略导致的工具执行失败，调试 sandbox 边界问题便捷。
 
 **风险与改进点**
 
@@ -160,7 +160,7 @@ Gemini CLI 的问题定位经常跨 `packages/core` 和 `packages/cli`，调试�
 | MCP 工具消失 | 只加载一个 MCP server 配置 | `--debug`，必要时检查 server stderr | discovery、ToolRegistry refresh、auth 状态 |
 | UI 卡顿 | 同一 prompt 分别在 headless 和 interactive 运行 | `--debug` | core 正常但 Ink hook 消费慢，说明问题在 CLI UI 层 |
 | Session 恢复异常 | 使用同一 chat recording / JSON store 重放 | 保留 recording 文件 | 是持久化内容缺失，还是恢复路径解释错误 |
-| Sandbox 异常 | 同一工具调用分别用默认 sandbox 和 `GEMINI_SANDBOX=none` | `GEMINI_SANDBOX=none` 仅用于定位 | 若关闭 sandbox 后正常，优先看 PolicyEngine/沙箱配置 |
+| Sandbox 异常 | 同一工具调用分别用默认 sandbox 和关闭 sandbox（`security.sandbox=false`）运行 | 对照有无沙箱两种结果 | 若关闭 sandbox 后正常，优先看 PolicyEngine/沙箱配置 |
 
 调试时先把变量压到最少：固定 model、固定 prompt、关闭无关 extension/MCP server，再逐层打开 debug 输出。这样能区分 core stream、Scheduler、MCP、Ink UI 和 sandbox 五类问题。
 
@@ -169,9 +169,9 @@ Gemini CLI 的问题定位经常跨 `packages/core` 和 `packages/cli`，调试�
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |
 | `sources/gemini-cli/packages/core/src/utils/debugLogger.ts` | core debug logger | 对应 Codex tracing、Claude debug log |
-| `sources/gemini-cli/packages/core/src/core/client.ts:883` | `sendMessageStream()` 流式入口 | 模型流断开优先看这里 |
-| `sources/gemini-cli/packages/core/src/core/turn.ts:253` | `Turn.run()` 事件拆解 | 定位 tool call / content event |
+| `sources/gemini-cli/packages/core/src/core/client.ts:924` | `sendMessageStream()` 流式入口 | 模型流断开优先看这里 |
+| `sources/gemini-cli/packages/core/src/core/turn.ts:270` | `Turn.run()` 事件拆解 | 定位 tool call / content event |
 | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:191` | 工具调度入口 | 工具不执行优先看这里 |
-| `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts:249` | 会话录制服务 | session 恢复和复现入口 |
-| `sources/gemini-cli/packages/cli/src/config/config.ts:171` | CLI debug 选项 | 用户可见调试开关 |
-| `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:1426` | UI 侧 stream event 分发 | Ink/UI 状态异常定位点 |
+| `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts:402` | 会话录制服务 | session 恢复和复现入口 |
+| `sources/gemini-cli/packages/cli/src/config/config.ts:177` | CLI debug 选项 | 用户可见调试开关 |
+| `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:1543` | UI 侧 stream event 分发 | Ink/UI 状态异常定位点 |

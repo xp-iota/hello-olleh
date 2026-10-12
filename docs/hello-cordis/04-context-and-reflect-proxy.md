@@ -17,7 +17,7 @@ title: "Context 与 Reflect 代理"
 `Context` 构造函数的最后一行是 `return self`（`C/context.ts:48`），而 `self` 是：
 
 ```ts
-const self = new Proxy<this>(this, ReflectService.handler)   // C/context.ts:39
+const self = new Proxy<this>(this, ReflectService.handler)   // C/context.ts:38
 ```
 
 **用户拿到的 `ctx` 永远是 Proxy**。这意味着：
@@ -51,7 +51,7 @@ function isSpecialProperty(prop: string | symbol): prop is symbol {
 | 数字字符串 | 数组式访问（如 `ctx[0]`）不是服务名 |
 | `_` 前缀 | 约定：内部字段（`_hooks`、`_disposables`、`_runner`……） |
 
-💡 **`then` 的处理是一个"反直觉但必要"的细节**。有意思的是 cordis 反过来**刻意让别的东西是 thenable**：`ctx.plugin()` 的返回值（`C/registry.ts:209-211`）和 `ctx.effect()` 的返回值（`C/fiber.ts:333`）都挂了 `then`，所以 `await ctx.plugin(p)` 会等插件就绪。**只有 `ctx` 自己不能是 thenable。**
+💡 **`then` 的处理是一个"反直觉但必要"的细节**。有意思的是 cordis 反过来**刻意让别的东西是 thenable**：`ctx.plugin()` 的返回值（`C/registry.ts:209-212`）和 `ctx.effect()` 的返回值（`C/fiber.ts:333`）都挂了 `then`，所以 `await ctx.plugin(p)` 会等插件就绪。**只有 `ctx` 自己不能是 thenable。**
 
 ## 4.2 三种派生：extend / isolate / intercept
 
@@ -71,7 +71,7 @@ function isSpecialProperty(prop: string | symbol): prop is symbol {
 
 ## 4.3 服务解析：沿 fiber 链向上查找
 
-这是 `handler.get` 的核心路径（`C/reflect.ts:63-99`）：
+这是 `handler.get` 的核心路径（`C/reflect.ts:63-100`）：
 
 ![服务的动态解析路径](diagrams/04-dynamic-resolve.svg)
 
@@ -91,11 +91,11 @@ function isSpecialProperty(prop: string | symbol): prop is symbol {
 
 💡 **`enhanceError`（`C/reflect.ts:20-25`）**：把 error 的 stack 前两行替换成 `Error: ${message}`。因为 error 是在 `handler.get` 开头构造的，前两行是 Proxy 内部帧，对用户无意义。
 
-💡 **`ctx.fiber.runtime` 为空时走非严格分支**（`:79`）。根 Context 的 fiber 是 `runtime === null`（见 [03 § 3.1](03-fiber-model.md)），所以**在根 ctx 上访问服务不要求提供者 ACTIVE**，也不需要 inject 声明。这让宿主程序能自由探查状态。
+💡 **`ctx.fiber.runtime` 为空时走非严格分支**（`:81`）。根 Context 的 fiber 是 `runtime === null`（见 [03 § 3.1](03-fiber-model.md)），所以**在根 ctx 上访问服务不要求提供者 ACTIVE**，也不需要 inject 声明。这让宿主程序能自由探查状态。
 
 ## 4.4 `store`：以 Symbol 为键
 
-`ReflectService` 有两张表（`C/reflect.ts:135-136`）：
+`ReflectService` 有两张表（`C/reflect.ts:137-138`）：
 
 ```ts
 public store: Dict<Impl, symbol> = Object.create(null)   // symbol → Impl
@@ -123,7 +123,7 @@ export interface Impl {
 
 💡 **这个设计让"隔离"的成本几乎为零**。传统做法是给每个 scope 建一个容器（Map），查找时逐层回溯；cordis 只有一张扁平表，隔离体现在"用哪个 key 去查"。查找是 O(1)。
 
-💡 **`ctx.root[symbols.isolate][name] ??= Symbol(name)`（`C/reflect.ts:184`）**：首次 provide 某个名字时，在**根 ctx** 上登记默认 Symbol。这样没显式 isolate 的 ctx 都会沿原型链拿到这个共享 Symbol——即默认全局单例。
+💡 **`ctx.root[symbols.isolate][name] ??= Symbol(name)`（`C/reflect.ts:186`）**：首次 provide 某个名字时，在**根 ctx** 上登记默认 Symbol。这样没显式 isolate 的 ctx 都会沿原型链拿到这个共享 Symbol——即默认全局单例。
 
 ## 4.5 isolate realm：空间可组合性
 
@@ -179,9 +179,9 @@ ctx.db.onQuery(handler)        // ← 期望：A 卸载时这个监听器自动�
 
 **getTraceable 的包装与解包判定** — [交互版](diagrams/04-get-traceable.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/04-get-traceable.architecture.json)
 
-- **createTraceable 的 get trap 要点**：symbols.original 返回原对象，symbols.caller 返回调用方 ctx · tracker.property（通常是 ctx）返回调用方的 ctx（:166） · associate 开启时把 db.xxx 形式的属性转发出去
+- **createTraceable 的 get trap 要点**：symbols.original 返回原对象，symbols.caller 返回调用方 ctx · tracker.property（通常是 ctx）返回调用方的 ctx（:168） · associate 开启时把 db.xxx 形式的属性转发出去
 - **三种出口**：非对象、无 tracker 都原样返回 · 带 shadow 的走解包，取原型上的真实 ctx · 只有带 tracker 才真正建代理
-- **读这段的顺序建议**：先读 core/tests/shadow.spec.ts（176 行） · 它把四件事拆成独立断言 · 再回来看 createTraceable 的实现
+- **读这段的顺序建议**：先读 core/tests/shadow.spec.ts（310 行） · 它把四件事拆成独立断言 · 再回来看 createTraceable 的实现
 
 `Tracker` 的定义（`C/utils.ts:41-45`）：
 
@@ -216,13 +216,13 @@ const tracker: Tracker = {
 - **shadow 是逃生舱**：仅当服务确实需要读自己的配置时才走 shadow 取回 · 服务确实需要读自己的配置时才用 · 藏在原型上，不污染正常属性访问 · 解包是显式动作，不会误触发
 - **两条路径要分清**：this.ctx 给的是调用方视角 · 经 shadow 解包拿到的是服务自身视角 · 混用会导致副作用归属错乱
 
-💡 **`shadow.spec.ts` 有 176 行专门测这个**（`packages/core/tests/shadow.spec.ts`）。如果要改 traceable 相关代码，先读这个 spec。
+💡 **`shadow.spec.ts` 有 310 行专门测这个**（`packages/core/tests/shadow.spec.ts`）。如果要改 traceable 相关代码，先读这个 spec。
 
-💡 **服务解析时也用到 shadow**：`C/reflect.ts:82` 的 `let fiber = (ctx[symbols.shadow] as Context ?? ctx).fiber`——查找起点优先用 shadow 里的原始 ctx，保证服务内部访问其它服务时从自己的位置起算，而不是从调用方位置起算。
+💡 **服务解析时也用到 shadow**：`C/reflect.ts:84` 的 `let fiber = (ctx[symbols.shadow] as Context ?? ctx).fiber`——查找起点优先用 shadow 里的原始 ctx，保证服务内部访问其它服务时从自己的位置起算，而不是从调用方位置起算。
 
 ## 4.7 mixin 与 accessor
 
-`ReflectService` 构造函数里（`C/reflect.ts:144-147`）把四个内建服务的方法"平铺"到 ctx 上：
+`ReflectService` 构造函数里（`C/reflect.ts:146-149`）把四个内建服务的方法"平铺"到 ctx 上：
 
 ```ts
 this.mixin('reflect', ['get', 'set', 'provide', 'accessor', 'mixin'])
@@ -248,16 +248,16 @@ this.mixin('events', ['on', 'once', 'parallel', 'emit', 'serial', 'bail', 'water
 | `'service'` | 走 `store` 查找，受 isolate 影响 | `provide(name, value)` |
 | `'accessor'` | 直接调 getter/setter，**不受 isolate 影响** | `accessor(name, { get, set })` |
 
-同一个名字不能既是 service 又是 accessor——`provide`（`:177-181`）和 `accessor`（`:231-233`）都会检查并抛 `property "x" is already declared as y`。
+同一个名字不能既是 service 又是 accessor——`provide`（`:181-183`）和 `accessor`（`:233-235`）都会检查并抛 `property "x" is already declared as y`。
 
 ## 4.8 `set` 与 `has` trap
 
 | trap | 位置 | 行为 |
 |---|---|---|
-| `set` | `C/reflect.ts:100-124` | 特殊属性直通；否则要求 `props[prop]` 存在（即先 provide 过），否则抛 `cannot set property "x" without provide`；accessor 走 `def.set`；service 走 `internal/set` waterfall → `reflect.set` |
-| `has` | `C/reflect.ts:126-133` | 特殊属性走 `Reflect.has`；否则 `Reflect.has(target, prop) \|\| !!props[prop]` |
+| `set` | `C/reflect.ts:102-126` | 特殊属性直通；否则要求 `props[prop]` 存在（即先 provide 过），否则抛 `cannot set property "x" without provide`；accessor 走 `def.set`；service 走 `internal/set` waterfall → `reflect.set` |
+| `has` | `C/reflect.ts:128-134` | 特殊属性走 `Reflect.has`；否则 `Reflect.has(target, prop) \|\| !!props[prop]` |
 
-`reflect.set`（`C/reflect.ts:162-174`）有两道额外检查：
+`reflect.set`（`C/reflect.ts:164-175`）有两道额外检查：
 
 ```ts
 if (!impl) throw new Error(`cannot set property "${name}" without provide`)
@@ -270,7 +270,7 @@ if (impl.fiber !== this.ctx.fiber) {
 
 ## 4.9 `Context.is` 的 Symbol 技巧
 
-`C/context.ts:27-34`：
+`C/context.ts:26-33`：
 
 ```ts
 static is(value: any): value is Context {

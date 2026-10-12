@@ -43,7 +43,7 @@
       "id": "c03",
       "type": "security",
       "label": "03 Fiber 模型",
-      "sublabel": "486 行的心脏：effect / epoch / 六态机 / inertia",
+      "sublabel": "496 行的心脏：effect / epoch / 六态机 / inertia",
       "tag": "重点篇",
       "pos": [
         700,
@@ -203,7 +203,7 @@
       "dot": "cyan",
       "title": "两篇重点占全书一半难度",
       "items": [
-        "03 Fiber 模型是 486 行的心脏",
+        "03 Fiber 模型是 496 行的心脏",
         "04 Context 与 Reflect 是 Proxy 元编程的集中区",
         "其余各篇都建立在这两篇之上"
       ]

@@ -23,7 +23,7 @@ title: "服务注册与依赖解析"
 - **元数据是可选的但很关键**：Config 决定配置是否被校验 · inject 决定 epoch 怎么算 · provide 与 intercept 影响服务可见性
 - **为什么留 Object 形态**：ctx.inject() 需要一个匿名的可注册单元 · 用带 apply 的对象最省包装 · name 若为 apply 会被主动置空
 
-💡 **`resolve()` 返回的 callback 是 Runtime 的键**（`C/registry.ts:199`：`this._internal.get(callback)`）。所以 `{ apply: f }` 和 `f` 本身被视为同一个插件——因为都解析到 `f`。
+💡 **`resolve()` 返回的 callback 是 Runtime 的键**（`C/registry.ts:200`：`this._internal.get(callback)`）。所以 `{ apply: f }` 和 `f` 本身被视为同一个插件——因为都解析到 `f`。
 
 💡 **`isConstructor()`（`C/utils.ts:76-86`）的判定很讲究**：
 - 无 `prototype` → 不是（箭头函数、async 函数）
@@ -33,7 +33,7 @@ title: "服务注册与依赖解析"
 
 ## 5.2 `RegistryService.plugin()`：注册的完整流程
 
-`C/registry.ts:193-213`：
+`C/registry.ts:193-214`：
 
 ![registry.plugin() 内部流程](diagrams/05-registry-plugin.svg)
 
@@ -43,15 +43,15 @@ title: "服务注册与依赖解析"
 - **返回值刻意是 thenable**：wrapped 用 Object.create(fiber) 继承 Fiber 全部能力 · 额外挂 then 让调用方可以 await 到插件就绪 · 而 ctx 自身把 then 列为保留字，避免被 await 吞掉
 - **长堆栈的起点**：getOuterStack 用默认参数在调用处求值 · 捕获的是用户代码的真实调用位置 · 之后异步错误会把这段栈拼上去
 
-💡 **`name === 'apply'` 要清掉**（`:201-202`）。因为 `{ apply(ctx) {...} }` 里方法名就是 `apply`，直接当插件名会显示成 `<apply>`，没有信息量。
+💡 **`name === 'apply'` 要清掉**（`:202-203`）。因为 `{ apply(ctx) {...} }` 里方法名就是 `apply`，直接当插件名会显示成 `<apply>`，没有信息量。
 
-💡 **返回值是 `Object.create(fiber)`**（`:208`）而不是 fiber 本身。原因：要挂一个 `then` 属性但不污染真正的 Fiber 对象（否则 Fiber 就变成 thenable，会被 `await` 意外触发）。
+💡 **返回值是 `Object.create(fiber)`**（`:209`）而不是 fiber 本身。原因：要挂一个 `then` 属性但不污染真正的 Fiber 对象（否则 Fiber 就变成 thenable，会被 `await` 意外触发）。
 
-💡 **`await ctx.plugin(p)` 等的是 `fiber.await()`**（`C/fiber.ts:460`）——等 `inertia` 清空，若有 `_error` 则抛出。所以 `await ctx.plugin(p)` 会把插件初始化时的错误抛给调用方，而不 await 就只会打日志。
+💡 **`await ctx.plugin(p)` 等的是 `fiber.await()`**（`C/fiber.ts:462`）——等 `inertia` 清空，若有 `_error` 则抛出。所以 `await ctx.plugin(p)` 会把插件初始化时的错误抛给调用方，而不 await 就只会打日志。
 
 ## 5.3 `inject` 的三种写法与归一化
 
-`Inject.resolve()`（`C/registry.ts:43-62`）把三种写法归一成 `Dict<config | null>`：
+`Inject.resolve()`（`C/registry.ts:43-60`）把三种写法归一成 `Dict<config | null>`：
 
 | 写法 | 归一化结果 | 语义 |
 |---|---|---|
@@ -81,9 +81,9 @@ title: "服务注册与依赖解析"
 - **方法装饰器粒度更细**：只有那个方法体变成子插件 · 其余方法照常可用 · 依赖不满足时仅该方法不执行
 - **继承靠原型链累加**：子类的 inject 以父类 inject 为原型 · checkProto 标记提示 resolve 需要递归 · 于是父子声明的依赖自动合并
 
-💡 **方法装饰器是很有意思的能力**：整个类只需 `ctx`，而某个方法额外依赖 `db`——那个方法会在 `db` 就绪时自动运行、`db` 消失时自动清理。`symbols.initHooks` 由 `C/fiber.ts:152-154` 在构造实例后遍历执行。
+💡 **方法装饰器是很有意思的能力**：整个类只需 `ctx`，而某个方法额外依赖 `db`——那个方法会在 `db` 就绪时自动运行、`db` 消失时自动清理。`symbols.initHooks` 由 `C/fiber.ts:153-154` 在构造实例后遍历执行。
 
-💡 **实际用例**：`packages/hmr/src/index.ts:49-50` 就是类装饰器形式：
+💡 **实际用例**：`packages/hmr/src/index.ts:80-81` 就是类装饰器形式：
 
 ```ts
 @Inject('loader')
@@ -93,7 +93,7 @@ class Hmr extends Service { ... }
 
 ## 5.4 `provide()`：注册一个服务
 
-`C/reflect.ts:175-204`，整体是一个 `fiber.effect()`：
+`C/reflect.ts:177-205`，整体是一个 `fiber.effect()`：
 
 ![provide 的 setup 与撤销](diagrams/05-provide-effect.svg)
 
@@ -107,7 +107,7 @@ class Hmr extends Service { ... }
 
 ## 5.5 `notify()`：级联的引擎
 
-`C/reflect.ts:205-228` 是整个依赖系统的传播中心：
+`C/reflect.ts:207-229` 是整个依赖系统的传播中心：
 
 ![notify 是依赖系统的传播中心](diagrams/05-notify-propagation.svg)
 
@@ -131,7 +131,7 @@ class Hmr extends Service { ... }
 - **卸载是并发的**：B 与 C 的卸载同时进行 · 用 allSettled 而非 all，单个失败不阻断 · 各自内部的 disposer 按启动顺序逆序
 - **递归终止于叶子**：每层卸载都可能触发下一层 notify · 直到没有 Fiber 的 epoch 再变化 · 收尾时才删掉 A 自己的 store 记录
 
-💡 **级联是递归的**：B 卸载时若它也 provide 了服务，`_updateState`（`C/fiber.ts:355`）会在跨 ACTIVE 边界时对 B 提供的每个服务再 `notify` 一次。卸载从被卸载的 provider 出发，沿依赖链逐层传导到全部传递依赖方，每一层都是有序清理（各自走 disposer）而非失控扩散——**全程没有一行图遍历代码**。
+💡 **级联是递归的**：B 卸载时若它也 provide 了服务，`_updateState`（`C/fiber.ts:355-369`）会在跨 ACTIVE 边界时对 B 提供的每个服务再 `notify` 一次。卸载从被卸载的 provider 出发，沿依赖链逐层传导到全部传递依赖方，每一层都是有序清理（各自走 disposer）而非失控扩散——**全程没有一行图遍历代码**。
 
 ## 5.7 `Service` 基类
 
@@ -147,7 +147,7 @@ class Hmr extends Service { ... }
 | `symbols.tracker` | `Service.tracker` | 11 | traceable 配置（见 [04 § 4.6](04-context-and-reflect-proxy.md)） |
 | `symbols.resolveConfig` | `Service.resolveConfig` | 12 | 沿 intercept 原型链收集配置 |
 
-### 构造函数做的事（`C/service.ts:18-35`）
+### 构造函数做的事（`C/service.ts:18-34`）
 
 ![Service 构造函数做的六件事](diagrams/05-service-ctor.svg)
 
@@ -159,7 +159,7 @@ class Hmr extends Service { ... }
 
 💡 **`Service` 的构造函数里就完成了 provide**。所以 `class Foo extends Service` 只要被 `ctx.plugin(Foo)` 实例化，服务就注册好了——不需要手写 `ctx.provide`。
 
-💡 **`createCallable`（`C/utils.ts:219-226`）让服务可调用**。典型例子是 `LoggerService`：`ctx.logger('name')` 返回一个 Logger，同时 `ctx.logger.info(...)` 也能用。实现上 `createCallable` 造一个函数，把服务原型 join 到 `Function.prototype` 上，调用时走 `createTraceable` + `applyTraceable`（`C/utils.ts:214-217`，最终调 `value[symbols.invoke]`）。
+💡 **`createCallable`（`C/utils.ts:223-231`）让服务可调用**。典型例子是 `LoggerService`：`ctx.logger('name')` 返回一个 Logger，同时 `ctx.logger.info(...)` 也能用。实现上 `createCallable` 造一个函数，把服务原型 join 到 `Function.prototype` 上，调用时走 `createTraceable` + `applyTraceable`（`C/utils.ts:218-221`，最终调 `value[symbols.invoke]`）。
 
 ### `[symbols.resolveConfig]`：沿原型链收集配置
 
@@ -177,14 +177,17 @@ class Hmr extends Service { ... }
   }
   if (base) configs.unshift(base)
   if (head) configs.push(head)
-  if (this['Config']?.merge) return this['Config'].merge(...configs)
-  return Object.assign({}, ...configs)
+  if (this['Config']?.merge) {
+    return this['Config'].merge(...configs)
+  } else {
+    return Object.assign({}, ...configs)
+  }
 }
 ```
 
 💡 **这解释了 `ctx.intercept()` 的叠加语义**：多层 `intercept` 会沿原型链全部被收集，越外层（越靠近根）的优先级越低。有 `Config.merge` 就用它，否则 `Object.assign` 浅合并。
 
-💡 **`[Service.check]` 的实际用法**：`L/index.ts:133-137`：
+💡 **`[Service.check]` 的实际用法**：`L/index.ts:141-145`：
 
 ```ts
 [Service.check]() {

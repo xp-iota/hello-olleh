@@ -3,7 +3,7 @@ title: "输入命令队列：inbox 准入、steer/queue 与 slash command"
 ---
 # 输入命令队列：inbox 准入、steer/queue 与 slash command
 
-> 基于 `sources/opencode/specs/v2/session.md`、`packages/core/src/session/inbox.ts` 与 `command.ts` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/specs/v2/session.md`、`packages/core/src/session/inbox.ts` 与 `command.ts` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 

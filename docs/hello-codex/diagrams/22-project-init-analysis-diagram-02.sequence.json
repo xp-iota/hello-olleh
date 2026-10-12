@@ -19,8 +19,8 @@
     {
       "id": "TUI",
       "type": "backend",
-      "label": "App::run",
-      "sublabel": "ChatWidget"
+      "label": "run_main()",
+      "sublabel": "App + ChatWidget"
     },
     {
       "id": "AS",
@@ -30,7 +30,8 @@
     {
       "id": "CORE",
       "type": "backend",
-      "label": "core::Codex"
+      "label": "CodexThread",
+      "sublabel": "codex_thread.rs:208"
     },
     {
       "id": "LLM",
@@ -40,7 +41,8 @@
     {
       "id": "TOOL",
       "type": "backend",
-      "label": "ToolRouter + ToolOr…"
+      "label": "ToolRouter",
+      "sublabel": "+ ToolOrchestrator"
     },
     {
       "id": "LLM-",
@@ -126,9 +128,9 @@
       "dot": "orange",
       "title": "要点",
       "items": [
-        "core::Codex 自调用：getuserinstructions + buildprompt",
+        "CodexThread 自调用：get_base_instructions + build_prompt",
         "ToolRouter + ToolOrchestrator 自调用：approval + sandbox + execute",
-        "未上画布的调用：buildtoolcall + dispatch"
+        "未上画布的调用：ToolRouter dispatch_tool_call_with_state"
       ]
     }
   ]

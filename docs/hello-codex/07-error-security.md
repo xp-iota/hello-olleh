@@ -23,9 +23,7 @@ title: "错误处理与安全性：异常捕获、重试策略、沙箱隔离与
 
 ### CodexErr（`protocol/src/error.rs:77`）
 
-（rust-v0.162 起，`CodexErr` 从 `core/src/error.rs` 移到 `protocol` crate，并由枚举改为携带 `CodexErrorDetails`（`protocol/src/error.rs:90`）的结构体；下表变体现在是 `CodexErrorDetails` 的成员。）
-
-Codex 定义了统一错误类型 `CodexErr`，包含 27+ 变体：
+`CodexErr` 是携带 `details: CodexErrorDetails`（`protocol/src/error.rs:90`）字段的统一错误结构体，下表变体即 `CodexErrorDetails` 枚举的成员：
 
 | 分类 | 变体 | 含义 |
 | --- | --- | --- |
@@ -68,11 +66,9 @@ pub enum SandboxErr {
 
 ### 可重试 vs 不可重试分类（`protocol/src/error.rs:397`，`retry_delay()`）
 
-（rust-v0.162 起：0.154 的 `is_retryable()` 布尔判定已被 `CodexErr::retry_delay(retry_count)` 取代 —— 返回 `None` 即不可重试的终态错误，返回 `Some(delay)` 即可重试并直接给出建议延迟。）
+`retry_delay(retry_count)` 是重试逻辑的核心判定点：返回 `None` 即不可重试的终态错误，返回 `Some(delay)` 即可重试并直接给出建议延迟。
 
-`retry_delay()` 是重试逻辑的核心判定点：
-
-**不可重试**（返回 false）：
+**不可重试**（返回 `None`）：
 
 | 变体 | 原因 |
 | --- | --- |
@@ -85,7 +81,7 @@ pub enum SandboxErr {
 | `RetryLimit` | 已用尽重试预算 |
 | `ServerOverloaded` | 需要等待而非立即重试 |
 
-**可重试**（返回 true）：
+**可重试**（返回 `Some(delay)`）：
 
 | 变体 | 原因 |
 | --- | --- |
@@ -140,7 +136,7 @@ pub fn backoff(attempt: u64) -> Duration {
 | 3 | 800ms | 720-880ms |
 | 4 | 1600ms | 1440-1760ms |
 
-### 流式重试机制（rust-v0.162 起位于 `core/src/responses_retry.rs:57`，`handle_response_stream_error()`；0.154 在 `codex.rs` 约行 6571）
+### 流式重试机制（`core/src/responses_retry.rs:57`，`handle_response_stream_error()`）
 
 ```
 err.retry_delay(retry_count) 返回 None -> 立即返回错误（终态）
@@ -175,6 +171,7 @@ if retry_state.retries >= max_retries:
 | `MacosSeatbelt` | macOS | `/usr/bin/sandbox-exec` + SBPL | 硬编码路径防 PATH 注入 |
 | `LinuxSeccomp` | Linux | bubblewrap + seccomp + landlock | `codex-linux-sandbox` 二进制 |
 | `WindowsRestrictedToken` | Windows | Job objects + restricted tokens | 原生 API |
+| `WindowsMxc` | Windows | Windows MXC 沙箱（显式选择时保留，见 `effective_windows_sandbox_type()`） | 原生 API |
 
 ### 沙箱策略模式
 
@@ -208,23 +205,18 @@ WorkspaceWrite {
 ```rust
 pub fn select_initial(
     &self,
-    file_system_policy: &FileSystemSandboxPolicy,
-    network_policy: NetworkSandboxPolicy,
+    permission_profile: &PermissionProfile,
     pref: SandboxablePreference,
-    windows_sandbox_level: WindowsSandboxLevel,
+    windows_sandbox_type: SandboxType,
     has_managed_network_requirements: bool,
 ) -> SandboxType {
-    match pref {
-        Forbid => SandboxType::None,
-        Require => get_platform_sandbox(...).unwrap_or(None),
-        Auto => {
-            if should_require_platform_sandbox(...) {
-                get_platform_sandbox(...)
-            } else {
-                SandboxType::None
-            }
-        }
+    if !self.should_sandbox(permission_profile, pref, has_managed_network_requirements) {
+        return SandboxType::None;
     }
+    if cfg!(windows) && windows_sandbox_type == SandboxType::WindowsMxc {
+        return SandboxType::WindowsMxc;
+    }
+    get_platform_sandbox(windows_sandbox_type != SandboxType::None).unwrap_or(SandboxType::None)
 }
 ```
 
@@ -278,9 +270,7 @@ fn normalize_path_for_sandbox(path: &Path) -> Option<AbsolutePathBuf> {
 }
 ```
 
-### 权限路径规范化（rust-v0.162 起：`normalize_permission_paths()` 已移除）
-
-0.154 中 `policy_transforms.rs:166-184` 的 `normalize_permission_paths()` 负责对权限路径做 canonicalize + 去重；该函数在 0.162 快照中已不存在（`rg` 全仓无匹配），路径规范化职责收敛到 `AbsolutePathBuf::canonicalize()` 与沙箱策略构造处。原 0.154 行为（保留作参考）：对每条路径先 `canonicalize()` 解析符号链接与 `..` 遍历，失败时保留原路径，再按规范化结果去重。
+权限路径的规范化职责收敛在 `AbsolutePathBuf::canonicalize()` 与沙箱策略构造处，不依赖独立的权限路径后处理函数。
 
 ## apply_patch 拦截机制
 
@@ -387,7 +377,7 @@ Codex 的敏感文件保护不是靠单点过滤，而是**多层约束**：
 
 | 函数 | 文件 | 行号 |
 | --- | --- | --- |
-| `CodexErr::retry_delay()`（0.154 为 `is_retryable()`） | `protocol/src/error.rs` | 397 |
+| `CodexErr::retry_delay()` | `protocol/src/error.rs` | 397 |
 | `CodexErr::to_codex_protocol_error()` | `protocol/src/error.rs` | 473 |
 | `get_error_message_ui()` | `protocol/src/error.rs` | 886 |
 | `backoff()` | `async-utils/src/backoff.rs` | 12 |
@@ -399,7 +389,6 @@ Codex 的敏感文件保护不是靠单点过滤，而是**多层约束**：
 | `intercept_apply_patch()` | `core/src/tools/handlers/apply_patch.rs` | 436 |
 | `merge_permission_profiles()` | `sandboxing/src/policy_transforms.rs` | 93 |
 | `effective_file_system_sandbox_policy()` | `sandboxing/src/policy_transforms.rs` | 582 |
-| `normalize_permission_paths()` | （rust-v0.162 起：已移除） | — |
 
 ---
 

@@ -3,7 +3,7 @@ title: "性能：异步总线、上下文预算与流式"
 ---
 # 性能：异步总线、上下文预算与流式
 
-> 基于 `sources/nanobot/nanobot/bus/`、`sources/nanobot/nanobot/agent/context_governance.py` 与 `sources/nanobot/nanobot/session/manager.py` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/bus/`、`sources/nanobot/nanobot/agent/context_governance.py` 与 `sources/nanobot/nanobot/session/manager.py` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
@@ -32,25 +32,24 @@ nanobot 的性能目标是"个人助手级别的低延迟与低资源"，不是�
 
 | 方法 | 作用 |
 | --- | --- |
-| `prepare_for_model` | 总入口：按序执行下面各项治理 |
+| `prepare_request` | 总入口：按序执行下面各项治理（runner 在 `_request_model` 里调用） |
 | `normalize_tool_result` | 统一工具结果形状 |
 | `strip_malformed_tool_calls` | 剔除畸形 tool call 消息 |
 | `drop_orphan_tool_results` / `backfill_missing_tool_results` | 孤儿 tool result 丢弃、缺失的补齐占位——保证消息序列对 provider 合法 |
 | `apply_tool_result_budget` | 工具结果字符预算（配合 `max_tool_result_chars`） |
-| `compact_inflight_overflow` | 在途消息超上下文窗口时压缩 |
+| `fit_to_budget` / `ensure_request_fits` / `_compact_request_history` | 请求超预算时压缩在途历史，`request_pressure` 反馈剩余预算 |
 
 这套治理保证"无论历史多脏，发出的请求都是 provider 能接受的"，把上下文损坏从运行时错误降级为可恢复行为。
 
 ## 4. 会话与记忆的成本控制
 
-- 回放上限：`replay_max_messages_for_context(context_window_tokens)` 按模型上下文窗口限制回放条数，老消息不进 prompt；
-- 文件上限：`Session.enforce_file_cap` + archiver 归档，防止 JSONL 无限增长；
-- 闲置压缩：AutoCompact 把闲置会话的旧段搬进记忆（见 [04-state-session-memory.md](./04-state-session-memory.md)）；
+- 回放预算：`get_history(max_messages, max_tokens, ...)` 限制回放条数与 token 预算，已归档前缀被 summary checkpoint 取代，老消息不进 prompt；
+- 闲置压缩：AutoCompact 把闲置会话的旧段归档为压缩摘要（见 [04-state-session-memory.md](./04-state-session-memory.md)）；
 - 历史游标：MemoryStore 的 cursor 机制让 Dream 增量消费，不全量重读。
 
 ## 5. 流式路径
 
-`_request_model` 支持流式 delta（`_stream`）、思考流（`_thinking`）、流恢复（`_stream_recover`）与进度流（`_stream_progress`）；CLI 侧 `StreamRenderer` 增量渲染 Markdown，WebUI 经 `StreamedResponseEvent`（`bus/outbound_events.py`）推送。流式是默认开的（`stream_progress_deltas: bool = True`），可在 spec 层关闭。
+`_request_model` 支持流式 delta（`_stream`）、思考流（`_thinking`）与流恢复（`_stream_recover`），由 `hook.wants_streaming()` 决定是否流式；CLI 侧 `StreamRenderer`（`cli/stream.py`）增量渲染 Markdown，WebUI 经 `StreamedResponseEvent`（`bus/outbound_events.py`）推送。
 
 ## 源码锚点
 

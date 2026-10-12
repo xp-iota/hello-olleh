@@ -13,8 +13,8 @@
     {
       "id": "A",
       "type": "backend",
-      "label": "loop() while(true)",
-      "sublabel": "prompt.ts:299",
+      "label": "SessionPrompt.prepare()",
+      "sublabel": "session/prompt.ts:29",
       "pos": [
         45,
         65
@@ -27,8 +27,8 @@
     {
       "id": "B",
       "type": "backend",
-      "label": "检查退出条件",
-      "sublabel": "lastAssistant.finish",
+      "label": "inbox 入队",
+      "sublabel": "session_inbox 表",
       "pos": [
         391,
         65
@@ -41,7 +41,7 @@
     {
       "id": "C",
       "type": "backend",
-      "label": "SessionProcessor.create()",
+      "label": "SessionRunner.drain()",
       "pos": [
         737,
         65
@@ -49,13 +49,14 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "runner/llm.ts:54"
     },
     {
       "id": "D",
       "type": "backend",
-      "label": "process() while(true)",
-      "sublabel": "processor.ts:50",
+      "label": "nextPromotable() 出队",
+      "sublabel": "inbox.ts:407",
       "pos": [
         1083,
         65
@@ -68,8 +69,8 @@
     {
       "id": "E",
       "type": "messagebus",
-      "label": "LLM.stream()",
-      "sublabel": "llm.ts:41",
+      "label": "runStep()",
+      "sublabel": "runner/llm.ts:206",
       "pos": [
         1429,
         65
@@ -82,8 +83,8 @@
     {
       "id": "F",
       "type": "messagebus",
-      "label": "for await fullStream",
-      "sublabel": "处理流事件",
+      "label": "SessionStep.attempt()",
+      "sublabel": "runner/step.ts:77",
       "pos": [
         1775,
         65
@@ -96,7 +97,7 @@
     {
       "id": "G",
       "type": "backend",
-      "label": "结果判定",
+      "label": "llm.stream()",
       "pos": [
         45,
         205
@@ -104,12 +105,13 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "@opencode/ai"
     },
     {
       "id": "H",
       "type": "backend",
-      "label": "SessionCompaction.create()",
+      "label": "工具 fiber + durable 结算",
       "pos": [
         391,
         205
@@ -117,12 +119,13 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "step.ts:127-137"
     },
     {
       "id": "I",
       "type": "backend",
-      "label": "退出",
+      "label": "needsContinuation 判定",
       "pos": [
         737,
         205
@@ -130,7 +133,8 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "publish-llm-event.ts:619"
     }
   ],
   "connections": [
@@ -218,9 +222,9 @@
       "dot": "orange",
       "title": "要点",
       "items": [
-        "loop() while(true) / prom… → 检查退出条件 / lastAssist…",
-        "检查退出条件 / lastAssist… → SessionProcessor.create()（需要继续）",
-        "SessionProcessor.create() → process() while(true) / p…"
+        "SessionPrompt.prepare() → inbox 入队（session_inbox）",
+        "SessionRunner.drain() → nextPromotable() 出队 → runStep()",
+        "SessionStep.attempt() 内 llm.stream() + 工具 fiber，终态 durable 结算"
       ]
     }
   ]

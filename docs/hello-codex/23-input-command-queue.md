@@ -31,7 +31,7 @@ Codex 的输入处理涉及以下核心模块：
 | CLI 入口 | `codex-rs/cli/src/main.rs` | 命令行解析，启动 TUI 或 headless |
 | TUI | `codex-rs/tui/src/lib.rs` | 交互式界面，事件循环 |
 | CodexThread | `codex-rs/core/src/codex_thread.rs` | 主 agent 线程封装 |
-| Mailbox | `codex-rs/core/src/agent/mailbox.rs` | Agent 间通信队列 |
+| Mailbox | `codex-rs/core/src/agent/control/mailbox.rs` | Agent 间通信队列 |
 | Protocol | `codex-rs/protocol/src/protocol.rs` | Submission/Event 队列协议 |
 | 命令规范化 | `codex-rs/core/src/command_canonicalization.rs` | 命令标准化（用于审批缓存） |
 | Exec | `codex-rs/core/src/exec.rs` | 命令执行与沙箱 |
@@ -44,158 +44,91 @@ Codex 的输入处理涉及以下核心模块：
 
 - **组成**：16 个节点
 - **关系**：源图 15 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
-- **要点**：CLI main.rs → 是否有子命令? · 是否有子命令? → runexec（exec） · 是否有子命令? → runmcp（mcp）
+- **要点**：CLI main.rs → 是否有子命令? · 是否有子命令? → codex_exec::run_main（exec） · 是否有子命令? → McpCli::run（mcp）
 
 ## 3. CLI 入口与子命令
 
 ### 3.1 主入口
 
-```rust
-// codex-rs/cli/src/main.rs
+`codex-rs/cli/src/main.rs` 定义 `MultitoolCli` 子命令枚举，`cli_main()` 解析后按子命令分派；不带子命令时进入交互式 TUI（`run_interactive_tui()`）。核心子命令的声明位置：
 
-fn main() {
-    let matches = Command::new("codex")
-        .subcommand(Exec::def())
-        .subcommand(Mcp::def())
-        .subcommand(Resume::def())
-        .get_matches();
-
-    match matches.subcommand() {
-        Some(("exec", args)) => run_exec(args),
-        Some(("mcp", args)) => run_mcp(args),
-        Some(("resume", args)) => run_resume(args),
-        None => run_interactive_tui(),
-    }
-}
-```
-
-### 3.2 可用子命令
-
-| 子命令 | 路径 | 功能 |
+| 子命令 | 声明 | 功能 |
 | :--------| :------| :------|
-| `exec` | `codex-rs/cli/src/exec.rs` | Headless 命令执行 |
-| `mcp` | `codex-rs/cli/src/mcp.rs` | MCP 服务器模式 |
-| `mcp-server` | `codex-rs/mcp-server/` | MCP 协议服务器 |
-| `resume` | `codex-rs/cli/src/resume.rs` | 恢复历史会话 |
+| `exec` | `codex-rs/cli/src/main.rs:156` | Headless 命令执行 |
+| `mcp` | `codex-rs/cli/src/main.rs:168` | MCP 管理命令（`cli/src/mcp_cmd.rs`）|
+| `resume` | `codex-rs/cli/src/main.rs:207` | 恢复历史会话 |
+| `app-server` | `codex-rs/cli/src/main.rs:174` | 独立 app-server 进程 |
 | (无) | TUI | 交互式模式 |
 
 ## 4. TUI 事件循环
 
 ### 4.1 主循环
 
-```rust
-// codex-rs/tui/src/lib.rs:587
-
-pub fn run_main() -> Result<()> {
-    let config = load_config()?;
-    let mut codex_thread = CodexThread::new(&config)?;
-
-    loop {
-        match event::recv()? {
-            Event::Input(input) => {
-                codex_thread.mailbox().send_user_input(input)?;
-            }
-            Event::AgentEvent(event) => {
-                render(event);
-            }
-            Event::Key(key) => {
-                handle_key(key);
-            }
-        }
-    }
-}
-```
+TUI 的入口是 `run_main()`（`codex-rs/tui/src/lib.rs:1092`）：组装配置、启动（本地或 daemon 模式的）app-server，然后进入渲染与事件分发主循环（`codex-rs/tui/src/app/startup.rs:1238` 的 `select!`）。用户输入不直接构造 core `Op`，而是包装成 app-server 的 `turn/start` 请求提交；线程事件经 app-server 订阅回流后由 `App::handle_tui_event()`（`codex-rs/tui/src/app.rs:846`）分发到各 widget。
 
 ### 4.2 CodexThread
 
-```rust
-// codex-rs/core/src/codex_thread.rs
-
-pub struct CodexThread {
-    client: Codex,
-    mailbox: Mailbox,
-    state: State,
-}
-
-impl CodexThread {
-    pub fn new(config: &Config) -> Result<Self> {
-        let client = Codex::new(config);
-        let mailbox = Mailbox::new();
-        Ok(Self { client, mailbox, state: State::Idle })
-    }
-
-    pub fn mailbox(&self) -> &Mailbox {
-        &self.mailbox
-    }
-}
-```
+`CodexThread`（定义在 `codex-rs/core/src/codex_thread.rs:208`）是主 agent 线程实例，由 `ThreadManager` 创建。它通过 `session/handlers.rs` 的 `submission_loop()`（:439）消费 `Op` 提交：`Op::TurnInput`（:541）触发 `run_turn()`（`session/turn.rs:163`），事件经 thread 的 channel 回流给订阅方。
 
 ## 5. Mailbox：Agent 间通信队列
 
 ### 5.1 核心结构
 
+多代理之间的消息队列由 `Mailboxes` 管理（`codex-rs/core/src/agent/control/mailbox.rs:15`），每个目标 agent 一个 `Mailbox`，承载 `InterAgentCommunication` 消息：
+
 ```rust
-// codex-rs/core/src/agent/mailbox.rs:11-49
+// codex-rs/core/src/agent/control/mailbox.rs:23-31
 
-pub(crate) struct Mailbox {
-    tx: mpsc::UnboundedSender<InterAgentCommunication>,
-    next_seq: AtomicU64,
-    seq_tx: watch::Sender<u64>,
+struct Mailbox {
+    pending: Vec<StoredMail>,
+    state: watch::Sender<bool>,   // pending 是否非空，供订阅方 await
 }
 
-pub(crate) enum InterAgentCommunication {
-    UserInput(Submission),
-    AgentEvent(Event),
-    ToolResult(ToolResult),
-    Elicitation(ElicitationRequest),
-}
-
-pub(crate) struct Submission {
-    pub id: String,
-    pub op: Op,           // 用户操作
-    pub trace: Option<W3cTraceContext>,
+struct StoredMail {
+    id: Option<String>,
+    communication: InterAgentCommunication,
+    // ...
 }
 ```
 
-### 5.2 序列号机制
+`InterAgentCommunication`（`codex-rs/protocol/src/protocol.rs:822`）携带 author/recipient 路径、文本内容与 trigger_turn 标记，是多代理消息的协议化载体。
 
-![序列号机制](diagrams/23-input-command-queue-diagram-02.svg)
+### 5.2 待处理通知机制
 
-**序列号机制** — [交互版](diagrams/23-input-command-queue-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/23-input-command-queue-diagram-02.sequence.json)
+![待处理通知机制](diagrams/23-input-command-queue-diagram-02.svg)
+
+**待处理通知机制** — [交互版](diagrams/23-input-command-queue-diagram-02.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/23-input-command-queue-diagram-02.sequence.json)
 
 - **组成**：4 个参与方
-- **关系**：源图 5 条消息
-- **要点**：Mailbox 自调用：nextseq++ · Codex 自调用：process submission
+- **关系**：投递 → 置位 → 订阅 → 取走 → 复位 · 每个目标 agent 一个 Mailbox（mailbox.rs:24）
+- **要点**：Mailboxes 自调用：retain 回收空邮箱（mailbox.rs:87） · take() 时发射 agent 通信接收事件
+
+每个 `Mailbox` 用 `watch::Sender<bool>` 广播"pending 是否非空"：`enqueue()` 投递消息后置位，`take()` 取走全部消息后复位，目标 agent 在处理循环中等待该状态变化后再取消息。
 
 ## 6. Submission / Event Queue 模式
 
 ### 6.1 SQ/EQ 模式
 
-```rust
-// codex-rs/protocol/src/protocol.rs
-
-pub struct Protocol {
-    submission_queue: Vec<Submission>,
-    event_queue: Vec<AgentEvent>,
-}
-
-// Submission Queue: 用户输入 → Codex
-// Event Queue: Codex → TUI/用户
-```
+输入侧的 submission 是协议化类型 `Submission`（`codex-rs/core/src/session/submission.rs:8`）：携带 `Op`、可选 `W3cTraceContext` 与 turn 关联 id，经 `submit_with_trace()`（`codex-rs/core/src/session/mod.rs:1007`）进入 core 的提交队列；事件侧由 thread 的 event channel 回流，形成"submission 进、event 出"的双队列模式。
 
 ### 6.2 Op 类型
 
 ```rust
-// codex-rs/protocol/src/protocol.rs
+// codex-rs/protocol/src/protocol.rs:576
 
 pub enum Op {
-    UserMessage { content: String },
-    ToolCall { tool: String, args: serde_json::Value },
-    ToolResult { tool: String, result: serde_json::Value },
-    Approve { request_id: String },
-    Deny { request_id: String },
+    // ...
+    Interrupt,
+    TurnInput {
+        request: Box<TurnInputRequest>,
+        mode: TurnInputMode,
+        reply: oneshot::Sender<...>,
+    },
+    // ...（审批、apply_patch、用户输入应答等操作）
 }
 ```
+
+用户 turn 以 `Op::TurnInput`（:617）提交，取消走独立的 `Op::Interrupt`（:579）。
 
 ## 7. 命令规范化 (Command Canonicalization)
 
@@ -206,14 +139,30 @@ pub enum Op {
 ```rust
 // codex-rs/core/src/command_canonicalization.rs
 
-pub fn canonicalize_command(cmd: &str) -> String {
-    // 1. 识别 shell 类型 (bash/powershell)
-    // 2. 规范化脚本内容
-    // 3. 添加协议前缀
-    match detect_shell(cmd) {
-        Shell::Bash => format!("__codex_shell_script__{}", normalize_bash(cmd)),
-        Shell::PowerShell => format!("__codex_powershell_script__{}", normalize_ps(cmd)),
+pub(crate) fn canonicalize_command_for_approval(command: &[String]) -> Vec<String> {
+    // `bash -lc "纯命令"` 之类包装：剥掉 wrapper，原样返回单一命令
+    if let Some(commands) = parse_shell_lc_plain_commands(command)
+        && let [single_command] = commands.as_slice()
+    {
+        return single_command.clone();
     }
+    // 复杂 bash 脚本：保留脚本原文，加协议前缀与 shell 模式
+    if let Some((_shell, script)) = extract_bash_command(command) {
+        let shell_mode = command.get(1).cloned().unwrap_or_default();
+        return vec![
+            CANONICAL_BASH_SCRIPT_PREFIX.to_string(),   // "__codex_shell_script__"
+            shell_mode,
+            script.to_string(),
+        ];
+    }
+    // PowerShell 脚本：加协议前缀
+    if let Some((_shell, script)) = extract_powershell_command(command) {
+        return vec![
+            CANONICAL_POWERSHELL_SCRIPT_PREFIX.to_string(), // "__codex_powershell_script__"
+            script.to_string(),
+        ];
+    }
+    command.to_vec()
 }
 ```
 
@@ -221,9 +170,10 @@ pub fn canonicalize_command(cmd: &str) -> String {
 
 | 原始 | 规范化后 |
 | :------| :----------|
-| `bash -c "echo hi"` | `__codex_shell_script__echo hi` |
-| `powershell -Command "dir"` | `__codex_powershell_script__dir` |
-| `/usr/bin/python3 script.py` | `__codex_shell_script__python3 script.py` |
+| `bash -lc "echo hi"` | `echo hi`（剥掉 wrapper，还原纯命令）|
+| `bash -c "复杂; 脚本"` | `__codex_shell_script__ <mode> <脚本原文>` |
+| `powershell -Command "dir"` | `__codex_powershell_script__ <脚本原文>` |
+| `/usr/bin/python3 script.py` | 保持原样（不匹配任何 shell 包装模式）|
 
 ## 8. 命令解析 (ParsedCommand)
 
@@ -233,15 +183,14 @@ pub fn canonicalize_command(cmd: &str) -> String {
 // codex-rs/protocol/src/parse_command.rs
 
 pub enum ParsedCommand {
-    Read { cmd: String, name: String, path: String },
-    ListFiles { cmd: String, path: String },
-    Search { cmd: String, query: String, path: Option<String> },
+    Read { cmd: String, name: String, path: PathBuf },
+    ListFiles { cmd: String, path: Option<String> },
+    Search { cmd: String, query: Option<String>, path: Option<String> },
     Unknown { cmd: String },
 }
 
-pub fn parse_command(input: &str) -> ParsedCommand {
-    // 模式匹配识别命令类型
-}
+// 解析结果随 ResponseItem 携带（protocol/src/items.rs:266 的 parsed_cmd 字段），
+// 供审批链和安全判断复用
 ```
 
 ## 9. Exec 模块
@@ -258,40 +207,15 @@ pub fn parse_command(input: &str) -> ParsedCommand {
 
 ### 9.2 沙箱集成
 
-```rust
-// codex-rs/core/src/exec.rs
-
-pub async fn execute(
-    cmd: &str,
-    cwd: &Path,
-    context: &ExecContext,
-) -> Result<ExecOutput> {
-    let canonical = canonicalize_command(cmd);
-
-    // 检查执行策略
-    let policy = ExecPolicy::from_context(context)?;
-    if !policy.allows(&canonical) {
-        return Err(ExecError::DeniedByPolicy);
-    }
-
-    // 确定是否需要沙箱
-    let sandboxed = should_sandbox(&cmd, context);
-
-    if sandboxed {
-        sandboxed_execute(cmd, cwd, context).await
-    } else {
-        direct_execute(cmd, cwd, context).await
-    }
-}
-```
+`codex-rs/core/src/exec.rs` 承载命令执行主链路：`process_exec_tool_call()`（:302）接收工具调用，`build_exec_request()`（:341）组装执行请求，`execute_exec_request()`（:445）落地执行。执行前会结合审批策略与沙箱策略决定运行方式；命令会先经过规范化，使审批缓存能按规范化形态命中。
 
 ## 10. 与 Claude Code 的差异
 
 | 特性 | Claude Code | Codex |
 | :------| :-------------| :-------|
 | 入口架构 | TypeScript REPL | Rust CLI + TUI |
-| 队列实现 | `messageQueueManager.ts` + React hooks | `Mailbox.rs` (mpsc channels) |
-| 并发控制 | `QueryGuard` 状态机 | Watch channel 序列号 |
+| 队列实现 | `messageQueueManager.ts` + React hooks | `agent/control/mailbox.rs`（Vec + watch channel）|
+| 并发控制 | `QueryGuard` 状态机 | watch channel 通知待处理消息 |
 | 命令解析 | `processSlashCommand.tsx` | `parse_command.rs` |
 | 命令规范化 | 无 (直接字符串匹配) | `command_canonicalization.rs` |
 | 执行策略 | `execPolicy.rs` | 同上 |
@@ -301,9 +225,9 @@ pub async fn execute(
 | 主题 | 代码锚点 | 说明 |
 | :------| :----------| :------|
 | CLI 入口 | `codex-rs/cli/src/main.rs` | 子命令解析 |
-| TUI 主循环 | `codex-rs/tui/src/lib.rs:587` | `run_main()` |
+| TUI 主循环 | `codex-rs/tui/src/lib.rs:1092` | `run_main()` |
 | CodexThread | `codex-rs/core/src/codex_thread.rs` | Agent 线程封装 |
-| Mailbox | `codex-rs/core/src/agent/mailbox.rs` | 通信队列 |
+| Mailbox | `codex-rs/core/src/agent/control/mailbox.rs` | 通信队列 |
 | Protocol | `codex-rs/protocol/src/protocol.rs` | SQ/EQ 模式 |
 | 命令规范化 | `codex-rs/core/src/command_canonicalization.rs` | 审批缓存支持 |
 | Exec | `codex-rs/core/src/exec.rs` | 命令执行 |
@@ -313,8 +237,8 @@ pub async fn execute(
 Codex 的输入层特点：
 
 1. **Rust-first 架构**：核心逻辑在 Rust，追求性能与安全
-2. **Mailbox 模式**：基于 mpsc 的 Actor-style 通信
-3. **Sequence Channel**：Watch channel 追踪处理序列号
+2. **Mailbox 模式**：Agent 间的协议化消息投递（`Mailboxes` + `InterAgentCommunication`）
+3. **Submission 队列**：`Op` 提交经 `submit_with_trace()` 进入 core，事件经 thread channel 回流
 4. **命令规范化**：为审批缓存提供稳定匹配
 5. **沙箱优先**：命令执行默认考虑沙箱隔离
 
@@ -324,27 +248,6 @@ Codex 的输入层特点：
 *分析日期: 2026-04-06*
 
 ---
-
-## 关键函数清单
-
-| 函数/类型 | 文件 | 职责 |
-| :----------| :------| :------|
-| `InputQueue` | `codex-rs/tui/src/input.rs` | 用户输入队列：缓冲多行输入，等待 Enter 确认后统一发送 |
-| `CommandParser::parse()` | `codex-rs/tui/src/command.rs` | 解析以 `/` 开头的斜杠命令，返回 `Command` 枚举 |
-| `Command` enum | `codex-rs/tui/src/command.rs` | 内置命令集：/clear /model /resume /history /help 等 |
-| `CommandHandler::execute()` | `codex-rs/tui/src/command.rs` | 执行解析后的 Command，更新 AppState 或发送到 core |
-| `HistoryNavigator` | `codex-rs/tui/src/input.rs` | 上下键历史导航：在 InputQueue 中注入历史输入条目 |
-| `PromptInput` | `codex-rs/tui/src/input.rs` | 统一输入模型：文本内容 + 附件（文件/图片引用） |
-
----
-
-## 代码质量评估
-
-**优点**
-
-- **斜杠命令系统可发现**：`/help` 提供命令列表，用户无需记忆所有命令；命令补全可扩展。
-- **PromptInput 统一附件与文本**：文本和文件附件在同一输入模型中，发送给 core 时格式一致，不需要两套处理路径。
-- **InputQueue 支持多行组合**：缓冲区设计允许用户粘贴多行代码后一次确认发送，不会因换行提前触发。
 
 ## 跨工具横向对比
 
@@ -358,12 +261,6 @@ Codex 的输入层特点：
 | 架构驱动 | 单 Agent，query 并发控制 | 多 Agent，Mailbox 通信 | 单 Agent，Shell 状态隔离 | Durable State，输入即消息 |
 
 **要点**：Codex 因有多 Agent 架构（含 child-agents），其队列系统加入了 Mailbox 机制和命令规范化，远比其他三个工具复杂；其他三者均面向单 Agent，核心问题是"slash 命令解析 + 输入队列调度"。
-
-**风险与改进点**
-
-- **命令解析与输入处理耦合**：`CommandParser` 嵌入 `InputQueue` 处理流程，难以在集成测试中独立测试命令解析逻辑。
-- **无 shell-style tab 补全**：斜杠命令无 Tab 补全，命令名需要完整输入，不如 fish/zsh 交互友好。
-- **PromptInput 附件无大小限制**：内联文件引用时未限制文件大小，大文件注入可能超出 LLM context window。
 
 ## Codex 输入队列要包含 Mailbox 和多代理消息
 
@@ -393,9 +290,9 @@ Codex 的输入队列复杂度高于其他项目，因为普通用户 prompt、s
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |
-| `sources/codex/codex-rs/tui/src/lib.rs:664` | TUI `run_main()` 交互入口 | 对应 Gemini `interactiveCli.tsx` |
-| `sources/codex/codex-rs/tui/src/app/thread_routing.rs:422` | `submit_thread_op()` 提交用户操作 | 输入进入 app/core 边界 |
-| `sources/codex/codex-rs/tui/src/app_server_session.rs:397` | `turn_start()` 包装 app-server 请求 | 对应 OpenCode server route |
+| `sources/codex/codex-rs/tui/src/lib.rs:1092` | TUI `run_main()` 交互入口 | 对应 Gemini `interactiveCli.tsx` |
+| `sources/codex/codex-rs/tui/src/app/thread_routing.rs:500` | `submit_thread_op()` 提交用户操作 | 输入进入 app/core 边界 |
+| `sources/codex/codex-rs/tui/src/app_server_session.rs:1414` | `turn_start()` 包装 app-server 请求 | 对应 OpenCode server route |
 | `sources/codex/codex-rs/protocol/src/protocol.rs` | Submission/Event 协议类型 | Codex 输入队列的类型化边界 |
-| `sources/codex/codex-rs/protocol/src/parse_command.rs` | slash / command parsing | 对应 Claude slash parser、Gemini CommandService |
-| `sources/codex/codex-rs/core/src/session/mod.rs:698` | `submit_with_trace()` 生成 core submission | 连接 Agent loop |
+| `sources/codex/codex-rs/protocol/src/parse_command.rs` | 命令解析（ParsedCommand） | 对应 Claude slash parser、Gemini CommandService |
+| `sources/codex/codex-rs/core/src/session/mod.rs:1007` | `submit_with_trace()` 生成 core submission | 连接 Agent loop |

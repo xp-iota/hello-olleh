@@ -46,10 +46,10 @@ Gemini CLI 的 agent loop 不是一个单独的 `while` 循环，而是由以下
 
 | 启动产物 | 关键方法 | 代码位置 | 对请求流程的影响 |
 | :---| :---| :---| :---|
-| Config ready 标志 | `AppContainer.useEffect()` | `AppContainer.tsx:398-427` | `handleFinalSubmit()` 在 `isConfigInitialized === false` 时不放行普通 prompt |
-| MCP ready 标志 | `useMcpStatus()` | `sources/gemini-cli/packages/cli/src/ui/hooks/useMcpStatus.ts:15-50` | 普通 prompt 等 MCP discovery 完成后才进入 loop |
-| 首轮会话壳 | `GeminiClient.initialize()` → `startChat()` | `sources/gemini-cli/packages/core/src/core/client.ts:245-248`, `358-388` | 首轮 `submitQuery()` 复用已创建的 `GeminiChat` |
-| 工具/技能/权限边界 | `createToolRegistry()`、`discoverSkills()` | `sources/gemini-cli/packages/core/src/config/config.ts:3257`, `1367-1379`, `2742-2749` | `setTools()` 和 `Scheduler._processToolCall()` 只能在启动确定的能力面内运行 |
+| Config ready 标志 | `AppContainer.useEffect()` | `AppContainer.tsx:477-540` | `handleFinalSubmit()` 在 `isConfigInitialized === false` 时不放行普通 prompt |
+| MCP ready 标志 | `useMcpStatus()` | `sources/gemini-cli/packages/cli/src/ui/hooks/useMcpStatus.ts:15-51` | 普通 prompt 等 MCP discovery 完成后才进入 loop |
+| 首轮会话壳 | `GeminiClient.initialize()` → `startChat()` | `sources/gemini-cli/packages/core/src/core/client.ts:263-266`, `394-430` | 首轮 `submitQuery()` 复用已创建的 `GeminiChat` |
+| 工具/技能/权限边界 | `createToolRegistry()`、`discoverSkills()` | `sources/gemini-cli/packages/core/src/config/config.ts:3974`, `1540-1543`, `3181-3188` | `setTools()` 和 `Scheduler._processToolCall()` 只能在启动确定的能力面内运行 |
 
 ---
 
@@ -83,19 +83,19 @@ Gemini CLI 的 agent loop 不是一个单独的 `while` 循环，而是由以下
 
 - **组成**：9 个参与方
 - **关系**：源图 8 条消息 · 画布展示前 5 条主链消息，其余列在要点
-- **要点**：submitQuery() / useGeminiStream.ts:1455 自调用：prepareQueryForGemini() · processTurn() / gemini-cli/packages/core/src/core/cli… 自调用：tryCompressChat() / … · 未上画布的调用：sendMessageStream(...):263
+- **要点**：submitQuery() / useGeminiStream.ts:1682 自调用：prepareQueryForGemini() · processTurn() / gemini-cli/packages/core/src/core/cli… 自调用：tryCompressChat() / … · 未上画布的调用：sendMessageStream(...):284
 
 ### 2.3 各跳职责说明
 
 | 调用链 | 符号定义 | 关键调用点 | 职责 |
 | :---| :---| :---| :---|
-| `handleFinalSubmit() → submitQuery()` | `AppContainer.tsx:1262-1333` | `1312, 1319` | TUI 总入口；处理 slash command、hint、权限确认 |
-| `submitQuery() → prepareQueryForGemini()` | `useGeminiStream.ts:1455-1651` | `1502-1507` | 预处理用户输入、上下文文件、slash command 产物 |
-| `submitQuery() → sendMessageStream()` | `useGeminiStream.ts:1455-1651` | `1538-1547` | 启动一次新的流式交互 |
-| `sendMessageStream() → processTurn()` | `sources/gemini-cli/packages/core/src/core/client.ts:868-940` | `925-933` | reset turn 状态、运行 agent hook |
-| `processTurn() → Turn.run()` | `sources/gemini-cli/packages/core/src/core/client.ts:585-865` | `726-734` | 上下文压缩、token 检查、模型路由、工具声明刷新 |
-| `Turn.run() → GeminiChat.sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/turn.ts:253-404` | `263-270` | 进入底层模型流封装层 |
-| `GeminiChat → makeApiCallAndProcessStream()` | `geminiChat.ts:303-492` | `372-378` | 真正发出 API 调用并消费流式响应 |
+| `handleFinalSubmit() → submitQuery()` | `AppContainer.tsx:1375-1490` | `1428, 1435` | TUI 总入口；处理 slash command、hint、权限确认 |
+| `submitQuery() → prepareQueryForGemini()` | `useGeminiStream.ts:1682-1886` | `1731` | 预处理用户输入、上下文文件、slash command 产物 |
+| `submitQuery() → processGeminiStreamEvents()` | `useGeminiStream.ts:1682-1886` | `1773-1780` | 启动一次新的流式交互 |
+| `sendMessageStream() → processTurn()` | `sources/gemini-cli/packages/core/src/core/client.ts:924-1075` | `979` | reset turn 状态、运行 agent hook |
+| `processTurn() → Turn.run()` | `sources/gemini-cli/packages/core/src/core/client.ts:628-921` | `817` | 上下文压缩、token 检查、模型路由、工具声明刷新 |
+| `Turn.run() → GeminiChat.sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/turn.ts:270-466` | `284` | 进入底层模型流封装层 |
+| `GeminiChat → makeApiCallAndProcessStream()` | `geminiChat.ts:480-830` | `667` | 真正发出 API 调用并消费流式响应 |
 
 ---
 
@@ -155,53 +155,53 @@ Gemini CLI 的 agent loop 不是一个单独的 `while` 循环，而是由以下
 
 ### 5.2 `ToolCallRequest` 如何离开模型层
 
-1. `Turn.run()` — `sources/gemini-cli/packages/core/src/core/turn.ts:325-331`
-   产出 `ToolCallRequest` 事件。
-2. `useGeminiStream.processGeminiStreamEvents()` — `useGeminiStream.ts:1330-1453`，调用点 `1359-1361`
+1. `Turn.run()` — `sources/gemini-cli/packages/core/src/core/turn.ts:383`
+   经 `handlePendingFunctionCall()`（`turn.ts:467-522`）产出 `ToolCallRequest` 事件。
+2. `useGeminiStream.processGeminiStreamEvents()` — `useGeminiStream.ts:1533-1680`，调用点 `1565`
    把 `ToolCallRequest` 存入本地 `toolCallRequests` 数组。
-3. `useGeminiStream.processGeminiStreamEvents()` — 调用点 `1425-1431`
+3. `useGeminiStream.processGeminiStreamEvents()` — 调用点 `1637`
    本轮模型流**结束后**统一 `await scheduleToolCalls(toolCallRequests, signal)`。
 
 > **时序关键**：Gemini CLI 先把整轮流收完，再批量调度工具，因此"边流式输出边立刻开工具"的时序不成立。
 
 ### 5.3 调度链：从 `scheduleToolCalls()` 到 `ToolExecutor`
 
-1. `useToolScheduler.schedule()` — `sources/gemini-cli/packages/cli/src/ui/hooks/useToolScheduler.ts:176-190`，调用点 `182`
-   调 `scheduler.schedule(request, signal)`；完成后调 `onCompleteRef.current(results)`。
-2. `Scheduler.schedule()` — `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:191-217`
+1. `useToolScheduler.schedule()` — `sources/gemini-cli/packages/cli/src/ui/hooks/useToolScheduler.ts:210-226`，调用点 `217`
+   调 `scheduler.schedule(request, signal)`；完成后调 `onCompleteRef.current(results)`（`222`）。
+2. `Scheduler.schedule()` — `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:211-240`
    决定直接 `_startBatch()` 或进入 `_enqueueRequest()`。
-3. `Scheduler._startBatch()` — `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:297-339`，调用点 `325-329` → `333`
+3. `Scheduler._startBatch()` — `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:319-371`，调用点 `363`
    验证工具调用，进入 `_processQueue(signal)`。
-4. `Scheduler._processNextItem()` — `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:416-527`，调用点 `463-485`
+4. `Scheduler._processNextItem()` — `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:456-576`，调用点 `507-512`
    并发处理 `validating` 和 `_execute(...)`。
 
 ### 5.4 安全闸门：`Scheduler._processToolCall()`
 
 | 步骤 | 方法 | 调用点 |
 | :------| :------| :--------|
-| before-tool hook | `evaluateBeforeToolHook(...)` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:580-585` |
-| 策略检查 | `checkPolicy(...)` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:610-614` |
-| 用户审批 | `resolveConfirmation(...)` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:643-653` |
-| 进入 Scheduled 状态 | — | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:683` |
+| before-tool hook | `evaluateBeforeToolHook(...)` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:635` |
+| 策略检查 | `checkPolicy(...)` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:665` |
+| 用户审批 | `resolveConfirmation(...)` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:715` |
+| 进入 Scheduled 状态 | — | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:755` |
 
 ### 5.5 工具执行：`Scheduler._execute()` → `ToolExecutor`
 
-1. `Scheduler._execute()` — `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:691-860`，调用点 `717-734`
+1. `Scheduler._execute()` — `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:763-994`，调用点 `789`
    调 `this.executor.execute(...)`。
-2. `ToolExecutor.execute()` — `tool-executor.ts:59-193`，调用点 `110-120`
+2. `ToolExecutor.execute()` — `tool-executor.ts:63-201`，调用点 `116`
    调 `executeToolWithHooks(...)` 执行实际工具。
-3. `ToolExecutor.createSuccessResult()` — `tool-executor.ts:357-403`，调用点 `366-372`
+3. `ToolExecutor.createSuccessResult()` — `tool-executor.ts:480-529`，调用点 `490`
    调 `convertToFunctionResponse(...)`，把工具结果转成 Gemini 兼容的 `functionResponse` parts。
 
 ### 5.6 工具结果回注给模型
 
 回注链发生在 **UI hook 层**，而不是 core 层：
 
-1. `useToolScheduler()` 的 `onComplete` 回调 — `useGeminiStream.ts:293-342`，调用点 `337-340`
+1. `useToolScheduler()` 的 `onComplete` 回调 — `useGeminiStream.ts:307-376`，调用点 `376`
    调 `handleCompletedTools(completedToolCallsFromScheduler)`。
-2. `useGeminiStream.handleCompletedTools()` — `useGeminiStream.ts:1724-1938`，调用点 `1886-1888`
+2. `useGeminiStream.handleCompletedTools()` — `useGeminiStream.ts:1972-2210`，调用点 `2149`
    把 `toolCall.response.responseParts` 展平成 `responsesToSend`。
-3. `useGeminiStream.handleCompletedTools()` — 调用点 `1915-1922`
+3. `useGeminiStream.handleCompletedTools()` — 调用点 `2189-2195`
    执行 `submitQuery(responsesToSend, { isContinuation: true }, prompt_ids[0])`。
 
 **这一步才是闭环真正完成的地方。Gemini CLI 的 agent loop 是通过 `submitQuery()` 递归重入形成的。**
@@ -229,32 +229,32 @@ Gemini CLI 的 agent loop 不是一个单独的 `while` 循环，而是由以下
 
 ### 6.1 turn 开始前的检测
 
-`GeminiClient.processTurn()` — `sources/gemini-cli/packages/core/src/core/client.ts:672`
+`GeminiClient.processTurn()` — `sources/gemini-cli/packages/core/src/core/client.ts:761`
 调 `this.loopDetector.turnStarted(signal)`。
 
-`LoopDetectionService.turnStarted()` — `loopDetectionService.ts:261-312`
+`LoopDetectionService.turnStarted()` — `loopDetectionService.ts:260-312`
 维护 turn 计数，在满足阈值时触发基于 LLM 的 loop 分析。
 
 ### 6.2 流处理中逐事件检测
 
-`GeminiClient.processTurn()` — 调用点 `sources/gemini-cli/packages/core/src/core/client.ts:740-755`
+`GeminiClient.processTurn()` — 调用点 `sources/gemini-cli/packages/core/src/core/client.ts:827`
 对 `resultStream` 的每个 event 调 `this.loopDetector.addAndCheck(event)`。
 
-`LoopDetectionService.addAndCheck()` — `loopDetectionService.ts:186-249`
+`LoopDetectionService.addAndCheck()` — `loopDetectionService.ts:185-259`
 只对两类事件做检测：`GeminiEventType.ToolCallRequest` 和 `GeminiEventType.Content`。
 
 ### 6.3 UI 如何响应 `LoopDetected`
 
-1. `processGeminiStreamEvents()` — `useGeminiStream.ts:1409-1413`
+1. `processGeminiStreamEvents()` — `useGeminiStream.ts:1614-1617`
    收到 `LoopDetected` 时只打 `loopDetectedRef.current = true` 标记。
-2. `submitQuery()` — `useGeminiStream.ts:1561-1595`
+2. `submitQuery()` — `useGeminiStream.ts:1796-1815`
    收流结束后弹出 confirmation，根据用户选择决定是否重试。
-3. `LoopDetectionService.disableForSession()` — `loopDetectionService.ts:167-173`
+3. `LoopDetectionService.disableForSession()` — `loopDetectionService.ts:166-173`
    关闭会话级 loop detection。
 
 ### 6.4 容易误判的点
 
-`Turn.callCounter`（`sources/gemini-cli/packages/core/src/core/turn.ts:239`）只是为缺失 id 的 function call 生成 fallback `callId`，**不负责任何 loop detection**。
+`Turn.callCounter`（`sources/gemini-cli/packages/core/src/core/turn.ts:255`）只是为缺失 id 的 function call 生成 fallback `callId`，**不负责任何 loop detection**。
 
 ---
 
@@ -262,31 +262,31 @@ Gemini CLI 的 agent loop 不是一个单独的 `while` 循环，而是由以下
 
 | 文件 | 函数 | 行号 | 职责 |
 | :------| :------| :------| :------|
-| `AppContainer.tsx` | `handleFinalSubmit()` | `1262-1333` | TUI 输入总入口，处理 slash command / 权限确认，决定是否提交给 agent |
-| `useGeminiStream.ts` | `submitQuery()` | `1455-1651` | 预处理输入，启动流式交互，闭环重入点 |
-| `useGeminiStream.ts` | `processGeminiStreamEvents()` | `1330-1453` | 消费 Turn 产出的事件流，收集 ToolCallRequest |
-| `useGeminiStream.ts` | `scheduleToolCalls()` | （内联于上函数） | 批量发起工具调度 |
-| `useGeminiStream.ts` | `handleCompletedTools()` | `1724-1938` | 接收工具结果，构造 `functionResponse`，触发 `submitQuery()` 重入 |
-| `useToolScheduler.ts` | `schedule()` | `176-190` | 封装 core scheduler 调用，触发 `onComplete` 回调 |
-| `client.ts` | `GeminiClient.sendMessageStream()` | `868-940` | 对外的流式请求入口，内部委托 `processTurn()` |
-| `client.ts` | `GeminiClient.processTurn()` | `585-865` | 上下文压缩、模型路由、工具声明刷新、循环检测插桩 |
-| `client.ts` | `GeminiClient.startChat()` | `358-388` | 创建 `GeminiChat`，注入 `systemInstruction` |
-| `client.ts` | `GeminiClient.updateSystemInstruction()` | `348-356` | 热更新 system prompt |
-| `turn.ts` | `Turn.run()` | `253-404` | 消费 `GeminiChat` 流，产出高层事件（Thought / Content / ToolCallRequest / Finished） |
-| `turn.ts` | `Turn.handlePendingFunctionCall()` | `406-427` | 把 `FunctionCall` 转成 `ToolCallRequestInfo` |
-| `geminiChat.ts` | `GeminiChat.sendMessageStream()` | `303-492` | 底层 API 调用封装，输出 `ServerGeminiStreamEvent` |
-| `scheduler.ts` | `Scheduler.schedule()` | `191-217` | 调度入口，决定批处理或入队 |
-| `scheduler.ts` | `Scheduler._processToolCall()` | `573-684` | 安全闸门（before-hook / policy / confirmation） |
-| `scheduler.ts` | `Scheduler._execute()` | `691-860` | 调用 ToolExecutor，管理执行状态 |
-| `tool-executor.ts` | `ToolExecutor.execute()` | `59-193` | 实际执行工具，含 hooks |
-| `tool-executor.ts` | `ToolExecutor.createSuccessResult()` | `357-403` | 转换工具结果为 `functionResponse` |
-| `config.ts` | `Config.initialize()` | `1289` | 初始化入口 |
-| `config.ts` | `Config._initialize()` | `1299` | 实际初始化：创建 ToolRegistry、MCP、Skills |
-| `config.ts` | `createToolRegistry()` | `3257` | 注册所有内置工具 |
-| `config.ts` | `updateSystemInstructionIfInitialized()` | `2533` | 触发 system prompt 热更新 |
-| `loopDetectionService.ts` | `LoopDetectionService.turnStarted()` | `261-312` | turn 级别的循环检测 |
-| `loopDetectionService.ts` | `LoopDetectionService.addAndCheck()` | `186-249` | 逐事件循环检测 |
-| `promptProvider.ts` | `PromptProvider.getCoreSystemPrompt()` | `42-245` | 动态组装 system prompt 文本 |
+| `AppContainer.tsx` | `handleFinalSubmit()` | `1375-1490` | TUI 输入总入口，处理 slash command / 权限确认，决定是否提交给 agent |
+| `useGeminiStream.ts` | `submitQuery()` | `1682-1886` | 预处理输入，启动流式交互，闭环重入点 |
+| `useGeminiStream.ts` | `processGeminiStreamEvents()` | `1533-1680` | 消费 Turn 产出的事件流，收集 ToolCallRequest |
+| `useGeminiStream.ts` | `scheduleToolCalls()` | 来自 `useToolScheduler.schedule()`（`useToolScheduler.ts:210`） | 批量发起工具调度 |
+| `useGeminiStream.ts` | `handleCompletedTools()` | `1972-2210` | 接收工具结果，构造 `functionResponse`，触发 `submitQuery()` 重入 |
+| `useToolScheduler.ts` | `schedule()` | `210-226` | 封装 core scheduler 调用，触发 `onComplete` 回调 |
+| `client.ts` | `GeminiClient.sendMessageStream()` | `924-1075` | 对外的流式请求入口，内部委托 `processTurn()` |
+| `client.ts` | `GeminiClient.processTurn()` | `628-921` | 上下文压缩、模型路由、工具声明刷新、循环检测插桩 |
+| `client.ts` | `GeminiClient.startChat()` | `394-430` | 创建 `GeminiChat`，注入 `systemInstruction` |
+| `client.ts` | `GeminiClient.updateSystemInstruction()` | `384-390` | 热更新 system prompt |
+| `turn.ts` | `Turn.run()` | `270-466` | 消费 `GeminiChat` 流，产出高层事件（Thought / Content / ToolCallRequest / Finished） |
+| `turn.ts` | `Turn.handlePendingFunctionCall()` | `467-522` | 把 `FunctionCall` 转成 `ToolCallRequestInfo` |
+| `geminiChat.ts` | `GeminiChat.sendMessageStream()` | `480-830` | 底层 API 调用封装，输出 `ServerGeminiStreamEvent` |
+| `scheduler.ts` | `Scheduler.schedule()` | `211-240` | 调度入口，决定批处理或入队 |
+| `scheduler.ts` | `Scheduler._processToolCall()` | `628-762` | 安全闸门（before-hook / policy / confirmation） |
+| `scheduler.ts` | `Scheduler._execute()` | `763-994` | 调用 ToolExecutor，管理执行状态 |
+| `tool-executor.ts` | `ToolExecutor.execute()` | `63-201` | 实际执行工具，含 hooks |
+| `tool-executor.ts` | `ToolExecutor.createSuccessResult()` | `480-529` | 转换工具结果为 `functionResponse` |
+| `config.ts` | `Config.initialize()` | `1444` | 初始化入口 |
+| `config.ts` | `Config._initialize()` | `1454` | 实际初始化：创建 ToolRegistry、MCP、Skills |
+| `config.ts` | `createToolRegistry()` | `3974` | 注册所有内置工具 |
+| `config.ts` | `updateSystemInstructionIfInitialized()` | `2963` | 触发 system prompt 热更新 |
+| `loopDetectionService.ts` | `LoopDetectionService.turnStarted()` | `260-312` | turn 级别的循环检测 |
+| `loopDetectionService.ts` | `LoopDetectionService.addAndCheck()` | `185-259` | 逐事件循环检测 |
+| `promptProvider.ts` | `PromptProvider.getCoreSystemPrompt()` | `47-295` | 动态组装 system prompt 文本 |
 
 ---
 
@@ -304,13 +304,13 @@ Gemini CLI 的 agent loop 不是一个单独的 `while` 循环，而是由以下
 - **闭环跨层较深**：一次完整循环要跨 `cli/hooks`、`core/client`、`core/turn`、`core/scheduler` 四层，阅读和调试成本高。
 - **工具回注不在 core**：`handleCompletedTools()` 的重入逻辑位于 `cli` 层的 UI hook 中；若将来要把同一套 loop 复用到别的宿主（如无 TUI 的批处理模式），这段逻辑需要单独搬运。
 - **工具调度晚于流消费**：`processGeminiStreamEvents()` 直到流结束才调 `scheduleToolCalls()`，无法实现"边流式输出边立刻开工具"的并发时序。
-- **`createToolRegistry()` 行号漂移风险**：当前位于 `sources/gemini-cli/packages/core/src/config/config.ts:3257`，但 `config.ts` 文件体量大（超 3500 行），后续改动容易使行号大幅偏移，建议拆文件。
+- **`createToolRegistry()` 行号漂移风险**：当前位于 `sources/gemini-cli/packages/core/src/config/config.ts:3974`，但 `config.ts` 文件体量大（超 4200 行），后续改动容易使行号大幅偏移，建议拆文件。
 
 ---
 
 ## 8.1 Scheduler 三阶段处理详解
 
-`sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:405-504` 的 `_processQueue()` 使用 while 循环 + 三阶段模式处理工具调用：
+`sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:445-455` 的 `_processQueue()` 使用 while 循环 + 三阶段模式处理工具调用：
 
 ```typescript
 private async _processQueue(signal: AbortSignal): Promise<void> {
@@ -321,27 +321,36 @@ private async _processQueue(signal: AbortSignal): Promise<void> {
 }
 ```
 
-每次迭代（`_processNextItem()`，行 411-504）经过：
+每次迭代（`_processNextItem()`，行 456-576）经过：
 
 **Phase 1 — 验证（Validating → Scheduled / AwaitingApproval）**：
 
 ```typescript
-const validatingCalls = activeCalls.filter(c => c.status === 'Validating');
-await Promise.all(
-  validatingCalls.map(c => this._processValidatingCall(c, signal))
+let activeCalls = this.state.allActiveCalls;
+const validatingCalls = activeCalls.filter(
+  (c): c is ValidatingToolCall =>
+    c.status === CoreToolCallStatus.Validating,
 );
+if (validatingCalls.length > 0) {
+  await Promise.all(
+    validatingCalls.map((c) => this._processValidatingCall(c, signal)),
+  );
+}
 ```
 
-验证包含 `evaluateBeforeToolHook()`（行 580-585）、`checkPolicy()`（行 610-614）、`resolveConfirmation()`（行 643-653）。
+验证包含 `evaluateBeforeToolHook()`（行 635）、`checkPolicy()`（行 665）、`resolveConfirmation()`（行 715）。
 
 **Phase 2 — 执行（Scheduled → Executing → Terminal）**：
 
 ```typescript
 const allReady = activeCalls.every(
-  c => c.status === 'Scheduled' || this.isTerminal(c.status)
+  (c) =>
+    c.status === CoreToolCallStatus.Scheduled || this.isTerminal(c.status),
 );
 if (allReady && scheduledCalls.length > 0) {
-  await Promise.all(scheduledCalls.map(c => this._execute(c, signal)));
+  const execResults = await Promise.all(
+    scheduledCalls.map((c) => this._execute(c, signal)),
+  );
 }
 ```
 
@@ -350,6 +359,7 @@ if (allReady && scheduledCalls.length > 0) {
 **Phase 3 — 终结（Terminal → 清理）**：
 
 ```typescript
+activeCalls = this.state.allActiveCalls;
 for (const call of activeCalls) {
   if (this.isTerminal(call.status)) {
     this.state.finalizeCall(call.request.callId);
@@ -369,30 +379,41 @@ for (const call of activeCalls) {
 
 ### 模型端并发控制
 
-Gemini CLI 独特的并发决策机制——由模型决定工具是否串行（`sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:549-558`）：
+Gemini CLI 独特的并发决策机制——`update_topic` 与编辑类工具被客户端强制串行，其余工具由模型决定是否串行（`sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:577-595`）：
 
 ```typescript
 private _isParallelizable(request: ToolCallRequestInfo): boolean {
+  // update_topic tool is forced as sequential call
+  if (
+    request.name === UPDATE_TOPIC_TOOL_NAME ||
+    EDIT_TOOL_NAMES.has(request.name)
+  ) {
+    return false;
+  }
   if (request.args) {
     const wait = request.args['wait_for_previous'];
-    if (typeof wait === 'boolean') return !wait;
+    if (typeof wait === 'boolean') {
+      return !wait;
+    }
   }
-  return true;  // 默认并行
+
+  // Default to parallel if the flag is omitted.
+  return true;
 }
 ```
 
-模型在工具参数中设置 `wait_for_previous: true` 来要求串行执行。这与 Claude Code（客户端 `isConcurrencySafe`）和 Codex（客户端 `tool_supports_parallel` + `RwLock`）的模式完全不同——Gemini 把串行决策权交给了模型而非客户端。
+模型在工具参数中设置 `wait_for_previous: true` 来要求串行执行（`update_topic` 与编辑类工具则无条件串行）。这与 Claude Code（客户端 `isConcurrencySafe`）和 Codex（客户端 `tool_supports_parallel` + `RwLock`）的模式完全不同——Gemini 把大部分工具的串行决策权交给了模型而非客户端。
 
 ### Loop Detection 两级响应
 
-`processTurn()` 中的循环检测（`sources/gemini-cli/packages/core/src/core/client.ts:629-641`）实现了两级响应策略：
+`processTurn()` 中的循环检测（`sources/gemini-cli/packages/core/src/core/client.ts:761-772`）实现了两级响应策略：
 
 | 检测次数 | 响应 | 行号 |
 | :----------| :------| :------|
-| `count === 1`（首次检测到循环） | 注入反馈消息尝试恢复：`_recoverFromLoop()` | `sources/gemini-cli/packages/core/src/core/client.ts:681` |
-| `count > 1`（二次循环） | 强制终止：`yield LoopDetected` | `sources/gemini-cli/packages/core/src/core/client.ts:673` |
+| `count === 1`（首次检测到循环） | 注入反馈消息尝试恢复：`_recoverFromLoop()` | `sources/gemini-cli/packages/core/src/core/client.ts:770` |
+| `count > 1`（二次循环） | 强制终止：`yield LoopDetected` | `sources/gemini-cli/packages/core/src/core/client.ts:763` |
 
-`_recoverFromLoop()`（`sources/gemini-cli/packages/core/src/core/client.ts:778-797`）注入一条用户消息告知模型其行为在重复，然后重新进入 `processTurn()`。这是四个工程中唯一实现了基于 LLM 分析的主动循环模式检测的方案。
+`_recoverFromLoop()`（`sources/gemini-cli/packages/core/src/core/client.ts:1284`）注入一条用户消息告知模型其行为在重复，然后重新进入 `processTurn()`。这是四个工程中唯一实现了基于 LLM 分析的主动循环模式检测的方案。
 
 ---
 
@@ -418,9 +439,9 @@ private _isParallelizable(request: ToolCallRequestInfo): boolean {
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |
-| `sources/gemini-cli/packages/core/src/core/client.ts:92` | `GeminiClient` 会话编排对象 | 对应 Claude query / Codex turn controller |
-| `sources/gemini-cli/packages/core/src/core/client.ts:585` | `processTurn()` 主控制流 | 对应 Codex `run_turn()` |
-| `sources/gemini-cli/packages/core/src/core/client.ts:868` | `sendMessageStream()` 对外流式入口 | 对应 OpenCode `LLM.stream()` 调用链 |
-| `sources/gemini-cli/packages/core/src/core/turn.ts:253` | `Turn.run()` 消费模型流并产出事件 | 对应 Codex streaming consumer |
-| `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:191` | `Scheduler.schedule()` 接收工具请求 | 工具调度不在模型流内直接完成 |
-| `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:1822` | `handleCompletedTools()` 回注工具结果 | Gemini continuation 的关键差异 |
+| `sources/gemini-cli/packages/core/src/core/client.ts:93` | `GeminiClient` 会话编排对象 | 对应 Claude query / Codex turn controller |
+| `sources/gemini-cli/packages/core/src/core/client.ts:628` | `processTurn()` 主控制流 | 对应 Codex `run_turn()` |
+| `sources/gemini-cli/packages/core/src/core/client.ts:924` | `sendMessageStream()` 对外流式入口 | 对应 OpenCode `LLM.stream()` 调用链 |
+| `sources/gemini-cli/packages/core/src/core/turn.ts:270` | `Turn.run()` 消费模型流并产出事件 | 对应 Codex streaming consumer |
+| `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:211` | `Scheduler.schedule()` 接收工具请求 | 工具调度不在模型流内直接完成 |
+| `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:1972` | `handleCompletedTools()` 回注工具结果 | Gemini continuation 的关键差异 |

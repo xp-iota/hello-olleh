@@ -13,7 +13,8 @@
     {
       "id": "A",
       "type": "cloud",
-      "label": "McpConnectionManager",
+      "label": "McpConnectionSet",
+      "sublabel": "connection_manager.rs:213",
       "pos": [
         45,
         65
@@ -39,7 +40,8 @@
     {
       "id": "E",
       "type": "backend",
-      "label": "Transport Recipe",
+      "label": "TransportRecipe",
+      "sublabel": "InProcess · Stdio · StreamableHttp",
       "pos": [
         737,
         65
@@ -314,9 +316,9 @@
       "dot": "orange",
       "title": "要点",
       "items": [
-        "McpConnectionManager → RmcpClient",
-        "RmcpClient → Transport Recipe",
-        "Transport Recipe → StdioTransport"
+        "McpConnectionSet → RmcpClient",
+        "RmcpClient → TransportRecipe",
+        "TransportRecipe → StdioTransport"
       ]
     }
   ]

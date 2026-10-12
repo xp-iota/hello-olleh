@@ -3,7 +3,7 @@ title: "工具系统：Tool 契约、注册表与内建工具"
 ---
 # 工具系统：Tool 契约、注册表与内建工具
 
-> 基于 `sources/nanobot/nanobot/agent/tools/` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/agent/tools/` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
@@ -30,7 +30,7 @@ title: "工具系统：Tool 契约、注册表与内建工具"
 - 注册面：`register` / `unregister` / `get` / `has` / `tool_names` / `__contains__`；查找键经 `_lookup_key` 归一化，找不到时 `_suggest_name` 给出"你是不是想调用 X"的纠错建议（直接写回给模型的错误文本里）；
 - 定义导出：`get_definitions()` 生成给模型的工具声明（按 `_schema_name` 去重）；
 - 调用面：`prepare_call(...)` 做参数规整——`_coerce_argument_value` / `_coerce_params` 把模型给的松散参数向 schema 收敛，`_unwrap_arguments_payload` 解开嵌套 arguments；`execute(name, params)` 执行并统一包装结果；
-- `is_tool_error_result(name, result)` 供 runner 判定工具结果是否错误（配合 `fail_on_tool_error`）。
+- `is_tool_error_result(name, result)` 供 `tools/execution.py` 的 `execute_tool_calls` 判定工具结果是否错误。
 
 ## 3. ToolLoader：内建发现与插件
 
@@ -39,7 +39,7 @@ title: "工具系统：Tool 契约、注册表与内建工具"
 1. 扫描 `agent/tools/` 包内所有 `Tool` 子类（`package` 可注入以便测试，`test_classes` 直接注入类）；
 2. `_discover_plugins()` 经 `importlib.metadata.entry_points` 发现第三方工具插件（见 [14-plugin-system.md](./14-plugin-system.md)）。
 
-`AgentLoop._register_default_tools` 把发现的类实例化进注册表；MCP 工具由 `tools/mcp.py` 在 `_connect_mcp` 时动态注册（见 [24-mcp-system.md](./24-mcp-system.md)）。
+`AgentLoop._register_default_tools` 把发现的类实例化进注册表；MCP 工具由 `tools/mcp.py` 的 `connect_mcp_servers` / `MCPProvider.connect()` 动态注册（见 [24-mcp-system.md](./24-mcp-system.md)）。
 
 ## 4. 内建工具地图
 
@@ -55,7 +55,9 @@ title: "工具系统：Tool 契约、注册表与内建工具"
 | `self.py`（MyTool） / `runtime_state.py` | 检视自身配置与运行时状态 |
 | `cli_apps.py` | 调用本机 CLI 应用 |
 | `file_state.py` / `context.py` | 文件状态跟踪与请求上下文绑定 |
-| `mcp.py` | MCP server 工具的动态适配 |
+| `sessions.py` / `session_messages.py` | 检索与读取持久会话、跨会话收发有界消息 |
+| `mcp.py` / `mcp_oauth.py` | MCP server 工具的动态适配与 OAuth 授权 |
+| `execution.py` | 集中执行 tool calls 并把结果转成模型可读的观察 |
 
 ## 5. 运行时上下文工具
 

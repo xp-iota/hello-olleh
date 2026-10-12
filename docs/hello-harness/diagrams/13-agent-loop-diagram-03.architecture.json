@@ -14,7 +14,7 @@
       "id": "A",
       "type": "external",
       "label": "sendMessageStream()",
-      "sublabel": "client.ts:910",
+      "sublabel": "client.ts:924",
       "pos": [
         45,
         65
@@ -28,7 +28,7 @@
       "id": "B",
       "type": "external",
       "label": "processTurn()",
-      "sublabel": "client.ts:614",
+      "sublabel": "client.ts:628",
       "pos": [
         391,
         65
@@ -42,7 +42,7 @@
       "id": "C",
       "type": "backend",
       "label": "Turn.run()",
-      "sublabel": "turn.ts:257",
+      "sublabel": "turn.ts:270",
       "pos": [
         737,
         65
@@ -56,7 +56,7 @@
       "id": "D",
       "type": "backend",
       "label": "schedule()",
-      "sublabel": "scheduler.ts:312",
+      "sublabel": "scheduler.ts:211",
       "pos": [
         1083,
         65
@@ -98,7 +98,7 @@
       "id": "G",
       "type": "messagebus",
       "label": "processGeminiStreamEvents()",
-      "sublabel": "useGeminiStream.ts:1459",
+      "sublabel": "useGeminiStream.ts:1533",
       "pos": [
         45,
         205
@@ -112,7 +112,7 @@
       "id": "H",
       "type": "messagebus",
       "label": "handleCompletedTools()",
-      "sublabel": "useGeminiStream.ts:1865",
+      "sublabel": "useGeminiStream.ts:1972",
       "pos": [
         391,
         205
@@ -288,7 +288,7 @@
       "title": "要点",
       "items": [
         "sendMessageStream() / cli… → processTurn() / client.ts…",
-        "processTurn() / client.ts… → Turn.run() / turn.ts:257",
+        "processTurn() / client.ts… → Turn.run() / turn.ts:270",
         "schedule() / scheduler.ts… → processQueue() / while lo…"
       ]
     }

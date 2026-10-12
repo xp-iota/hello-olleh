@@ -45,7 +45,7 @@ title: "性能与代码质量：大文件处理、流式传输、优缺点分析
 
 ### Reactor 模式（`tui/src/app/startup.rs:217` 的 `App::run()`；`select!` 宏位于同文件 :1238）
 
-（rust-v0.162 起 TUI 主循环从 `app.rs` 拆到 `tui/src/app/` 子模块，`app.rs` 本体降至约 1,243 行。）`App::run()` 使用 `tokio::select!` 同时监听多个并发事件流：
+TUI 主循环位于 `tui/src/app/` 子模块（`app.rs` 本体约 1,243 行）。`App::run()` 使用 `tokio::select!` 同时监听多个并发事件流：
 
 ```rust
 tokio::select! {
@@ -95,22 +95,26 @@ tokio::select! {
 ### 阶段 2：StreamState（`tui/src/streaming/mod.rs:37`）
 
 ```rust
-pub struct StreamState {
-    queue: VecDeque<StreamLine>,
-    pending: Option<StreamLine>,    // 未完成的行
-    newest_queued: Option<Instant>,
-    oldest_queued: Option<Instant>,
+struct QueuedLine {
+    line: HyperlinkLine,
+    enqueued_at: Instant,
+}
+
+pub(crate) struct StreamState {
+    pub(crate) collector: MarkdownStreamCollector,   // 原始 delta 缓冲
+    queued_lines: VecDeque<QueuedLine>,              // 已完成行队列（带入队时间戳）
+    pub(crate) has_seen_delta: bool,
 }
 ```
 
 **关键设计：换行门控渲染**
 
-- 只有换行符触发行完成和队列入列
-- 未完成的行留在 `pending` 缓冲区
+- `MarkdownStreamCollector`（`tui/src/markdown_stream.rs:30`）累积原始 `OutputTextDelta`，按换行边界产出已完成前缀
+- 只有换行符触发行完成和队列入列（`enqueue()` 记录共享的入队时间戳）
 - **好处**：防止部分行渲染导致的视觉闪烁
 - Markdown 渲染发生在换行时，而非连续进行
 
-O(1) 操作：`step()`、`drain_n()`、`drain_all()`
+O(1) 操作：`step()`（:62）、`drain_n()`（:73，对超长请求钳制到当前队列长度）、`queued_len()`（:89）
 
 ### 阶段 3：StreamController（`tui/src/streaming/controller.rs:590`）
 
@@ -151,7 +155,7 @@ O(1) 操作：`step()`、`drain_n()`、`drain_all()`
 | 线程缓冲 | `tui/src/app.rs:299` | `THREAD_EVENT_CHANNEL_CAPACITY = 32768`，容纳活跃线程事件突发 |
 | WebSocket 优先 | `core/src/client.rs:2237` | 低延迟双向流 |
 | HTTPS 回退 | `core/src/client.rs:1662` | 鲁棒性保证 |
-| Dynamic tools 延迟加载 | `core/src/tools/registry.rs:81` | 减少 prompt 膨胀 |
+| Dynamic tools 延迟加载 | `core/src/tools/registry.rs:83` | 减少 prompt 膨胀 |
 | SQLite WAL + 增量 vacuum | `state/src/sqlite.rs:360-391` | 降低写入竞争 |
 | 双数据库分离 | `state/src/sqlite.rs:34-38` | 日志/状态锁解耦 |
 | 日志批量写入 | `state/src/log_db.rs:139` | batch=128, flush=2s |
@@ -221,7 +225,6 @@ PRAGMA auto_vacuum = INCREMENTAL;  -- 增量空间回收
 
 | 优先级 | 问题 | 建议 |
 | --- | --- | --- |
-| **高** | （rust-v0.154 观测）`chatwidget.rs` 11,070 行、`app.rs` 10,837 行 — 过大。rust-v0.162 起已拆分：`app.rs` 降至 1,243 行并拆出 `tui/src/app/` 子模块，`chatwidget.rs` 降至 2,096 行并拆出 `tui/src/chatwidget/` 模块目录 | 大体已治理，保持模块边界 |
 | **高** | app-server 与 core 间事件类型和状态机较多 | 新人上手成本高，需更好文档 |
 | **高** | `tui/src/app.rs:299` 的 32,768 容量 per-thread channel 硬编码 | 改为可配置，加显式背压处理 |
 | **中** | 工具/审批/权限 feature flag 组合复杂 | 测试矩阵快速膨胀，需组合测试策略 |
@@ -233,14 +236,12 @@ PRAGMA auto_vacuum = INCREMENTAL;  -- 增量空间回收
 
 ### 超大文件详情
 
-（rust-v0.162 校正：0.154 时代的 `chatwidget.rs` 11,070 行、`app.rs` 10,837 行、`codex.rs` 7,000+ 行三个超大单体在 0.162 已拆分治理，下表为拆分后的现状。）
-
 | 文件 | 行数 | 复杂度评估 |
 | --- | --- | --- |
-| `tui/src/chatwidget.rs` | 2,096（另有 `tui/src/chatwidget/` 模块目录约 33,000 行，含测试） | 已拆分 — widget 本体收敛，渲染逻辑分模块 |
+| `tui/src/chatwidget.rs` | 2,096（另有 `tui/src/chatwidget/` 模块目录约 80,000 行，其中测试约 56,000 行） | 中 — widget 本体收敛，渲染逻辑分模块，但模块目录总量仍大 |
 | `tui/src/app.rs` | 1,243（主循环等拆到 `tui/src/app/` 子模块） | 已拆分 — Reactor 循环独立成模块 |
-| `tui/src/history_cell/` | 模块目录约 12,500 行（原 `history_cell.rs` 4,682 行拆分而来） | 中 — 历史记录 cell 渲染按类型分文件 |
-| `core/src/session/turn.rs` + `core/src/session/mod.rs` + `core/src/codex_thread.rs` | 3,206 + 5,178 + 1,258 | 已拆分 — 原 7,000+ 行 `codex.rs` Agent 核心循环重构为 session 模块，`core/src/codex.rs` 不复存在 |
+| `tui/src/history_cell/` | 模块目录约 12,500 行 | 中 — 历史记录 cell 渲染按类型分文件 |
+| `core/src/session/turn.rs` + `core/src/session/mod.rs` + `core/src/codex_thread.rs` | 3,206 + 5,178 + 1,258 | 中 — Agent 核心循环分布在 session 模块的三个大文件中 |
 | `core/src/client.rs` | 2,961 | 中等 — 传输层 |
 | `streaming/*` | 模块化 | 良好 — 职责清晰拆分 |
 
@@ -257,7 +258,7 @@ PRAGMA auto_vacuum = INCREMENTAL;  -- 增量空间回收
 
 **如果后续要继续扩展，最值得优先治理的三件事**：
 
-1. **超大文件拆分**：（rust-v0.162 起大体完成）0.154 时代 `chatwidget.rs` 与 `app.rs` 均超 10K 行、`codex.rs` 超 7K 行的问题已在 0.162 通过 `tui/src/app/`、`tui/src/chatwidget/`、`core/src/session/` 模块化拆分治理，后续重点是保持模块边界不再回涨
+1. **超大文件治理**：`tui/src/app/`、`tui/src/chatwidget/`、`core/src/session/` 已完成模块化拆分，后续重点是保持模块边界不再回涨
 2. **权限组合测试覆盖**：审批策略 x 沙箱模式 x 网络策略的组合爆炸需要系统化测试
 3. **性能基准建立**：无基准则无优化方向，需要流式吞吐量和渲染延迟的持续监控
 

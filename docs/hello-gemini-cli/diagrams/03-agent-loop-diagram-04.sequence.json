@@ -26,7 +26,7 @@
       "id": "Hook",
       "type": "messagebus",
       "label": "submitQuery()",
-      "sublabel": "useGeminiStream.ts:1455"
+      "sublabel": "useGeminiStream.ts:1682"
     },
     {
       "id": "Client",
@@ -50,7 +50,7 @@
       "id": "Chat",
       "type": "messagebus",
       "label": "GeminiChat.sendMess…",
-      "sublabel": "geminiChat.ts:303"
+      "sublabel": "geminiChat.ts:480"
     },
     {
       "id": "Chat-",
@@ -125,9 +125,9 @@
       "dot": "orange",
       "title": "要点",
       "items": [
-        "submitQuery() / useGeminiStream.ts:1455 自调用：prepareQueryForGemini()",
+        "submitQuery() / useGeminiStream.ts:1682 自调用：prepareQueryForGemini()",
         "processTurn() / gemini-cli/packages/core/src/core/cli… 自调用：tryCompressChat() / …",
-        "未上画布的调用：sendMessageStream(...):263"
+        "未上画布的调用：sendMessageStream(...):284"
       ]
     }
   ]

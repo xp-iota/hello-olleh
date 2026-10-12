@@ -4925,14 +4925,15 @@
         <path data-edge-from="Transport" data-edge-to="MCPServer" data-edge-key="10" data-edge-id="edge11" data-composition-points="345,387;391,387" d="M 345 387 L 391 387" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
         <!-- Components -->
-        <g id="node-A" data-node-id="A" data-node-label="McpConnectionManager" tabindex="0" role="button" aria-label="Focus McpConnectionManager, Architecture component" aria-pressed="false" data-node-kind="cloud" data-node-context="Architecture component">
-          <title>McpConnectionManager · Architecture component</title>
+        <g id="node-A" data-node-id="A" data-node-label="McpConnectionSet" tabindex="0" role="button" aria-label="Focus McpConnectionSet, connection_manager.rs:213, Architecture component" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="connection_manager.rs:213" data-node-context="Architecture component">
+          <title>McpConnectionSet · connection_manager.rs:213 · Architecture component</title>
           <rect x="45" y="65" width="300" height="84" rx="6" class="c-mask"/>
           <rect x="45" y="65" width="300" height="84" rx="6" class="c-cloud" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(51 71) scale(0.6875)">
             <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
           </g>
-          <text x="195" y="111" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">McpConnectionManager</text>
+          <text data-detail-anchor x="195" y="105" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">McpConnectionSet</text>
+        <text data-detail="context" x="195" y="121" class="t-muted" font-size="9" text-anchor="middle">connection_manager.rs:213</text>
         </g>
 
         <g id="node-D" data-node-id="D" data-node-label="RmcpClient" tabindex="0" role="button" aria-label="Focus RmcpClient, Architecture component" aria-pressed="false" data-node-kind="external" data-node-context="Architecture component">
@@ -4946,14 +4947,15 @@
           <text x="541" y="111" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">RmcpClient</text>
         </g>
 
-        <g id="node-E" data-node-id="E" data-node-label="Transport Recipe" tabindex="0" role="button" aria-label="Focus Transport Recipe, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-context="Architecture component">
-          <title>Transport Recipe · Architecture component</title>
+        <g id="node-E" data-node-id="E" data-node-label="TransportRecipe" tabindex="0" role="button" aria-label="Focus TransportRecipe, InProcess · Stdio · StreamableHttp, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="InProcess · Stdio · StreamableHttp" data-node-context="Architecture component">
+          <title>TransportRecipe · InProcess · Stdio · StreamableHttp · Architecture component</title>
           <rect x="737" y="65" width="300" height="84" rx="6" class="c-mask"/>
           <rect x="737" y="65" width="300" height="84" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(743 71) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text x="887" y="111" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Transport Recipe</text>
+          <text data-detail-anchor x="887" y="105" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">TransportRecipe</text>
+        <text data-detail="context" x="887" y="121" class="t-muted" font-size="9" text-anchor="middle">InProcess · Stdio · StreamableHttp</text>
         </g>
 
         <g id="node-G" data-node-id="G" data-node-label="StdioTransport" tabindex="0" role="button" aria-label="Focus StdioTransport, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-context="Architecture component">
@@ -5318,9 +5320,9 @@
           <h3>要点</h3>
         </div>
         <ul>
-          <li>&bull; McpConnectionManager → RmcpClient</li>
-          <li>&bull; RmcpClient → Transport Recipe</li>
-          <li>&bull; Transport Recipe → StdioTransport</li>
+          <li>&bull; McpConnectionSet → RmcpClient</li>
+          <li>&bull; RmcpClient → TransportRecipe</li>
+          <li>&bull; TransportRecipe → StdioTransport</li>
         </ul>
       </div>
     </div>

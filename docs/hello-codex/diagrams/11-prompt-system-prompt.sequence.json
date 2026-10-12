@@ -19,7 +19,8 @@
     {
       "id": "Turn",
       "type": "backend",
-      "label": "runturn()"
+      "label": "run_turn()",
+      "sublabel": "session/turn.rs:163"
     },
     {
       "id": "Ctx",
@@ -53,7 +54,7 @@
       "from": "UI",
       "to": "Turn",
       "y": 180,
-      "label": "UserInput",
+      "label": "Op::TurnInput",
       "variant": "default"
     },
     {
@@ -77,7 +78,7 @@
       "from": "Turn",
       "to": "Tools",
       "y": 315,
-      "label": "builttools()",
+      "label": "built_tools()",
       "variant": "default"
     },
     {
@@ -85,7 +86,7 @@
       "from": "Turn",
       "to": "Ctx",
       "y": 360,
-      "label": "clonehistory().forprompt()",
+      "label": "clone_history().for_prompt()",
       "variant": "default"
     }
   ],
@@ -109,9 +110,9 @@
       "dot": "orange",
       "title": "要点",
       "items": [
-        "runturn() 自调用：pre-sampling compact check",
-        "runturn() 自调用：scan $skills / plugins / app mentions",
-        "runturn() 自调用：user-prompt-submit hooks"
+        "run_turn() 自调用：pre-sampling compact check",
+        "run_turn() 自调用：scan $skills / plugins / app mentions",
+        "run_turn() 自调用：user-prompt-submit hooks（hook_runtime.rs:684）"
       ]
     }
   ]

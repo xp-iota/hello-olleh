@@ -3,7 +3,7 @@ title: "可观测性：事件日志、请求追踪与结构化日志"
 ---
 # 可观测性：事件日志、请求追踪与结构化日志
 
-> 基于 `sources/opencode/packages/core/src/event-logger.ts`、`packages/server/` 与 `packages/cli/` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/packages/core/src/event-logger.ts`、`packages/server/` 与 `packages/cli/` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 
@@ -20,7 +20,7 @@ title: "可观测性：事件日志、请求追踪与结构化日志"
 | 层 | 机制 | 位置 |
 | --- | --- | --- |
 | 结构化日志 | Effect 日志（`Effect.logInfo` 等），由 Observability 层输出 | `packages/util` 的 observability、CLI 启动装配 |
-| 领域事件 | durable 事件日志 + live 事件流（本身就是最完整的行为记录） | `packages/core` Bus / event |
+| 领域事件 | durable 事件日志 + live 事件流（本身就是最完整的行为记录） | `packages/core/src/bus.ts`、schema 事件定义 |
 | 事件日志器 | 把关键目录类事件桥接进日志 | `packages/core/src/event-logger.ts` |
 | 请求追踪 | HTTP 中间件 | `packages/server/src/request-tracing.ts` |
 | 进程画像 | heap / CPU profile | `packages/cli/src/heap.ts`、`cpu-profile.ts` |
@@ -33,7 +33,7 @@ title: "可观测性：事件日志、请求追踪与结构化日志"
 
 ## 3. 事件日志
 
-`packages/core/src/event-logger.ts` 是一个全局 Layer：订阅 Bus，把四类目录事件——`agent.updated`、`catalog.updated`、`command.updated`、`config.updated`——以 `Effect.logInfo("event", { event })` 记入日志。它的意义在于：配置/目录/命令/agent 的变更原本只在事件流里可见，事件日志器把它们桥接进进程日志，方便 `--print-logs` 下直接观察配置生命周期（与 [17-settings-config.md](./17-settings-config.md) 的 watch/变换管线配套阅读）。
+`packages/core/src/event-logger.ts` 是一个全局 Layer：订阅 Bus，把五类目录事件——`agent.updated`、`provider.updated`、`model.updated`、`command.updated`、`config.updated`——以 `Effect.logInfo("event", { event })` 记入日志。它的意义在于：配置/agent/provider/model/命令的变更原本只在事件流里可见，事件日志器把它们桥接进进程日志，方便 `--print-logs` 下直接观察配置生命周期（与 [17-settings-config.md](./17-settings-config.md) 的 watch/变换管线配套阅读）。
 
 ## 4. 请求追踪与运行时指标
 

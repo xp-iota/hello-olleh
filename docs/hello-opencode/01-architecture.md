@@ -3,7 +3,7 @@ title: "架构全景：多包拓扑、所有权分层与作用域模型"
 ---
 # 架构全景：多包拓扑、所有权分层与作用域模型
 
-> 基于 `sources/opencode/` 中的 OpenCode `v2.0.2` 源码校对。本文重点核对 `packages/` 多包拓扑与 `specs/v2/` 的跨包契约，而不是沿用 v1 单包时代的目录名。
+> 基于 `sources/opencode/` 中的 OpenCode `v2.0.27` 源码校对。本文重点核对 `packages/` 多包拓扑与 `specs/v2/` 的跨包契约，而不是沿用 v1 单包时代的目录名。
 
 **目录**
 
@@ -28,9 +28,9 @@ OpenCode v2 不是 v1 那种“单包 `packages/opencode` + 内嵌服务”的�
 | --- | --- | --- |
 | Schema | `packages/schema` | 公共领域形状与 durable 事件载荷（agent、session、permission、model、location、lsp-event 等） |
 | Protocol | `packages/protocol` | 类型化 HTTP 操作定义、传输错误、按域分组的 endpoint（`groups/`） |
-| Core | `packages/core` | 运行时：session 执行、持久化、工具、权限、catalog、插件、Location 作用域服务 |
+| Core | `packages/core` | 运行时：session 执行、持久化、工具、权限、models.dev 模型目录、插件、Location 作用域服务 |
 | Server | `packages/server` | HTTP handler 绑定、公共 SSE 编码与逐连接投递、认证/CORS/中间件 |
-| Plugin | `packages/plugin` | 公共插件契约与 `Tool.make`；`plugin/effect/*` 定义五域 hooks 形状 |
+| Plugin | `packages/plugin` | 公共插件契约；`plugin/effect/*` 按域定义 hooks 与可重放变换（tool、permission、session、provider、mcp、skill 等 20 余个域） |
 | Client / SDK | `packages/client`、`packages/sdk` | 生成与手写并存的客户端表面（`PromiseSdk`、Effect service） |
 | CLI / TUI | `packages/cli`、`packages/tui` | 命令行入口（Effect CLI 命令树）与 Solid TUI |
 | App / Desktop / Web | `packages/app`、`packages/desktop`、`packages/web` | 桌面与浏览器宿主 |
@@ -48,7 +48,7 @@ OpenCode v2 不是 v1 那种“单包 `packages/opencode` + 内嵌服务”的�
 | 运行时行为与持久化 | Core |
 | 贡献者级回归护栏 | 根 `AGENTS.md` |
 
-语义所有权与传输/展示分离的直接收益：Server 的投递策略可以改变（例如共享编码事件馈送），而不影响 OpenAPI 与生成的 client。v2 规格分两类：**Current Contracts**（session、tools，描述跨模块语义法则）与 **Decision Records**（event-stream-architecture、provider-policy，记录已定案的设计取舍）；历史文档只解释旧状态，不作为当前 API 依据。
+语义所有权与传输/展示分离的直接收益：Server 的投递策略可以改变（例如共享编码事件馈送），而不影响 OpenAPI 与生成的 client。v2 规格分三类：**Current Contracts**（session、tools，描述跨模块语义法则）、**Decision Records**（event-stream-architecture、provider-policy，记录已定案的设计取舍）与 **Historical Context**（catalog-config-plugin-lifecycle，保留旧设计的选项对比）；历史文档只解释旧状态，不作为当前 API 依据。
 
 ## 4. Location 与 Host 作用域
 

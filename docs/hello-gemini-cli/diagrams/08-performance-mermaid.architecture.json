@@ -98,7 +98,7 @@
       "id": "StreamGen",
       "type": "messagebus",
       "label": "sendMessageStream()",
-      "sublabel": "@ geminiChat.ts:303",
+      "sublabel": "@ geminiChat.ts:480",
       "pos": [
         45,
         205

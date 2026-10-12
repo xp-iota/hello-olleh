@@ -15,7 +15,7 @@
       "id": "mix",
       "type": "frontend",
       "label": "mixin(source, mixins)",
-      "sublabel": "C/reflect.ts:239",
+      "sublabel": "C/reflect.ts:241",
       "pos": [
         60,
         180
@@ -45,7 +45,7 @@
       "type": "backend",
       "label": "注册 accessor",
       "sublabel": "yield self.accessor(value, { get, set })",
-      "tag": "C/reflect.ts:229，disposer 是 delete this.props[name]",
+      "tag": "C/reflect.ts:231，disposer 是 delete this.props[name]",
       "pos": [
         690,
         180
@@ -75,7 +75,7 @@
       "type": "cloud",
       "label": "accessor 的 get 实现",
       "sublabel": "取 ctx[source]，按 receiver 合成 mixin 后 Reflect.get",
-      "tag": ":249-256，取到函数则绑定到 mixin",
+      "tag": ":251-257，取到函数则绑定到 mixin",
       "pos": [
         360,
         400

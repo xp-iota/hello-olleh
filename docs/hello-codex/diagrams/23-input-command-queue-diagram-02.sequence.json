@@ -2,7 +2,7 @@
   "schema_version": 1,
   "diagram_type": "sequence",
   "meta": {
-    "title": "序列号机制",
+    "title": "待处理通知机制",
     "quality_profile": "showcase",
     "column_fit": "spread",
     "viewBox": [
@@ -12,65 +12,67 @@
   },
   "participants": [
     {
-      "id": "User",
+      "id": "Sender",
       "type": "external",
-      "label": "用户输入"
+      "label": "发送方 Agent"
     },
     {
-      "id": "Mailbox",
+      "id": "MB",
       "type": "backend",
-      "label": "Mailbox"
-    },
-    {
-      "id": "Codex",
-      "type": "backend",
-      "label": "Codex"
+      "label": "Mailboxes",
+      "sublabel": "mailbox.rs:15"
     },
     {
       "id": "Watch",
       "type": "messagebus",
-      "label": "Watch Channel"
+      "label": "watch Channel"
+    },
+    {
+      "id": "CORE",
+      "type": "backend",
+      "label": "CodexThread",
+      "sublabel": "目标 agent"
     }
   ],
   "messages": [
     {
       "id": "message1",
-      "from": "User",
-      "to": "Mailbox",
+      "from": "Sender",
+      "to": "MB",
       "y": 180,
-      "label": "senduserinput(submission)",
+      "label": "enqueue(agent, messages)",
       "variant": "default"
     },
     {
       "id": "message2",
-      "from": "Mailbox",
-      "to": "Codex",
+      "from": "MB",
+      "to": "Watch",
       "y": 225,
-      "label": "InterAgentCommunication::UserInput",
+      "label": "send_replace(pending 非空)",
       "variant": "default"
     },
     {
       "id": "message3",
-      "from": "Mailbox",
+      "from": "CORE",
       "to": "Watch",
       "y": 270,
-      "label": "seqtx.send(seq)",
+      "label": "watch(agent) 订阅变化",
       "variant": "default"
     },
     {
       "id": "message4",
-      "from": "Codex",
-      "to": "Mailbox",
+      "from": "CORE",
+      "to": "MB",
       "y": 315,
-      "label": "InterAgentCommunication::AgentEvent",
+      "label": "take(agent) 取走全部消息",
       "variant": "default"
     },
     {
       "id": "message5",
-      "from": "Mailbox",
+      "from": "MB",
       "to": "Watch",
       "y": 360,
-      "label": "seqtx.send(seq)",
+      "label": "send_if_modified 复位为空",
       "variant": "default"
     }
   ],
@@ -86,15 +88,16 @@
       "dot": "emerald",
       "title": "关系",
       "items": [
-        "源图 5 条消息"
+        "投递 → 置位 → 订阅 → 取走 → 复位",
+        "每个目标 agent 一个 Mailbox（mailbox.rs:24）"
       ]
     },
     {
       "dot": "orange",
       "title": "要点",
       "items": [
-        "Mailbox 自调用：nextseq++",
-        "Codex 自调用：process submission"
+        "Mailboxes 自调用：retain 回收空邮箱（mailbox.rs:87）",
+        "take() 时发射 agent 通信接收事件"
       ]
     }
   ]

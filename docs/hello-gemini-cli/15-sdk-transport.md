@@ -118,9 +118,9 @@ title: "Gemini CLI SDK 与传输层：GeminiClient、GeminiChat 与 CLI 复用�
 
 | 主题 | 代码锚点 | 说明 |
 | --- | --- | --- |
-| 会话编排 | `sources/gemini-cli/packages/core/src/core/client.ts:92` | `GeminiClient`，负责会话、工具、压缩与恢复 |
-| 模型聊天适配 | `sources/gemini-cli/packages/core/src/core/geminiChat.ts:245` | 封装流式模型调用与历史维护 |
-| 非交互宿主 | `sources/gemini-cli/packages/cli/src/nonInteractiveCli.ts:308` | headless / pipeline 执行入口 |
+| 会话编排 | `sources/gemini-cli/packages/core/src/core/client.ts:93` | `GeminiClient`，负责会话、工具、压缩与恢复 |
+| 模型聊天适配 | `sources/gemini-cli/packages/core/src/core/geminiChat.ts:372` | 封装流式模型调用与历史维护 |
+| 非交互宿主 | `sources/gemini-cli/packages/cli/src/nonInteractiveCli.ts:72` | headless / pipeline 执行入口 |
 | 交互宿主 | `sources/gemini-cli/packages/cli/src/interactiveCli.tsx:154` | Ink TUI 启动入口与渲染性能记录 |
 | 会话恢复数据 | `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts` | 持久化与恢复 conversation JSON |
 
@@ -128,15 +128,15 @@ title: "Gemini CLI SDK 与传输层：GeminiClient、GeminiChat 与 CLI 复用�
 
 | 函数/类 | 源码锚点 | 作用 |
 | :---| :---| :---|
-| `GeminiClient` | `sources/gemini-cli/packages/core/src/core/client.ts:92` | core 层会话编排对象 |
-| `GeminiClient.setTools()` | `sources/gemini-cli/packages/core/src/core/client.ts:294` | 根据模型和 registry 重建工具声明 |
-| `GeminiClient.resumeChat()` | `sources/gemini-cli/packages/core/src/core/client.ts:323` | 用恢复历史重建 `GeminiChat` |
-| `GeminiClient.updateSystemInstruction()` | `sources/gemini-cli/packages/core/src/core/client.ts:354` | 重新生成并写入 system instruction |
-| `GeminiClient.startChat()` | `sources/gemini-cli/packages/core/src/core/client.ts:364` | 创建底层 `GeminiChat` |
-| `GeminiClient.sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/client.ts:883` | Agent turn 的流式入口，衔接工具调用和上下文压缩 |
-| `GeminiClient.tryCompressChat()` | `sources/gemini-cli/packages/core/src/core/client.ts:1174` | 上下文膨胀时触发压缩 |
-| `GeminiChat.sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/geminiChat.ts:304` | 调用模型流、处理 retry marker、记录历史 |
-| `GeminiChat.setTools()` | `sources/gemini-cli/packages/core/src/core/geminiChat.ts:845` | 更新底层模型会话的 function declarations |
+| `GeminiClient` | `sources/gemini-cli/packages/core/src/core/client.ts:93` | core 层会话编排对象 |
+| `GeminiClient.setTools()` | `sources/gemini-cli/packages/core/src/core/client.ts:306` | 根据模型和 registry 重建工具声明 |
+| `GeminiClient.resumeChat()` | `sources/gemini-cli/packages/core/src/core/client.ts:339` | 用恢复历史重建 `GeminiChat` |
+| `GeminiClient.updateSystemInstruction()` | `sources/gemini-cli/packages/core/src/core/client.ts:384` | 重新生成并写入 system instruction |
+| `GeminiClient.startChat()` | `sources/gemini-cli/packages/core/src/core/client.ts:394` | 创建底层 `GeminiChat` |
+| `GeminiClient.sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/client.ts:924` | Agent turn 的流式入口，衔接工具调用和上下文压缩 |
+| `GeminiClient.tryCompressChat()` | `sources/gemini-cli/packages/core/src/core/client.ts:1210` | 上下文膨胀时触发压缩 |
+| `GeminiChat.sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/geminiChat.ts:480` | 调用模型流、处理 retry marker、记录历史 |
+| `GeminiChat.setTools()` | `sources/gemini-cli/packages/core/src/core/geminiChat.ts:1318` | 更新底层模型会话的 function declarations |
 
 ---
 
@@ -149,6 +149,10 @@ title: "Gemini CLI SDK 与传输层：GeminiClient、GeminiChat 与 CLI 复用�
 - **Model 配置即 transport 行为**：`modelConfig.getModelId()` 决定连接哪个端点，切换模型不需要修改 client 代码，方便 A/B 测试。
 
 **风险与改进点**
+
+- **`GeminiChat` 对话历史无分页加载**：所有历史存在内存中，长会话下内存占用随会话长度线性增长，无 lazy load 机制。
+- **传输层无背压机制**：SSE 流式响应时若 UI 消费慢，没有流量控制来避免大量 chunk 在内存中积压。
+- **SDK 分发依赖 `@google/genai`**：直接依赖 Google 的 SDK，版本升级时可能带来不兼容变更，且无法在 API 层做 mock 测试而不修改源码。
 
 ## 横向对齐补强：SDK 复用 core，而不是复制 CLI
 
@@ -163,17 +167,13 @@ Gemini CLI 的 SDK/transport 应按 `packages/core` 为中心阅读。CLI、SDK�
 
 这使 Gemini CLI 的横向定位介于 Codex 和 OpenCode 之间：它不像 Codex 那样由 Rust runtime 统摄，也不像 OpenCode 那样 server-first，而是 TypeScript core-first。
 
-- **`GeminiChat` 对话历史无分页加载**：所有历史存在内存中，长会话下内存占用随会话长度线性增长，无 lazy load 机制。
-- **传输层无背压机制**：SSE 流式响应时若 UI 消费慢，没有流量控制来避免大量 chunk 在内存中积压。
-- **SDK 分发依赖 `@google/genai`**：直接依赖 Google 的 SDK，版本升级时可能带来不兼容变更，且无法在 API 层做 mock 测试而不修改源码。
-
 ## 源码锚点补强：Transport 是 TypeScript core-first
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |
-| `sources/gemini-cli/packages/core/src/core/client.ts:92` | `GeminiClient` 统一 core 能力 | 对应 Codex Rust core |
-| `sources/gemini-cli/packages/core/src/core/geminiChat.ts:245` | `GeminiChat` 模型聊天适配层 | 最贴近 Google SDK |
-| `sources/gemini-cli/packages/core/src/core/geminiChat.ts:304` | `sendMessageStream()` 底层模型流 | 对应 Codex/OpenCode streaming |
-| `sources/gemini-cli/packages/cli/src/nonInteractiveCli.ts:308` | 非交互宿主入口 | 对应 Codex `exec` |
+| `sources/gemini-cli/packages/core/src/core/client.ts:93` | `GeminiClient` 统一 core 能力 | 对应 Codex Rust core |
+| `sources/gemini-cli/packages/core/src/core/geminiChat.ts:372` | `GeminiChat` 模型聊天适配层 | 最贴近 Google SDK |
+| `sources/gemini-cli/packages/core/src/core/geminiChat.ts:480` | `sendMessageStream()` 底层模型流 | 对应 Codex/OpenCode streaming |
+| `sources/gemini-cli/packages/cli/src/nonInteractiveCli.ts:72` | 非交互宿主入口 | 对应 Codex `exec` |
 | `sources/gemini-cli/packages/cli/src/interactiveCli.tsx:154` | Ink/TUI 宿主入口 | 对应 Claude/Codex TUI |
-| `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts:249` | conversation 持久化服务 | 连接 resume/transport 状态 |
+| `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts:402` | conversation 持久化服务 | 连接 resume/transport 状态 |

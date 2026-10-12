@@ -4922,11 +4922,11 @@
 
 
         <!-- Messages -->
-        <g data-edge-from="MCM" data-edge-to="RMCP" data-edge-label="new(transportrecipe)" data-edge-key="0" data-edge-id="message1">
+        <g data-edge-from="MCM" data-edge-to="RMCP" data-edge-label="new_*_client(TransportRecipe)" data-edge-key="0" data-edge-id="message1">
           <path data-composition-edge-from="MCM" data-composition-edge-to="RMCP" data-composition-edge-id="message1" data-composition-points="164,180;427,180" d="M 164 180 L 427 180" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <g data-detail="context">
-          <rect x="237.5" y="160" width="116" height="16" rx="3" class="c-mask"/>
-          <text x="295.5" y="170" class="t-backend" font-size="9" text-anchor="middle">new(transportrecipe)</text>
+          <rect x="214.1" y="160" width="162.8" height="16" rx="3" class="c-mask"/>
+          <text x="295.5" y="170" class="t-backend" font-size="9" text-anchor="middle">new_*_client(TransportRecipe)</text>
         </g>
         </g>
 
@@ -4966,14 +4966,15 @@
 
 
         <!-- Participants -->
-        <g id="node-MCM" data-node-id="MCM" data-node-label="McpConnectionManager" tabindex="0" role="button" aria-label="Focus McpConnectionManager, Sequence participant" aria-pressed="false" data-node-kind="cloud" data-node-context="Sequence participant">
-          <title>McpConnectionManager · Sequence participant</title>
+        <g id="node-MCM" data-node-id="MCM" data-node-label="McpConnectionSet" tabindex="0" role="button" aria-label="Focus McpConnectionSet, connection_manager.rs:213, Sequence participant" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="connection_manager.rs:213" data-node-context="Sequence participant">
+          <title>McpConnectionSet · connection_manager.rs:213 · Sequence participant</title>
           <rect x="62" y="72" width="190" height="54" rx="6" class="c-mask"/>
           <rect x="62" y="72" width="190" height="54" rx="6" class="c-cloud" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(68 78) scale(0.6875)">
             <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
           </g>
-          <text x="157" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">McpConnectionManager</text>
+          <text data-detail-anchor x="157" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">McpConnectionSet</text>
+          <text data-detail="context" x="157" y="111" class="t-muted" font-size="7" text-anchor="middle">connection_manager.rs:213</text>
         </g>
 
         <g id="node-RMCP" data-node-id="RMCP" data-node-label="RmcpClient" tabindex="0" role="button" aria-label="Focus RmcpClient, Sequence participant" aria-pressed="false" data-node-kind="external" data-node-context="Sequence participant">
@@ -5235,7 +5236,7 @@
           <h3>要点</h3>
         </div>
         <ul>
-          <li>&bull; McpConnectionManager 自调用：cache Codex Apps tools</li>
+          <li>&bull; McpConnectionSet 自调用：cache Codex Apps tools</li>
           <li>&bull; 未上画布的调用：tools cached</li>
         </ul>
       </div>

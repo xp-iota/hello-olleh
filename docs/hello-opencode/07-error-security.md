@@ -3,7 +3,7 @@ title: "错误与安全：结构化错误、权限断言与 provider policy"
 ---
 # 错误与安全：结构化错误、权限断言与 provider policy
 
-> 基于 `sources/opencode/specs/v2/provider-policy.md`、`sources/opencode/packages/core/src/permission.ts` 与 `packages/server/` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/specs/v2/provider-policy.md`、`sources/opencode/packages/core/src/permission.ts` 与 `packages/server/` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 
@@ -26,8 +26,8 @@ v2 全面使用 Effect 的类型化错误通道：`Schema.TaggedError` 定义可
 
 ## 2. 权限：工具侧的断言路径
 
-- 权限入口是 `packages/core/src/permission.ts`：`AssertInput` / `ReplyInput` 形状、`Source`（如 `{ type: "tool", messageID, callID }`）、持久化在 `permission/`（`saved.ts`、`sql.ts`）。
-- 工具实现以 **durable 调用身份 + 具体资源** 发起 `PermissionV2.assert`；policy 评估与工具注册保持分离，registry 不注入权限助手。
+- 权限入口是 `packages/core/src/permission.ts`：`AssertInput` / `ReplyInput` 形状、`Source`（如 `{ type: "tool", messageID, id }`）、持久化在 `permission/`（`saved.ts`、`sql.ts`）。
+- 工具实现以 **durable 调用身份 + 具体资源** 发起 `Permission.assert`；policy 评估与工具注册保持分离，registry 不注入权限助手。
 - 工具响应里绝不回传原始 provider 输入，权限判定的 source 始终可追溯到 durable 的 Session/agent/message/call 四元组。
 
 ## 3. provider policy：独立于配置的授权
@@ -35,10 +35,10 @@ v2 全面使用 Effect 的类型化错误通道：`Schema.TaggedError` 定义可
 `specs/v2/provider-policy.md`（状态：Implemented）：
 
 - **配置与授权分离**：`providers` 描述端点、选项与模型覆盖；`experimental.policies` 决定使用某 provider 的操作是否被允许。provider 可以配置正确、凭据有效，仍被 policy 拒绝。
-- 语句形状：`{ effect: "allow" | "deny", action, resource }`；首个消费者是 `provider.use`（resource 为 provider ID）。
-- 匹配用通配符，**无模式优先级**——书写的评估顺序决定结果，最后一个匹配获胜；评估从调用方的回退值开始（provider 使用默认为 allow）。
-- 权威次序：authored policy 文档被反转以使**用户全局 policy 覆盖仓库 policy**；未来组织托管 policy 拥有最终权威。
-- 非目标：policy 不配置端点/凭据/模型，不让不可用资源变可用，当前不提供条件、principal、批准提示；`plugin.load`、`mcp.connect` 等动作预留了词汇空间。
+- 语句形状：`{ effect: "allow" | "deny", action, resource }`；`action` 是封闭集合，当前为 `provider.use` / `tool.use` / `integration.use` 三个动作（`provider.use` 的 resource 为 provider ID；`tool.use` 的 resource 为 `<权限动作>:<资源>`；`integration.use` 管 `mcp:`/`skill:` 集成），其它值在归一化时带诊断丢弃。
+- 匹配用通配符，**无模式优先级**——书写的评估顺序决定结果，最后一个匹配获胜；评估从调用方的回退值开始（provider 使用默认为 allow）。`tool.use` 语句永不授予访问，只收紧：`allow` 与 `ask` 仍由权限与已保存的批准决定。
+- 权威次序：authored policy 文档被反转以使**用户全局 policy 覆盖仓库 policy**；组织托管 policy（由连接的 OpenCode Console 下发）追加在其后，拥有**最终权威**——组织的 `deny` 不能被仓库或用户的 `allow` 解除。
+- 非目标：policy 不配置端点/凭据/模型，不让不可用资源变可用，当前不提供条件、principal、批准提示；`plugin.load`、`mcp.connect` 等操作预留了词汇空间。
 
 ## 4. 事件流隔离
 

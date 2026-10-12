@@ -3,9 +3,9 @@ title: "Nanobot 源码分析 README"
 ---
 # Nanobot 源码分析 README
 
-本目录记录 nanobot `v0.3.0`（PyPI 包名 `nanobot-ai`）的源码分析。分析对象是 `sources/nanobot/` 上游快照。nanobot 是一个轻量级个人 AI 助手框架：单 Python 包（`nanobot/`），核心是把"聊天渠道接入"与"模型推理循环"拆成两层——`MessageBus` 承载入站/出站消息，`AgentLoop` 面向渠道做回合状态机，`AgentRunner` 面向模型做迭代与工具执行；外围再挂上 17 个聊天渠道、WebUI、OpenAI 兼容 API、cron/trigger 自动化与 MCP 扩展。
+本目录记录 nanobot `v0.3.5`（PyPI 包名 `nanobot-ai`）的源码分析。分析对象是 `sources/nanobot/` 上游快照。nanobot 是一个轻量级个人 AI 助手框架：单 Python 包（`nanobot/`），核心是把"聊天渠道接入"与"模型推理循环"拆成两层——`MessageBus` 承载入站/出站消息，`AgentLoop` 面向渠道按固定阶段流水线组织回合，`AgentRunner` 面向模型做迭代与工具执行；外围再挂上 17 个聊天渠道、WebUI、OpenAI 兼容 API、cron/trigger 自动化与 MCP 扩展。
 
-> **版本基线：** 各章节撰写并校验于 `v0.3.0`；`sources/nanobot/` 快照已由 `sync_repos.sh` 前进到 `v0.3.5`。补丁版本间的行号锚点可能存在漂移；文件级路径以实际快照为准。
+> **版本基线：** 本目录各章节已按 `sources/nanobot/` 快照（`v0.3.5`）逐章校对，路径与符号锚点对应该版本源码。
 
 ## 阅读入口
 
@@ -17,7 +17,7 @@ title: "Nanobot 源码分析 README"
 
 1. [01-architecture.md](./01-architecture.md)：先建立"渠道 -> 总线 -> AgentLoop -> AgentRunner -> Provider/工具"的分层模型。
 2. [02-startup-flow.md](./02-startup-flow.md)：追踪 typer CLI 入口、onboard 向导与 gateway/WebUI 启动。
-3. [03-agent-loop.md](./03-agent-loop.md)：理解 TurnState 状态机与 AgentRunner 的迭代/注入/收尾语义。
+3. [03-agent-loop.md](./03-agent-loop.md)：理解回合阶段流水线与 AgentRunner 的迭代/注入/收尾语义。
 4. [04-state-session-memory.md](./04-state-session-memory.md)：补齐 JSONL 会话、MemoryStore/Dream 与 AutoCompact。
 5. [05-tool-system.md](./05-tool-system.md)：理解 ToolRegistry、内建工具清单与插件发现。
 6. [06-extension-mcp.md](./06-extension-mcp.md)：看 MCP、skill、channel package、tool plugin 四类扩展面的总览。
@@ -32,7 +32,7 @@ title: "Nanobot 源码分析 README"
 | --- | --- | --- |
 | [01-architecture.md](./01-architecture.md) | 架构全景 | 单包分层、渠道/总线/循环/Provider 的职责边界 |
 | [02-startup-flow.md](./02-startup-flow.md) | 启动链路 | typer 命令树、onboard、gateway 服务与 WebUI 启动 |
-| [03-agent-loop.md](./03-agent-loop.md) | Agent 循环 | TurnState 状态机、AgentRunner 迭代、注入与工具回流 |
+| [03-agent-loop.md](./03-agent-loop.md) | Agent 循环 | 回合阶段流水线、AgentRunner 迭代、注入与工具回流 |
 | [04-state-session-memory.md](./04-state-session-memory.md) | 状态、会话、记忆 | JSONL 会话、MemoryStore/Dream、AutoCompact |
 | [05-tool-system.md](./05-tool-system.md) | 工具系统 | Tool 契约、注册表、内建工具与插件加载 |
 | [06-extension-mcp.md](./06-extension-mcp.md) | 扩展与 MCP | MCP、skill、channel package、tool plugin 的总览 |
@@ -58,7 +58,7 @@ title: "Nanobot 源码分析 README"
 
 ## 核心心智模型
 
-nanobot 可以按"渠道产生 `InboundMessage` -> `MessageBus` 排队 -> `AgentLoop` 按 TurnState 状态机组织回合（恢复/压缩/命令/构建/运行/保存/响应）-> `AgentRunner` 做模型迭代与工具执行 -> `OutboundMessage` 回投渠道"的模型阅读。三个最关键的设计取舍：会话是 JSONL 追加文件（而非数据库）；记忆是工作区 Markdown 文件加 Dream 整合（而非向量库）；扩展面以"自包含渠道包 + 工具 entry points + MCP"三条轻量路径覆盖，没有重型插件运行时。
+nanobot 可以按"渠道产生 `InboundMessage` -> `MessageBus` 排队 -> `AgentLoop` 按固定阶段流水线组织回合（恢复/压缩/命令/构建/运行/保存/响应）-> `AgentRunner` 做模型迭代与工具执行 -> `OutboundMessage` 回投渠道"的模型阅读。三个最关键的设计取舍：会话是 JSONL 追加文件（而非数据库）；记忆是工作区 Markdown 文件加 Dream 整合（而非向量库）；扩展面以"自包含渠道包 + 工具 entry points + MCP"三条轻量路径覆盖，没有重型插件运行时。
 
 ## 维护注意
 

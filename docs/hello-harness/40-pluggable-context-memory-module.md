@@ -3,7 +3,7 @@ title: "可插拔上下文与记忆模块：跨运行时内核的统一抽象"
 ---
 # 可插拔上下文与记忆模块：跨运行时内核的统一抽象
 
-> 基于 OpenCode v2.0.2 和 Hermes Agent 0.21.2 架构分析
+> 基于 OpenCode v2.0.27 和 Hermes Agent v2026.9.24（包版本 0.21.5）架构分析
 
 本文档设计一个可插拔的上下文与记忆定制化模块，使其能够在 **OpenCode** 和 **Hermes Agent** 两个不同的运行时内核上完成相同的工作，实现真正的运行时无关性。
 
@@ -52,7 +52,7 @@ title: "可插拔上下文与记忆模块：跨运行时内核的统一抽象"
 | **上下文编译** | Session inbox → runner Step → projected history |
 | **记忆系统** | durable history + instruction deltas + compaction summary |
 | **事件机制** | Core events + Server EventFeed（SSE） |
-| **工具集成** | scoped Core tool registry + MCP + Plugin `Tool.make` |
+| **工具集成** | `Tool` service 注册 + MCP + plugin tool（`ToolDefinition` 包装，`tool.ts`） |
 | **语言/运行时** | TypeScript + Bun |
 
 **核心流程**：
@@ -68,7 +68,7 @@ title: "可插拔上下文与记忆模块：跨运行时内核的统一抽象"
 | 维度 | Hermes Agent 实现 |
 | :------| :------------------|
 | **状态持久化** | SQLite（sessions / messages 表）+ FTS5 全文搜索 |
-| **上下文编译** | `PromptBuilder` + `ContextEngine` + `MemoryManager` |
+| **上下文编译** | `prompt_builder` 模块函数（无类）+ `ContextEngine` + `MemoryManager` |
 | **记忆系统** | `MemoryProvider` 抽象（builtin + 可选外部 provider） |
 | **事件机制** | 生命周期钩子（`on_turn_start` / `on_session_end` / `on_pre_compress`） |
 | **工具集成** | `ToolRegistry` + MCP + Skills |
@@ -82,15 +82,15 @@ title: "可插拔上下文与记忆模块：跨运行时内核的统一抽象"
 
 - **组成**：6 个节点
 - **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
-- **要点**：首节点：用户输入 · 末节点：ContextEngine.compress() (if…
+- **要点**：首节点：用户输入 · 末节点：ContextEngine.compress() (if needed)
 
 ### 2.3 关键差异
 
 | 维度 | OpenCode | Hermes Agent |
 | :------| :----------| :--------------|
-| **消息模型** | Message + Part（细粒度节点） | 扁平 messages 列表 |
-| **压缩触发** | Compaction agent + summary | `ContextEngine.should_compress()` |
-| **记忆语义** | Session 级文件 diff | 跨 session 持久化知识 + FTS5 搜索 |
+| **消息模型** | durable Message（typed content 数组，`packages/schema/src/session-message.ts`） | 扁平 messages 列表 |
+| **压缩触发** | `SessionCompaction`（auto/manual/overflow）+ summary agent | `ContextEngine.should_compress()` |
+| **记忆语义** | Session 级文件 diff（`session/diff.ts`） | 跨 session 持久化知识（MEMORY.md / USER.md）+ FTS5 搜索 |
 | **扩展机制** | Plugin hooks（同步） | Provider 抽象（异步容错） |
 
 ---
@@ -311,52 +311,48 @@ interface ContextMemoryConfig {
 ```typescript
 class OpenCodeContextManager implements IContextManager {
   constructor(
-    private session: Session,
-    private prompt: SessionPrompt
+    private context: SessionContext,      // session/context.ts 投影
+    private instructions: SessionInstructions
   ) {}
   
   async compileSystemPrompt(options: SystemPromptOptions): Promise<string> {
-    // 复用 OpenCode 的 system.ts 逻辑
+    // 复用 session/system-prompt.ts + model-request.ts 的合并逻辑：
+    // agent system 覆盖 → runner/prompt/system.txt → tool 清单渲染
     const parts = []
     
-    // Provider prompt
-    parts.push(await this.prompt.getProviderPrompt())
+    // Agent prompt（用户 override 优先）
+    parts.push(options.userSystem ?? defaultAgentSystem)
     
-    // Environment + Skills + Instructions
-    parts.push(await this.prompt.getEnvironmentPrompt())
-    parts.push(await this.prompt.getSkillsPrompt())
-    parts.push(await this.prompt.getInstructionsPrompt())
-    
-    // User system override
-    if (options.userSystem) {
-      parts.push(options.userSystem)
-    }
+    // 内置 runner 系统提示（system.txt 渲染 tools）
+    parts.push(SessionSystemPrompt.render(RUNNER_SYSTEM, options.toolNames))
     
     return parts.filter(Boolean).join('\n\n')
   }
   
   async compileMessages(history: Message[], options: CompileOptions): Promise<Message[]> {
-    // 调用 MessageV2.toModelMessages()
-    const durableHistory = await MessageV2.stream(this.session.id)
-    const filtered = MessageV2.filterCompacted(durableHistory)
-    return MessageV2.toModelMessages(filtered, options)
+    // durable history 经 SessionHistory 投影，
+    // 再用 toLLMMessages()（runner/to-llm-message.ts:330）编译为 provider 消息
+    const durableHistory = await SessionHistory.list(db, sessionId)
+    return toLLMMessages(durableHistory, options)
   }
   
   async injectReminders(messages: Message[], context: RuntimeContext): Promise<Message[]> {
-    // 复用 prompt.ts 的 insertReminders() 逻辑
-    return this.prompt.insertReminders(messages, context)
+    // v2 中运行时提醒由 runner/prompt/system.txt 的 system-reminder 段承载，
+    // 适配器可以直接复用该段或追加自有提醒
+    return appendSystemReminder(messages, context)
   }
   
   async resolveInstructions(directory: string): Promise<Instruction[]> {
-    // 复用 instruction.ts 的发现逻辑
-    return InstructionPrompt.systemPaths(directory)
+    // 复用 session/instructions.ts 的发现逻辑
+    return this.instructions.discover(directory)
   }
   
   getTokenUsage(): TokenUsage {
+    // 来自 UsageRecorded/UsageUpdated 事件维护的 session 投影
     return {
-      prompt: this.session.lastPromptTokens || 0,
-      completion: this.session.lastCompletionTokens || 0,
-      total: this.session.lastTotalTokens || 0
+      prompt: this.context.lastPromptTokens ?? 0,
+      completion: this.context.lastCompletionTokens ?? 0,
+      total: this.context.lastTotalTokens ?? 0
     }
   }
 }
@@ -366,26 +362,27 @@ class OpenCodeContextManager implements IContextManager {
 
 ```typescript
 class OpenCodeMemoryProvider implements IMemoryProvider {
-  constructor(private storage: Storage) {}
+  constructor(private db: SqliteInterface) {}  // @opencode/effect-drizzle-sqlite
   
   async prefetch(query: string, sessionId: string): Promise<string> {
     // OpenCode 当前没有跨 session 记忆，返回空
-    // 可以扩展为读取 session_diff 或自定义记忆文件
+    // 可以扩展为读取 session diff（session/diff.ts）或自定义记忆表
     return ''
   }
   
   async syncTurn(userContent: string, assistantContent: string, sessionId: string): Promise<void> {
-    // OpenCode 通过 Session.updateMessage/updatePart 自动同步
-    // 这里可以添加额外的记忆提取逻辑
+    // 工具/assistant 终态由 runner durable 结算进 session_message，
+    // 适配器只需在此追加额外的记忆提取逻辑
   }
   
   async write(target: string, content: string, metadata?: Record<string, any>): Promise<void> {
-    // 写入自定义存储位置
-    await this.storage.write(['memory', target], content)
+    // 通过 @opencode/effect-drizzle-sqlite 写自定义表
+    // （建表写法参考 permission/sql.ts 的 PermissionSaved）
+    await this.db.insert(memoryTable).values({ target, content, metadata })
   }
   
   async search(query: string, options?: SearchOptions): Promise<MemoryEntry[]> {
-    // 实现基于 session_diff 或自定义索引的搜索
+    // 实现基于 session diff 或自定义索引的搜索
     return []
   }
   
@@ -404,30 +401,31 @@ class OpenCodeMemoryProvider implements IMemoryProvider {
 #### 5.2.1 HermesContextManager
 
 ```python
+from agent import prompt_builder  # 模块级函数，无 PromptBuilder 类
+
 class HermesContextManager(IContextManager):
-    def __init__(self, prompt_builder: PromptBuilder, context_engine: ContextEngine):
-        self.prompt_builder = prompt_builder
+    def __init__(self, context_engine: ContextEngine):
         self.context_engine = context_engine
     
     async def compile_system_prompt(self, options: SystemPromptOptions) -> str:
-        # 复用 PromptBuilder 逻辑
+        # 复用 prompt_builder 模块函数（prompt_builder.py）
         parts = []
         
-        # Identity
-        parts.append(self.prompt_builder.build_identity())
+        # Identity（prompt_builder.DEFAULT_AGENT_IDENTITY:158）
+        parts.append(prompt_builder.DEFAULT_AGENT_IDENTITY)
         
-        # Platform hints
+        # Platform hints（prompt_builder.PLATFORM_HINTS:634）
         if options.platform:
-            parts.append(self.prompt_builder.build_platform_hints(options.platform))
+            parts.append(prompt_builder.PLATFORM_HINTS.get(options.platform, ''))
         
-        # Skills index
-        parts.append(self.prompt_builder.build_skills_system_prompt(
+        # Skills index（prompt_builder.build_skills_system_prompt:1262）
+        parts.append(prompt_builder.build_skills_system_prompt(
             available_tools=options.available_tools,
             available_toolsets=options.available_toolsets
         ))
         
-        # Context files
-        parts.append(self.prompt_builder.build_context_files(options.cwd))
+        # Context files（prompt_builder.build_context_files_prompt:1733）
+        parts.append(prompt_builder.build_context_files_prompt(cwd=options.cwd))
         
         return '\n\n'.join(filter(None, parts))
     
@@ -441,8 +439,9 @@ class HermesContextManager(IContextManager):
         return messages
     
     async def resolve_instructions(self, directory: str) -> List[Instruction]:
-        # 查找 .hermes.md / HERMES.md
-        return self.prompt_builder.find_hermes_md(Path(directory))
+        # 查找 .hermes.md / HERMES.md（prompt_builder._find_hermes_md:139）
+        found = prompt_builder._find_hermes_md(Path(directory))
+        return [Instruction(path=found)] if found else []
     
     def get_token_usage(self) -> TokenUsage:
         return TokenUsage(
@@ -493,15 +492,16 @@ class HermesMemoryProvider(IMemoryProvider):
 
 ```typescript
 // 初始化统一模块
-const contextManager = new OpenCodeContextManager(session, prompt)
-const memoryProvider = new OpenCodeMemoryProvider(storage)
-const compressionEngine = new OpenCodeCompressionEngine(session)
+const contextManager = new OpenCodeContextManager(sessionContext, instructions)
+const memoryProvider = new OpenCodeMemoryProvider(db)
+const compressionEngine = new OpenCodeCompressionEngine(compaction)
 const messageStore = new OpenCodeMessageStore(db)
 
 // 编译上下文
 const systemPrompt = await contextManager.compileSystemPrompt({
   platform: 'cli',
-  userSystem: config.user.system
+  userSystem: config.user.system,
+  toolNames: [...tools.keys()]
 })
 
 const messages = await contextManager.compileMessages(history, {
@@ -520,11 +520,11 @@ if (compressionEngine.shouldCompress(messages, tokenCount)) {
   messages = compressed
 }
 
-// 调用 LLM
-const response = await LLM.stream({
+// 调用 LLM（@opencode/ai 的 llm.stream 统一适配 provider）
+const response = await llm.stream({
   system: systemPrompt,
   messages,
-  tools: await toolRegistry.getTools()
+  tools: await tool.list()   // Tool service 注册的全部工具
 })
 ```
 
@@ -532,7 +532,7 @@ const response = await LLM.stream({
 
 ```python
 # 初始化统一模块
-context_manager = HermesContextManager(prompt_builder, context_engine)
+context_manager = HermesContextManager(context_engine)
 memory_provider = HermesMemoryProvider(memory_manager)
 compression_engine = HermesCompressionEngine(context_engine)
 message_store = HermesMessageStore(session_db)
@@ -618,18 +618,18 @@ class CustomCompressionEngine implements ICompressionEngine {
 
 ### Phase 2: OpenCode 完整适配（3 周）
 
-- [ ] 实现 OpenCodeContextManager（复用现有 prompt.ts / system.ts 逻辑）
-- [ ] 实现 OpenCodeMemoryProvider（扩展 session_diff 为跨 session 记忆）
-- [ ] 实现 OpenCodeCompressionEngine（封装 compaction.ts）
-- [ ] 实现 OpenCodeMessageStore（封装 message-v2.ts）
+- [ ] 实现 OpenCodeContextManager（复用 `session/prompt.ts` / `session/system-prompt.ts` / `session/model-request.ts` 逻辑）
+- [ ] 实现 OpenCodeMemoryProvider（扩展 `session/diff.ts` 的 turn diff 为跨 session 记忆）
+- [ ] 实现 OpenCodeCompressionEngine（封装 `session/compaction.ts`）
+- [ ] 实现 OpenCodeMessageStore（封装 `SessionHistory` + `runner/to-llm-message.ts`）
 - [ ] 编写单元测试和集成测试
 
 ### Phase 3: Hermes Agent 完整适配（3 周）
 
-- [ ] 实现 HermesContextManager（封装 PromptBuilder）
-- [ ] 实现 HermesMemoryProvider（封装 MemoryManager）
-- [ ] 实现 HermesCompressionEngine（封装 ContextEngine）
-- [ ] 实现 HermesMessageStore（封装 SessionDB）
+- [ ] 实现 HermesContextManager（封装 `prompt_builder` 模块函数）
+- [ ] 实现 HermesMemoryProvider（封装 `MemoryManager`）
+- [ ] 实现 HermesCompressionEngine（封装 `ContextEngine`）
+- [ ] 实现 HermesMessageStore（封装 `SessionDB`，`hermes_state.py:451`）
 - [ ] 编写单元测试和集成测试
 
 ### Phase 4: 跨运行时验证（2 周）
@@ -652,7 +652,7 @@ class CustomCompressionEngine implements ICompressionEngine {
 
 ### 8.1 为什么不直接统一两个系统？
 
-**保持各自优势**：OpenCode 的 durable state 和细粒度 part 模型非常适合 IDE 集成和实时协作；Hermes 的 learning loop 和 FTS5 搜索非常适合长期知识积累。强行统一会丧失这些优势。
+**保持各自优势**：OpenCode 的 durable state 和 typed message 模型非常适合 IDE 集成和实时协作；Hermes 的 learning loop 和 FTS5 搜索非常适合长期知识积累。强行统一会丧失这些优势。
 
 **渐进式演进**：通过抽象层，可以让两个系统独立演进，同时共享核心能力（如自定义压缩策略、记忆检索算法）。
 

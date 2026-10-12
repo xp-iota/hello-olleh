@@ -52,7 +52,7 @@
     {
       "id": "node4",
       "type": "backend",
-      "label": "cordis 1848 行 框架本体",
+      "label": "cordis 1874 行 框架本体",
       "pos": [
         1083,
         65
@@ -78,7 +78,7 @@
     {
       "id": "node6",
       "type": "backend",
-      "label": "plugin-loader 870 行 配置树",
+      "label": "plugin-loader 997 行 配置树",
       "pos": [
         1775,
         65
@@ -117,7 +117,7 @@
     {
       "id": "node9",
       "type": "backend",
-      "label": "plugin-hmr 440 行 代码热重载",
+      "label": "plugin-hmr 531 行 代码热重载",
       "pos": [
         737,
         205
@@ -170,7 +170,7 @@
       "id": "node13",
       "type": "backend",
       "label": "json 配置文件 + patch",
-      "sublabel": "plugin-include 219 行 读 yml/",
+      "sublabel": "plugin-include 947 行 读 yml/",
       "pos": [
         45,
         345

@@ -25,7 +25,7 @@ title: "人类引导机制对比"
 `sources/codex/codex-rs/prompts/templates/permissions/approval_policy/` 的四种 policy 文件是人类可读的 Markdown 文档。团队可以直接读取这些文件，理解当前的审批策略是什么，以及为什么这样设计。
 
 - `never.md` — 从不请求人工审批（完全信任 Agent）
-- `on_failure.md` — 仅在操作失败时请求审批
+- `on_request.md` — 每次工具调用都会升级请求审批
 - `on_request_rule_request_permission.md` — 按照显式规则决定是否请求审批
 - `unless_trusted.md` — 除非 Agent 已被明确信任，否则请求审批
 
@@ -41,9 +41,9 @@ title: "人类引导机制对比"
 
 ### OpenCode
 
-`sources/opencode/packages/core/src/permission.ts` 的 `Action` 枚举（allow/deny/ask）加上路径模式匹配，提供了最细粒度的权限表达：每条权限规则明确对应一个路径模式和一个操作类型。`ask` 状态把决策权推给用户，但用户在决策时有具体的上下文（"你要求读取 `/etc/passwd`，是否允许？"），而不是模糊的"工具 X 请求权限"。
+`sources/opencode/packages/core/src/permission.ts` 的规则求值（`evaluate()` `:87-97`，Effect 取 allow/deny/ask）加上 `packages/schema/src/permission.ts:56` 的通配符规则结构，提供了最细粒度的权限表达：每条权限规则明确对应一个 action 通配符和一个 resource 通配符。`ask` 状态把决策权推给用户，但用户在决策时有具体的上下文（"你要求读取 `/etc/passwd`，是否允许？"），而不是模糊的"工具 X 请求权限"。
 
-**粒度**：细，Pattern + Action 的组合。
+**粒度**：细，action/resource 通配符 + Effect 的组合。
 **透明度**：中。Schema 定义清晰，但运行时的审批请求是否携带足够上下文取决于实现。
 
 ---
@@ -56,9 +56,9 @@ title: "人类引导机制对比"
 
 **Codex**：`sources/codex/codex-rs/core/templates/review/history_message_interrupted.md` 专门为中断情况提供了模板。当任务被中断时，审查模板引导模型从执行记录里推断任务在中断前的进度，并生成合理的恢复建议。状态 DB 支持跨 session 恢复——Codex 的有状态架构使中断后能从接近中断点的位置继续，而不必从头开始。
 
-**Gemini CLI**：`hookSystem.ts:220-225` 的 `fireSessionStartEvent` 在每次 session 开始时触发，这为恢复逻辑提供了注入点——Hook 实现者可以在 SessionStart 里检查是否有未完成的任务，并相应地恢复上下文。这是事件化的中断恢复：框架提供了钩子，具体恢复能力取决于 Hook 实现。
+**Gemini CLI**：`packages/core/src/hooks/hookSystem.ts:222-226` 的 `fireSessionStartEvent` 在每次 session 开始时触发，这为恢复逻辑提供了注入点——Hook 实现者可以在 SessionStart 里检查是否有未完成的任务，并相应地恢复上下文。这是事件化的中断恢复：框架提供了钩子，具体恢复能力取决于 Hook 实现。
 
-**OpenCode**：`permission/index.ts:151-160` 的 Finalizer 在 Effect 作用域结束时清理 pending 权限请求，防止未处理的权限请求永久阻塞。但没有显式的任务状态恢复机制——中断意味着 pending 请求被标记为 RejectedError，任务从这里无法续接。
+**OpenCode**：`packages/core/src/permission.ts:133-146` 的 Finalizer 在 Effect 作用域结束时清理 pending 权限请求：`close()` 把所有挂起请求以 `reply: "reject"` 广播出去并用 `DeclinedError` 结算各自的 Deferred，防止未处理的权限请求永久阻塞。但没有显式的任务状态恢复机制——中断意味着 pending 请求被拒绝，任务从这里无法续接。
 
 ---
 
@@ -68,11 +68,11 @@ title: "人类引导机制对比"
 
 **Claude Code**：`claudemd.ts:1-26` 的四层文件体系（Managed → User → Project → Local）天然映射了团队责任分工：系统管理员管理 Managed 层，个人用户管理 User 和 Local 层，团队共同维护 Project 层（通过 Git）。`.claude/rules/*.md` 的条件规则使团队可以按文件路径分配不同规则集，实现"这条规则只对这个目录下的文件生效"的精细控制。
 
-**Codex**：`sources/codex/docs/agents_md.md` 是专门给团队工程师阅读的 AGENTS.md 规范文档，解释了规则的语义、优先级和冲突解决方式。`default.md:17-27` 里的嵌套优先规则（更深嵌套的 AGENTS.md 优先级更高）提供了可预测的冲突解决机制。这是四个工程里团队治理规范最完整的实现——既有给工程师的文档，又有给 Agent 的规范。
+**Codex**：项目指令按 `AGENTS.override.md`、`AGENTS.md` 及配置的 fallback 文件名发现（`prompts/templates/review/rubric.md:48` 明确了这一优先序与“更具体的指令在冲突时胜出”的规则），`agents_md.rs` 从项目根到当前目录逐层拼接并受 `project_doc_max_bytes` 预算约束。可预测的冲突解决机制加上跨工程统一的 AGENTS.md 约定，使 Codex 的团队治理规范在四个工程里最完整。
 
 **Gemini CLI**：`HierarchicalMemory` 的三层接口（global / extension / project）提供了清晰的责任分工框架：global 由组织配置，extension 由扩展维护，project 由项目团队协作维护。每层的来源和权威性是明确的。
 
-**OpenCode**：`skill/index.ts:143-157` 的 `Config.directories()` 扫描和 `permission/index.ts:278-290` 的 `Permission.fromConfig()` 提供了配置驱动的治理路径。但团队协作规范（谁写 Skill、谁审批 Permission 规则、如何解决规则冲突）需要团队自行建立，没有内置的引导。
+**OpenCode**：`config/plugin/skill.ts` 的目录扫描（`:121` 的 `fs.scan("{*.md,**/SKILL.md}")`）和 `permission/saved.ts` 的持久化规则提供了配置驱动的治理路径。但团队协作规范（谁写 Skill、谁审批 Permission 规则、如何解决规则冲突）需要团队自行建立，没有内置的引导。
 
 ---
 

@@ -24,7 +24,7 @@ title: "LSP 集成：代码语义理解的工具化路径"
 | 能力 | 实现方式 | 位置 |
 | :------| :---------| :------|
 | **文件读取** | Shell / apply_patch / dynamic tools | `sources/codex/codex-rs/tools/src/tool_spec.rs:22` |
-| **符号搜索** | `grep` / `rg`（ripgrep） | `sources/codex/codex-rs/shell-command/src/command_safety/mod.rs` |
+| **符号搜索** | `grep` / `rg`（ripgrep） | shell 工具（`sources/codex/codex-rs/core/src/tools/handlers/shell_spec.rs:15`） |
 | **结构分析** | Shell 工具：`tree`, `find` | shell command |
 | **类型信息** | 编译器输出（`cargo check`, `tsc`） | shell command |
 | **诊断** | 编译器/Lint/测试/feedback diagnostics | `sources/codex/codex-rs/feedback/src/feedback_diagnostics.rs:14` |
@@ -33,7 +33,7 @@ title: "LSP 集成：代码语义理解的工具化路径"
 
 ## 2. 以 Shell 命令模拟 LSP 能力
 
-Codex 的核心内置工具是 **Shell 工具**（`run_shell_command` / `shell`），通过执行语言工具链命令获取 LSP 级别的语义信息：
+Codex 的核心内置工具是 **Shell 工具**（工具名 `shell`，由 `create_exec_command_tool()` 在 `sources/codex/codex-rs/core/src/tools/handlers/shell_spec.rs:15` 定义），通过执行语言工具链命令获取 LSP 级别的语义信息：
 
 ### 2.1 获取类型信息（等价于 hover/inlay hints）
 
@@ -65,18 +65,15 @@ grep -rn "pub fn my_function" src/
 虽然没有 LSP 客户端，Codex 作为 Rust 编写的系统具有独特优势：
 
 ```rust
-// codex-rs/core/src/tool_defs.rs
-// 内置 apply_patch 工具使用精确的文件 diff
-pub fn apply_patch(file_path: &str, patch: &str) -> Result<()> {
-    // Rust 级别的精确文件操作，不依赖 LSP
-    let content = std::fs::read_to_string(file_path)?;
-    let patched = apply_unified_diff(content, patch)?;
-    std::fs::write(file_path, patched)?;
-    Ok(())
+// core/src/tools/handlers/apply_patch.rs
+// ApplyPatchHandler 把 apply_patch 接入统一的工具执行链路
+impl ToolHandler for ApplyPatchHandler {
+    fn handle<'a>(&'a self, invocation: ToolInvocation)
+        -> codex_tools::ToolExecutorFuture<'a> { /* ... */ }
 }
 ```
 
-实际源码中，`apply_patch` 先解析并验证补丁，再通过 core handler 进入工具事件与权限链路（`sources/codex/codex-rs/apply-patch/src/lib.rs:183`, `sources/codex/codex-rs/core/src/tools/handlers/apply_patch.rs:377`）。这提供的是“精确补丁 + 失败诊断”，不是 LSP 语义编辑。
+实际链路是：`codex_apply_patch::apply_patch()`（`sources/codex/codex-rs/apply-patch/src/lib.rs:307`）先解析并校验补丁、逐文件应用并返回变更 delta；解析结果以 `MaybeApplyPatchVerified`（`apply-patch/src/lib.rs:152`）交回 core handler（`sources/codex/codex-rs/core/src/tools/handlers/apply_patch.rs:293`），再进入工具事件与权限链路。这提供的是"精确补丁 + 失败诊断"，不是 LSP 语义编辑。
 
 ## 4. MCP 作为 LSP 桥接路径
 
@@ -84,8 +81,7 @@ pub fn apply_patch(file_path: &str, patch: &str) -> Result<()> {
 
 ```toml
 # config.toml
-[[mcp_servers]]
-name = "lsp-bridge"
+[mcp_servers.lsp-bridge]
 command = "node"
 args = ["./lsp-mcp-server.js", "--language", "rust", "--lsp", "rust-analyzer"]
 ```
@@ -117,7 +113,7 @@ Codex 最常用的"LSP 替代方案"是**编译器验证循环**：
 - **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
 - **要点**：首节点：修改文件 · 末节点：再次编译验证
 
-这种方式虽然比 LSP 慢（每次需要完整编译），但对于 Rust 等强类型语言，编译器提供的诊断信息往往比 LSP hover 更权威。注意它仍然受工具治理影响：`cargo check` 在安全命令分类里不是自动安全命令（`sources/codex/codex-rs/shell-command/src/command_safety/mod.rs`），因此可能进入 approval/sandbox 流程。
+这种方式虽然比 LSP 慢（每次需要完整编译），但对于 Rust 等强类型语言，编译器提供的诊断信息往往比 LSP hover 更权威。注意它仍然受工具治理影响：`cargo check` 这类命令同样经 shell 工具进入 exec policy / 审批 / 沙箱链路，0.162 中没有"只读命令白名单自动放行"机制，危险命令另有 `sources/codex/codex-rs/shell-command/src/command_safety/is_dangerous_command.rs:37` 的显式匹配。
 
 ## 6. 与其他系统的对比
 
@@ -138,12 +134,13 @@ Codex 以"工具链即 LSP"的方式处理代码语义理解：通过 Shell 命�
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `ToolSpec` | `sources/codex/codex-rs/tools/src/tool_spec.rs:22` | Codex 工具集合抽象，不包含原生 LSP tool |
-| `create_local_shell_tool()` | `sources/codex/codex-rs/tools/src/tool_spec.rs:83` | 暴露 shell 能力，间接调用编译器/搜索工具 |
-| `is_known_safe_command()` 的 `rg` 分支 | `sources/codex/codex-rs/shell-command/src/command_safety/mod.rs` | 将常见只读搜索命令纳入安全判断 |
-| `cargo_check_is_not_safe()` | `sources/codex/codex-rs/shell-command/src/command_safety/mod.rs` | 说明编译器验证不等于免审批 |
-| `DynamicToolSpec` | `sources/codex/codex-rs/protocol/src/dynamic_tools.rs:10` | 外部 bridge 可通过 dynamic tools 暴露 LSP 类能力 |
-| `validate_dynamic_tools()` | `sources/codex/codex-rs/app-server/src/message_processor.rs:1400` | app-server 校验外部动态工具 schema |
+| `ToolSpec` | `sources/codex/codex-rs/tools/src/tool_spec.rs:22` | Responses API 工具 spec 枚举（function / namespace / tool_search / web_search / custom），不含 LSP 类型工具 |
+| `create_exec_command_tool()` | `sources/codex/codex-rs/core/src/tools/handlers/shell_spec.rs:15` | 定义 `shell` 工具，间接调用编译器/搜索工具 |
+| `dangerous_command_match()` | `sources/codex/codex-rs/shell-command/src/command_safety/is_dangerous_command.rs:37` | 危险命令显式匹配（PowerShell / Windows 命令表）|
+| `apply_patch()` | `sources/codex/codex-rs/apply-patch/src/lib.rs:307` | 解析、校验并应用补丁，返回逐文件变更 delta |
+| `ApplyPatchHandler` | `sources/codex/codex-rs/core/src/tools/handlers/apply_patch.rs:293` | 把 apply_patch 接入工具执行/事件/权限链路 |
+| `DynamicToolSpec` | `sources/codex/codex-rs/protocol/src/dynamic_tools.rs:13` | 外部 bridge 可通过 dynamic tools 暴露 LSP 类能力 |
+| `validate_dynamic_tools()` | `sources/codex/codex-rs/app-server/src/request_processors/thread_processor.rs:297` | app-server 校验外部动态工具标识与 schema |
 
 ---
 

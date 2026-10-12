@@ -14,7 +14,7 @@
       "id": "L1",
       "type": "messagebus",
       "label": "submissionloop()",
-      "sublabel": "session/handlers.rs:698 · 事件分发层",
+      "sublabel": "session/handlers.rs:439 · 事件分发层",
       "pos": [
         45,
         65
@@ -28,7 +28,7 @@
       "id": "L2",
       "type": "backend",
       "label": "runturn()",
-      "sublabel": "session/turn.rs:137 · Turn 编排层",
+      "sublabel": "session/turn.rs:163 · Turn 编排层",
       "pos": [
         391,
         65
@@ -42,7 +42,7 @@
       "id": "L3",
       "type": "backend",
       "label": "runsamplingrequest()",
-      "sublabel": "session/turn.rs:1036 · 重试/容错层",
+      "sublabel": "session/turn.rs:1603 · 重试/容错层",
       "pos": [
         737,
         65
@@ -56,7 +56,7 @@
       "id": "L4",
       "type": "backend",
       "label": "tryrunsamplingrequest()",
-      "sublabel": "session/turn.rs:1815 · 流消费+…",
+      "sublabel": "session/turn.rs:2512 · 流消费+…",
       "pos": [
         1083,
         65

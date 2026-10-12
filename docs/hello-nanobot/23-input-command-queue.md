@@ -3,7 +3,7 @@ title: "输入队列：MessageBus 准入与命令路由"
 ---
 # 输入队列：MessageBus 准入与命令路由
 
-> 基于 `sources/nanobot/nanobot/bus/queue.py`、`sources/nanobot/nanobot/command/router.py` 与 `sources/nanobot/nanobot/command/builtin.py` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/bus/queue.py`、`sources/nanobot/nanobot/command/router.py` 与 `sources/nanobot/nanobot/command/builtin.py` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
@@ -24,7 +24,7 @@ title: "输入队列：MessageBus 准入与命令路由"
 
 - 注册面三档：`priority(cmd, handler)`（最优先，如 `/stop`）、`exact(cmd, handler)`、`prefix(pfx, handler)`；
 - 判定：`normalize_command_text` 归一化文本；`is_priority` 优先拦截（即使在回合进行中也能打断）；`is_dispatchable_command` 决定一条入站消息走命令还是走模型回合；
-- 分发：`dispatch_priority(ctx)` 先于 `dispatch(ctx)` 被 `AgentLoop._dispatch_command_inline` 调用（回合的 COMMAND 状态）；`CommandContext` 携带 loop、会话、消息与渠道上下文。
+- 分发：`dispatch_priority(ctx)` 先于 `dispatch(ctx)` 被 `AgentLoop._dispatch_command_inline` 调用（回合的 command 阶段）；`CommandContext` 携带 loop、会话、消息与渠道上下文。
 
 ## 3. 内建命令清单
 
@@ -36,7 +36,7 @@ title: "输入队列：MessageBus 准入与命令路由"
 | `/new` / `/history` | 清会话 / 查看历史 |
 | `/status` | 检视运行时状态 |
 | `/model` | 查看与切换模型 preset |
-| `/dream` / `/dream_log` / `/dream_restore` / `/dream_prompt` / `/evaluator_prompt` | Dream 记忆整合全流程 |
+| `/dream` / `/dream-log` / `/dream-restore` / `/dream-prompt` / `/evaluator-prompt` | Dream 记忆整合全流程 |
 | `/goal` | goal 模式管理 |
 | `/skill` | skill 查看与加载 |
 | `/trigger` | 触发本地 automation |

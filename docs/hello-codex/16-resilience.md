@@ -31,16 +31,16 @@ Codex 的韧性机制可以概括为一套“把失败继续收束回线程状�
 
 ## 2. 统一错误类型体系
 
-### 2.1 CodexErr 枚举
+### 2.1 CodexErr 与 CodexErrorDetails
 
-`core/src/error.rs` 定义了 27+ 错误变体：
+`protocol/src/error.rs` 定义了外层错误结构 `CodexErr`（`sources/codex/codex-rs/protocol/src/error.rs:77`，携带 details、server retry advice 和 agent context）与 40+ 变体的语义枚举 `CodexErrorDetails`（`sources/codex/codex-rs/protocol/src/error.rs:90`）：
 
 | 分类 | 变体 | 含义 |
 | --- | --- | --- |
-| **连接/流** | `Stream(String, Option<Duration>)` | SSE 流断连（可选重试延迟）|
+| **连接/流** | `Stream(String)` | SSE 流断连（session loop 视为瞬态错误并自动重试）|
 | | `ConnectionFailed` | 网络连接失败 |
 | | `ResponseStreamFailed` | SSE 流失败 |
-| | `Timeout` | 超时 |
+| | `Timeout` / `RequestTimeout` | 超时 |
 | **模型/配额** | `ContextWindowExceeded` | 上下文窗口溢出 |
 | | `UsageLimitReached` | 用量限制 |
 | | `QuotaExceeded` | 配额耗尽 |
@@ -71,37 +71,41 @@ Codex 的韧性机制可以概括为一套“把失败继续收束回线程状�
 
 ### 3.1 可重试 vs 不可重试
 
-**不可重试**（返回 false）：
+`CodexErr::retry_delay()`（`sources/codex/codex-rs/protocol/src/error.rs:397`）用返回值区分两类错误：`None` 表示终态错误，`Some(delay)` 表示可重试。
+
+**不可重试**（返回 `None`）：
 
 | 变体 | 原因 |
 | --- | --- |
 | `TurnAborted`, `Interrupted` | 用户主动中止 |
-| `Fatal`, `InvalidRequest` | 逻辑错误 |
+| `Fatal`, `InvalidRequest`, `InvalidPrompt` | 逻辑错误 |
 | `ContextWindowExceeded` | 需要压缩而非重试 |
-| `UsageLimitReached` | 配额问题 |
+| `UsageLimitReached`, `UsageNotIncluded`, `QuotaExceeded` | 配额问题 |
 | `Sandbox(*)` | 安全策略 |
 | `RefreshTokenFailed` | 认证失败 |
-| `RetryLimit` | 已用尽重试预算 |
+| `ThreadNotFound`, `AgentLimitReached` | 线程/代理资源问题 |
 
-**可重试**（返回 true）：
+**可重试**（返回 `Some(delay)`）：
 
 | 变体 | 原因 |
 | --- | --- |
-| `Stream(*, *)` | 网络断连 |
-| `Timeout` | 超时可恢复 |
+| `Stream(*)` | 网络断连，session loop 自动重试 |
+| `Timeout`, `RequestTimeout` | 超时可恢复 |
 | `UnexpectedStatus` | HTTP 暂时异常 |
 | `ResponseStreamFailed` | SSE 流暂时中断 |
 | `ConnectionFailed` | 网络暂时不可达 |
-| `InternalServerError` | 服务端暂时异常 |
+| `InternalServerError`, `InternalAgentDied` | 服务端/内部暂时异常 |
+| `ServerOverloaded`, `RetryLimit(*)` | 只采用 server 给出的 retry 建议延迟 |
+| `Io`, `Json`, `TokioJoin` | 基础设施错误，按退避重试 |
 
 ### 3.2 智能退避
 
 Codex 不是固定 `2s -> 4s -> 8s`，而是尊重 provider 头信息：
 
-1. `retry-after-ms`（最高优先级）
-2. `retry-after`
-3. HTTP 日期格式
-4. 指数退避（兜底）
+1. `Retry-After` 头（秒数或 HTTP 日期格式，`sources/codex/codex-rs/http-client/src/retry_after.rs:25`）
+2. 指数退避加抖动（兜底，`sources/codex/codex-rs/async-utils/src/backoff.rs:12`）
+
+重试预算由调用方控制：流式请求的上限来自 provider 配置的 `stream_max_retries()`（`sources/codex/codex-rs/core/src/session/turn.rs:1633`）。
 
 ---
 
@@ -136,8 +140,8 @@ pub enum SandboxErr {
 
 | 特性 | Codex | OpenCode |
 | --- | --- | --- |
-| 错误归一化 | CodexErr 枚举 | MessageV2 错误类型 |
-| 重试策略 | is_retryable() 判断 | retryable() + delay() |
+| 错误归一化 | CodexErr + CodexErrorDetails 枚举 | MessageV2 错误类型 |
+| 重试策略 | retry_delay() 分级 + server advice | retryable() + delay() |
 | Context Overflow | 触发 manual / pre-turn / auto / remote compaction | 软溢出/硬溢出双路径 |
 | Revert | 无 | Snapshot + history 清理 |
 | Permission | 工具级审批 | 独立 Permission 系统 |
@@ -176,8 +180,8 @@ pub enum SandboxErr {
 
 | 主题 | 代码锚点 | 说明 |
 | --- | --- | --- |
-| 错误定义 | `core/src/error.rs` | CodexErr 枚举 |
-| 重试判断 | `error.rs:197-232` | is_retryable() |
+| 错误定义 | `protocol/src/error.rs:90` | `CodexErrorDetails` 枚举与外层 `CodexErr` 结构 |
+| 重试判断 | `protocol/src/error.rs:397` | `retry_delay()` 区分终态错误与可重试错误 |
 | Sandbox | `tools/sandboxing.rs` | 沙箱隔离实现 |
 | 线程管理 | `core/src/thread_manager.rs` | ThreadManager |
 
@@ -187,8 +191,8 @@ pub enum SandboxErr {
 
 Codex 的韧性机制并不只停留在“重试 + 沙箱”：
 
-1. **错误归一化**：27+ 变体的统一错误类型体系
-2. **重试策略**：基于 is_retryable() 的智能重试
+1. **错误归一化**：40+ 变体的统一错误类型体系
+2. **重试策略**：基于 `retry_delay()` 的分级重试与 server retry advice
 3. **上下文自愈**：已经具备 compaction 路径
 4. **Sandbox 隔离**：平台特定的沙箱实现
 
@@ -204,12 +208,12 @@ Codex 的韧性机制并不只停留在“重试 + 沙箱”：
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `BackoffRetry` | `codex-rs/core/src/retry.rs` | 指数退避重试：处理 429/503/网络错误，最大重试次数可配置 |
-| `ContextOverflowHandler` | `codex-rs/core/src/context.rs` | 检测 context length 超限并触发 trim 策略 |
-| `PanicSummary` | `codex-rs/cli/src/main.rs` | 顶层 panic 捕获：生成用户友好的错误摘要并建议操作 |
-| `CheckpointWriter` | `codex-rs/core/src/persist.rs` | 阶段性写入检查点，供进程崩溃后恢复用 |
-| `SandboxGuard` | `codex-rs/exec/src/sandbox.rs` | 沙盒 Drop guard：确保异常退出时沙盒资源被清理 |
-| `RateLimitState` | `codex-rs/core/src/retry.rs` | 跟踪当前 rate limit 窗口，避免贡献 429 的无效请求 |
+| `CodexErr::retry_delay()` | `codex-rs/protocol/src/error.rs:397` | 错误分级：终态返回 `None`，可重试返回 server 建议延迟或指数退避 |
+| `backoff()` | `codex-rs/async-utils/src/backoff.rs:12` | 带抖动的指数退避兜底 |
+| `RetryAfter` | `codex-rs/http-client/src/retry_after.rs:18` | 解析 `Retry-After` 头（秒数或 HTTP 日期）并保留截止时刻 |
+| `ResponsesStreamRetryState` | `codex-rs/core/src/responses_retry.rs:32` | 流式响应重试状态机，配合 provider 的 `stream_max_retries()` 预算 |
+| `run_auto_compact()` | `codex-rs/core/src/session/turn.rs:1434` | 上下文超限触发 compaction 自愈 |
+| `SandboxManager` | `codex-rs/sandboxing/src/manager.rs:310` | `select_initial()` 选择平台沙箱实现，`transform()` 生成具体执行约束 |
 
 ---
 
@@ -217,26 +221,26 @@ Codex 的韧性机制并不只停留在“重试 + 沙箱”：
 
 **优点**
 
-- **Rust Drop 语义实现资源保证**：`SandboxGuard` 利用 Rust RAII，即使 panic 也能通过 Drop 触发清理，无需 `finally` 块。
-- **结构化重试策略**：`BackoffRetry` 分离重试逻辑与业务逻辑，可独立测试和替换重试参数。
-- **顶层 panic 人性化处理**：`PanicSummary` 将底层 Rust panic 转换为用户可读的错误提示，降低用户困惑度。
+- **错误分级集中且类型化**：`retry_delay()` 一个 match 就表达了“哪些错误是终态、哪些值得重试”，调用方不再各自实现重试判断。
+- **server retry advice 一等公民**：`RetryAfter` 捕获一次截止时刻并在错误传递时不重置，避免多层重试叠加放大延迟。
+- **流式重试与传输回退解耦**：`ResponsesStreamRetryState` 处理流中断重试，WebSocket→HTTPS 回退由 client 层独立处理，两层互不干扰。
 
 **风险与改进点**
 
-- **重试最大次数硬编码**：默认重试次数内嵌代码，用户无法通过配置文件调整，高延迟环境可能需要更多重试。
-- **checkpoint 恢复路径未充分测试**：崩溃恢复逻辑分支在正常运行路径外，测试覆盖率低，实际崩溃时行为不可预期。
-- **rate limit 状态无跨进程共享**：`RateLimitState` 存在内存中，多个 codex 实例共享同一 API key 时无法协调限流窗口。
+- **流式重试预算不可由用户配置**：`stream_max_retries()` 来自 provider info，高延迟环境无法通过 config.toml 调整。
+- **`Io`/`Json` 等基础错误一律可重试**：宽口径可能放大无效重试，本地磁盘故障时仍会按退避反复尝试。
+- **崩溃恢复依赖 rollout 完整性**：进程崩溃后靠 rollout reconstruction 重建，写入中断的 rollout 片段会让 resume 边界变复杂。
 
-## Codex 韧性覆盖 client、turn 和 filesystem 三层
+## Codex 韧性覆盖 client、turn 和 rollout 三层
 
-Codex 韧性不只包括 LLM retry，也包括 sandbox fallback、ghost snapshot、compact 和 rollout reconstruction。
+Codex 韧性不只包括 LLM retry，也包括 sandbox fallback、compact 和 rollout reconstruction。
 
 | 层级 | Codex 侧机制 | 横向对比 |
 | --- | --- | --- |
 | Client | retry/backoff/transport fallback | 对应 Gemini/OpenCode provider retry |
 | Turn | compact、needs_follow_up、cancel token | 对应 Claude query state |
 | Tools | sandbox retry / approval escalation | Codex 强项 |
-| Filesystem | ghost snapshot / undo | Codex 特有 |
+| Rollout | 历史持久化与重建，崩溃后 resume | 对应 OpenCode durable session |
 
 ## 异常后的继续、重开与回滚边界
 
@@ -245,8 +249,8 @@ Codex 韧性不只包括 LLM retry，也包括 sandbox fallback、ghost snapshot
 | Provider transient error | 可重试后继续 | 达到最大重试后需要新 turn/用户介入 | 不涉及 | client retry/backoff 处理 transport 抖动 |
 | Tool command failure | 可继续，作为 tool result 反馈模型 | 若失败导致规划失效，可由模型新 turn 重试 | 取决于命令是否改写文件 | 失败是模型可见事实，不等于 runtime 崩溃 |
 | Sandbox denial | 通常继续，等待审批升级或策略调整 | 用户改变 policy 后可能新 turn | denial 前通常无文件写入 | Codex 的审批/沙箱是韧性核心 |
-| Process panic/crash | 当前 turn 中断 | 需要 resume/replay 重建 | 依赖已持久化 ghost snapshot | 运行中 future/cancel token 不恢复 |
-| Partial file edit | 不应假定继续 | 建议新 turn 先检查 diff | ghost snapshot 可提供 undo 支撑 | 回滚能力和恢复能力要分开写 |
+| Process panic/crash | 当前 turn 中断 | 需要 resume/replay 重建 | 依赖 rollout 已持久化的历史 | 运行中 future/cancel token 不恢复 |
+| Partial file edit | 不应假定继续 | 建议新 turn 先检查 diff | 无自动 undo；`TurnDiffTracker` 记录本轮文件变更供检查 | 回滚能力和恢复能力要分开写 |
 | Context overflow | compact 后可继续 | compact 失败时需要新 turn 或缩短输入 | 不涉及 | 属于上下文韧性而非 transport 韧性 |
 
-这张表给横向对比一个明确口径：Claude/Gemini/OpenCode 多数只恢复会话或工具结果，Codex 额外有 ghost snapshot/undo 维度，但它仍不能恢复运行中的 pending approval、cancel token 或外部进程句柄。
+这张表给横向对比一个明确口径：Claude/Gemini/OpenCode 多数只恢复会话或工具结果，Codex 同样不能恢复运行中的 pending approval、cancel token 或外部进程句柄，崩溃后的恢复面以 rollout 持久化记录为边界。

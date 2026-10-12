@@ -3,7 +3,7 @@ title: "韧性机制：fallback provider、取消与注入上限"
 ---
 # 韧性机制：fallback provider、取消与注入上限
 
-> 基于 `sources/nanobot/nanobot/providers/fallback_provider.py`、`sources/nanobot/nanobot/agent/runner.py` 与 `sources/nanobot/nanobot/agent/loop.py` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/providers/fallback_provider.py`、`sources/nanobot/nanobot/agent/runner.py` 与 `sources/nanobot/nanobot/agent/loop.py` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
@@ -28,7 +28,7 @@ title: "韧性机制：fallback provider、取消与注入上限"
 
 ## 2. 重试与超时
 
-- `AgentRunSpec.provider_retry_mode`（默认 `"standard"`）选择 provider 重试策略；`llm_timeout_s` 设单次年模型请求超时；`retry_wait_callback` 让 UI 能展示"正在等待重试"；
+- `AgentRunSpec.provider_retry_mode`（默认 `"standard"`，另有 `"persistent"`）选择 provider 重试策略，经 `_build_request_kwargs` 以 `retry_mode` 传给 provider；provider 从响应头解析 `Retry-After`/`should-retry`（`_extract_retry_after_from_headers`）决定退避；
 - MCP 侧 `_is_transient` / `_is_session_terminated` 区分可重试与会话终结（见 [24-mcp-system.md](./24-mcp-system.md)）；
 - provider 不回报 usage 时用估算兜底（`_usage_or_estimate`），防止统计中断。
 

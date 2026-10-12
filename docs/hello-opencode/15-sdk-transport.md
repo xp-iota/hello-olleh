@@ -3,7 +3,7 @@ title: "SDK 与传输：Protocol/Server/Client/SDK 分层"
 ---
 # SDK 与传输：Protocol/Server/Client/SDK 分层
 
-> 基于 `sources/opencode/packages/protocol/`、`packages/server/`、`packages/client/` 与 `packages/sdk/` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/packages/protocol/`、`packages/server/`、`packages/client/` 与 `packages/sdk/` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 
@@ -43,7 +43,8 @@ Schema（公共形状/事件载荷）
 | `event-feed.ts` | 公共事件一次编码、逐连接有界投递（`SubscriberCapacity = 4096`，`SubscriberOverflowError` / `EncodingError`） |
 | `auth.ts` / `cors.ts` / `middleware/` | 认证与跨域中间件 |
 | `request-tracing.ts` | 请求追踪 |
-| `server-info.ts` / `service-status.ts` | 进程信息面 |
+| `server-info.ts` / `service-status.ts` / `process.ts` | 进程信息面 |
+| `pairing.ts` / `options.ts` / `pty-environment.ts` | 宿主配对、选项与 PTY 环境 |
 | `location.ts` | Location 中间件（事件馈送故意不在其内，见 [07-error-security.md](./07-error-security.md) §4） |
 | `workerd.ts` / `fetch.ts` | fetch 运行时适配 |
 
@@ -51,7 +52,7 @@ SSE 帧格式是 `data: ${JSON.stringify(event)}\n\n`；编码失败的策略是
 
 ## 4. Client 与 SDK
 
-- `packages/client/src/`：`contract.ts`（契约）、`service.ts` + `service-contender.ts` + `service-timing.ts` + `service-version.ts`（后台 service 的发现/竞争/版本协商）、`shared-events.ts`、`rpc-runtime.ts`、`pty-handoff.ts`，以及 `effect/` 与 `promise/` 双入口。
+- `packages/client/src/`：`contract.ts`（契约）、`service.ts` + `service-contender.ts` + `service-probe.ts` + `service-timing.ts` + `service-version.ts`（后台 service 的发现/竞争/版本协商）、`shared-events.ts`、`rpc-runtime.ts`、`pty-handoff.ts`，以及 `effect/` 与 `promise/` 双入口和 Solid 绑定（`solid/`）。
 - `packages/sdk/src/`：对外编程接口 `opencode.ts` 暴露 `create()`（委托 `PromiseSdk.create`），类型出口包括 `CreateOptions` / `InstanceOptions` / `InstanceConfiguration` / `Interface`；`contracts.ts`、`tool.ts`、`logging.ts`、`workerd.ts` 与 `effect/`、`internal/` 支撑。
 - SDK 不是另一套 runtime——它装配/连接 Core 能力，复用同一协议面。
 

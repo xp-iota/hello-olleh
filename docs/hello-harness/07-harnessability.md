@@ -35,7 +35,7 @@ Rust 的 Ambient Affordance 是此次对比中最强的：
 
 ### OpenCode
 
-`sources/opencode/packages/core/src/permission.ts` 的 `import z from "zod"` 表明 OpenCode 选择了运行时验证而非编译期验证。Effect Schema 的 Ambient Affordance 是运行时的——它在数据实际传入时才检测不合规，而不是在代码编写时。Effect-ts 的类型系统提供了一定的编译期保证，但总体上，OpenCode 的 Ambient Affordance 强度处于运行时验证的水平。
+`sources/opencode/packages/core/src/permission.ts` 用 Effect Schema 的 `Schema.TaggedError` 定义 `DeclinedError`、`CorrectedError`、`BlockedError` 等类型化错误，校验主要发生在运行时而非编译期。Effect Schema 的 Ambient Affordance 是运行时的——它在数据实际传入时才检测不合规，而不是在代码编写时。Effect-ts 的类型系统提供了一定的编译期保证，但总体上，OpenCode 的 Ambient Affordance 强度处于运行时验证的水平。
 
 ---
 
@@ -61,9 +61,7 @@ mod message_processor;
 mod request_processors;
 ```
 
-（rust-v0.154 的模块清单里有 `pub mod codex_message_processor;` 单文件；rust-v0.162 起已拆分为 `message_processor.rs` + `request_processors/` 目录，`request_processors/` 下按 RPC 域再分出 `turn_processor.rs`、`thread_lifecycle.rs`、`config_processor.rs` 等数十个 processor。）
-
-在 Rust 里，`pub`/`mod` 决定了哪些 API 可以跨 crate 边界访问，而这是编译器强制的——你不能从外部 crate 访问另一个 crate 的私有实现，编译器会拒绝。这使 Codex 的模块边界是真正的边界，而不只是建议性的目录组织。任何违反 crate 边界的代码都无法通过 `cargo build`，这是最强的机械执行。
+`request_processors/` 下按 RPC 域再分出 `turn_processor.rs`、`thread_lifecycle.rs`、`config_processor.rs` 等数十个 processor。在 Rust 里，`pub`/`mod` 决定了哪些 API 可以跨 crate 边界访问，而这是编译器强制的——你不能从外部 crate 访问另一个 crate 的私有实现，编译器会拒绝。这使 Codex 的模块边界是真正的边界，而不只是建议性的目录组织。任何违反 crate 边界的代码都无法通过 `cargo build`，这是最强的机械执行。
 
 ### Gemini CLI
 
@@ -76,10 +74,10 @@ mod request_processors;
 `sources/opencode/packages/core/src/permission.ts` 的 Effect Layer 定义：
 
 ```typescript
-export class Service extends ServiceMap.Service<Service, Interface>()("@opencode/Permission") {}
+export class Service extends Context.Service<Service, Interface>()("@opencode/Permission") {}
 ```
 
-Effect-ts 的 ServiceMap 模式强制依赖注入：任何需要 Permission Service 的代码都必须通过 `ServiceMap` 声明这个依赖，而不能静默使用全局变量。这是一种运行时的模块边界执行：违反依赖注入规则的代码不会在编译期报错，但会在 Effect 运行时产生明确的错误。
+Effect-ts 的 Context.Service 模式强制依赖注入：任何需要 Permission Service 的代码都必须通过 `Context.Service` 声明这个依赖，而不能静默使用全局变量。这是一种运行时的模块边界执行：违反依赖注入规则的代码不会在编译期报错，但会在 Effect 运行时产生明确的错误。
 
 **结论**：Effect Layer 强制依赖注入，运行时执行，强度介于约定和编译期之间。
 
@@ -106,28 +104,21 @@ export function systemPromptSection(
 
 ### Codex
 
-`sources/codex/codex-rs/core/templates/` 目录是四个工程里最丰富的 Template 系统。rust-v0.154.0 时的布局是：
+Codex 的 Template 系统分散在按功能域划分的 crate 里，是四个工程里最丰富的。`sources/codex/codex-rs/core/templates/` 下有四个功能域：
 
 ```
-templates/          （rust-v0.154.0）
+core/templates/
   agents/orchestrator.md
-  collaboration_mode/
-    default.md
-    execute.md
-    pair_programming.md
-    plan.md
-  compact/
-    prompt.md
-    summary_prefix.md
-  memories/
-    consolidation.md
-    stage_one_input.md
-    stage_one_system.md
+  collab/experimental_prompt.md
+  review/history_message_completed.md
+  review/history_message_interrupted.md
+  search_tool/request_plugin_install_description.md
+  search_tool/tool_description.md
 ```
 
-rust-v0.162 起该目录收敛为 `agents/orchestrator.md`、`collab/experimental_prompt.md`、`review/history_message_completed.md`、`review/history_message_interrupted.md`、`search_tool/request_plugin_install_description.md`、`search_tool/tool_description.md`——`collaboration_mode/` 改名为 `collab/` 并精简，`compact/` 与 `memories/` 模板已移除。
+此外，协作模式模板在 `codex-rs/collaboration-mode-templates/templates/`（`default.md`、`plan.md` 等），压缩模板在 `codex-rs/prompts/templates/compact/prompt.md`，memories 两阶段模板在 `codex-rs/memories/write/templates/memories/`（`consolidation.md`、`stage_one_system.md` 等）。
 
-每个目录对应一个功能域（协作模式、压缩、记忆），每个文件是该功能域的一个变体。添加新的协作模式，只需在 `collab/` 添加新的 Markdown 文件——不需要修改任何代码。这是 Template 系统最大化可驾驭性的核心设计。
+每个目录对应一个功能域（协作模式、压缩、记忆、评审），每个文件是该功能域的一个变体。添加新的协作模式，只需在 `collaboration-mode-templates/templates/` 添加新的 Markdown 文件——不需要修改任何代码。这是 Template 系统最大化可驾驭性的核心设计。
 
 ### Gemini CLI
 
@@ -151,7 +142,7 @@ Ashby 定律在工程实践里有一个推论：**有意识地约束操作空间
 
 **Gemini CLI**：`getCoreSystemPrompt()` 的条件渲染（`planningWorkflow` 二选一）通过模式切换来约束 Agent 在特定阶段的行为空间，而 `models.ts` 的模型约束限制了推断引擎的选择空间。
 
-**OpenCode**：`config/config.ts` 的配置 Schema 间接约束了 Agent 可以读取的操作参数空间。但当前缺少对工具调用空间的系统性限制，Agent 的行为空间仍然相对开放。
+**OpenCode**：`packages/core/src/config.ts` 的配置 Schema 间接约束了 Agent 可以读取的操作参数空间。但当前缺少对工具调用空间的系统性限制，Agent 的行为空间仍然相对开放。
 
 ---
 

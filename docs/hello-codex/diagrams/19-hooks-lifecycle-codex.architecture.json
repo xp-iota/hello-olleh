@@ -65,7 +65,8 @@
     {
       "id": "node5",
       "type": "backend",
-      "label": "submissionloop 进入",
+      "label": "submission_loop 进入",
+      "sublabel": "handlers.rs:439",
       "pos": [
         1429,
         65
@@ -78,7 +79,8 @@
     {
       "id": "node6",
       "type": "external",
-      "label": "接收 Op::UserInput",
+      "label": "接收 Op::TurnInput",
+      "sublabel": "handlers.rs:541",
       "pos": [
         1775,
         65
@@ -91,7 +93,8 @@
     {
       "id": "node7",
       "type": "backend",
-      "label": "runturn()",
+      "label": "run_turn()",
+      "sublabel": "session/turn.rs:163",
       "pos": [
         45,
         205
@@ -104,7 +107,8 @@
     {
       "id": "node8",
       "type": "backend",
-      "label": "runsamplingrequest()",
+      "label": "run_sampling_request()",
+      "sublabel": "session/turn.rs:1603",
       "pos": [
         391,
         205

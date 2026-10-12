@@ -154,7 +154,7 @@
       "id": "O2",
       "type": "backend",
       "label": "Session Boundary",
-      "sublabel": "Session · MessageV2 · Part",
+      "sublabel": "Session · Message · Part",
       "pos": [
         1429,
         205
@@ -168,7 +168,7 @@
       "id": "O3",
       "type": "backend",
       "label": "Memory",
-      "sublabel": "sessiondiff · summary",
+      "sublabel": "SessionDiff · summary",
       "pos": [
         1775,
         205

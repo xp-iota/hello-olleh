@@ -3,7 +3,7 @@ title: "Plugin 系统：宿主、监督器与模块生命周期"
 ---
 # Plugin 系统：宿主、监督器与模块生命周期
 
-> 基于 `sources/opencode/packages/core/src/plugin/` 与 `sources/opencode/packages/plugin/` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/packages/core/src/plugin/` 与 `sources/opencode/packages/plugin/` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 
@@ -19,10 +19,10 @@ title: "Plugin 系统：宿主、监督器与模块生命周期"
 
 | 层 | 包 | 内容 |
 | --- | --- | --- |
-| 公共契约 | `packages/plugin` | `Tool.make`、插件 app 形状、`effect/` 下五域 hooks 接口（aisdk/session/permission/shell/tool）、`host.ts`、`rpc.ts`、`storage.ts`、source 抽象（`source.bun.ts` / `source.node.ts`）、`tui/` 与 `promise/` 入口 |
+| 公共契约 | `packages/plugin` | `Tool.make`、插件 app 形状、`effect/` 下的公共形状（含 aisdk/session/permission/shell/tool 五域 hooks 接口，以及 agent/command/model/provider/reference/storage 等域的类型）、`host.ts`、`rpc.ts`、`storage.ts`、source 抽象（`source.bun.ts` / `source.node.ts` / `source.package.ts`）、`tui/` 与 `promise/` 入口 |
 | 运行时宿主 | `packages/core/src/plugin/` | 加载、监督、注册、hooks 编排与插件对运行时各域的贡献 |
 
-`plugin/host.ts` 的 `PluginHost.make` 展示了插件可见的服务面：App、Agent、AISDK、Catalog、Command、Credential、Bus、Integration、KV、Location、LocationServiceMap、Model、Mcp、Session、PersistentPty、Provider、Reference、Rpc、Skill、Tool、Workspace、Vcs、WebSearch、Worktree、Generate、Permission、PluginHooks 等——插件在受控能力集上编程，而不是任意 import Core 内部。
+`plugin/host.ts` 的 `PluginHost.make` 展示了插件可见的服务面：App、Agent、AISDK、Command、Credential、Bus、Integration、KV、Location、LocationServiceMap、Model、Mcp、Session、PersistentPty、Provider、Reference、Rpc、Skill、Tool、Workspace、Vcs、WebSearch、Worktree、Generate、Permission、PluginHooks 等——插件在受控能力集上编程，而不是任意 import Core 内部。
 
 ## 2. 运行时子域
 
@@ -37,10 +37,11 @@ title: "Plugin 系统：宿主、监督器与模块生命周期"
 | `command.ts` + `command/` | 插件贡献 slash command |
 | `skill.ts` + `skill/` | 插件贡献 skill |
 | `system-prompt/` | 插件参与系统提示塑造 |
-| `agent.ts` / `plan.ts` / `variant.ts` | agent 目录、plan 形态、variant 参与 |
+| `agent.ts` / `plan.ts` | agent 目录与 plan 形态 |
 | `vcs/` / `websearch/` / `models-dev.ts` | VCS、web 搜索、模型目录的插件面 |
-| `mcp-codemode-exclusion.ts` | MCP 与 Code Mode 的互斥规则 |
+| `mcp-codemode-defaults.ts` | MCP 与 Code Mode 的默认互斥规则 |
 | `optimize.ts` / `warming.ts` / `update.ts` / `promise.ts` | 优化、预热、更新与 Promise 桥 |
+| `identity.ts` / `sdk.ts` / `tool-input-repair.ts` / `verbosity.ts` | 插件身份、SDK 面、工具输入修复与冗长度调节 |
 
 ## 3. 激活与 Scope 生命周期
 

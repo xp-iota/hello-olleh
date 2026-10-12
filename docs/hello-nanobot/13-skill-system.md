@@ -3,7 +3,7 @@ title: "Skill 系统：SKILL.md 与按需加载"
 ---
 # Skill 系统：SKILL.md 与按需加载
 
-> 基于 `sources/nanobot/nanobot/agent/skills.py` 与 `sources/nanobot/nanobot/skills/` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/agent/skills.py` 与 `sources/nanobot/nanobot/skills/` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 

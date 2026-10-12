@@ -23,15 +23,15 @@ title: "入口、传输与 UI 状态横向对比"
 | Claude Code | React TUI / SDK / headless | React state + hooks | SDK transport / bridge | stream event 驱动 UI |
 | Codex | Rust CLI/TUI/app-server | Ratatui + event loop | JSON event / HTTP / WebSocket | thread event 投影 |
 | Gemini CLI | packages/cli + core | Ink TUI | Headless / IDE / MCP | hook + stream callback |
-| OpenCode | CLI/TUI/Web/Desktop/serve | 多表面共享 server contract | Hono server / SSE / SDK | Bus/SSE + durable state |
+| OpenCode | CLI/TUI/Web/Desktop/serve | 多表面共享 server contract | Effect HTTP server / SSE / SDK | Bus/SSE + durable state |
 
 ## 3. 代表源码证据
 
 | 项目 | 输入 / 队列 | Runtime 请求 | Event / 状态投影 |
 | --- | --- | --- | --- |
-| Claude Code | `sources/claude-code/src/query.ts:241`, `sources/claude-code/src/hooks` | `sources/claude-code/src/query.ts:323`, `sources/claude-code/src/services/tools/toolOrchestration.ts` | `sources/claude-code/src/query.ts:337`, `sources/claude-code/src/services/tools/StreamingToolExecutor.ts` |
-| Codex | `sources/codex/codex-rs/tui/src/app.rs`, `sources/codex/codex-rs/app-server/src/request_processors/turn_processor.rs:99` | `sources/codex/codex-rs/core/src/session/mod.rs:698`, `sources/codex/codex-rs/core/src/session/handlers.rs:698` | `sources/codex/codex-rs/tui/src/app_server_session.rs:397`, `sources/codex/codex-rs/core/src/session/turn.rs:137` |
-| Gemini CLI | `sources/gemini-cli/packages/cli/src/ui/hooks/useMcpStatus.ts:15`, `sources/gemini-cli/packages/core/src/core/client.ts:868` | `sources/gemini-cli/packages/core/src/core/client.ts:585`, `sources/gemini-cli/packages/core/src/core/turn.ts:257` | `sources/gemini-cli/packages/core/src/core/client.ts:925`, `sources/gemini-cli/packages/core/src/core/turn.ts:404` |
+| Claude Code | `sources/claude-code/src/query.ts:241`, `sources/claude-code/src/hooks` | `sources/claude-code/src/query.ts:659`, `sources/claude-code/src/services/tools/toolOrchestration.ts` | `sources/claude-code/src/query.ts:337`, `sources/claude-code/src/services/tools/StreamingToolExecutor.ts` |
+| Codex | `sources/codex/codex-rs/tui/src/app.rs`, `sources/codex/codex-rs/app-server/src/request_processors/turn_processor.rs:175` | `sources/codex/codex-rs/core/src/session/handlers.rs:439`, `sources/codex/codex-rs/core/src/session/turn.rs:163` | `sources/codex/codex-rs/tui/src/app_server_session.rs:837`, `sources/codex/codex-rs/core/src/session/turn.rs:424` |
+| Gemini CLI | `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:1682`, `sources/gemini-cli/packages/cli/src/ui/hooks/useMcpStatus.ts:15` | `sources/gemini-cli/packages/core/src/core/client.ts:924`, `sources/gemini-cli/packages/core/src/core/turn.ts:270` | `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:1972`, `sources/gemini-cli/packages/core/src/core/turn.ts` |
 | OpenCode | `sources/opencode/packages/server/src`, `sources/opencode/packages/core/src/session/prompt.ts` | `sources/opencode/packages/core/src/session/prompt.ts`, `sources/opencode/packages/core/src/session/runner/step.ts` | `sources/opencode/packages/core/src/session/runner/step.ts`, `sources/opencode/packages/server/src` |
 
 ## 4. 生命周期合并图
@@ -65,9 +65,9 @@ OpenCode 的入口面最宽，因为 server contract 是中心；Codex 的 runti
 | --- | --- | --- | --- | --- |
 | 输入捕获 | React TUI / slash command / SDK headless | Ratatui TUI、app-server client、remote WebSocket | Ink TUI、non-interactive CLI、IDE/ACP | CLI/TUI/Web/Desktop/API server |
 | 命令预处理 | slash command 可返回 UI、prompt message、background task | app-server 把 request 映射成 `Op` | command service / UI hook 决定本地处理或提交 | server route / command compiler 生成 prompt 或 TUI event |
-| runtime 提交 | `query()` 消费 messages 和 `ToolUseContext` | `submit_core_op()` -> `submission_loop()` | `submitQuery()` -> `GeminiClient.sendMessageStream()` | `session.prompt()` 先写 durable user message |
+| runtime 提交 | `query()` 消费 messages 和 `ToolUseContext` | `submit_core_op()` -> `submission_loop()` | `submitQuery()` -> `GeminiClient.sendMessageStream()` | `SessionPrompt.prepare()` 先把输入持久化到 Session inbox，`SessionRunner.drain()` 消费 |
 | 状态投影 | stream event 更新 React state / transcript | thread event 投影到 TUI/app-server consumers | core events、hook state、Scheduler 状态投影到 UI | Bus/SSE + SQLite durable state |
-| 外部宿主 | SDK、bridge、remote sessions | app-server protocol、HTTP/WebSocket、thread API | non-interactive、IDE、ACP、MCP/extension | Hono OpenAPI、SSE、SDK、ACP、attach |
+| 外部宿主 | SDK、bridge、remote sessions | app-server protocol、HTTP/WebSocket、thread API | non-interactive、IDE、ACP、MCP/extension | HTTP API（`packages/server`）、SSE、SDK、ACP、attach |
 
 ## 8. 章节边界
 

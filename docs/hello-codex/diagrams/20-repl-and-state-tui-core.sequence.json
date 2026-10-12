@@ -25,7 +25,8 @@
     {
       "id": "MSP",
       "type": "backend",
-      "label": "codexmessageprocess…"
+      "label": "message_processor.rs",
+      "sublabel": "request_processors 分派"
     },
     {
       "id": "CORE",
@@ -35,7 +36,8 @@
     {
       "id": "LOOP",
       "type": "backend",
-      "label": "submissionloop"
+      "label": "submission_loop",
+      "sublabel": "handlers.rs:439"
     },
     {
       "id": "LOOP-",
@@ -65,7 +67,7 @@
       "from": "MSP",
       "to": "CORE",
       "y": 270,
-      "label": "submitcoreop()",
+      "label": "submit_core_op()",
       "variant": "default"
     },
     {
@@ -73,7 +75,7 @@
       "from": "CORE",
       "to": "LOOP",
       "y": 315,
-      "label": "Op::UserInput / Op::Interrupt / approval",
+      "label": "Op::TurnInput / Op::Interrupt / approval",
       "variant": "default"
     },
     {
@@ -104,7 +106,7 @@
       "dot": "orange",
       "title": "要点",
       "items": [
-        "消息标签保留源图中的调用名"
+        "submit_core_op() 桥接 app-server 到 core（turn_processor.rs:492）"
       ]
     }
   ]

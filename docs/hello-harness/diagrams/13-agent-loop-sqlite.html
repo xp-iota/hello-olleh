@@ -4919,65 +4919,71 @@
         <path data-edge-from="node5" data-edge-to="node6" data-edge-key="4" data-edge-id="edge5" data-composition-points="1729,107;1775,107" d="M 1729 107 L 1775 107" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
         <!-- Components -->
-        <g id="node-node1" data-node-id="node1" data-node-label="SessionTable MessageTable PartTable" tabindex="0" role="button" aria-label="Focus SessionTable MessageTable PartTable, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-context="Architecture component">
-          <title>SessionTable MessageTable PartTable · Architecture component</title>
+        <g id="node-node1" data-node-id="node1" data-node-label="四张 durable 表" tabindex="0" role="button" aria-label="Focus 四张 durable 表, session_v2 / session_message / session_pending / session_inbox, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="session_v2 / session_message / session_pending / session_inbox" data-node-context="Architecture component">
+          <title>四张 durable 表 · session_v2 / session_message / session_pending / session_inbox · Architecture component</title>
           <rect x="45" y="65" width="300" height="84" rx="6" class="c-mask"/>
           <rect x="45" y="65" width="300" height="84" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(51 71) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text x="195" y="111" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">SessionTable MessageTable PartTable</text>
+          <text data-detail-anchor x="195" y="105" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">四张 durable 表</text>
+        <text data-detail="context" x="195" y="121" class="t-muted" font-size="7.8" text-anchor="middle">session_v2 / session_message / session_pending / session_inbox</text>
         </g>
 
-        <g id="node-node2" data-node-id="node2" data-node-label="id (PK) id (PK) id (PK)" tabindex="0" role="button" aria-label="Focus id (PK) id (PK) id (PK), Architecture component" aria-pressed="false" data-node-kind="backend" data-node-context="Architecture component">
-          <title>id (PK) id (PK) id (PK) · Architecture component</title>
+        <g id="node-node2" data-node-id="node2" data-node-label="session_v2" tabindex="0" role="button" aria-label="Focus session_v2, session 边界：permission、summary_diffs、claim（time_suspended）, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="session 边界：permission、summary_diffs、claim（time_suspended）" data-node-context="Architecture component">
+          <title>session_v2 · session 边界：permission、summary_diffs、claim（time_suspended） · Architecture component</title>
           <rect x="391" y="65" width="300" height="84" rx="6" class="c-mask"/>
           <rect x="391" y="65" width="300" height="84" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(397 71) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text x="541" y="111" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">id (PK) id (PK) id (PK)</text>
+          <text data-detail-anchor x="541" y="105" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">session_v2</text>
+        <text data-detail="context" x="541" y="121" class="t-muted" font-size="7.6" text-anchor="middle">session 边界：permission、summary_diffs、claim（time_suspended）</text>
         </g>
 
-        <g id="node-node3" data-node-id="node3" data-node-label="projectid (FK) sessionid (FK) messageid…" tabindex="0" role="button" aria-label="Focus projectid (FK) sessionid (FK) messageid…, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-context="Architecture component">
-          <title>projectid (FK) sessionid (FK) messageid… · Architecture component</title>
+        <g id="node-node3" data-node-id="node3" data-node-label="session_message" tabindex="0" role="button" aria-label="Focus session_message, durable 消息：type、seq 唯一有序、data (JSON), Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="durable 消息：type、seq 唯一有序、data (JSON)" data-node-context="Architecture component">
+          <title>session_message · durable 消息：type、seq 唯一有序、data (JSON) · Architecture component</title>
           <rect x="737" y="65" width="300" height="84" rx="6" class="c-mask"/>
           <rect x="737" y="65" width="300" height="84" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(743 71) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text x="887" y="111" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">projectid (FK) sessionid (FK) messageid…</text>
+          <text data-detail-anchor x="887" y="105" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">session_message</text>
+        <text data-detail="context" x="887" y="121" class="t-muted" font-size="9" text-anchor="middle">durable 消息：type、seq 唯一有序、data (JSON)</text>
         </g>
 
-        <g id="node-node4" data-node-id="node4" data-node-label="title data (JSON) sessionid (FK)" tabindex="0" role="button" aria-label="Focus title data (JSON) sessionid (FK), Architecture component" aria-pressed="false" data-node-kind="backend" data-node-context="Architecture component">
-          <title>title data (JSON) sessionid (FK) · Architecture component</title>
+        <g id="node-node4" data-node-id="node4" data-node-label="session_pending" tabindex="0" role="button" aria-label="Focus session_pending, 已 admit 待提升输入：delivery、admitted_seq, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="已 admit 待提升输入：delivery、admitted_seq" data-node-context="Architecture component">
+          <title>session_pending · 已 admit 待提升输入：delivery、admitted_seq · Architecture component</title>
           <rect x="1083" y="65" width="300" height="84" rx="6" class="c-mask"/>
           <rect x="1083" y="65" width="300" height="84" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(1089 71) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text x="1233" y="111" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">title data (JSON) sessionid (FK)</text>
+          <text data-detail-anchor x="1233" y="105" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">session_pending</text>
+        <text data-detail="context" x="1233" y="121" class="t-muted" font-size="9" text-anchor="middle">已 admit 待提升输入：delivery、admitted_seq</text>
         </g>
 
-        <g id="node-node5" data-node-id="node5" data-node-label="permission timecreated data (JSON)" tabindex="0" role="button" aria-label="Focus permission timecreated data (JSON), Architecture component" aria-pressed="false" data-node-kind="security" data-node-context="Architecture component">
-          <title>permission timecreated data (JSON) · Architecture component</title>
+        <g id="node-node5" data-node-id="node5" data-node-label="session_inbox" tabindex="0" role="button" aria-label="Focus session_inbox, inbox 队列：type、payload (JSON)、delivery、enqueued_seq, Architecture component" aria-pressed="false" data-node-kind="security" data-node-sublabel="inbox 队列：type、payload (JSON)、delivery、enqueued_seq" data-node-context="Architecture component">
+          <title>session_inbox · inbox 队列：type、payload (JSON)、delivery、enqueued_seq · Architecture component</title>
           <rect x="1429" y="65" width="300" height="84" rx="6" class="c-mask"/>
           <rect x="1429" y="65" width="300" height="84" rx="6" class="c-security" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(1435 71) scale(0.6875)">
             <path d="M8 2.2 13 4v3.5c0 3.1-1.8 5.4-5 6.5-3.2-1.1-5-3.4-5-6.5V4Z"/>
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
-          <text x="1579" y="111" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">permission timecreated data (JSON)</text>
+          <text data-detail-anchor x="1579" y="105" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">session_inbox</text>
+        <text data-detail="context" x="1579" y="121" class="t-muted" font-size="8.6" text-anchor="middle">inbox 队列：type、payload (JSON)、delivery、enqueued_seq</text>
         </g>
 
-        <g id="node-node6" data-node-id="node6" data-node-label="timecreated timecreated" tabindex="0" role="button" aria-label="Focus timecreated timecreated, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-context="Architecture component">
-          <title>timecreated timecreated · Architecture component</title>
+        <g id="node-node6" data-node-id="node6" data-node-label="外键" tabindex="0" role="button" aria-label="Focus 外键, 子表 session_id → session_v2.id（级联删除）, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="子表 session_id → session_v2.id（级联删除）" data-node-context="Architecture component">
+          <title>外键 · 子表 session_id → session_v2.id（级联删除） · Architecture component</title>
           <rect x="1775" y="65" width="300" height="84" rx="6" class="c-mask"/>
           <rect x="1775" y="65" width="300" height="84" rx="6" class="c-backend" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(1781 71) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
-          <text x="1925" y="111" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">timecreated timecreated</text>
+          <text data-detail-anchor x="1925" y="105" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">外键</text>
+        <text data-detail="context" x="1925" y="121" class="t-muted" font-size="9" text-anchor="middle">子表 session_id → session_v2.id（级联删除）</text>
         </g>
 
         <!-- Connection labels -->
@@ -5209,8 +5215,8 @@
           <h3>要点</h3>
         </div>
         <ul>
-          <li>&bull; 首节点：SessionTable MessageTable Par…</li>
-          <li>&bull; 末节点：timecreated timecreated</li>
+          <li>&bull; 首节点：四张 durable 表（session/sql.ts）</li>
+          <li>&bull; 末节点：外键 session_id → session_v2.id（级联删除）</li>
         </ul>
       </div>
     </div>

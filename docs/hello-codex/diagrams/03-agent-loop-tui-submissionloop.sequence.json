@@ -30,7 +30,7 @@
     {
       "id": "MSP",
       "type": "cloud",
-      "label": "codexmessageprocess…",
+      "label": "messageprocessor.r…",
       "sublabel": "app-server/"
     },
     {
@@ -74,7 +74,7 @@
       "from": "MSP",
       "to": "THREAD",
       "y": 315,
-      "label": "submitwithtrace(Op::UserInput)",
+      "label": "submitwithtrace(Op::TurnInput)",
       "variant": "default"
     },
     {
@@ -105,8 +105,8 @@
       "dot": "orange",
       "title": "要点",
       "items": [
-        "app-server/codexmessageprocessor.rs 自调用：turnstart() -> submitcoreop()",
-        "core::submissionloop 自调用：recv() -> match Op::UserInput"
+        "app-server/messageprocessor.rs 自调用：turnstart() -> submitcoreop()",
+        "core::submissionloop 自调用：recv() -> match Op::TurnInput"
       ]
     }
   ]

@@ -4947,11 +4947,11 @@
         </g>
         </g>
 
-        <g data-edge-from="MSP" data-edge-to="THREAD" data-edge-label="submitwithtrace(Op::UserInput)" data-edge-key="3" data-edge-id="message4">
+        <g data-edge-from="MSP" data-edge-to="THREAD" data-edge-label="submitwithtrace(Op::TurnInput)" data-edge-key="3" data-edge-id="message4">
           <path data-composition-edge-from="MSP" data-composition-edge-to="THREAD" data-composition-edge-id="message4" data-composition-points="828.9000000000001,315;1036.7,315" d="M 828.9000000000001 315 L 1036.7 315" class="a-default" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <g data-detail="context">
           <rect x="848.8000000000001" y="295" width="168" height="16" rx="3" class="c-mask"/>
-          <text x="932.8000000000001" y="305" class="t-backend" font-size="9" text-anchor="middle">submitwithtrace(Op::UserInput)</text>
+          <text x="932.8000000000001" y="305" class="t-backend" font-size="9" text-anchor="middle">submitwithtrace(Op::TurnInput)</text>
         </g>
         </g>
 
@@ -5005,14 +5005,14 @@
           <text x="600.1" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">app-server-client</text>
         </g>
 
-        <g id="node-MSP" data-node-id="MSP" data-node-label="codexmessageprocess…" tabindex="0" role="button" aria-label="Focus codexmessageprocess…, app-server/, Sequence participant" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="app-server/" data-node-context="Sequence participant">
-          <title>codexmessageprocess… · app-server/ · Sequence participant</title>
+        <g id="node-MSP" data-node-id="MSP" data-node-label="messageprocessor.r…" tabindex="0" role="button" aria-label="Focus messageprocessor.r…, app-server/, Sequence participant" aria-pressed="false" data-node-kind="cloud" data-node-sublabel="app-server/" data-node-context="Sequence participant">
+          <title>messageprocessor.r… · app-server/ · Sequence participant</title>
           <rect x="727.4000000000001" y="72" width="189" height="54" rx="6" class="c-mask"/>
           <rect x="727.4000000000001" y="72" width="189" height="54" rx="6" class="c-cloud" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="cloud" class="semantic-sigil s-cloud" transform="translate(733.4000000000001 78) scale(0.6875)">
             <path d="M4.3 12.5h7.3a2.4 2.4 0 0 0 .2-4.8 4 4 0 0 0-7.5-1.3A3.1 3.1 0 0 0 4.3 12.5Z"/>
           </g>
-          <text data-detail-anchor x="821.9000000000001" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">codexmessageprocess…</text>
+          <text data-detail-anchor x="821.9000000000001" y="94" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">messageprocessor.r…</text>
           <text data-detail="context" x="821.9000000000001" y="111" class="t-muted" font-size="7" text-anchor="middle">app-server/</text>
         </g>
 
@@ -5253,8 +5253,8 @@
           <h3>要点</h3>
         </div>
         <ul>
-          <li>&bull; app-server/codexmessageprocessor.rs 自调用：turnstart() -&gt; submitcoreop()</li>
-          <li>&bull; core::submissionloop 自调用：recv() -&gt; match Op::UserInput</li>
+          <li>&bull; app-server/messageprocessor.rs 自调用：turnstart() -&gt; submitcoreop()</li>
+          <li>&bull; core::submissionloop 自调用：recv() -&gt; match Op::TurnInput</li>
         </ul>
       </div>
     </div>

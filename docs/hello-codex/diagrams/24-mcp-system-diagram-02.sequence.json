@@ -14,7 +14,8 @@
     {
       "id": "MCM",
       "type": "cloud",
-      "label": "McpConnectionManager"
+      "label": "McpConnectionSet",
+      "sublabel": "connection_manager.rs:213"
     },
     {
       "id": "RMCP",
@@ -43,7 +44,7 @@
       "from": "MCM",
       "to": "RMCP",
       "y": 180,
-      "label": "new(transportrecipe)",
+      "label": "new_*_client(TransportRecipe)",
       "variant": "default"
     },
     {
@@ -99,7 +100,7 @@
       "dot": "orange",
       "title": "要点",
       "items": [
-        "McpConnectionManager 自调用：cache Codex Apps tools",
+        "McpConnectionSet 自调用：cache Codex Apps tools",
         "未上画布的调用：tools cached"
       ]
     }

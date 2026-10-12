@@ -37,8 +37,10 @@ Codex 使用 `tracing_subscriber` 进行日志管理。
 **默认日志级别**:
 
 ```
-codex_core=info,codex_tui=info,codex_rmcp_client=info
+codex_core=info,codex_tui=info,codex_rmcp_client=info,codex_realtime_webrtc=warn
 ```
+
+（默认值定义在 `codex-rs/tui/src/startup_orchestration.rs:818` 的 `EnvFilter` 回退；日志文件仅在 config 配置了 `log_dir` 时启用。）
 
 **自定义日志级别**:
 
@@ -59,9 +61,9 @@ RUST_LOG=codex_tui::app=debug codex
 
 | 文件 | 功能 |
 | :------| :------|
-| `codex-rs/tui/src/lib.rs:822-840` | `tracing_subscriber` 配置 |
-| `codex-rs/cli/src/main.rs:163-176` | Debug 子命令定义 |
-| `codex-rs/core/src/otel_init.rs` | OpenTelemetry 初始化 |
+| `codex-rs/tui/src/startup_orchestration.rs:816-836` | `tracing_subscriber` 文件日志层与 `EnvFilter` 配置 |
+| `codex-rs/cli/src/main.rs:196`/`:260` | Debug 子命令与 `DebugSubcommand` 定义 |
+| `codex-rs/core/src/otel_init.rs:16` | OpenTelemetry provider 构造入口 |
 
 ## 4. IDE 调试
 
@@ -111,9 +113,11 @@ tail -f ~/.codex/logs/codex-tui.log
 ### 沙箱调试
 
 ```bash
-codex sandbox macos -- your command
-codex sandbox linux -- your command
+# 在平台沙箱（macOS Seatbelt / Linux Landlock / Windows）下运行命令
+codex sandbox -- your command
 ```
+
+（`SandboxCommand` 定义在 `codex-rs/cli/src/main.rs:464`，按平台复用 Seatbelt/Landlock/Windows 参数；沙箱状态可通过 `--sandbox-state-json` 注入，见 `cli/src/debug_sandbox.rs:219`。）
 
 ---
 
@@ -126,28 +130,13 @@ codex sandbox linux -- your command
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `RUST_LOG` env | `codex-rs/cli/src/main.rs` | 控制 `tracing` 日志级别：`RUST_LOG=codex=debug` 开启详细日志 |
+| `RUST_LOG` env | `codex-rs/tui/src/startup_orchestration.rs:818` | 控制 `tracing` 日志级别：`RUST_LOG=codex_core=debug` 开启详细日志 |
 | `tracing::instrument` macro | `codex-rs/core/src/*.rs` | 函数级追踪宏：自动记录函数进入/退出和参数 |
-| `DebugDump::write()` | `codex-rs/core/src/debug.rs` | 将当前 session 状态（messages/tools/config）导出为 JSON |
-| `--replay` flag | `codex-rs/cli/src/args.rs` | 从历史文件重放对话，用于复现 bug 时的确定性输入 |
-| `SandboxAuditLog` | `codex-rs/exec/src/sandbox.rs` | 记录沙盒内所有文件操作：用于事后审计工具调用行为 |
-| `PanicSummary` | `codex-rs/cli/src/main.rs` | 顶层 panic 格式化：输出结构化错误信息和 github issue 链接 |
+| `build_provider()` | `codex-rs/core/src/otel_init.rs:16` | 按 Config 构造 OpenTelemetry provider，未启用时返回 `None` |
+| `run_debug_prompt_input_command()` | `codex-rs/cli/src/main.rs:1995` | `codex debug prompt-input`：离线调试输入解析（`build_prompt_input`，:2080） |
+| `run_debug_clear_memories_command()` | `codex-rs/cli/src/main.rs:2123` | `codex debug clear-memories`：清除本地记忆状态 |
 
 ---
-
-## 代码质量评估
-
-**优点**
-
-- **`tracing` 生态集成完整**：Rust `tracing` crate 提供结构化日志和 span 追踪，与 `RUST_LOG` 过滤器配合灵活调整粒度。
-- **`--replay` 确定性重放**：从历史文件重放消息可精确复现 bug，避免依赖真实 LLM 响应的不确定性。
-- **Panic 友好化输出**：`PanicSummary` 将底层 Rust panic 转换为用户可读的错误信息，降低用户对内部崩溃的困惑。
-
-**风险与改进点**
-
-- **调试日志缺少结构化查询工具**：`RUST_LOG=debug` 输出纯文本，无内置日志聚合或查询 UI，大量日志中定位问题依赖手动 grep。
-- **`DebugDump` 包含敏感信息**：dump 输出包含完整的对话历史和 API key（若通过 env），无脱敏处理，不宜直接分享。
-- **`--replay` 依赖历史文件格式稳定**：histor 文件格式变更会导致旧 `--replay` 文件失效，影响历史 bug 复现能力。
 
 ## Codex 调试应围绕 thread event 和 Rust tracing
 
@@ -168,7 +157,7 @@ Codex 调试路径要把 Rust tracing、thread/turn events、tool approval、san
 | 卡在审批 | approval policy、orchestrator 等待点、TUI approval response | 是没有收到用户决策，还是 policy 计算为必须询问 |
 | 工具无输出 | tool handler、sandbox runtime、tool result 格式化 | 是命令未启动、stdout 被截断，还是结果未回注 |
 | Stream 断开 | client.rs provider stream、transport tracing、retry/backoff | 是 provider 断流、网络重试，还是 JSON event 解析失败 |
-| Resume 异常 | rollout replay、thread/session reconstruction、ghost snapshot | 是历史记录损坏，还是运行中状态被错误期待恢复 |
+| Resume 异常 | rollout replay、thread/session reconstruction（`core/src/session/rollout_reconstruction.rs`） | 是历史记录损坏，还是运行中状态被错误期待恢复 |
 | Sandbox 失败 | sandbox policy、platform runtime、approval escalation | 是 OS 不支持、策略拒绝，还是权限升级未生效 |
 | SDK 事件错乱 | app-server tracing、protocol event dump | 是 core event 顺序问题，还是 SDK 消费端处理问题 |
 
@@ -178,9 +167,9 @@ Codex 调试路径要把 Rust tracing、thread/turn events、tool approval、san
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |
-| `sources/codex/codex-rs/tui/src/lib.rs:913` | TUI tracing / `RUST_LOG` 配置 | 对应 Gemini `debugLogger` |
-| `sources/codex/codex-rs/tui/src/lib.rs:952` | OpenTelemetry provider 初始化 | 对应可观测性章节 |
-| `sources/codex/codex-rs/core/src/otel_init.rs:13` | OTEL provider 构造入口 | 说明 core 也有结构化遥测 |
-| `sources/codex/codex-rs/cli/src/main.rs:201` | `debug` 子命令结构 | 调试入口不是只靠日志 |
-| `sources/codex/codex-rs/cli/src/main.rs:1241` | `debug prompt-input` 执行入口 | 对应输入解析调试 |
-| `sources/codex/codex-rs/app-server/src/app_server_tracing.rs:87` | app-server transport tracing 维度 | 对应 SDK/Transport 调试 |
+| `sources/codex/codex-rs/tui/src/startup_orchestration.rs:818` | TUI tracing / `RUST_LOG` 配置 | 对应 Gemini `debugLogger` |
+| `sources/codex/codex-rs/tui/src/startup_orchestration.rs:629` | OpenTelemetry provider 初始化 | 对应可观测性章节 |
+| `sources/codex/codex-rs/core/src/otel_init.rs:16` | OTEL provider 构造入口 | 说明 core 也有结构化遥测 |
+| `sources/codex/codex-rs/cli/src/main.rs:196` | `debug` 子命令结构 | 调试入口不是只靠日志 |
+| `sources/codex/codex-rs/cli/src/main.rs:1995` | `debug prompt-input` 执行入口 | 对应输入解析调试 |
+| `sources/codex/codex-rs/app-server/src/app_server_tracing.rs:24` | app-server request span 构造（含 transport 维度） | 对应 SDK/Transport 调试 |

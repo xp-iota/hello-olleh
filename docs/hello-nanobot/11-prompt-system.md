@@ -3,7 +3,7 @@ title: "Prompt 系统：模板目录与 ContextBuilder"
 ---
 # Prompt 系统：模板目录与 ContextBuilder
 
-> 基于 `sources/nanobot/nanobot/agent/context.py` 与 `sources/nanobot/nanobot/templates/` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/agent/context.py` 与 `sources/nanobot/nanobot/templates/` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
@@ -17,7 +17,7 @@ title: "Prompt 系统：模板目录与 ContextBuilder"
 
 ## 1. 组装入口
 
-`agent/context.py` 的 `ContextBuilder` 在回合的 BUILD 状态工作：`build_system_prompt(...)` 拼系统提示，`build_messages(...)` 拼完整消息列表。构造参数是 `workspace`、`timezone`、`disabled_skills`——prompt 的全部可变性来自工作区文件与配置，没有硬编码的用户画像。
+`agent/context.py` 的 `ContextBuilder` 在回合的 build 阶段工作：`build_system_prompt(...)` 拼系统提示，`build_messages(...)` 拼完整消息列表。构造参数是 `workspace`、`timezone`、`disabled_skills`——prompt 的全部可变性来自工作区文件与配置，没有硬编码的用户画像。
 
 ## 2. 模板目录
 
@@ -31,7 +31,7 @@ title: "Prompt 系统：模板目录与 ContextBuilder"
 | `agent/skills_section.md` | skills 段落的包装 |
 | `agent/subagent_system.md` / `subagent_announce.md` | 子代理系统提示与结果宣告 |
 | `agent/dream.md` / `evaluator.md` / `consolidator_archive.md` | Dream 整合流程 |
-| `agent/cron_reminder.md` / `goal_runtime.md` / `max_iterations_message.md` | 自动化提醒、goal 模式、迭代上限文案 |
+| `agent/cron_reminder.md` / `goal_runtime.md` / `max_iterations_message.md` / `automation_creation.md` | 自动化提醒、持续目标、迭代上限与自动化创建文案 |
 | `agent/_snippets/untrusted_content.md` | 不可信内容包裹片段 |
 | `AGENTS.md` / `SOUL.md` / `USER.md` / `HEARTBEAT.md` | 工作区身份文件的出厂模板 |
 | `memory/MEMORY.md` | 长期记忆初始内容 |
@@ -49,7 +49,7 @@ title: "Prompt 系统：模板目录与 ContextBuilder"
 
 ## 5. 消息构建细节
 
-`build_messages` 把 system prompt、会话历史、当前用户输入组装成 provider 消息列表；`_build_user_content(text, media)` 在有媒体时产出多模态 content blocks；`_merge_message_content` / `_to_blocks` 处理文本与块的合并。发给模型前整列再过 `ContextGovernor.prepare_for_model`（见 [08-performance.md](./08-performance.md) §3）。
+`build_messages` 把 system prompt、会话历史、当前用户输入组装成 provider 消息列表；`build_user_content(text, media)` 在有媒体时产出多模态 content blocks；`_merge_message_content` / `_to_blocks` 处理文本与块的合并。发给模型前整列再过 `ContextGovernor.prepare_request`（见 [08-performance.md](./08-performance.md) §3）。
 
 ## 源码锚点
 

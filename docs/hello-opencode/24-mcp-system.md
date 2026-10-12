@@ -3,7 +3,7 @@ title: "MCP 系统：client、传输、OAuth 与指令注入"
 ---
 # MCP 系统：client、传输、OAuth 与指令注入
 
-> 基于 `sources/opencode/packages/core/src/mcp/` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/packages/core/src/mcp/` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 
@@ -48,14 +48,14 @@ MCP 是动态工具与指引的来源：`packages/core/src/mcp/`（`client.ts`�
 ## 5. elicitation 与 roots
 
 - 传入 `elicitation` handler 时声明 elicitation 能力（`form.applyDefaults: true` + `url`）。
-- client 固定声明 `roots` 能力并应答 `ListRootsRequestSchema`，返回当前工作目录的 file URL——MCP server 借此感知工作区根。
+- `roots` 能力属于 legacy 兼容：MCP 2026-07-28 修订起 roots 已弃用，现代 server 不能请求；client 仍声明并应答 `roots/list`（返回当前工作目录的 file URL），只是为了让拒绝声明 roots 就无法启动的旧 server 继续工作。
 
 ## 6. MCP 指引注入
 
 `mcp/instructions.ts` 把每个 server 的 `instructions` 渲染成 `<mcp_instructions>` 块进入 instruction 谱系（见 [11-prompt-system.md](./11-prompt-system.md)）。渲染规则：
 
 - 每个 server 一段 `<server name="...">`，正文逐行缩进；
-- 除非该 server 被标记 `codemode: false`，否则追加指引"经 `execute` 使用此 server 的工具"，命名空间来自 `McpTool.namespace(server)`——即 Code Mode 下 MCP 工具经 `execute` 调用而非逐个广告（`plugin/mcp-codemode-exclusion.ts` 承载互斥规则）。
+- 除非该 server 被标记 `codemode: false`，否则追加指引"经 `execute` 使用此 server 的工具"，命名空间来自 `McpTool.namespace(server)`——即 Code Mode 下 MCP 工具经 `execute` 调用而非逐个广告（`plugin/mcp-codemode-defaults.ts` 承载默认互斥规则）。
 
 ## 源码锚点
 

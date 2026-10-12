@@ -15,7 +15,7 @@
       "id": "core",
       "type": "backend",
       "label": "cordis (core)",
-      "sublabel": "1848 行，只依赖 standard-schema 与 cosmokit",
+      "sublabel": "1874 行，只依赖 standard-schema 与 cosmokit",
       "tag": "第 0 层：无依赖",
       "pos": [
         60,
@@ -30,7 +30,7 @@
       "id": "timer",
       "type": "cloud",
       "label": "plugin-timer",
-      "sublabel": "142 行，把 setTimeout 包成可逆 effect",
+      "sublabel": "146 行，把 setTimeout 包成可逆 effect",
       "pos": [
         430,
         110
@@ -72,7 +72,7 @@
       "id": "loader",
       "type": "frontend",
       "label": "plugin-loader",
-      "sublabel": "870 行，把配置行变成插件树",
+      "sublabel": "997 行，把配置行变成插件树",
       "tag": "第 2 层：配置驱动",
       "pos": [
         780,
@@ -87,7 +87,7 @@
       "id": "include",
       "type": "database",
       "label": "plugin-include",
-      "sublabel": "219 行，读 yml/json 生成 EntryTree",
+      "sublabel": "947 行，读 yml/json 生成 EntryTree",
       "tag": "applyPatches 是 DSH profile 的地基",
       "pos": [
         1160,
@@ -116,7 +116,7 @@
       "id": "hmr",
       "type": "security",
       "label": "plugin-hmr",
-      "sublabel": "440 行，Inject('loader') + Inject('timer')",
+      "sublabel": "531 行，Inject('loader') + Inject('timer')",
       "pos": [
         1160,
         110
@@ -202,7 +202,7 @@
       "dot": "emerald",
       "title": "loader 是第二个中心",
       "items": [
-        "870 行，包含 EntryTree / Entry / Group / isolate",
+        "997 行，包含 EntryTree / Entry / Group / isolate",
         "它把配置行翻译成插件树",
         "include 与 group 都只是它的适配层"
       ]
@@ -213,7 +213,7 @@
       "items": [
         "plugin-group 只有 3 行，纯粹是个标记插件",
         "create-cordis 314 行是独立脚手架，不参与运行时",
-        "hmr 440 行是唯一需要双重注入的包"
+        "hmr 531 行是唯一需要双重注入的包"
       ]
     }
   ]

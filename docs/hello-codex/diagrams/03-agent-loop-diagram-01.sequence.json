@@ -69,7 +69,7 @@
       "from": "U",
       "to": "SL",
       "y": 180,
-      "label": "Op::UserInput",
+      "label": "Op::TurnInput",
       "variant": "default"
     },
     {

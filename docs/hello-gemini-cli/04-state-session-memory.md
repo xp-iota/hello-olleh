@@ -3,7 +3,7 @@ title: "Gemini CLI 的状态、会话与记忆系统"
 ---
 # Gemini CLI 的状态、会话与记忆系统
 
-Gemini CLI 是一个有状态的 Agent 系统，其运行时行为由三个紧密协作的子系统共同支撑：**状态管理**（会话持久化与并发控制）、**上下文管理**（分层记忆注入、历史压缩与循环保护）、以及**记忆系统**（`GEMINI.md` 分层记忆与 `save_memory` 工具）。本章将三者合并讲解，帮助读者建立完整的系统视图。
+Gemini CLI 是一个有状态的 Agent 系统，其运行时行为由三个紧密协作的子系统共同支撑：**状态管理**（会话持久化与并发控制）、**上下文管理**（分层记忆注入、历史压缩与循环保护）、以及**记忆系统**（`GEMINI.md` 分层记忆与编辑式写入）。本章将三者合并讲解，帮助读者建立完整的系统视图。
 
 **目录**
 
@@ -25,7 +25,7 @@ Gemini CLI 是一个有状态的 Agent 系统，其运行时行为由三个紧�
 
 - **状态管理**负责把会话数据落盘（`Storage` + `ChatRecordingService`），并在进程重启后通过 `--resume` 恢复；同时通过 `Scheduler` 和 `MessageBus` 协调并发工具执行，将状态变化投影到 Ink UI。
 - **上下文管理**负责在每次向模型发送请求前，把正确的记忆、历史和工具输出组装成合适大小的上下文窗口；包括分层注入、自动压缩、工具输出遮罩和循环检测。
-- **记忆系统**负责持久化跨会话的知识：以 `GEMINI.md` 为主载体，通过 `HierarchicalMemory` 三层结构（global / extension / project）组织，并提供 `save_memory` 工具和 `/memory` 命令供运行时读写。
+- **记忆系统**负责持久化跨会话的知识：以 `GEMINI.md` 为主载体，通过 `HierarchicalMemory` 分层结构（global / extension / project，另有 userProjectMemory）组织，运行时由模型直接用编辑类工具写入，并由 `/memory` 命令查看与刷新。
 
 三者的协作链路如下：记忆系统提供持久化知识 → 上下文管理在每轮请求前将其注入上下文窗口 → 状态管理确保会话历史和工具执行状态的一致性与可恢复性。
 
@@ -40,11 +40,11 @@ Gemini CLI 是一个有状态的 Agent 系统，其运行时行为由三个紧�
 | 组件 | 代码路径 | 关键方法 | 职责 |
 | :---| :---| :---| :---|
 | **Storage** | `sources/gemini-cli/packages/core/src/config/storage.ts` | `initialize()`, `getProjectTempDir()` | 计算全局/项目级存储根目录，提供会话与策略文件落点 |
-| **ChatRecordingService** | `sources/gemini-cli/packages/core/src/core/recordingContentGenerator.ts` | `recordMessage()` | 实时捕获交互并序列化落盘 |
+| **ChatRecordingService** | `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts` | `recordMessage()` | 实时捕获交互并序列化落盘 |
 | **UIStateContext** | `sources/gemini-cli/packages/cli/src/ui/contexts/UIStateContext.tsx` | `useUIState()` | UI 状态容器，持有当前会话的渲染状态 |
 | **MessageBus** | `sources/gemini-cli/packages/core/src/confirmation-bus/message-bus.ts` | `publish()`, `subscribe()` | 事件总线广播，解耦工具执行层与 UI 层 |
 | **SessionSelector** | `sources/gemini-cli/packages/cli/src/utils/sessionUtils.ts` | `resolveSession()` | `--resume` 参数解析、会话查询与恢复入口 |
-| **GitService** | `sources/gemini-cli/packages/core/src/services/gitService.ts` | `getDiff()` | Checkpoint 时捕获 Git 状态 |
+| **GitService** | `sources/gemini-cli/packages/core/src/services/gitService.ts` | `createFileSnapshot()` | Checkpoint 时通过 shadow git 仓库捕获工作区快照 |
 
 #### 会话持久化与恢复
 
@@ -54,7 +54,7 @@ Gemini CLI 是一个有状态的 Agent 系统，其运行时行为由三个紧�
 
 1. `SessionSelector.resolveSession()` 将会话 ID 解析为具体的存储路径。
 2. `Config` 初始化时从 `Storage` 加载对应的 `ChatHistory`。
-3. `GeminiChat` 构造函数验证加载的历史记录（`sources/gemini-cli/packages/core/src/core/geminiChat.ts:256-271`）。
+3. `GeminiChat` 构造函数验证加载的历史记录（`validateHistory()` 在 `sources/gemini-cli/packages/core/src/core/geminiChat.ts:196`，构造函数调用点在 `:384-392`）。
 4. 系统恢复上下文，Agent 可以继续之前的对话而无需重新输入。
 
 系统还会周期性地或在关键节点创建 checkpoint，不仅包含对话文本，还包含：
@@ -74,8 +74,8 @@ Gemini CLI 的并发模型基于**事件总线（Message Bus）**的状态投影
 
 - **持久化根目录与路径计算**：`sources/gemini-cli/packages/core/src/config/storage.ts`
 - **UI 状态主入口**：`sources/gemini-cli/packages/cli/src/ui/contexts/UIStateContext.tsx`
-- **会话恢复核心逻辑**：`sources/gemini-cli/packages/cli/src/gemini.tsx:553-585`
-- **历史验证**：`sources/gemini-cli/packages/core/src/core/geminiChat.ts:256-271`
+- **会话恢复核心逻辑**：`sources/gemini-cli/packages/cli/src/gemini.tsx:319-443`（`resolveSessionId()`）
+- **历史验证**：`sources/gemini-cli/packages/core/src/core/geminiChat.ts:196`
 
 ---
 
@@ -94,15 +94,15 @@ Gemini CLI 的上下文由四层组成：
 
 #### 分层记忆进入上下文
 
-`sources/gemini-cli/packages/core/src/context/contextManager.ts` 把记忆分成三层：global memory、extension memory、project memory。这些内容来自 `sources/gemini-cli/packages/core/src/utils/memoryDiscovery.ts`，后者扫描 `GEMINI.md` 及其别名文件，按来源分类、去重、拼接。
+`sources/gemini-cli/packages/core/src/context/memoryContextManager.ts` 把记忆分成 global / extension / project 三层（另有 userProjectMemory）。这些内容来自 `sources/gemini-cli/packages/core/src/utils/memoryDiscovery.ts`，后者扫描 `GEMINI.md` 及其别名文件，按来源分类、去重、拼接。
 
-当 `experimentalJitContext` 打开时，配置层采用更细的策略：
+配置层对记忆的分流是固定的：
 
-- `Config.getSystemInstructionMemory()` 只返回 **global memory**
-- `Config.getSessionMemory()` 返回 **extension + project memory**
-- `ContextManager.discoverContext()` 还能在访问具体路径时，按需加载子目录里的补充记忆
+- `Config.getSystemInstructionMemory()` 返回 **global memory + userProjectMemory**（Tier 1，进入 system prompt）
+- `Config.getSessionMemory()` 返回 **extension + project memory**（Tier 2，包装进首条会话消息）
+- JIT 子目录上下文：`read_file`、`list_directory`、`write_file`、`edit`、`read_many_files` 这些高意图工具在访问具体路径时，通过 `discoverJitContext()`（`sources/gemini-cli/packages/core/src/tools/jit-context.ts`）按需加载子目录里的补充记忆
 
-这意味着当前的上下文管理已经不是"固定窗口里塞完整历史"的单层模型，而是"系统级 + 会话级 + 按需发现"的分层结构。
+这意味着当前的上下文管理不是“固定窗口里塞完整历史”的单层模型，而是“系统级 + 会话级 + 按需发现”的分层结构。
 
 #### 历史压缩与上下文窗口保护
 
@@ -138,7 +138,7 @@ Gemini CLI 的上下文由四层组成：
 
 | 主题 | 代码锚点 | 说明 |
 | --- | --- | --- |
-| 分层记忆加载 | `sources/gemini-cli/packages/core/src/context/contextManager.ts` | 管 global / extension / project 三层记忆 |
+| 分层记忆加载 | `sources/gemini-cli/packages/core/src/context/memoryContextManager.ts` | 管 global / extension / project 记忆与 JIT 发现 |
 | 记忆发现 | `sources/gemini-cli/packages/core/src/utils/memoryDiscovery.ts` | 扫描、分类、去重 `GEMINI.md` |
 | 系统提示词记忆注入 | `sources/gemini-cli/packages/core/src/config/config.ts` | `getSystemInstructionMemory()` / `getSessionMemory()` |
 | 会话历史维护 | `sources/gemini-cli/packages/core/src/core/geminiChat.ts` | 保存完整历史并导出 curated history |
@@ -159,17 +159,18 @@ Gemini CLI 的上下文由四层组成：
 DEFAULT_CONTEXT_FILENAME = 'GEMINI.md'
 ```
 
-这个文件名还能通过 `setGeminiMdFilename()` 被改写，源码并不假定永远只有一个固定文件名。
+这个文件名还能通过 `setGeminiMdFilename()` 被改写，源码并不假定永远只有一个固定文件名。此外 `memoryTool.ts` 还定义了项目私有记忆索引文件 `PROJECT_MEMORY_INDEX_FILENAME = 'MEMORY.md'`。
 
 #### 分层记忆 HierarchicalMemory
 
-`sources/gemini-cli/packages/core/src/config/memory.ts` 定义了 `HierarchicalMemory`，包含三层：
+`sources/gemini-cli/packages/core/src/config/memory.ts` 定义了 `HierarchicalMemory`，包含：
 
 - `global`：全局记忆，进入 system prompt
 - `extension`：扩展记忆，作为会话内容注入
 - `project`：项目记忆，作为会话内容注入
+- `userProjectMemory`：用户级项目记忆，与 global 一起进入 system prompt
 
-`ContextManager` 会把发现到的记忆内容分别放进这三层，而不是简单拼成一大段字符串后到处传递。
+`MemoryContextManager` 会把发现到的记忆内容分别放进这些层，而不是简单拼成一大段字符串后到处传递。
 
 #### 记忆发现机制
 
@@ -181,50 +182,46 @@ DEFAULT_CONTEXT_FILENAME = 'GEMINI.md'
 - 做文件身份去重，避免大小写路径或符号链接导致重复加载
 - 处理 import 场景
 
-在此基础上，`ContextManager.refresh()` 把结果整理成 global / extension / project 三层记忆。如果开启 JIT context，`discoverContext()` 还会在访问某个具体路径时，按需加载该路径向上到项目根目录之间的补充记忆。
+在此基础上，`MemoryContextManager.refresh()` 把结果整理成各层记忆。`discoverContext()` 还会在高意图工具访问某个具体路径时，按需加载该路径向上到项目根目录之间的补充记忆。
 
 #### Memory 进入对话
 
-`sources/gemini-cli/packages/core/src/config/config.ts` 里的分流逻辑：
+`sources/gemini-cli/packages/core/src/config/config.ts` 里的分流逻辑（三层上下文模型，见源码注释引用的 issue #11488）：
 
-- `getSystemInstructionMemory()`：提供给 system prompt 的记忆（仅 global memory）
-- `getSessionMemory()`：提供给首条会话上下文注入的记忆（extension + project memory）
+- `getSystemInstructionMemory()`：提供给 system prompt 的记忆（Tier 1，global + userProjectMemory）
+- `getSessionMemory()`：提供给首条会话消息的记忆（Tier 2，extension + project memory）
 - `getUserMemory()`：对外暴露当前完整记忆视图
 
-当 JIT context 打开时，extension + project memory 会被包进 `<loaded_context>`、`<extension_context>`、`<project_context>` 标签中作为会话内容注入，而不是统一塞到 system prompt。
+Tier 2 记忆会被包进 `<loaded_context>`、`<extension_context>`、`<project_context>` 标签中，由 `getEnvironmentContext()`（`sources/gemini-cli/packages/core/src/utils/environmentContext.ts`）注入首条用户消息，而不是统一塞到 system prompt。Tier 3（子目录记忆）则通过工具输出按需注入。
 
-#### save_memory 工具实现
+#### 记忆写入方式
 
-`sources/gemini-cli/packages/core/src/tools/memoryTool.ts` 的实现很直接：
+当前版本没有 `save_memory` 这样的专用记忆工具。系统提示词（`sources/gemini-cli/packages/core/src/prompts/snippets.ts`）明确告诉模型：**通过 `edit_file` / `write_file` 直接编辑 markdown 记忆文件**来持久化长期项目上下文，加载中的 `GEMINI.md` 与项目私有 `MEMORY.md` 索引不需要重复读取。写入目标是普通 markdown 文件，而不是独立的 `memory.json` 键值数据库。
 
-1. 读取当前全局 memory 文件
-2. 在 `## Gemini Added Memories` 段落下追加条目
-3. 需要时展示 diff 并请求确认
-4. 最终把结果写回磁盘
+#### 自动记忆（实验特性）
 
-写入内容会做简单清洗，例如把换行压成单行，避免把任意 markdown 结构直接注进去。所以更准确的描述是：`save_memory` 是一个**显式的文件修改工具**，存储目标默认是全局 `GEMINI.md` 类文件，而不是独立的 `memory.json` 键值数据库。
+`sources/gemini-cli/packages/core/src/services/memoryService.ts` 提供一套实验性的自动记忆管道（`experimentalAutoMemory` 开关，交互模式启动时经 `startAutoMemoryIfEnabled()` 拉起）：从会话记录中提取记忆/技能补丁，写回 `MEMORY.md` 索引与 patch 文件，并用文件锁（`tryAcquireLock()`）与提取状态（`ExtractionState`）协调多进程。
 
 #### /memory 命令
 
-`sources/gemini-cli/packages/core/src/commands/memory.ts` 提供四类操作：
+`sources/gemini-cli/packages/core/src/commands/memory.ts` 提供：
 
 - `showMemory`：显示当前记忆内容
-- `addMemory`：最终转成 `save_memory` 工具调用
 - `refreshMemory`：重新扫描 memory 文件并更新 system instruction
 - `listMemoryFiles`：列出当前实际生效的 memory 文件路径
+- inbox skill 操作：`listInboxSkills` / `moveInboxSkill` / `dismissInboxSkill`，管理待确认的记忆补丁
 
-这说明 memory 不是"启动时读一次就结束"，而是支持运行时刷新和显式追加。
+这说明 memory 不是“启动时读一次就结束”，而是支持运行时刷新和查看。
 
 #### 当前没有的能力
 
-和很多"长期记忆系统"想象图不同，当前 Gemini CLI 没有实现：
+和很多“长期记忆系统”想象图不同，当前 Gemini CLI 没有实现：
 
 - 向量检索
 - 语义搜索
 - 结构化 KV 记忆库
-- 自动总结再写回 memory
 
-目前的核心仍然是"层级 markdown 记忆 + 显式工具写入 + 运行时重新装载"。
+目前的核心仍然是“层级 markdown 记忆 + 编辑类工具直接写入 + 运行时重新装载”；自动归纳提取（auto memory）已具雏形但默认关闭、仍属实验特性。
 
 #### 关键源码锚点
 
@@ -232,9 +229,10 @@ DEFAULT_CONTEXT_FILENAME = 'GEMINI.md'
 | --- | --- | --- |
 | 记忆结构 | `sources/gemini-cli/packages/core/src/config/memory.ts` | `HierarchicalMemory` 定义 |
 | 记忆发现 | `sources/gemini-cli/packages/core/src/utils/memoryDiscovery.ts` | 扫描、去重、分类 `GEMINI.md` |
-| 记忆装载 | `sources/gemini-cli/packages/core/src/context/contextManager.ts` | 管理 global / extension / project memory |
+| 记忆装载 | `sources/gemini-cli/packages/core/src/context/memoryContextManager.ts` | 管理 global / extension / project memory |
 | 配置侧注入 | `sources/gemini-cli/packages/core/src/config/config.ts` | system memory 与 session memory 分流 |
-| 记忆写入工具 | `sources/gemini-cli/packages/core/src/tools/memoryTool.ts` | `save_memory` 的真实实现 |
+| 首条消息注入 | `sources/gemini-cli/packages/core/src/utils/environmentContext.ts` | `<session_context>` / `<loaded_context>` 组装 |
+| 自动记忆管道 | `sources/gemini-cli/packages/core/src/services/memoryService.ts` | 实验性记忆/技能提取与补丁写回 |
 | Slash 命令包装 | `sources/gemini-cli/packages/core/src/commands/memory.ts` | `/memory` 系列命令 |
 
 ---
@@ -245,8 +243,8 @@ DEFAULT_CONTEXT_FILENAME = 'GEMINI.md'
 
 **场景一：启动新会话**
 
-1. `Storage` 初始化存储路径，`ContextManager` 扫描 `GEMINI.md` 文件（`memoryDiscovery`）。
-2. global memory 注入 system prompt，extension/project memory 作为首条会话内容注入（JIT context 模式）。
+1. `Storage` 初始化存储路径，`MemoryContextManager` 扫描 `GEMINI.md` 文件（`memoryDiscovery`）。
+2. global memory 注入 system prompt，extension/project memory 作为首条会话内容注入，子目录记忆由工具输出按需加载（Tier 3 JIT）。
 3. `GeminiChat` 以空历史启动，`ChatRecordingService` 开始增量落盘。
 
 **场景二：长会话中的上下文保护**
@@ -258,15 +256,15 @@ DEFAULT_CONTEXT_FILENAME = 'GEMINI.md'
 
 **场景三：Agent 写入记忆**
 
-1. Agent 调用 `save_memory` 工具，`memoryTool.ts` 读取全局 `GEMINI.md`。
-2. 在 `## Gemini Added Memories` 段落下追加条目，展示 diff 请求确认，写回磁盘。
-3. 用户也可通过 `/memory refresh` 命令触发 `ContextManager.refresh()`，让新记忆立即生效于当前会话。
+1. Agent 通过 `edit_file` / `write_file` 直接修改 `GEMINI.md` 或项目 `MEMORY.md` 索引（当前版本没有专用 `save_memory` 工具）。
+2. 若开启实验性 auto memory，`memoryService` 还会在会话结束后台提取记忆补丁，经 inbox 流程确认后落盘。
+3. 用户可通过 `/memory refresh` 命令触发 `MemoryContextManager.refresh()`，让新记忆立即生效于当前会话。
 
 **场景四：恢复历史会话**
 
 1. 用户运行 `gemini --resume <id>`，`SessionSelector.resolveSession()` 解析存储路径。
 2. `Config` 从 `Storage` 加载 `ChatHistory`，`GeminiChat` 构造函数验证历史记录。
-3. `ContextManager` 重新扫描 `GEMINI.md`，确保记忆与恢复的历史一致。
+3. `MemoryContextManager` 重新扫描 `GEMINI.md`，确保记忆与恢复的历史一致。
 4. `Scheduler` 和 `MessageBus` 重新就绪，等待新的用户输入。
 
 ---
@@ -291,28 +289,20 @@ DEFAULT_CONTEXT_FILENAME = 'GEMINI.md'
 
 - **组成**：9 个节点
 - **关系**：源图 9 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
-- **要点**：GEMINI.md 文件 / （global… → memoryDiscovery.ts / 扫描… · memoryDiscovery.ts / 扫描… → ContextManager / 三层记忆 · ContextManager / 三层记忆 → System Prompt / getSystem…（global memory）
+- **要点**：GEMINI.md 文件 / （global… → memoryDiscovery.ts / 扫描… · memoryDiscovery.ts / 扫描… → MemoryContextManager / 分层记忆 · MemoryContextManager / 分层记忆 → System Prompt / getSystem…（global memory）
 
-### save_memory 写入流程（TypeScript 伪代码）
+### 记忆写入流程（TypeScript 伪代码）
 
 ```typescript
-// gemini-cli/packages/core/src/tools/memoryTool.ts（简化示意）
-async function saveMemory(content: string): Promise<void> {
-  // 1. 读取全局 GEMINI.md
-  const memoryFile = await readGlobalMemoryFile();
+// 当前版本没有 save_memory 工具：模型用 edit_file / write_file 直接编辑记忆文件
+// （系统提示词在 packages/core/src/prompts/snippets.ts 中显式说明这一点）
+async function persistMemory(content: string): Promise<void> {
+  // 1. 目标文件就是普通 markdown：GEMINI.md 或项目私有 MEMORY.md 索引
+  const memoryFile = resolveMemoryFile('GEMINI.md');
 
-  // 2. 在 "## Gemini Added Memories" 段落下追加
-  const updated = appendToSection(
-    memoryFile,
-    '## Gemini Added Memories',
-    sanitize(content)  // 换行压成单行，避免注入任意 markdown 结构
-  );
-
-  // 3. 展示 diff 并请求确认
-  await showDiffAndConfirm(memoryFile, updated);
-
-  // 4. 写回磁盘
-  await writeGlobalMemoryFile(updated);
+  // 2. 模型用 edit_file / write_file 修改文件，与编辑普通代码文件走同一条
+  //    工具审批 / diff / 确认链路
+  await editFile(memoryFile, content);
 }
 ```
 
@@ -357,14 +347,15 @@ class ChatCompressionService {
 | 函数 / 类型 | 文件 | 职责 |
 | :---| :---| :---|
 | `Storage.initialize()` | `sources/gemini-cli/packages/core/src/config/storage.ts` | 计算全局/项目级存储根目录 |
-| `ChatRecordingService.recordMessage()` | `sources/gemini-cli/packages/core/src/core/recordingContentGenerator.ts` | 实时捕获交互并序列化落盘 |
+| `ChatRecordingService.recordMessage()` | `sources/gemini-cli/packages/core/src/services/chatRecordingService.ts` | 实时捕获交互并序列化落盘 |
 | `SessionSelector.resolveSession()` | `sources/gemini-cli/packages/cli/src/utils/sessionUtils.ts` | `--resume` 参数解析与会话恢复入口 |
-| `GitService.getDiff()` | `sources/gemini-cli/packages/core/src/services/gitService.ts` | Checkpoint 时捕获 Git 状态 |
+| `GitService.createFileSnapshot()` | `sources/gemini-cli/packages/core/src/services/gitService.ts` | Checkpoint 时通过 shadow git 捕获工作区快照 |
 | `MessageBus.publish()` / `subscribe()` | `sources/gemini-cli/packages/core/src/confirmation-bus/message-bus.ts` | 事件总线广播，解耦工具执行与 UI |
 | `Scheduler.schedule()` | `sources/gemini-cli/packages/core/src/` | 只读工具并行、写操作顺序化 |
 | `useGeminiStream.submitQuery()` | `sources/gemini-cli/packages/cli/src/` | 有活跃流时拒绝新提交 |
-| `ContextManager.refresh()` | `sources/gemini-cli/packages/core/src/context/contextManager.ts` | 重新扫描并整理三层记忆 |
-| `ContextManager.discoverContext()` | `sources/gemini-cli/packages/core/src/context/contextManager.ts` | 按需路径发现子目录补充记忆（JIT） |
+| `MemoryContextManager.refresh()` | `sources/gemini-cli/packages/core/src/context/memoryContextManager.ts` | 重新扫描并整理各层记忆 |
+| `MemoryContextManager.discoverContext()` | `sources/gemini-cli/packages/core/src/context/memoryContextManager.ts` | 按需路径发现子目录补充记忆（JIT） |
+| `discoverJitContext()` | `sources/gemini-cli/packages/core/src/tools/jit-context.ts` | 高意图工具访问路径时加载 JIT 子目录上下文 |
 | `memoryDiscovery` | `sources/gemini-cli/packages/core/src/utils/memoryDiscovery.ts` | 扫描 `GEMINI.md` 及别名，按来源分类、去重 |
 | `Config.getSystemInstructionMemory()` | `sources/gemini-cli/packages/core/src/config/config.ts` | 返回用于 system prompt 的 global memory |
 | `Config.getSessionMemory()` | `sources/gemini-cli/packages/core/src/config/config.ts` | 返回用于对话内注入的 extension/project memory |
@@ -372,13 +363,14 @@ class ChatCompressionService {
 | `GeminiChat.getHistory(curated)` | `sources/gemini-cli/packages/core/src/core/geminiChat.ts` | 返回过滤空 turn 后的对话历史 |
 | `GeminiClient.tryCompressChat()` | `sources/gemini-cli/packages/core/src/core/client.ts` | 发送前触发历史压缩 |
 | `ChatCompressionService.compress()` | `sources/gemini-cli/packages/core/src/context/chatCompressionService.ts` | 保留最近 30%，大工具输出落盘 |
-| `ToolOutputMaskingService` | `sources/gemini-cli/packages/core/src/services/` | 对历史中过大的工具输出二次瘦身 |
+| `ToolOutputMaskingService` | `sources/gemini-cli/packages/core/src/context/toolOutputMaskingService.ts` | 对历史中过大的工具输出二次瘦身 |
 | `LoopDetectionService` | `sources/gemini-cli/packages/core/src/services/loopDetectionService.ts` | 三类检测：工具重复（阈值5）、内容重复（阈值10）、LLM辅助（30轮后） |
 | `tokenLimits` | `sources/gemini-cli/packages/core/src/core/tokenLimits.ts` | 返回当前模型窗口上限（默认 1,048,576 tokens） |
-| `HierarchicalMemory` | `sources/gemini-cli/packages/core/src/config/memory.ts` | global / extension / project 三层记忆结构定义 |
+| `HierarchicalMemory` | `sources/gemini-cli/packages/core/src/config/memory.ts` | global / extension / project / userProjectMemory 分层记忆结构定义 |
 | `setGeminiMdFilename()` | `sources/gemini-cli/packages/core/src/tools/memoryTool.ts` | 改写默认记忆文件名 |
-| `save_memory` 工具 | `sources/gemini-cli/packages/core/src/tools/memoryTool.ts` | 读取 `GEMINI.md`，追加条目，展示 diff，写回磁盘 |
-| `/memory` 命令 | `sources/gemini-cli/packages/core/src/commands/memory.ts` | showMemory / addMemory / refreshMemory / listMemoryFiles |
+| `MEMORY.md` 索引 | `sources/gemini-cli/packages/core/src/tools/memoryTool.ts` | `PROJECT_MEMORY_INDEX_FILENAME`，项目私有记忆索引 |
+| 自动记忆管道 | `sources/gemini-cli/packages/core/src/services/memoryService.ts` | 实验性记忆/技能提取、补丁写回（`experimentalAutoMemory`） |
+| `/memory` 命令 | `sources/gemini-cli/packages/core/src/commands/memory.ts` | showMemory / refreshMemory / listMemoryFiles / inbox skills |
 
 ---
 
@@ -388,11 +380,11 @@ class ChatCompressionService {
 
 - **MessageBus 解耦**：工具执行状态通过事件总线广播，`Scheduler` 不直接依赖 UI 层，架构边界清晰。
 - **Checkpoint 包含 Git 状态**：确保 Agent 恢复时可还原完整工作区上下文，不仅仅是对话文本。
-- **三层记忆分层注入**：global memory 进 system prompt，extension/project memory 作为对话内容（JIT），按需加载而非全量预注入，减少 token 浪费。
+- **分层记忆分层注入**：global memory 进 system prompt，extension/project memory 作为首条会话内容，子目录记忆按需加载（JIT）而非全量预注入，减少 token 浪费。
 - **`ChatCompressionService` 智能保留策略**：保留最近 30% + 大工具输出落盘而非截断丢弃，比简单删前文语义损失更小。
 - **`LoopDetectionService` 三层保障**：工具哈希 + 内容重复 + LLM 辅助，覆盖了纯规则难以检测的语义无进展循环。
 - **`GEMINI.md` 是主载体**：记忆直接存入 Markdown 文件，版本控制友好，human-readable，无需专用数据库。
-- **`save_memory` 工具语义透明**：Agent 调用 `save_memory` 本质是修改 `GEMINI.md` 文件，用户可直接读写，无"隐藏"状态。
+- **记忆写入语义透明**：模型用 `edit_file` / `write_file` 修改 `GEMINI.md` / `MEMORY.md`，与普通文件编辑共用同一条审批链路，用户可直接读写，无"隐藏"状态。
 - **分层记忆优先级可控**：global → extension → project 三层，项目记忆可覆盖全局记忆，开发者可针对项目定制 AI 行为。
 
 ### 风险与改进点
@@ -400,10 +392,9 @@ class ChatCompressionService {
 - **React Context 状态镜像开销大**：`UIStateContext` 在长会话下持有大量历史消息，可能导致 Ink 重绘卡顿，建议引入虚拟化列表。
 - **Storage 无原子性保证**：多进程并发写入同一会话文件时缺乏文件锁机制，存在写覆盖风险。
 - **Checkpoint 频率不透明**：没有明确配置项控制 checkpoint 间隔，高频工具调用场景下可能产生大量磁盘 IO。
-- **压缩触发阈值（50%）不可配置**：当前硬编码在 `ChatCompressionService` 内，不同场景（代码生成 vs 长文档处理）可能需要不同策略。
-- **`ContextManager.discoverContext()` 无缓存失效机制**：按需加载子目录记忆时，若文件在会话中被修改，缓存可能返回过时内容。
+- **`MemoryContextManager.discoverContext()` 无缓存失效机制**：按需加载子目录记忆时，若文件在会话中被修改，缓存可能返回过时内容。
 - **`ToolOutputMaskingService` 遮罩策略不透明**：文档和代码注释未详细说明哪些条件触发遮罩，以及遮罩后模型是否知道内容被省略。
-- **无长期记忆归纳机制**：`GEMINI.md` 会随使用不断增长，无自动归纳/压缩旧记忆的机制，长期使用会形成 token 消耗日益增大的问题。
+- **长期记忆归纳仍是实验特性**：自动记忆提取（`experimentalAutoMemory`）默认关闭；默认行为下 `GEMINI.md` / `MEMORY.md` 会随使用不断增长，长期使用会形成 token 消耗日益增大的问题。
 - **记忆写操作无冲突检测**：多个并发会话同时修改同一个 `GEMINI.md` 时，无文件锁或合并机制，可能产生写覆盖。
 - **记忆与对话历史是两套存储**：`GEMINI.md` 记忆和 `ChatRecordingService` 的 conversation JSON 互不感知，记忆召回完全依赖 system prompt 注入，不能按 session 作用域隔离。
 

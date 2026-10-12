@@ -33,11 +33,11 @@ Gemini CLI 在处理超大规模代码库（数百万行代码）和长周期会
 | `RipGrepTool.execute()` | `sources/gemini-cli/packages/core/src/tools/ripGrep.ts` | — | 调用 ripgrep 二进制，跳过 node_modules |
 | `GrepTool.execute()` | `sources/gemini-cli/packages/core/src/tools/grep.ts` | — | fallback grep 实现 |
 | `ToolExecutor.execute()` | `sources/gemini-cli/packages/core/src/scheduler/tool-executor.ts` | — | 检测输出大小，超阈值触发蒸馏 |
-| `ToolOutputDistillationService` | `sources/gemini-cli/packages/core/src/tools/` | — | 调用模型对大输出进行摘要压缩 |
-| `Scheduler.schedule()` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts` | :191 | 只读工具并行调度 |
-| `sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/geminiChat.ts` | :303 | AsyncGenerator 流式 yield |
-| `tokenLimit.check()` | `sources/gemini-cli/packages/core/src/core/tokenLimits.ts` | — | Token 数量预估与截断 |
-| `canUseRipgrep()` | `sources/gemini-cli/packages/core/src/tools/ripGrep.ts` | — | 检测 ripgrep 可用性 |
+| `ToolOutputDistillationService` | `sources/gemini-cli/packages/core/src/context/toolDistillationService.ts` | :39 | 调用模型对大输出进行摘要压缩 |
+| `Scheduler.schedule()` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts` | :211 | 只读工具并行调度 |
+| `sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/geminiChat.ts` | :480 | AsyncGenerator 流式 yield |
+| `tokenLimit()` | `sources/gemini-cli/packages/core/src/core/tokenLimits.ts` | :23 | Token 数量预估与截断 |
+| `resolveRipgrepPath()` | `sources/gemini-cli/packages/core/src/tools/ripGrep.ts` | :53 | 解析 bundled/系统 ripgrep 二进制路径 |
 
 ## 3. 大文件与大输出的处理优化
 
@@ -73,7 +73,7 @@ Gemini CLI 在处理超大规模代码库（数百万行代码）和长周期会
 
 ### 5.2 潜在改进点
 
-- **文件臃肿**：`AppContainer.tsx` 和 `Config.ts`（3726 行）等核心文件已经超过 1000 行，业务逻辑与组装逻辑混杂，维护门槛较高。
+- **文件臃肿**：`AppContainer.tsx` 和 `Config.ts`（4249 行）等核心文件已经超过 1000 行，业务逻辑与组装逻辑混杂，维护门槛较高。
 - **状态镜像开销**：UI 层维护了一份与运行时核心近似镜像的状态，长会话下可能导致渲染卡顿，可考虑进一步下放状态管理职责。
 - **Prompt 动态性过高**：复杂的 Prompt 构建分支使得调试"模型为什么没看到某工具"变得困难。
 - **蒸馏缺乏量化指标**：未在 benchmark 中验证蒸馏压缩率与语义保真度。

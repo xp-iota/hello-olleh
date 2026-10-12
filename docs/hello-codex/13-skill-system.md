@@ -7,12 +7,10 @@ title: "Skill 系统：Codex 的能力扩展与自定义指令机制"
 
 **目录**
 
-- [1. Codex 没有独立的 Skill 子系统](#1-codex-没有独立的-skill-子系统)
-- [2. AGENTS.md 作为 Skill 的载体](#2-agentsmd-作为-skill-的载体)
-- [Skill: 代码审查](#skill-代码审查)
-- [Skill: 测试生成](#skill-测试生成)
-- [3. config.toml 的 user_instructions](#3-configtoml-的-user_instructions)
-- [4. MCP 工具作为 Skill 扩展点](#4-mcp-工具作为-skill-扩展点)
+- [1. Codex Skill 子系统定位](#1-codex-skill-子系统定位)
+- [2. AGENTS.md 与 Skill 的边界](#2-agentsmd-与-skill-的边界)
+- [3. Skill 发现与加载](#3-skill-发现与加载)
+- [4. Prompt 注入与 MCP 依赖](#4-prompt-注入与-mcp-依赖)
 - [5. 与其他系统 Skill 的功能对照](#5-与其他系统-skill-的功能对照)
 - [6. 评估与展望](#6-评估与展望)
 
@@ -32,13 +30,13 @@ SKILL.md（专项说明与元数据）
     + TUI skills picker（启停与可见性）
 ```
 
-源码入口集中在 `sources/codex/codex-rs/ext/skills/src/loader/host.rs`、`sources/codex/codex-rs/core/src/skills.rs`、`sources/codex/codex-rs/core/src/session/mod.rs:2581` 和 `sources/codex/codex-rs/tui/src/chatwidget/skills.rs:61`。
+源码入口集中在 `sources/codex/codex-rs/ext/skills/src/loader/host.rs`、`sources/codex/codex-rs/core/src/skills.rs`、`sources/codex/codex-rs/ext/skills/src/fragments.rs:11` 和 `sources/codex/codex-rs/tui/src/chatwidget/skills.rs:62`。
 
 ## 2. AGENTS.md 与 Skill 的边界
 
-`AGENTS.md` 仍然是项目级自定义指令，但不等于 Skill 本体。`AGENTS.md` 的发现与合并由 `AgentsMdManager` 负责：它读取配置指令、向上查找 `AGENTS.md` / `AGENTS.override.md`，并拼接到 user instructions 中（`sources/codex/codex-rs/core/src/agents_md.rs:125`, `sources/codex/codex-rs/core/src/agents_md.rs:191`, `sources/codex/codex-rs/core/src/agents_md.rs:255`）。
+`AGENTS.md` 仍然是项目级自定义指令，但不等于 Skill 本体。`AGENTS.md` 的发现与合并由 `load_project_instructions()` 与 `AgentsMdManager` 负责：它读取配置指令、向上查找 `AGENTS.md` / `AGENTS.override.md`，并拼接到 user instructions 中（`sources/codex/codex-rs/core/src/agents_md.rs:58`, `sources/codex/codex-rs/core/src/agents_md.rs:125`, `sources/codex/codex-rs/core/src/agents_md.rs:192`）。
 
-Skill 则走另一条链路：`core-skills` 扫描 `SKILL.md`，`AvailableSkillsInstructions` 生成 developer block，二者在 prompt 中分层出现。测试还明确覆盖“skills 不追加到 AGENTS.md”的边界（`sources/codex/codex-rs/core/src/agents_md_tests.rs:491`）。
+Skill 则走另一条链路：`core-skills` 扫描 `SKILL.md`，`AvailableSkillsInstructions` 生成 developer block，二者在 prompt 中分层出现。测试还明确覆盖“skills 不追加到 AGENTS.md”的边界（`sources/codex/codex-rs/core/src/agents_md_tests.rs:1750`）。
 
 `AGENTS.md` 可以继续表达项目约束，例如：
 
@@ -62,20 +60,21 @@ Skill 则走另一条链路：`core-skills` 扫描 `SKILL.md`，`AvailableSkills
 
 | 阶段 | 源码锚点 | 说明 |
 | --- | --- | --- |
-| 根目录约定 | `sources/codex/codex-rs/ext/skills/src/loader/host.rs` | 使用 `.agents/skills`、`skills`、system cache 等根 |
-| repo/user/system/admin scope | `sources/codex/codex-rs/ext/skills/src/loader/host.rs` | `SkillRoot` 记录路径、scope 和文件系统 |
-| 配置层扫描 | `sources/codex/codex-rs/ext/skills/src/loader/host.rs` | 按 config layer 推导 project/user/system/admin roots |
-| repo 层扫描 | `sources/codex/codex-rs/ext/skills/src/loader/host.rs` | 从项目根到 cwd 搜索 `.agents/skills` |
-| 去重和排序 | `sources/codex/codex-rs/ext/skills/src/loader/host.rs` | repo scope 优先，然后按名称和路径稳定排序 |
-| 元数据结构 | `sources/codex/codex-rs/skills/src/model.rs` | `SkillMetadata` 统一名称、描述、依赖、policy 和路径 |
+| 根目录解析 | `sources/codex/codex-rs/ext/skills/src/host_roots.rs:28` | `resolve_skill_roots()` 汇总 `.agents/skills`、配置层、插件与 system cache 等根 |
+| repo/user/system/admin scope | `sources/codex/codex-rs/ext/skills/src/host_roots.rs:133` | `HostSkillRoot` 记录路径、scope 和文件系统 |
+| 配置层扫描 | `sources/codex/codex-rs/ext/skills/src/host_roots.rs:73` | `roots_from_layer_stack()` 按 config layer 推导 project/user/system/admin roots |
+| repo 层扫描 | `sources/codex/codex-rs/ext/skills/src/host_roots.rs:137` | `repo_agents_skill_roots()` 从项目根到 cwd 搜索 `.agents/skills` |
+| 去重和排序 | `sources/codex/codex-rs/ext/skills/src/host_roots.rs:271` | `dedupe_skill_roots_by_path()` 去重，repo scope 优先 |
+| 逐根加载 | `sources/codex/codex-rs/ext/skills/src/loader/host.rs:146` | `load_skills_under_root()` 读取并解析 `SKILL.md` |
+| 元数据结构 | `sources/codex/codex-rs/skills/src/model.rs:8` | `SkillMetadata` 统一名称、描述、依赖、policy 和路径 |
 
-TUI 启动后会触发 skills refresh（`sources/codex/codex-rs/tui/src/app.rs:956`），core 通过 `Op::ListSkills` 返回 `ListSkillsResponse`（`sources/codex/codex-rs/protocol/src/protocol.rs:736`, `sources/codex/codex-rs/core/src/session/handlers.rs:647`）。用户在管理弹窗里启停 skill 后，`ChatWidget` 会把启用的 skill metadata 写入 bottom pane / mention 上下文（`sources/codex/codex-rs/tui/src/chatwidget/skills.rs:96`, `sources/codex/codex-rs/tui/src/chatwidget/skills.rs:138`）。
+TUI 启动后会触发 skills refresh（`sources/codex/codex-rs/tui/src/app/background_requests.rs:255`），app-server 通过 `skills/list` 请求返回 `SkillsListResponse`（`sources/codex/codex-rs/app-server/src/request_processors/catalog_processor.rs:141`）。用户在管理弹窗里启停 skill 后，`ChatWidget` 会把启用的 skill metadata 写入 bottom pane / mention 上下文（`sources/codex/codex-rs/tui/src/chatwidget/skills.rs:94`, `sources/codex/codex-rs/tui/src/chatwidget/skills.rs:138`）。
 
 ## 4. Prompt 注入与 MCP 依赖
 
-Codex 把可用 skill 渲染为 developer role 的 `<skills_instructions>` 块，而不是普通 user message。渲染模板直接定义“Discovery / Trigger rules / How to use skills / Context hygiene / Safety and fallback”等规则（`sources/codex/codex-rs/core/src/skills.rs`）。Session 构造 prompt 时调用 `build_available_skills`，并把渲染结果追加进 developer sections（`sources/codex/codex-rs/core/src/session/mod.rs:2581`, `sources/codex/codex-rs/core/src/session/mod.rs:2600`）。
+Codex 把可用 skill 渲染为 developer role 的 `<skills_instructions>` 块，而不是普通 user message。渲染模板直接定义“Discovery / Trigger rules / How to use skills / Context hygiene / Safety and fallback”等规则（`sources/codex/codex-rs/ext/skills/src/catalog_prompt.rs:81`），`AvailableSkillsInstructions` 片段把它包装成带标记的 developer block（`sources/codex/codex-rs/ext/skills/src/fragments.rs:11`），session 构造 initial context 时经由 context contributors 注入 developer sections（`sources/codex/codex-rs/core/src/session/mod.rs:4211`）。
 
-MCP 仍然是 Skill 的能力依赖面。Skill metadata 可以携带 tool dependency（`sources/codex/codex-rs/skills/src/model.rs`, `sources/codex/codex-rs/skills/src/model.rs`），core 再通过 `mcp_skill_dependencies` 解析被提及 skill 的 MCP 依赖（`sources/codex/codex-rs/core/src/mcp_skill_dependencies.rs:36`）。
+MCP 仍然是 Skill 的能力依赖面。Skill metadata 可以携带 tool dependency（`sources/codex/codex-rs/skills/src/model.rs`），core 再通过 `mcp_skill_dependencies` 解析被提及 skill 的 MCP 依赖（`sources/codex/codex-rs/core/src/mcp_skill_dependencies.rs:40`）。
 
 ```toml
 # config.toml
@@ -119,13 +118,13 @@ Codex 的设计已经从“配置即代码”前进到“Skill 是可发现的�
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `load_skills_from_roots()` | `sources/codex/codex-rs/ext/skills/src/loader/host.rs` | 从多个 root 扫描 `SKILL.md`，去重并排序 |
-| `skill_roots()` | `sources/codex/codex-rs/ext/skills/src/loader/host.rs` | 汇总配置层、插件和 repo `.agents/skills` 根 |
-| `AvailableSkillsInstructions::body()` | `sources/codex/codex-rs/core/src/skills.rs` | 生成模型可见的 skills developer block |
-| `build_available_skills()` | `sources/codex/codex-rs/core/src/skills.rs` | 暴露 skill metadata 渲染入口 |
-| `handle list_skills` | `sources/codex/codex-rs/core/src/session/handlers.rs:647` | 把 skill list 作为事件返回给 UI/客户端 |
-| `open_manage_skills_popup()` | `sources/codex/codex-rs/tui/src/chatwidget/skills.rs:61` | TUI 中启停 skill |
-| `find_skill_mentions_with_tool_mentions()` | `sources/codex/codex-rs/tui/src/chatwidget/skills.rs:242` | 从 mention 中识别显式 skill 使用 |
+| `resolve_skill_roots()` | `sources/codex/codex-rs/ext/skills/src/host_roots.rs:28` | 汇总配置层、插件和 repo `.agents/skills` 根 |
+| `load_skills_under_root()` | `sources/codex/codex-rs/ext/skills/src/loader/host.rs:146` | 从单个 root 扫描并解析 `SKILL.md` |
+| `AvailableSkillsInstructions` | `sources/codex/codex-rs/ext/skills/src/fragments.rs:11` | 生成模型可见的 skills developer block |
+| `render_available_skills()` | `sources/codex/codex-rs/ext/skills/src/render.rs:523` | 渲染可用 skill 目录与使用规则 |
+| `CatalogProcessor::skills_list()` | `sources/codex/codex-rs/app-server/src/request_processors/catalog_processor.rs:141` | 把 skill list 作为 `skills/list` 响应返回给 UI/客户端 |
+| `open_manage_skills_popup()` | `sources/codex/codex-rs/tui/src/chatwidget/skills.rs:62` | TUI 中启停 skill |
+| `find_skill_mentions_with_tool_mentions()` | `sources/codex/codex-rs/tui/src/chatwidget/skills.rs:204` | 从 mention 中识别显式 skill 使用 |
 
 ---
 
@@ -149,11 +148,11 @@ Codex 的 skill 不应按 `AGENTS.md` 文本注入理解。它同时影响 promp
 
 | 关注点 | Codex 源码入口 | 横向对齐 |
 | --- | --- | --- |
-| 指令来源 | `sources/codex/codex-rs/core/src/agents_md.rs:125` | 对齐 Claude/Gemini 的项目指令文件 |
-| Skill discovery | `sources/codex/codex-rs/ext/skills/src/loader/host.rs` | 从 repo/user/system/admin roots 发现 `SKILL.md` |
-| Skill prompt | `sources/codex/codex-rs/core/src/skills.rs` | 生成 developer block |
-| MCP 依赖提示 | `sources/codex/codex-rs/core/src/mcp_skill_dependencies.rs:36` | Codex 特有：skill 可触发 MCP 依赖安装/提示 |
-| 状态记忆 | `sources/codex/codex-rs/core/src/state/session.rs` | 记录已提示过的 MCP dependency，避免重复打扰 |
+| 指令来源 | `sources/codex/codex-rs/core/src/agents_md.rs:58` | 对齐 Claude/Gemini 的项目指令文件 |
+| Skill discovery | `sources/codex/codex-rs/ext/skills/src/host_roots.rs:28` | 从 repo/user/system/admin roots 发现 `SKILL.md` |
+| Skill prompt | `sources/codex/codex-rs/ext/skills/src/fragments.rs:11` | 生成 developer block |
+| MCP 依赖提示 | `sources/codex/codex-rs/core/src/mcp_skill_dependencies.rs:40` | Codex 特有：skill 可触发 MCP 依赖安装/提示 |
+| 状态记忆 | `sources/codex/codex-rs/core/src/state/session.rs:378` | 记录已提示过的 MCP dependency，避免重复打扰 |
 
 横向看，Claude/Gemini/OpenCode 的 skill 更像模型可见能力说明；Codex 的 skill 更接近运行时 dependency graph 的一部分，因此必须同时讲清“skill 如何改变工具集合和依赖提示”，而不只讲 Markdown 注入。
 

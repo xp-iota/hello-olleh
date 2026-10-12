@@ -3,7 +3,7 @@ title: "性能与缓存：一次编码、有界队列与持久化成本控制"
 ---
 # 性能与缓存：一次编码、有界队列与持久化成本控制
 
-> 基于 `sources/opencode/specs/v2/event-stream-architecture.md`、`packages/server/` 与 `packages/core/src/` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/specs/v2/event-stream-architecture.md`、`packages/server/` 与 `packages/core/src/` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 
@@ -47,7 +47,7 @@ v2 的性能设计围绕三条原则：**热路径上的工作总量恒定**（�
 | skill 发现 | skill 并发 4、文件并发 8（`skill/discovery.ts`） |
 | 工具输出 | registry 只测量文本部分，默认保留头+尾、中间省略；超限文本落受管存储换有界预览 |
 | 本地工具调用 | 急切启动、可并发，但终态发布串行 |
-| 通用重试 | 首次 + 至多 4 次，带抖动指数退避，provider 给出更长延迟时从其值 |
+| 通用重试 | 首次 + 至多 10 次（带抖动指数退避，每格封顶 10s；超时类重试另限 3 次），provider 给出更长延迟时从其值 |
 | MCP | 启动/目录超时 30s，执行超时 12h |
 
 ## 5. 模型请求侧的成本控制

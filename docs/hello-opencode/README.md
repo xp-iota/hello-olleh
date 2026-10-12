@@ -3,9 +3,7 @@ title: "OpenCode 源码分析 README"
 ---
 # OpenCode 源码分析 README
 
-本目录记录 OpenCode `v2.0.2` 的源码分析。分析对象是 `sources/opencode/` 上游快照。v2 是一次多包架构重建：公共形状归 `packages/schema`，HTTP 操作归 `packages/protocol`，运行时与持久化归 `packages/core`，传输与 SSE 归 `packages/server`，插件公共契约归 `packages/plugin`，CLI/TUI/SDK/Desktop 等宿主只消费组装后的 API。运行时内核基于 Effect-ts，会话状态采用 durable event log + projection 模型，而不是内存对象树。
-
-> **版本基线：** 各章节撰写并校验于 `v2.0.2`；`sources/opencode/` 快照已由 `sync_repos.sh` 前进到 `v2.0.27`。v2 线内的包结构未变，但补丁版本间的行号锚点可能存在漂移；文件级路径以实际快照为准。
+本目录记录 OpenCode `v2.0.27` 的源码分析。分析对象是 `sources/opencode/` 上游快照，各章内容已按 `v2.0.27` 快照逐一校对。v2 是一次多包架构重建：公共形状归 `packages/schema`，HTTP 操作归 `packages/protocol`，运行时与持久化归 `packages/core`，传输与 SSE 归 `packages/server`，插件公共契约归 `packages/plugin`，CLI/TUI/SDK/Desktop 等宿主只消费组装后的 API。运行时内核基于 Effect-ts，会话状态采用 durable event log + projection 模型，而不是内存对象树。
 
 ## 阅读入口
 
@@ -47,10 +45,10 @@ title: "OpenCode 源码分析 README"
 | [15-sdk-transport.md](./15-sdk-transport.md) | SDK 与传输 | Protocol/Server/Client/SDK 分层、OpenAPI 生成与 SSE |
 | [16-resilience.md](./16-resilience.md) | 韧性机制 | 窄重试、incomplete stream 续接、溢出 compaction 与恢复边界 |
 | [17-settings-config.md](./17-settings-config.md) | 配置 | 配置发现、归一化、变量插值、watch 与 catalog 生命周期 |
-| [18-lsp-integration.md](./18-lsp-integration.md) | LSP | v2 仅保留公共 LSP 事件形状，说明边界变化 |
+| [18-lsp-integration.md](./18-lsp-integration.md) | LSP | 运行时不内嵌 LSP client，仅保留公共事件与配置形状 |
 | [19-hooks-lifecycle.md](./19-hooks-lifecycle.md) | Hooks | 五域 hooks、失败通道规则与 Scope 生命周期 |
 | [20-repl-and-state.md](./20-repl-and-state.md) | REPL 与状态 | Solid TUI、context provider 树与 mini 模式 |
-| [21-bridge-system.md](./21-bridge-system.md) | Bridge / 外部集成 | ACP 桥接、Desktop 宿主与 IDE 事件 |
+| [21-bridge-system.md](./21-bridge-system.md) | Bridge / 外部集成 | ACP 桥接与 Desktop/Web 宿主 |
 | [22-project-init-analysis.md](./22-project-init-analysis.md) | 初始化报告 | 首次进入仓库的总览与包清单 |
 | [23-input-command-queue.md](./23-input-command-queue.md) | 输入队列 | inbox 准入、steer/queue、控制项与 slash command |
 | [24-mcp-system.md](./24-mcp-system.md) | MCP 系统 | MCP client、stdio/remote、OAuth、elicitation 与 instruction 注入 |

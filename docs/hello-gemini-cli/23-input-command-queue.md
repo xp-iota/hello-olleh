@@ -58,25 +58,26 @@ Gemini CLI 的输入处理涉及以下核心模块：
 ### 3.2 命令类型
 
 ```typescript
-// gemini-cli/packages/cli/src/ui/commands/types.ts
+// gemini-cli/packages/cli/src/ui/commands/types.ts（简化）
 
 interface SlashCommand {
   name: string;
   altNames?: string[];        // 命令别名
   description: string;
-  kind: CommandKind;           // BUILT_IN | USER_FILE | MCP_PROMPT | SKILL | AGENT
+  kind: CommandKind;           // BUILT_IN | USER_FILE | WORKSPACE_FILE | EXTENSION_FILE | MCP_PROMPT | SKILL | AGENT
   action?: (context: CommandContext, args: string) => SlashCommandActionReturn;
   subCommands?: SlashCommand[]; // 子命令支持
   isSafeConcurrent?: boolean;  // agent 忙碌时是否可执行
 }
 
 type SlashCommandActionReturn =
-  | { type: 'message', content: string }           // 本地消息
-  | { type: 'dialog', dialog: DialogKind }         // 弹窗
-  | { type: 'tool', toolName: string, toolArgs: Record<string, unknown> } // 工具调用
-  | { type: 'load_history', cursor: string }       // 加载历史
-  | { type: 'submit_prompt', content: string }      // 转 prompt 给模型
-  | { type: 'quit', messages: Message[] }          // 退出
+  | { type: 'message', messageType: 'info' | 'error', content: string }  // 本地消息
+  | { type: 'tool', toolName: string, toolArgs: Record<string, unknown> }  // 工具调用
+  | { type: 'load_history', history: HistoryItem[], clientHistory: Content[] } // 加载历史
+  | { type: 'submit_prompt', content: PartListUnion }                       // 转 prompt 给模型
+  | { type: 'quit', messages: HistoryItem[] }                               // 退出
+  | { type: 'dialog', dialog: DialogKind }                                  // 弹窗
+  | { type: 'confirm_shell_commands' | 'confirm_action' | 'custom_dialog' | 'logout', ... }
 ```
 
 ## 4. Slash 命令执行
@@ -84,17 +85,17 @@ type SlashCommandActionReturn =
 ### 4.1 命令解析流程
 
 ```typescript
-// gemini-cli/packages/cli/src/ui/hooks/slashCommandProcessor.ts
+// gemini-cli/packages/cli/src/ui/hooks/slashCommandProcessor.ts（简化）
 
 async function handleSlashCommand(input: string, context: CommandContext) {
-  // 1. 解析命令名和参数
-  const { commandName, args } = parseSlashCommand(input);
+  // 1. 解析命令名和参数，从已加载的命令列表中定位命令
+  const { commandToExecute, args } = parseSlashCommand(input, commands);
 
-  // 2. 查找匹配命令
-  const command = await commandService.resolve(commandName);
+  // 2. 未命中时检查 MCP server 是否仍在加载，否则按普通文本交给模型
+  if (!commandToExecute) { /* ... */ }
 
   // 3. 执行命令 action
-  const result = await command.action(context, args);
+  const result = await commandToExecute.action(context, args);
 
   // 4. 根据结果类型处理
   switch (result.type) {
@@ -114,28 +115,21 @@ async function handleSlashCommand(input: string, context: CommandContext) {
 MCP 服务器提供的 prompts 可以作为 slash 命令调用：
 
 ```typescript
-// gemini-cli/packages/cli/src/services/McpPromptLoader.ts
+// gemini-cli/packages/cli/src/services/McpPromptLoader.ts（简化示意）
 
 export class McpPromptLoader implements ICommandLoader {
   async loadCommands(signal: AbortSignal): Promise<SlashCommand[]> {
-    const prompts = await this.mcpClientManager.getAllPrompts();
+    const mcpServers = this.config.getMcpClientManager()?.getMcpServers() || {};
 
-    return prompts.map(prompt => ({
-      name: prompt.name,
-      description: prompt.description || `MCP prompt from ${prompt.serverName}`,
-      kind: CommandKind.MCP_PROMPT,
-      action: async (context, args) => {
-        // 调用 MCP prompt
-        const result = await prompt.invoke(parseArgs(args));
+    for (const serverName in mcpServers) {
+      const prompts = getMCPServerPrompts(this.config, serverName) || [];
 
-        if (result.messages) {
-          // 转换为 prompt 提交给模型
-          return { type: 'submit_prompt', content: result.messages };
-        }
-
-        return { type: 'message', content: 'Prompt executed' };
-      },
-    }));
+      for (const prompt of prompts) {
+        // 名称清洗为合法 slash command，注册 kind: CommandKind.MCP_PROMPT
+        // 无参数的 prompt 标记 autoExecute，并附带 /help 子命令
+        // action 中调用 MCP prompt，结果转成 submit_prompt 交给模型
+      }
+    }
   }
 }
 ```
@@ -323,6 +317,6 @@ Gemini CLI 的输入链路要把自然语言、slash command、工具确认和 c
 | `sources/gemini-cli/packages/cli/src/services/CommandService.ts:23` | `CommandService` 命令加载服务 | 对应 Claude slash command registry |
 | `sources/gemini-cli/packages/cli/src/ui/hooks/useMessageQueue.ts` | 忙碌时消息队列 | 对应 Claude queued command |
 | `sources/gemini-cli/packages/cli/src/ui/hooks/slashCommandProcessor.ts` | slash command 执行路径 | 对应 OpenCode command |
-| `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:908` | `prepareQueryForGemini()` 处理用户输入 | 输入进入模型前的编译点 |
-| `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:1551` | `submitQuery()` 发起模型流 | 连接 agent loop |
-| `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:1822` | 工具完成后 continuation 回注 | 说明队列不只来自键盘 |
+| `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:960` | `prepareQueryForGemini()` 处理用户输入 | 输入进入模型前的编译点 |
+| `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:1682` | `submitQuery()` 发起模型流 | 连接 agent loop |
+| `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts:1816` | 工具完成后 continuation 回注 | 说明队列不只来自键盘 |

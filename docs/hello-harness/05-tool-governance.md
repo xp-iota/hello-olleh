@@ -40,12 +40,12 @@ export function getAllBaseTools(): Tools {
 
 ### Gemini CLI
 
-`sources/gemini-cli/packages/core/src/tools/tool-registry.ts:1-50` 的 `ToolRegistry` 是一个运行时注册表：
+`sources/gemini-cli/packages/core/src/tools/tool-registry.ts:247` 的 `ToolRegistry` 是一个运行时注册表：
 
 ```typescript
 export class ToolRegistry {
-  getAllTools(): Tool[]
-  getToolByName(name: string): Tool | undefined
+  registerTool(tool: AnyDeclarativeTool): void
+  unregisterTool(name: string): void
   getAllToolNames(): string[]
 }
 ```
@@ -54,22 +54,20 @@ export class ToolRegistry {
 
 ### OpenCode
 
-`sources/opencode/packages/core/src/permission.ts` 通过 Permission 系统过滤工具列表，而不是直接管理工具注册：
+`sources/opencode/packages/core/src/tool.ts:225-231` 的 `Tool.snapshot(permissions)` 通过 Permission 规则过滤工具列表，而不是直接管理工具注册：
 
 ```typescript
-const EDIT_TOOLS = ["edit", "write", "apply_patch", "multiedit"]
-
-export function disabled(tools: string[], ruleset: Ruleset): Set<string> {
-  const result = new Set<string>()
-  for (const tool of tools) {
-    const permission = EDIT_TOOLS.includes(tool) ? "edit" : tool
-    // ...
-  }
-  return result
-}
+// tool.ts:225-231（节选）
+snapshot: Effect.fn("Tool.snapshot")((permissions) =>
+  Effect.gen(function* () {
+    const rules = permissions ?? []
+    // ...对每个工具：
+    if (whollyDisabled(tool.options?.permission ?? name, rules)) continue
+  }),
+)
 ```
 
-OpenCode 的架构把工具注册和权限过滤分离——工具注册在其他模块，Permission 系统只决定哪些工具在当前上下文里被允许。这是关注点分离的良好实践，但也意味着工具 Schema 的定义散落在多处。
+其中 `whollyDisabled()`（`tool.ts:292-295`）在规则的 action 匹配且 `resource === "*"`、`effect === "deny"` 时把工具整体禁用。OpenCode 的架构把工具注册和权限过滤分离——工具注册在其他模块，Permission 系统只决定哪些工具在当前上下文里被允许。这是关注点分离的良好实践，但也意味着工具 Schema 的定义散落在多处。
 
 ---
 
@@ -88,8 +86,8 @@ OpenCode 的架构把工具注册和权限过滤分离——工具注册在其�
 `sources/codex/codex-rs/prompts/templates/permissions/approval_policy/` 的四种 Approval Policy 代表了四种不同的人工审批策略：
 
 - `never.md` — 从不请求人工审批，完全自主
-- `on_failure.md` — 仅在操作失败时请求审批
-- `on_request_rule_request_permission.md` — 按需请求审批
+- `on_request.md` — Agent 需要逃逸沙箱时发起升级审批（escalation request）
+- `on_request_rule_request_permission.md` — 按显式规则决定是否请求审批
 - `unless_trusted.md` — 除非已被信任，否则请求审批
 
 这四种 policy 不只是"允许/禁止"，而是定义了不同的信任升级路径。更重要的是，`on_request_rule_request_permission.md:29-34` 里的命令分段评估（每个 shell 控制操作符将命令分段，每段独立评估）使 Codex 能以命令段而非工具为单位执行权限检查。这是四个工程里权限粒度最细的实现。
@@ -100,15 +98,16 @@ OpenCode 的架构把工具注册和权限过滤分离——工具注册在其�
 
 ### OpenCode
 
-`sources/opencode/packages/core/src/permission.ts` 的 `Action` 枚举（allow/deny/ask）加上路径模式匹配，提供了细粒度的权限表达：
+`sources/opencode/packages/core/src/permission.ts:87-97` 的 `evaluate()` 对 action + resource 做通配符匹配（`packages/schema/src/permission.ts:56` 的 `Effect` 枚举为 allow/deny/ask），提供了细粒度的权限表达：
 
 ```typescript
-export const Action = z.enum(["allow", "deny", "ask"]).meta({
-  ref: "PermissionAction",
+// packages/schema/src/permission.ts:56
+export const Effect = Schema.Literals(["allow", "deny", "ask"]).annotate({
+  identifier: "Permission.Effect",
 })
 ```
 
-`ask` 的存在是 OpenCode 权限模型的独特之处：它不是简单的二元判断，而是允许"悬停"状态——权限决策被延迟到运行时，由实际执行上下文决定。这通过 `Deferred.await()` 实现（`permission/index.ts:166-201`），保证了 ask 状态下不会有竞争条件。
+`ask` 的存在是 OpenCode 权限模型的独特之处：它不是简单的二元判断，而是允许"悬停"状态——权限决策被延迟到运行时，由实际执行上下文决定。`assert()` 在规则要求 ask 时挂起等待用户回复（`Deferred.await()` 在 `permission.ts:246-247`），保证了 ask 状态下不会有竞争条件。
 
 ---
 
@@ -118,9 +117,9 @@ export const Action = z.enum(["allow", "deny", "ask"]).meta({
 
 **Claude Code**：`sources/claude-code/src/tools/BashTool/` 无沙箱实现可见。BashTool 运行在完整的系统权限下，只有操作系统层面的权限限制。这意味着如果 Agent 在某个上下文里被允许运行 BashTool，它能执行任何当前用户有权限执行的命令——包括删除文件、修改系统配置等高危操作。
 
-**Codex**：`unless_trusted.md:1` 中提到："Approvals are your mechanism to get user consent to run shell commands without the sandbox." 这句话的含义是：Codex 默认在沙箱内运行 shell 命令，只有获得明确批准才能在沙箱外执行。沙箱有三种模式（macos-seatbelt / generic / outside），分别对应不同的隔离强度。这是四个工程里唯一实现了系统级沙箱隔离的工程。
+**Codex**：`sources/codex/codex-rs/prompts/templates/permissions/approval_policy/unless_trusted.md:1` 写明："`approval_policy` is `unless-trusted`: The harness will require user approval before running commands unless an explicit exec policy rule allows them." 这句话的含义是：Codex 默认在沙箱内运行 shell 命令，只有获得批准或命中显式规则才能逃逸沙箱。沙箱策略有多个档位（`codex-rs/protocol/src/protocol.rs:1088` 的 `SandboxPolicy`：read-only / workspace-write / danger-full-access 等），平台层由 `codex-rs/sandboxing/` crate 在 macOS 上用 seatbelt、在 Linux 上用 landlock/seccomp 实现隔离。这是四个工程里唯一实现了系统级沙箱隔离的工程。
 
-**Gemini CLI**：`sources/gemini-cli/packages/core/src/prompts/snippets.ts:88-93` 定义了 `SandboxMode`：
+**Gemini CLI**：`sources/gemini-cli/packages/core/src/prompts/snippets.ts:101-105` 定义了 `SandboxMode`：
 
 ```typescript
 export type SandboxMode = 'macos-seatbelt' | 'generic' | 'outside';
@@ -147,12 +146,14 @@ export interface SandboxOptions {
 
 **Gemini CLI**：无独立的并发控制机制可见，依赖底层 Node.js 事件循环（单线程模型）的安全性。在 Node.js 里，同步代码不会产生数据竞争，但异步操作的顺序性依然需要注意。
 
-**OpenCode**：`permission/index.ts:123-131` 的 State 接口使用 `Map<PermissionID, PendingEntry>` 加 `Deferred`，通过 Effect-ts 管理并发权限请求：
+**OpenCode**：`permission.ts:115-131` 的 `Pending` 结构（`request` + `deferred`）加上 `pending: Map<ID, Pending>`，通过 Effect-ts 管理并发权限请求：
 
 ```typescript
-interface State {
-  pending: Map<PermissionID, PendingEntry>
-  approved: Ruleset
+// permission.ts:115-119（节选）
+interface Pending {
+  readonly request: Request
+  readonly agent?: Agent.ID
+  readonly deferred: Deferred.Deferred<void, DeclinedError | CorrectedError>
 }
 ```
 
@@ -178,7 +179,7 @@ Each segment is evaluated independently for sandbox restrictions and approval re
 
 **Gemini CLI**：无针对高危命令的专门约束可见，依赖 prompt 规则和 ApprovalMode 设置。中等约束密度。
 
-**OpenCode**：`permission/index.ts:270-276` 的路径扩展（`~/` 展开为 home 目录）是一种间接的安全措施，防止路径注入。对高危命令本身没有专门约束。中等约束密度。
+**OpenCode**：对高危命令本身没有专门约束，但 `~/` 前缀路径在进入权限匹配与文件访问前会展开为 home 目录（`config/plugin/agent.ts:155`、`file-access.ts:73`），避免以 `~/` 变体绕过规则。中等约束密度。
 
 ---
 
@@ -187,10 +188,10 @@ Each segment is evaluated independently for sandbox restrictions and approval re
 | 维度 | Claude Code | Codex | Gemini CLI | OpenCode |
 | :------| :-------------| :-------| :------------| :----------|
 | 工具注册方式 | 运行时对象，JSON Schema | 静态类型，编译期验证 | 运行时注册表 + 名称常量 | Permission 过滤，关注点分离 |
-| 权限粒度 | 粗（工具级 Allowlist，硬编码） | 细（Policy + 命令分段） | 中（Tool + Confirmation 模式） | 细（Action + Pattern + Deferred） |
-| 沙箱强度 | 无沙箱 | 三层沙箱（macos-seatbelt/generic/outside） | 有沙箱类型定义，toolSandboxingEnabled 配置 | 无沙箱 |
+| 权限粒度 | 粗（工具级 Allowlist，硬编码） | 细（Policy + 命令分段） | 中（Tool + Confirmation 模式） | 细（Effect + 通配符规则 + Deferred） |
+| 沙箱强度 | 无沙箱 | 系统级沙箱（seatbelt/landlock + SandboxPolicy 档位） | 有沙箱类型定义，toolSandboxingEnabled 配置 | 无沙箱 |
 | 并发安全 | 简单同步过滤 | Rust 编译期线程安全保证 | 依赖 Node.js 单线程模型 | Effect-ts Fiber 并发管理 |
-| 高危约束密度 | **低** — 无分级，依赖 prompt 规则 | **高** — 命令级分段评估，独立约束 | **中** — 确认模式分级 | **中** — 路径规范化 + Deferred 审批 |
+| 高危约束密度 | **低** — 无分级，依赖 prompt 规则 | **高** — 命令级分段评估，独立约束 | **中** — 确认模式分级 | **中** — `~/` 路径展开 + Deferred 审批 |
 | 综合评分 (1-5) | **2** | **4** | **3** | **3** |
 
 工具治理的核心发现与前馈、反馈评估一致：Codex 的系统性最强（沙箱 + 命令分段 + policy 层次），Claude Code 的约束密度最低（无沙箱、硬编码 Allowlist）。工具治理的分析为我们理解下一个维度——[上下文与记忆工程](./06-context-and-memory.md)——奠定了基础：工具帮助 Agent 行动，上下文决定 Agent 能看到什么来做出决定。

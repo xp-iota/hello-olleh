@@ -3,14 +3,14 @@ title: "Plugin 系统：工具 entry points 与渠道包"
 ---
 # Plugin 系统：工具 entry points 与渠道包
 
-> 基于 `sources/nanobot/nanobot/agent/tools/loader.py` 与 `sources/nanobot/nanobot/channels/plugin.py` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/agent/tools/loader.py` 与 `sources/nanobot/nanobot/channels/plugin.py` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
 - [1. 插件模型](#1-插件模型)
 - [2. 工具插件：nanobot.tools](#2-工具插件nanobottools)
 - [3. 加载顺序与覆盖规则](#3-加载顺序与覆盖规则)
-- [4. 渠道插件的转向](#4-渠道插件的转向)
+- [4. 渠道插件的形态](#4-渠道插件的形态)
 - [5. 管理面](#5-管理面)
 
 ---
@@ -33,13 +33,13 @@ nanobot 的插件系统是刻意轻量的：没有插件运行时、没有生命
 
 `ToolLoader.load(ctx, registry, scope="core")` 的顺序：`discover()` 的内建类先注册（记入 `builtin_names`），`_discover_plugins()` 的插件类后注册。返回已注册名字列表；内建与插件同名时后者覆盖前者的行为由 `ToolRegistry.register` 的语义决定。测试可用 `ToolLoader(package=..., test_classes=[...])` 完全绕开发现机制。
 
-## 4. 渠道插件的转向
+## 4. 渠道插件的形态
 
-渠道曾用 `nanobot.channels` entry-point 组开放扩展，v0.2.3 起废弃：`channels/registry.py` 的 `_warn_legacy_channel_entry_points()` 检测到该组的 entry point 时只告警"不再加载，请迁移为内置渠道包"。现行机制是 `channels/plugin.py` 的 `ChannelPlugin` + 自包含包（`channels/<name>/`），发现走 `pkgutil` 扫描本地包而非 entry points。上游理由：渠道需要安装引导、字段校验等 descriptor 元数据（`contracts.py`），自包含包比 entry point 更能承载。详见 [21-bridge-system.md](./21-bridge-system.md)。
+渠道不做 entry-point 扩展：`channels/plugin.py` 的 `ChannelPlugin` + 自包含包（`channels/<name>/`）是唯一形态，发现走 `pkgutil` 扫描本地包而非 entry points。渠道需要安装引导、字段校验等 descriptor 元数据（`contracts.py`），自包含包比 entry point 更能承载。详见 [21-bridge-system.md](./21-bridge-system.md)。
 
 ## 5. 管理面
 
-- `nanobot plugins ...` CLI 子树（commands.py L2579 起）提供插件检视/管理；
+- `nanobot plugins ...` CLI 子树（commands.py 的 `plugins_app`：list/enable/disable）提供插件检视/管理；
 - `onboard` 的 `_onboard_plugins(config_path)` 在初始化时处理已安装插件的配置落位；
 - 插件没有热重载：安装/卸载后需重启进程。
 
@@ -47,4 +47,4 @@ nanobot 的插件系统是刻意轻量的：没有插件运行时、没有生命
 
 - [`sources/nanobot/nanobot/agent/tools/loader.py`](../../sources/nanobot/nanobot/agent/tools/loader.py)：工具插件发现与加载
 - [`sources/nanobot/nanobot/channels/plugin.py`](../../sources/nanobot/nanobot/channels/plugin.py)：ChannelPlugin
-- [`sources/nanobot/nanobot/channels/registry.py`](../../sources/nanobot/nanobot/channels/registry.py)：legacy entry-point 告警
+- [`sources/nanobot/nanobot/channels/registry.py`](../../sources/nanobot/nanobot/channels/registry.py)：渠道包发现

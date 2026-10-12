@@ -3,7 +3,7 @@ title: "韧性机制：窄重试、续接与有界恢复"
 ---
 # 韧性机制：窄重试、续接与有界恢复
 
-> 基于 `sources/opencode/specs/v2/session.md` 与 `sources/opencode/packages/core/src/session/runner/retry.ts` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/specs/v2/session.md` 与 `sources/opencode/packages/core/src/session/runner/retry.ts` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 
@@ -21,15 +21,16 @@ v2 的韧性哲学是**窄而可观测**：只重试明确可重试的失败类�
 
 ## 2. 窄而可观测的重试
 
-通用计划重试只覆盖三类失败（`session/runner/retry.ts`）：
+通用计划重试只覆盖明确可重试的失败类别（`session/runner/retry.ts` 与 `@opencode/ai` 的 `isRetryable`）：
 
 | 类别 | 例子 |
 | --- | --- |
 | 限流与 provider 内部失败 | rate-limit、provider 5xx |
 | 传输失败 | 未发送、或送达状态未知的请求 |
 | 不完整流 | provider 输出被判为 incomplete stream |
+| 未识别失败 | 分类器没有预料到的形状按瞬态失败对待，同样重试 |
 
-预算与退避：首次请求 + 至多 4 次重试，带抖动的指数退避；provider 给出更长重试延迟时从其值。`session.retry.scheduled` 记录通用退避事件；后续活动或终态执行事件会清除 projection 中的重试状态。
+provider 响应头里的 `x-should-retry` 可以显式覆盖上述判定。预算与退避：指数退避从 2s 起步、单次间隔封顶 10s、带抖动，至多 10 次重试；provider 给出的 `retry-after` 会被采纳但以 15 分钟封顶；已经等了几分钟的传输超时另有单独计数（至多 3 次超时重试）。每次决策都经过 `session.retry` 插件 hook，插件可以否决重试或改写延迟；`session.retry.scheduled` 记录通用退避事件，后续活动或终态执行事件会清除 projection 中的重试状态。
 
 **durable 输出前后语义不同**：输出前的重试保留逻辑步号与 assistant message ID，不消耗额外步数配额；输出后的 incomplete stream 则保留失败的部分 assistant、追加 synthetic continuation 指令、以新 assistant message ID 继续，且共享同一重试预算。
 

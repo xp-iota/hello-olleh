@@ -3,7 +3,7 @@ title: "Hooks 生命周期：五域 hooks 与失败通道规则"
 ---
 # Hooks 生命周期：五域 hooks 与失败通道规则
 
-> 基于 `sources/opencode/packages/core/src/plugin/hooks.ts` 与 `packages/plugin/src/effect/` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/packages/core/src/plugin/hooks.ts` 与 `packages/plugin/src/effect/` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 
@@ -41,8 +41,8 @@ hook 可按 provider 维度筛选：`eventProviderID` 从事件的 `model.provid
 
 ## 4. 注册与触发
 
-- `PluginHooks` 接口暴露 `has(domain, name, providerID?)` 与 `register(domain, name, callback, options?)`；`has` 让调用方在不构造事件的情况下判断是否需要走 hook 路径。
-- 工具执行的 `execute.after` 由 registry 在规范结果与受管输出路径上触发（见 [05-tool-system.md](./05-tool-system.md) §4 第 7 步）；hook 可刻意变换结果，变更后的内容会再次被归一化与限界后才发布。
+- `PluginHooks` 接口暴露 `has(domain, name, providerID?)`、`register(domain, name, callback, options?)` 与 `trigger(domain, name, event)`；`has` 让调用方在不构造事件的情况下判断是否需要走 hook 路径。
+- 工具执行的 `execute.after` 由工具注册表在规范结果与受管输出路径上触发（见 [05-tool-system.md](./05-tool-system.md) §4 第 7 步）；hook 可刻意变换结果，变更后的内容会再次被归一化与限界后才发布。
 - `PluginHost` 把 `PluginHooks` 注入插件可见服务面；插件 supervisor 负责插件失败时的隔离（见 [14-plugin-system.md](./14-plugin-system.md)）。
 
 ## 5. 生命周期语义
@@ -55,4 +55,4 @@ hook 可按 provider 维度筛选：`eventProviderID` 从事件的 `model.provid
 
 - [`sources/opencode/packages/core/src/plugin/hooks.ts`](../../sources/opencode/packages/core/src/plugin/hooks.ts)：`PluginHooks` 编排
 - [`sources/opencode/packages/plugin/src/effect/`](../../sources/opencode/packages/plugin/src/effect)：五域 hooks 的公共形状
-- [`sources/opencode/packages/core/src/tool/runtime.ts`](../../sources/opencode/packages/core/src/tool/runtime.ts)：`execute.after` 触发点
+- [`sources/opencode/packages/core/src/tool.ts`](../../sources/opencode/packages/core/src/tool.ts)：`execute.before` / `execute.after` 触发点

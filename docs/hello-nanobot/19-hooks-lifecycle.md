@@ -3,7 +3,7 @@ title: "Hooks 生命周期：AgentHook 与 CompositeHook"
 ---
 # Hooks 生命周期：AgentHook 与 CompositeHook
 
-> 基于 `sources/nanobot/nanobot/agent/hook.py` 与 `sources/nanobot/nanobot/agent/hooks/` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/agent/hook.py` 与 `sources/nanobot/nanobot/agent/hooks/` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 

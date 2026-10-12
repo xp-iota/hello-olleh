@@ -50,7 +50,7 @@ title: "篇章主题对齐矩阵"
 | 项目 | 附录 | 定位 |
 | --- | --- | --- |
 | Claude Code | `24b-mcp-deep`, `25b-growthbook` | 反编译快照中额外可见的 MCP/OAuth 与 feature flag 机制 |
-| Codex | `26-ghost-snapshot` | Codex 特有的 Git 快照、Undo、compaction 幸存机制 |
+| Codex | 暂无 | 保持 `01-25` 共享主干 |
 | Gemini CLI | 暂无 | 保持 `01-25` 共享主干 |
 | OpenCode | 暂无 | v2 重建后保持 `01-25` 共享主干；v1 时代的 `26-38` 深挖已按主题并入主干各章 |
 | Nanobot | 暂无 | 保持 `01-25` 共享主干 |

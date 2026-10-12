@@ -2,11 +2,11 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "internal/plugin 的五道排除条件",
+    "title": "internal/plugin 的七道排除条件",
     "output": "07-unload-cases.html",
     "viewBox": [
-      1540,
-      660
+      1560,
+      720
     ],
     "quality_profile": "showcase"
   },
@@ -15,14 +15,14 @@
       "id": "ev",
       "type": "frontend",
       "label": "internal/plugin 触发",
-      "sublabel": "L/index.ts:98-122",
+      "sublabel": "L/index.ts:101-127",
       "pos": [
         60,
-        270
+        300
       ],
       "size": [
-        250,
-        120
+        260,
+        140
       ]
     },
     {
@@ -30,10 +30,10 @@
       "type": "security",
       "label": "case 1",
       "sublabel": "fiber.uid 存在则是创建事件，返回",
-      "tag": ":100",
+      "tag": ":102",
       "pos": [
-        360,
-        90
+        380,
+        100
       ],
       "size": [
         300,
@@ -45,10 +45,10 @@
       "type": "security",
       "label": "case 2",
       "sublabel": "fiber.entry 不存在则不受 loader 管，返回",
-      "tag": ":103",
+      "tag": ":105",
       "pos": [
-        360,
-        230
+        380,
+        240
       ],
       "size": [
         300,
@@ -59,11 +59,11 @@
       "id": "c3",
       "type": "security",
       "label": "case 3",
-      "sublabel": "父 fiber 的 entry 相同则是 entry 内部子插件，返回",
-      "tag": ":106",
+      "sublabel": "父 fiber 的 entry 相同则是 entry 内子插件，返回",
+      "tag": ":108",
       "pos": [
-        360,
-        370
+        380,
+        380
       ],
       "size": [
         300,
@@ -75,13 +75,13 @@
       "type": "cloud",
       "label": "case 4",
       "sublabel": "registry 里已无此 callback，是 HMR 触发，返回",
-      "tag": ":111 先 delete(plugin) 再 dispose",
+      "tag": ":113 先 delete(plugin) 再 dispose",
       "pos": [
-        760,
-        230
+        380,
+        520
       ],
       "size": [
-        330,
+        300,
         105
       ]
     },
@@ -90,10 +90,40 @@
       "type": "security",
       "label": "case 5",
       "sublabel": "整棵树的 fiber 已无 uid，是全树卸载，返回",
-      "tag": ":114",
+      "tag": ":116",
       "pos": [
         760,
-        370
+        100
+      ],
+      "size": [
+        330,
+        105
+      ]
+    },
+    {
+      "id": "c6",
+      "type": "backend",
+      "label": "case 6",
+      "sublabel": "entry 已被 EntryGroup.remove 注销，返回",
+      "tag": ":123",
+      "pos": [
+        760,
+        240
+      ],
+      "size": [
+        330,
+        105
+      ]
+    },
+    {
+      "id": "c7",
+      "type": "backend",
+      "label": "case 7",
+      "sublabel": "entry.disabled 已置位，是 loader 行为，返回",
+      "tag": ":127",
+      "pos": [
+        760,
+        380
       ],
       "size": [
         330,
@@ -104,56 +134,83 @@
       "id": "real",
       "type": "messagebus",
       "label": "都不命中才是真卸载",
-      "sublabel": "showLog(entry, 'unload') 并写回配置",
+      "sublabel": "showLog(entry, 'unload') 并写回 disabled 配置",
       "tag": "这时才把 disabled 落到 yml",
       "pos": [
-        1160,
-        270
+        1180,
+        240
       ],
       "size": [
         320,
-        120
+        150
       ]
     }
   ],
   "connections": [
     {
-      "id": "a",
+      "id": "e1",
       "from": "ev",
-      "to": "c1"
-    },
-    {
-      "id": "b",
-      "from": "ev",
-      "to": "c2",
+      "to": "c1",
+      "fromSide": "right",
+      "toSide": "left",
       "variant": "emphasis"
     },
     {
-      "id": "c",
-      "from": "ev",
-      "to": "c3"
+      "id": "e2",
+      "from": "c1",
+      "to": "c2",
+      "fromSide": "bottom",
+      "toSide": "top"
     },
     {
-      "id": "d",
+      "id": "e3",
       "from": "c2",
-      "to": "c4"
+      "to": "c3",
+      "fromSide": "bottom",
+      "toSide": "top"
     },
     {
-      "id": "e",
+      "id": "e4",
       "from": "c3",
-      "to": "c5"
+      "to": "c4",
+      "fromSide": "bottom",
+      "toSide": "top"
     },
     {
-      "id": "f",
+      "id": "e5",
       "from": "c4",
+      "to": "c5",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "逐道下探"
+    },
+    {
+      "id": "e6",
+      "from": "c5",
+      "to": "c6",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "e7",
+      "from": "c6",
+      "to": "c7",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "e8",
+      "from": "c7",
       "to": "real",
+      "fromSide": "right",
+      "toSide": "left",
       "variant": "emphasis"
     }
   ],
   "cards": [
     {
       "dot": "rose",
-      "title": "为什么需要五道排除",
+      "title": "为什么需要七道排除",
       "items": [
         "loader 要区分「用户主动禁用」与其余情形",
         "只有前者该把 disabled 写回配置文件",
@@ -170,12 +227,21 @@
       ]
     },
     {
+      "dot": "violet",
+      "title": "case 6/7 排除 loader 自身的操作",
+      "items": [
+        "case 6：EntryGroup.remove 先注销再 dispose（:121-123）",
+        "case 7：注入检查器、配置更新、祖先 group 禁用（:125-127）",
+        "二者都不算用户自卸载"
+      ]
+    },
+    {
       "dot": "emerald",
       "title": "事件本身一体两用",
       "items": [
         "internal/plugin 在创建与卸载时各发一次",
         "case 1 用 fiber.uid 把创建事件先滤掉",
-        "其余四道逐层排除非用户意图的卸载"
+        "其余六道逐层排除非用户意图的卸载"
       ]
     }
   ]

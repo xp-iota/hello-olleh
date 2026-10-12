@@ -3,7 +3,7 @@ title: "SDK 与传输：进程内 SDK 与 OpenAI 兼容 API"
 ---
 # SDK 与传输：进程内 SDK 与 OpenAI 兼容 API
 
-> 基于 `sources/nanobot/nanobot/sdk/` 与 `sources/nanobot/nanobot/api/server.py` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/sdk/` 与 `sources/nanobot/nanobot/api/server.py` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 

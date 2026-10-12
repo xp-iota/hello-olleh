@@ -180,7 +180,7 @@
       "id": "M",
       "type": "messagebus",
       "label": "processGeminiStreamEvents()",
-      "sublabel": "useGeminiStream.ts:1409",
+      "sublabel": "useGeminiStream.ts:1614",
       "pos": [
         45,
         345
@@ -207,7 +207,7 @@
       "id": "O",
       "type": "messagebus",
       "label": "submitQuery() 弹确认框",
-      "sublabel": "useGeminiStream.ts:1561",
+      "sublabel": "useGeminiStream.ts:1796",
       "pos": [
         737,
         345

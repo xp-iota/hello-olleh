@@ -13,7 +13,8 @@
     {
       "id": "A",
       "type": "backend",
-      "label": "Codex",
+      "label": "CodexThread",
+      "sublabel": "发起工具调用",
       "pos": [
         45,
         65
@@ -52,7 +53,8 @@
     {
       "id": "D",
       "type": "cloud",
-      "label": "McpConnectionManager",
+      "label": "McpConnectionSet",
+      "sublabel": "call_tool() :977",
       "pos": [
         1083,
         65
@@ -257,9 +259,9 @@
       "dot": "orange",
       "title": "要点",
       "items": [
-        "Codex → McpToolCall",
+        "CodexThread → McpToolCall",
         "McpToolCall → MCP Tool?",
-        "MCP Tool? → McpConnectionManager（是）"
+        "MCP Tool? → McpConnectionSet（是）"
       ]
     }
   ]

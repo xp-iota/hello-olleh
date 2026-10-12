@@ -50,37 +50,27 @@ title: "Gemini CLI 的 MCP 系统"
 ### 3.1 传输类型选择
 
 ```typescript
-// gemini-cli/packages/core/src/tools/mcp-client.ts
+// gemini-cli/packages/core/src/tools/mcp-client.ts（简化）
 
-function createTransport(config: MCPServerConfig): Transport {
-  // 1. 有 command → StdioTransport (本地进程)
-  if (config.command) {
-    return new StdioClientTransport({
-      command: config.command,
-      args: config.args || [],
-      env: finalEnv,
-      cwd: config.cwd,
-      stderr: 'pipe',
-    });
+async function createTransport(
+  mcpServerName: string,
+  mcpServerConfig: MCPServerConfig,
+  debugMode: boolean,
+  cliConfig: McpContext,
+): Promise<Transport> {
+  // 1. 有 url / httpUrl → 按 type 选 StreamableHTTP 或 SSE，未指定 type 时自动探测
+  //    Google Credentials / SA Impersonation 认证要求必须提供 URL
+  if (mcpServerConfig.httpUrl || mcpServerConfig.url) {
+    return new McpComplianceTransport(
+      createUrlTransport(mcpServerName, mcpServerConfig, transportOptions),
+    );
   }
 
-  // 2. 有 httpUrl + type:'sse' → SSEClientTransport
-  if (config.url && config.type === 'sse') {
-    return new SSEClientTransport(new URL(config.url), {
-      requestInit: { headers: { Authorization: `Bearer ${token}` } },
-    });
+  // 2. 有 command → StdioClientTransport（本地进程）
+  //    工作区不可信时直接抛错；env 会先经 sanitizeEnvironment 清洗
+  if (mcpServerConfig.command) {
+    return new StdioClientTransport({ /* command, args, cwd, env */ });
   }
-
-  // 3. 有 url + type:'http' → StreamableHTTPClientTransport
-  if (config.url && config.type === 'http') {
-    return new StreamableHTTPClientTransport(new URL(config.url), {
-      requestInit: { headers },
-      authProvider,
-    });
-  }
-
-  // 4. 默认: StreamableHTTP，失败时回退 SSE
-  return new StreamableHTTPClientTransport(new URL(config.url), ...);
 }
 ```
 
@@ -99,19 +89,22 @@ function createTransport(config: MCPServerConfig): Transport {
 ### 4.1 认证类型
 
 ```typescript
-// gemini-cli/packages/core/src/mcp/auth-provider.ts
+// gemini-cli/packages/core/src/config/config.ts（简化）
 
 enum AuthProviderType {
+  DYNAMIC_DISCOVERY,            // 复用已存储的 OAuth token
   GOOGLE_CREDENTIALS,           // Google 应用默认凭据
   SERVICE_ACCOUNT_IMPERSONATION, // SA 模拟
-  OAUTH,                        // OAuth 2.0 PKCE
 }
 
-interface AuthProvider {
-  getAuthHeader(serverName: string): Promise<string | null>;
-  refreshTokenIfNeeded(serverName: string): Promise<void>;
+// gemini-cli/packages/core/src/mcp/auth-provider.ts（简化）
+// OAuth 场景统一走 MCP SDK 的 OAuthClientProvider 扩展
+interface McpAuthProvider extends OAuthClientProvider {
+  getRequestHeaders?(): Promise<Record<string, string>>;
 }
 ```
+
+OAuth 2.0 PKCE 不在 `AuthProviderType` 枚举里单独列出：它由 `MCPServerConfig.oauth`（`oauth.enabled` 等）启用，凭据由 `MCPOAuthTokenStorage` 持久化并在下次连接时通过动态 provider 复用。
 
 ### 4.2 OAuth 流程
 
@@ -229,22 +222,26 @@ private async refreshTools(): Promise<void> {
 ### 8.1 MCPServerConfig
 
 ```typescript
-// gemini-cli/packages/core/src/tools/types.ts
+// gemini-cli/packages/core/src/config/config.ts（简化）
 
-interface MCPServerConfig {
-  name: string;
-  command?: string;           // StdioTransport
-  args?: string[];
-  env?: Record<string, string>;
-  cwd?: string;
-  url?: string;              // HTTP/SSE/StreamableHTTP
-  type?: 'http' | 'sse';     // 传输类型
-  auth?: {
-    type: 'google_credentials'
-       | 'service_account_impersonation'
-       | 'oauth';
-    // ... 类型相关配置
-  };
+class MCPServerConfig {
+  // stdio transport
+  command?: string; args?: string[]; env?: Record<string, string>; cwd?: string;
+  // sse transport
+  url?: string;
+  // streamable http transport（httpUrl 已弃用，推荐 url + type）
+  httpUrl?: string; headers?: Record<string, string>;
+  // transport 类型：'http' → StreamableHTTP，'sse' → SSE，缺省时自动探测
+  type?: 'sse' | 'http';
+  // 通用与元数据
+  timeout?: number; trust?: boolean; description?: string;
+  includeTools?: string[]; excludeTools?: string[];
+  extension?: GeminiCLIExtension;
+  // 认证
+  oauth?: MCPOAuthConfig;                 // OAuth 2.0 配置
+  authProviderType?: AuthProviderType;    // GOOGLE_CREDENTIALS / SA 模拟 / 动态发现
+  targetAudience?: string;                // SA 模拟目标
+  targetServiceAccount?: string;
 }
 ```
 
@@ -332,7 +329,7 @@ Gemini CLI 的 MCP 系统最终必须回答两个问题：MCP server 发现的�
 | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | 单 server MCP 连接和调用 | 对应 Claude MCP client |
 | `sources/gemini-cli/packages/core/src/mcp/auth-provider.ts` | MCP auth 抽象 | 对应 OAuth/credential 层 |
 | `sources/gemini-cli/packages/core/src/mcp/oauth-provider.ts` | OAuth provider 实现 | 横向安全/认证维度 |
-| `sources/gemini-cli/packages/core/src/tools/tool-registry.ts:269` | MCP tool 注册回 ToolRegistry | 连接工具章节 |
+| `sources/gemini-cli/packages/core/src/tools/tool-registry.ts:287` | MCP tool 注册回 ToolRegistry | 连接工具章节 |
 | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:191` | MCP tool call 仍进入 Scheduler | 说明 MCP 不绕过工具治理 |
 | `sources/gemini-cli/packages/cli/src/services/McpPromptLoader.ts` | MCP prompt 转 slash 命令 | 连接输入队列章节 |
 
@@ -342,9 +339,9 @@ Gemini CLI 的 MCP 章节需要同时看清三条链：
 
 | 链路 | 关键源码 | 说明 |
 | --- | --- | --- |
-| extension 启动 MCP | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:75` | extension 中声明的 MCP server 交给 `McpClientManager.startExtension()` |
+| extension 启动 MCP | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:74` | extension 中声明的 MCP server 交给 `McpClientManager.startExtension()` |
 | extension 停止 MCP | `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:183` | stop 时调用 `McpClientManager.stopExtension()`，并刷新工具列表 |
-| 工具注册 | `sources/gemini-cli/packages/core/src/tools/tool-registry.ts:269` | MCP tool 和内建工具进入同一 ToolRegistry |
+| 工具注册 | `sources/gemini-cli/packages/core/src/tools/tool-registry.ts:287` | MCP tool 和内建工具进入同一 ToolRegistry |
 | 工具执行 | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:191` | Scheduler 统一处理 MCP tool call 的调度、确认和结果 |
 | 认证抽象 | `sources/gemini-cli/packages/core/src/mcp/auth-provider.ts` | auth provider 与 MCP client 生命周期分离 |
 

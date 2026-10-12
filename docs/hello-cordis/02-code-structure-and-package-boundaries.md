@@ -3,10 +3,10 @@ title: "代码结构与包边界"
 ---
 # 代码结构与包边界
 
-> **本篇回答**：9 个包各自的职责与依赖方向、core 的文件级导览、以及"为什么核心能压到 1848 行"。
+> **本篇回答**：9 个包各自的职责与依赖方向、core 的文件级导览、以及"为什么核心能压到 1874 行"。
 > **路径缩写**：`C/` = `packages/core/src/`，`L/` = `packages/loader/src/`。行号对应快照 `f8ea3cd5`。
 >
-> 🧭 **本篇导览**：2.1–2.2 仓库全貌与依赖方向 → 2.3–2.4 core 的 9 个文件与四服务自举顺序 → 2.5–2.6 loader 的 7 个文件与三种"树" → 2.7–2.9 行数来源、测试布局与工具链。
+> 🧭 **本篇导览**：2.1–2.2 仓库全貌与依赖方向 → 2.3–2.4 core 的 9 个文件与四服务自举顺序 → 2.5–2.6 loader 的 8 个文件与三种"树" → 2.7–2.9 行数来源、测试布局与工具链。
 >
 
 ## 2.1 仓库全貌
@@ -28,8 +28,8 @@ title: "代码结构与包边界"
 **包的依赖方向与分层** — [交互版](diagrams/02-package-layers.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-package-layers.architecture.json)
 
 - **依赖是单向的**：core 不依赖任何 cordis 包，只有两个外部依赖 · 第 1 层直接建在 core 上，彼此不互相依赖 · 第 3 层同时依赖 loader 与 timer（仅 hmr）
-- **loader 是第二个中心**：870 行，包含 EntryTree / Entry / Group / isolate · 它把配置行翻译成插件树 · include 与 group 都只是它的适配层
-- **两个规模异常值**：plugin-group 只有 3 行，纯粹是个标记插件 · create-cordis 314 行是独立脚手架，不参与运行时 · hmr 440 行是唯一需要双重注入的包
+- **loader 是第二个中心**：997 行，包含 EntryTree / Entry / Group / isolate · 它把配置行翻译成插件树 · include 与 group 都只是它的适配层
+- **两个规模异常值**：plugin-group 只有 3 行，纯粹是个标记插件 · create-cordis 314 行是独立脚手架，不参与运行时 · hmr 531 行是唯一需要双重注入的包
 
 💡 **`core` 反过来把 loader / include 声明为可选 peerDependency**（`packages/core/package.json` 的 `peerDependenciesMeta` 里两者都是 `optional: true`）。这是为了让 core 的类型定义能引用它们扩展的接口，同时不强制安装——**类型层面的双向、运行时的单向**。
 
@@ -39,12 +39,12 @@ title: "代码结构与包边界"
 
 | 文件 | 行数 | 职责 | 对应篇 |
 |---|---|---|---|
-| **`C/fiber.ts`** | **486** | 生命周期状态机、`effect()`、epoch 依赖追踪 | [03](03-fiber-model.md) |
-| `C/reflect.ts` | 281 | Context 的 Proxy handler、`provide`/`notify`/`mixin` | [04](04-context-and-reflect-proxy.md) [05](05-service-registration-and-dependency-resolution.md) |
-| `C/utils.ts` | 278 | `DisposableList`、symbols 表、traceable 代理、长堆栈 | [04](04-context-and-reflect-proxy.md) |
+| **`C/fiber.ts`** | **496** | 生命周期状态机、`effect()`、epoch 依赖追踪 | [03](03-fiber-model.md) |
+| `C/reflect.ts` | 283 | Context 的 Proxy handler、`provide`/`notify`/`mixin` | [04](04-context-and-reflect-proxy.md) [05](05-service-registration-and-dependency-resolution.md) |
+| `C/utils.ts` | 282 | `DisposableList`、symbols 表、traceable 代理、长堆栈 | [04](04-context-and-reflect-proxy.md) |
 | `C/logger.ts` | 246 | Logger / LoggerService / Exporter | — |
 | `C/registry.ts` | 214 | `plugin()`、`@Inject()` 装饰器、Plugin 类型 | [05](05-service-registration-and-dependency-resolution.md) |
-| `C/events.ts` | 178 | 5 种派发模式、8 个 internal 事件 | [06](06-event-system-and-waterfall.md) |
+| `C/events.ts` | 188 | 5 种派发模式、8 个 internal 事件 | [06](06-event-system-and-waterfall.md) |
 | `C/service.ts` | 80 | `abstract class Service` 基类 | [05](05-service-registration-and-dependency-resolution.md) |
 | `C/context.ts` | 78 | `Context` 类、`extend`/`isolate`/`intercept` | [04](04-context-and-reflect-proxy.md) |
 | `C/index.ts` | 7 | 只有 7 行 re-export | — |
@@ -61,11 +61,11 @@ export * from './service'
 export * from './utils'
 ```
 
-💡 **注意 `./reflect` 不在导出列表里**。`ReflectService` 是内部实现，用户通过 `ctx.reflect` 访问（由 `C/reflect.ts:144` 的 `mixin('reflect', [...])` 挂上去），但拿不到类本身。这是刻意的封装边界。
+💡 **注意 `./reflect` 不在导出列表里**。`ReflectService` 是内部实现，用户通过 `ctx.reflect` 访问（由 `C/reflect.ts:146` 的 `mixin('reflect', [...])` 挂上去），但拿不到类本身。这是刻意的封装边界。
 
 ## 2.4 四个服务的自举顺序
 
-`Context` 构造函数（`C/context.ts:36-49`）里有一段精妙的自举：
+`Context` 构造函数（`C/context.ts:35-49`）里有一段精妙的自举：
 
 ![new Context() 的自举顺序](diagrams/02-context-bootstrap.svg)
 
@@ -79,16 +79,17 @@ export * from './utils'
 
 💡 **根 Fiber 的特殊性**：`runtime === null` 时走 `C/fiber.ts:200-212` 分支——`uid = 0`、`state = ACTIVE`、`store = {}`、`epoch = ''`、`execute` 是空函数、`dispose = () => this.restart()`。也就是说**根 Fiber 永不卸载，只能重启**。
 
-## 2.5 loader 的 7 个文件
+## 2.5 loader 的 8 个文件
 
 | 文件 | 行数 | 职责 |
 |---|---|---|
-| `L/index.ts` | 166 | `Loader extends EntryTree`，注册 3 个 internal 钩子 |
-| `L/config/entry.ts` | 173 | `Entry` = 一行配置对应一个插件实例 |
+| `L/index.ts` | 174 | `Loader extends EntryTree`，注册 3 个 internal 钩子 |
+| `L/config/entry.ts` | 174 | `Entry` = 一行配置对应一个插件实例 |
 | `L/config/isolate.ts` | 169 | isolate realm 的 7 步 patch 算法 |
-| `L/config/tree.ts` | 123 | `EntryTree` 抽象基类：id 解析、import |
-| `L/internal.ts` | 123 | `ModuleLoader`：包装 Node 内部模块加载器 |
-| `L/config/group.ts` | 88 | `EntryGroup` / `Group`（可嵌套的配置分组） |
+| `L/config/tree.ts` | 157 | `EntryTree` 抽象基类：id 解析、import、`commit()` 变更通知 |
+| `L/internal.ts` | 135 | `ModuleLoader`：包装 Node 内部模块加载器 |
+| `L/resolve.ts` | 69 | `createResolve`：向配置文件所属项目写入 `.cordis/resolve.mjs`，以项目为锚解析裸模块名 |
+| `L/config/group.ts` | 91 | `EntryGroup` / `Group`（可嵌套的配置分组） |
 | `L/config/utils.ts` | 28 | `evaluate` / `interpolate` / `isJsExpr` |
 
 ![配置树的四个类](diagrams/02-config-tree-classes.svg)
@@ -113,23 +114,23 @@ export * from './utils'
 - **Group 可以自嵌套**：一个 group 行的 config 里还能有 group 行 · 嵌套深度没有硬限制 · 每层都会在 id 上追加一段
 - **混淆点在于都叫「树」**：只有 Include 树与文件一一对应 · 改配置文件影响的是 Include 树，不是根树 · 定位问题时先确认自己在哪棵树上
 
-## 2.7 为什么核心只要 1848 行
+## 2.7 为什么核心只要 1874 行
 
 四个原因，都能在代码里找到证据：
 
-![core 为什么只有 1848 行](diagrams/02-why-small.svg)
+![core 为什么只有 1874 行](diagrams/02-why-small.svg)
 
-**core 为什么只有 1848 行** — [交互版](diagrams/02-why-small.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-why-small.architecture.json)
+**core 为什么只有 1874 行** — [交互版](diagrams/02-why-small.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-why-small.architecture.json)
 
-- **被拆出去的能力**：定时器拆成 plugin-timer，142 行 · 日志导出拆成 plugin-logger-console，137 行 · 配置驱动拆成 plugin-loader，870 行
+- **被拆出去的能力**：定时器拆成 plugin-timer，146 行 · 日志导出拆成 plugin-logger-console，137 行 · 配置驱动拆成 plugin-loader，997 行
 - **用 Symbol 换命名空间隔离**：isolate 生成新 Symbol 当存储键 · 省掉一整套 realm 注册与查找表 · 代价是调试时看不到可读的键名
 - **epoch 是最省代码的一处**：把依赖身份编码成字符串，比较即判定 · 不需要拓扑排序或环检测 · 详见 03 篇 § 3.4
 
-💡 **代价是可读性**。1848 行里塞满了 Proxy trap、原型链操作、Symbol 元编程。`utils.ts` 的 `createTraceable`（`:157`，57 行）是全框架最难读的一段——它要同时处理 `this` 归属、shadow 上下文、方法绑定、嵌套 tracker 四件事。**行数少不等于简单**。
+💡 **代价是可读性**。1874 行里塞满了 Proxy trap、原型链操作、Symbol 元编程。`utils.ts` 的 `createTraceable`（`:161`，56 行）是全框架最难读的一段——它要同时处理 `this` 归属、shadow 上下文、方法绑定、嵌套 tracker 四件事。**行数少不等于简单**。
 
 ## 2.8 测试布局
 
-30 个 spec / 4340 行，测试行数超过实现行数。确认某个语义的准确行为时，读 spec 比读实现快——「想确认什么 → 读哪个 spec」的映射表统一见 [09 § 9.9](09-call-chain-reference.md)。
+49 个 spec / 6497 行，测试行数超过实现行数。确认某个语义的准确行为时，读 spec 比读实现快——「想确认什么 → 读哪个 spec」的映射表统一见 [09 § 9.9](09-call-chain-reference.md)。
 
 💡 **`isolate.spec.ts` 在 loader 里有 538 行，在 core 里只有 123 行**。这说明 isolate 的复杂度主要来自"配置驱动的动态 realm 切换"（loader 层），而不是隔离本身（core 层只是 Symbol 作键）。
 
@@ -147,10 +148,10 @@ export * from './utils'
 | 特殊运行参数 | `node --expose-internals --import tsx --import @cordisjs/unyaml` |
 | tsx 版本 | **`npm:@cordiverse/tsx@4.19.3-fix.3`**（自维护的 fork） |
 
-💡 **`--expose-internals` 是硬要求**：loader 的 `ModuleLoader.fromInternal()`（`L/index.ts:55`）要访问 Node 的内部模块加载器才能实现 HMR。这也解释了 `packages/hmr/src/index.ts:81` 的那句 `throw new Error('--expose-internals is required for HMR service')`。
+💡 **`--expose-internals` 是可选的增强项**：loader 的 `ModuleLoader.fromInternal()`（`L/index.ts:55`）要访问 Node 的内部模块加载器才能实现源码级 HMR。拿不到内部加载器时它会返回 `undefined`（`L/internal.ts:122-134`：先试 `--expose-internals`，再回退 `node-addon-require-builtin`），HMR 服务只打一条警告（`packages/hmr/src/index.ts:141`）并禁用源码 HMR，进程照常运行。
 
 💡 **`@cordisjs/unyaml`** 让 `import x from './a.yml'` 直接可用——HMR 包的 i18n 文件（`hmr/src/locales/{en-US,zh-CN}.yml`）就是这么引入的。
 
 ---
 
-**上一篇** ← [01 项目概览与设计哲学](01-overview-and-design-philosophy.md) ｜ **下一篇** → [03 Fiber 模型](03-fiber-model.md)：486 行的生命周期状态机，全框架的心脏。
+**上一篇** ← [01 项目概览与设计哲学](01-overview-and-design-philosophy.md) ｜ **下一篇** → [03 Fiber 模型](03-fiber-model.md)：496 行的生命周期状态机，全框架的心脏。

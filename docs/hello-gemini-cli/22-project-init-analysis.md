@@ -23,7 +23,7 @@ title: "项目初始化分析报告：首次进入 Gemini CLI 仓库时该先看
 | 项 | 值 |
 | --- | --- |
 | 项目名 | Gemini CLI |
-| 当前版本 | `0.47.0` |
+| 当前版本 | `0.63.0` |
 | 语言 | TypeScript Monorepo |
 | 运行时 | Node.js `>=20` |
 | 工作区 | `packages/*` |
@@ -124,20 +124,20 @@ gemini-cli/packages/cli/src/gemini.tsx
 1. [01-architecture.md](./01-architecture.md)
 2. [02-startup-flow.md](./02-startup-flow.md)
 3. [03-agent-loop.md](./03-agent-loop.md)
-4. [04-tool-system.md](./05-tool-system.md)
-5. [11-context-management.md](./04-state-session-memory.md)
-6. [12-prompt-system.md](./11-prompt-system.md)
-7. [13-multi-agent.md](./12-multi-agent.md)
-8. [15-plugin-system.md](./14-plugin-system.md)
-9. [17-sdk-transport.md](./15-sdk-transport.md)
-10. [23-bridge-system.md](./21-bridge-system.md)
+4. [05-tool-system.md](./05-tool-system.md)
+5. [04-state-session-memory.md](./04-state-session-memory.md)
+6. [11-prompt-system.md](./11-prompt-system.md)
+7. [12-multi-agent.md](./12-multi-agent.md)
+8. [14-plugin-system.md](./14-plugin-system.md)
+9. [15-sdk-transport.md](./15-sdk-transport.md)
+10. [21-bridge-system.md](./21-bridge-system.md)
 
 如果只想快速定位“出问题该去哪看”：
 
 - 启动问题：`02-startup-flow`
-- 调度与工具：`03-agent-loop`、`04-tool-system`
-- 上下文膨胀：`11-context-management`、`18-resilience`
-- 集成面：`15-plugin-system`、`17-sdk-transport`、`23-bridge-system`
+- 调度与工具：`03-agent-loop`、`05-tool-system`
+- 上下文膨胀：`04-state-session-memory`、`16-resilience`
+- 集成面：`14-plugin-system`、`15-sdk-transport`、`21-bridge-system`
 
 ## 7. 与其他系统的定位对比
 
@@ -163,11 +163,11 @@ gemini-cli/packages/cli/src/gemini.tsx
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `main()` | `sources/gemini-cli/packages/cli/src/gemini.tsx` | CLI 最顶层入口（v0.63 起不再经由 `index.ts` 分发），加载配置并启动交互或非交互路径 |
-| `Config.initialize()` | `sources/gemini-cli/packages/core/src/config/config.ts:1289` | 所有服务的固定装配入口：ToolRegistry、MCP、GeminiClient |
-| `startInteractiveUI()` | `sources/gemini-cli/packages/cli/src/gemini.tsx` | 交互路径启动：初始化 Ink TUI + AppContainer |
-| `nonInteractiveMode()` | `sources/gemini-cli/packages/cli/src/gemini.tsx` | 非交互路径启动：处理 stdin/--message，headless 执行 |
-| `GeminiClient.sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/client.ts:868` | 外部可调用的流式请求入口，SDK 复用点 |
+| `main()` | `sources/gemini-cli/packages/cli/src/gemini.tsx:466` | CLI 最顶层入口（bin 先经 `packages/cli/index.ts` 的轻量 relaunch 父进程，子进程内再导入 `main()`），加载配置并启动交互或非交互路径 |
+| `Config.initialize()` | `sources/gemini-cli/packages/core/src/config/config.ts:1444` | 所有服务的固定装配入口：ToolRegistry、MCP、GeminiClient |
+| `startInteractiveUI()` | `sources/gemini-cli/packages/cli/src/gemini.tsx:446` | 交互路径启动：初始化 Ink TUI + AppContainer |
+| `runNonInteractive()` | `sources/gemini-cli/packages/cli/src/nonInteractiveCli.ts:72` | 非交互路径启动：处理 stdin/`--prompt`，headless 执行 |
+| `GeminiClient.sendMessageStream()` | `sources/gemini-cli/packages/core/src/core/client.ts:924` | 外部可调用的流式请求入口，SDK 复用点 |
 | `AgentRegistry` | `sources/gemini-cli/packages/core/src/agents/registry.ts` | 多代理注册表：内建+用户+项目+extension agent 统一管理 |
 
 ---
@@ -177,11 +177,11 @@ gemini-cli/packages/cli/src/gemini.tsx
 **优点**
 
 - **MonoRepo 包复用清晰**：`@google/gemini-cli-core` 提供所有业务能力，`cli` 包只负责 TUI 宿主和参数解析，SDK 直接提取 `core` 包即可，无需拆分项目。
-- **入口分层明确**：`index.ts` → `gemini.tsx` → 交互/非交互分支，阅读路线短，不需要追踪隐式注册或 DI 容器。
+- **入口分层明确**：`index.ts`（轻量 relaunch 父进程）→ `gemini.tsx` → 交互/非交互分支，阅读路线短，不需要追踪隐式注册或 DI 容器。
 - **版本与模型配置解耦**：模型 ID 通过 `Config.getModelId()` 读取，不硬编码在入口，换模型只需改配置。
 
 **风险与改进点**
 
 - **`Config` 类是"上帝对象"**：同时承担服务容器、配置读取、状态持有、初始化协调四种角色，新功能很容易堆积到 `Config`，形成难以拆分的单点依赖。
-- **初始化链无进度反馈**：`Config.initialize()` 是同步串行链，MCP server 连接慢时用户不知道初始化卡在哪，UX 体验较差。
+- **初始化链无进度反馈**：`Config.initialize()` 是串行装配链，MCP server 连接慢时用户不知道初始化卡在哪，UX 体验较差。
 - **仓库缺乏架构 ADR / Decision Log**：大量设计决策（如为什么用 Ink、为什么不内置 LSP）隐含在代码结构中，没有显式文档化，新贡献者上手成本高。

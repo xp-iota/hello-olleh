@@ -30,7 +30,7 @@ Codex 到达右上象限的路径是清晰的：两阶段记忆管道（Phase 1/
 
 **Gemini CLI (0.6, 0.65)** — 中右象限：运行时与控制平面的平衡
 
-Gemini CLI 的 Hook System（BeforeModel/AfterModel 完整生命周期）和 29+ eval 文件提供了较高的运行时连续性（横轴 0.6），而 Snippet 函数组合的控制平面虽然不如 Codex 的 Markdown 文件直观，但比 Claude Code 的 TypeScript 硬编码更透明（纵轴 0.65）。Gemini CLI 是四个工程里唯一真正平衡了两个轴的工程。
+Gemini CLI 的 Hook System（BeforeModel/AfterModel 完整生命周期）和 38 个 eval 文件提供了较高的运行时连续性（横轴 0.6），而 Snippet 函数组合的控制平面虽然不如 Codex 的 Markdown 文件直观，但比 Claude Code 的 TypeScript 硬编码更透明（纵轴 0.65）。Gemini CLI 是四个工程里唯一真正平衡了两个轴的工程。
 
 **Claude Code (0.3, 0.4)** — 左中象限：运行时优先 + 低控制
 
@@ -38,7 +38,7 @@ Claude Code 的低运行时连续性（横轴 0.3）来自两个根因：无 GC 
 
 **OpenCode (0.35, 0.35)** — 左下象限：运行时优先 + 低控制
 
-OpenCode 的定位反映了它当前的开发阶段：单代理架构（无多代理验证）、无熵管理机制、Permission Schema 清晰但孤岛化。Effect-ts 的理论可治理性（Layer 模式、ServiceMap 依赖注入）是潜力，而不是当前实现的现实。
+OpenCode 的定位反映了它当前的开发阶段：单代理架构（无多代理验证）、无熵管理机制、Permission Schema 清晰但孤岛化。Effect-ts 的理论可治理性（Layer 模式、Context.Service 依赖注入）是潜力，而不是当前实现的现实。
 
 ---
 
@@ -49,21 +49,21 @@ OpenCode 的定位反映了它当前的开发阶段：单代理架构（无多�
 | 维度 | Claude Code | Codex | Gemini CLI | OpenCode |
 | :------|:-----------:|:-----:|:----------:|:--------:|
 | **前馈控制** | 2 | 4 | 3 | 3 |
-| — 证据 | `claudemd.ts` 分层加载，但百科全书结构 + 类型系统失效 | `base_instructions/default.md` 276 行结构化 AGENTS.md 规范 | `snippets.ts:123-151` Snippet 函数组合 | `permission/index.ts:19-24` Zod Schema |
+| — 证据 | `claudemd.ts` 分层加载，但百科全书结构 + 类型系统失效 | `base_instructions/default.md` 275 行结构化 AGENTS.md 规范 | `snippets.ts:136-166` Snippet 函数组合 | `packages/schema/src/permission.ts:56` Effect Schema 规约 |
 | **反馈控制** | 2 | 4 | 3 | 2 |
-| — 证据 | `query.ts` 无结构化反馈，Hook feature-flagged | `stage_one_system.md:150-201` outcome 标签 + NO-OP 门控 | `hookSystem.ts:259-305` BeforeModel/AfterModel + 29+ eval | `permission/index.ts:260-264` pending list，无自动闭环 |
+| — 证据 | `query.ts` 无结构化反馈，Hook feature-flagged | `stage_one_system.md:150-201` outcome 标签 + NO-OP 门控 | `hookSystem.ts:261-321` BeforeModel/AfterModel + 38 个 eval | `permission.ts:327-329` pending list，无自动闭环 |
 | **工具治理** | 2 | 4 | 3 | 3 |
-| — 证据 | `tools.ts:36-112` 工具级 Allowlist，硬编码，无沙箱 | `approval_policy/` Policy + 命令分段 + 三层沙箱 | `confirmation-policy.test.ts` 三种 ApprovalMode + 完整 MCP Client | `permission/index.ts:292-307` 细粒度 Action + Pattern |
+| — 证据 | `constants/tools.ts:36-112` 工具级 Allowlist，硬编码，无沙箱 | `approval_policy/` Policy + 命令分段 + 三层沙箱 | `confirmation-policy.test.ts` 三种 ApprovalMode + 完整 MCP Client | `permission.ts:87-101` findLast 通配符规则求值 |
 | **上下文工程** | 3 | 4 | 3 | 2 |
-| — 证据 | `claudemd.ts:790-1074` 四层分层加载 | Phase 1/2 跨 session + `consolidation.md` usage-based 遗忘 | `HierarchicalMemory` 三层 + Agent 可主动写记忆 | `skill/index.ts` 目录扫描，无 Compact 策略 |
+| — 证据 | `claudemd.ts:790-1074` 四层分层加载 | Phase 1/2 跨 session + `state/src/runtime/memories.rs:401` usage-based 遗忘 | `HierarchicalMemory` 三层 + memoryService 后台 Skill 提取 | `config/plugin/skill.ts` 目录扫描 + `SessionCompaction` 单路压缩 |
 | **可驾驭性** | 2 | 5 | 3 | 2 |
-| — 证据 | `tsconfig.json` ~1341 错误，类型系统归零 | Rust borrow checker 编译期保证 + crate 边界强制 | TypeScript 中等严格度 + 注册表模式 | Zod 运行时验证 + Effect Layer（非编译期） |
+| — 证据 | `tsconfig.json` ~1341 错误，类型系统归零 | Rust borrow checker 编译期保证 + crate 边界强制 | TypeScript 中等严格度 + 注册表模式 | Effect Schema 运行时验证 + Context.Service Layer（非编译期） |
 | **熵管理** | 1 | 5 | 2 | 1 |
-| — 证据 | 无 GC，memoize 无过期 | Phase 1/2 两阶段 + usage-count 遗忘 + outcome 质量标签 | `hookSystem.ts:226-237` SessionEnd 事件（被动） | 无熵管理，仅 Effect Finalizer |
+| — 证据 | 无 GC，memoize 无过期 | Phase 1/2 两阶段 + `prune_stage1_outputs_for_retention()` 遗忘 + outcome 质量标签 | `hookSystem.ts:229-233` SessionEnd 事件（被动） | 无熵管理，仅 Effect Finalizer |
 | **验证独立性** | 1 | 4 | 2 | 2 |
 | — 证据 | `VerifyPlanExecutionTool` feature-flagged，死代码 | Phase 2 五重隔离（无审批/网络，只允许本地写，禁止递归） | BeforeModel/AfterModel 分离（非进程级） | Effect Layer 隔离，但单代理 |
 | **团队落地** | 3 | 4 | 3 | 3 |
-| — 证据 | 四层文件体系 + 条件规则 | `docs/agents_md.md` 规范 + default.md 语义 + 嵌套优先规则 | `HierarchicalMemory` 接口 + eval 验证 | `Config.directories()` + `Permission.fromConfig()` |
+| — 证据 | 四层文件体系 + 条件规则 | `base_instructions/default.md` 嵌套优先规则 + AGENTS.md 跨工程约定 | `HierarchicalMemory` 接口 + eval 验证 | `config/plugin/skill.ts` 目录扫描 + `permission/saved.ts` 持久化规则 |
 | **总分 (40)** | **16** | **34** | **22** | **18** |
 | **均分 (5)** | **2.0** | **4.25** | **2.75** | **2.25** |
 
@@ -79,7 +79,7 @@ OpenCode 的定位反映了它当前的开发阶段：单代理架构（无多�
 
 **优先选择：Gemini CLI**
 
-Hook System 提供 BeforeModel/AfterModel 生命周期管理（反馈控制评分 3），使每次 Agent 决策前后都能注入检查逻辑。`fireSessionEndEvent`（`hookSystem.ts:226-237`）在会话结束时触发清理，维持会话边界。Snippet 模板化使会话规则可以版本化管理，不会因为规则散落在百科全书式文档里而失控。
+Hook System 提供 BeforeModel/AfterModel 生命周期管理（反馈控制评分 3），使每次 Agent 决策前后都能注入检查逻辑。`fireSessionEndEvent`（`hookSystem.ts:229-233`）在会话结束时触发清理，维持会话边界。Snippet 模板化使会话规则可以版本化管理，不会因为规则散落在百科全书式文档里而失控。
 
 **为什么不是 Codex**：Codex 的控制平面优先路线要求团队先建立制度（先写好 Approval policy，先定义模板体系），才能享受控制带来的收益。对于"先跑起来，边跑边治理"的团队，这个前期投入可能太高。Gemini CLI 的 Hook System 更接近"即插即用"的控制模式。
 
@@ -91,7 +91,7 @@ Hook System 提供 BeforeModel/AfterModel 生命周期管理（反馈控制评�
 
 **优先选择：Codex**
 
-Approval policy 四种模式强制团队明确"什么操作需要人工审批"（工具治理评分 4）。AGENTS.md 的嵌套优先规则提供了可预测的冲突解决机制——更深嵌套的规则总是优先，直接指令总是优先于文件规则（`default.md:25-26`）。`sources/codex/docs/agents_md.md` 的规范文档让每个团队成员都能读懂规则体系，而不需要阅读源码（团队落地评分 4）。
+Approval policy 四种模式强制团队明确"什么操作需要人工审批"（工具治理评分 4）。AGENTS.md 的嵌套优先规则提供了可预测的冲突解决机制——更深嵌套的规则总是优先，直接指令总是优先于文件规则（`base_instructions/default.md:25-26`）。AGENTS.md 是跨工程统一约定，官方文档让每个团队成员都能读懂规则体系，而不需要阅读源码（团队落地评分 4）。
 
 **为什么不是 Claude Code**：Claude Code 的权限模型（`ALL_AGENT_DISALLOWED_TOOLS`）是硬编码集合，用户无法查看完整规则，无法在不修改源码的情况下调整权限边界。规则的不透明正是这类团队痛点的根源之一。
 
@@ -106,7 +106,7 @@ Approval policy 四种模式强制团队明确"什么操作需要人工审批"�
 **Gemini CLI 路线**（学习推断型控制平面）：
 
 - Snippet 函数组合直观：Prompt 即代码，可以单独修改和测试每个 Snippet
-- 29+ eval 文件提供即时反馈循环：改一个规则，eval 立刻告诉你效果
+- 38 个 eval 文件提供即时反馈循环：改一个规则，eval 立刻告诉你效果
 - Hook System 是推断型前馈 + 反馈的完整示例：从这里理解 Agent 控制的实时性
 
 **Codex 路线**（学习工程化控制）：

@@ -3,7 +3,7 @@ title: "设置与配置：发现、归一化与 catalog 变换管线"
 ---
 # 设置与配置：发现、归一化与 catalog 变换管线
 
-> 基于 `sources/opencode/packages/core/src/config/`、`catalog.ts` 与 `specs/v2/catalog-config-plugin-lifecycle.md` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/packages/core/src/config/`、`models-dev.ts` 与 `specs/v2/catalog-config-plugin-lifecycle.md` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 
@@ -44,7 +44,7 @@ v2 的配置不是一次性读取的静态文件，而是一条**可重放的 Lo
 
 ## 4. catalog 变换管线
 
-`catalog.ts` 承载终态目录的组装；`specs/v2/catalog-config-plugin-lifecycle.md` 记录了为何选择"可重放的 Location 作用域变换"而不是其它方案。管线上的关键事实：
+终态目录（catalog）的组装由 `models-dev.ts` 承载（v2.0.27 起原 `catalog.ts` 已并入该模块）；`specs/v2/catalog-config-plugin-lifecycle.md` 记录了为何选择"可重放的 Location 作用域变换"而不是其它方案。管线上的关键事实：
 
 - 变换按 Location 作用域执行与重放，与会话的 Location 服务解析模型一致（见 [01-architecture.md](./01-architecture.md) §4）。
 - provider policy 由**最后一个 catalog 插件**在所有其它变换之后解释执行（见 [07-error-security.md](./07-error-security.md) §3）。

@@ -3,7 +3,7 @@ title: "Loader 与配置树"
 ---
 # Loader 与配置树
 
-> **本篇回答**：`loader`（870 行）与 `include`（219 行）如何把一个 yml 文件变成运行中的插件树、`Entry` 与 `Fiber` 的分工、`applyPatches` 的语义（DSH profile/bundle 的地基）、以及 isolate realm 切换的 7 步算法。
+> **本篇回答**：`loader`（997 行）与 `include`（947 行）如何把一个 yml 文件变成运行中的插件树、`Entry` 与 `Fiber` 的分工、`applyPatches` 的语义（DSH profile/bundle 的地基）、以及 isolate realm 切换的 7 步算法。
 > **路径缩写**：`L/` = `packages/loader/src/`，`I/` = `packages/include/src/`，`C/` = `packages/core/src/`。行号对应快照 `f8ea3cd5`。
 >
 > 🧭 **本篇导览**：7.1–7.2 从配置到运行与 `EntryOptions` → 7.3–7.4 `update()` 决策树与 `init()` → 7.5–7.6 `include` / `applyPatches` 与 id 解析 → 7.7–7.9 isolate realm 7 步、Loader 三钩子与 `EntryGroup`。
@@ -60,13 +60,13 @@ title: "Loader 与配置树"
 | `intercept?: Dict \| null` | isolate.ts:7 | 给该行注入服务配置 |
 | `isolate?: Dict<true \| string> \| null` | isolate.ts:8 | realm 声明：`true` = 私有，字符串 = 命名 realm |
 
-💡 **`inject` 可以写在配置里**（`L/index.ts:89-93`）：loader 在 `internal/plugin` 钩子里把 `entry.options.inject` 合并进 `fiber.inject`。这意味着**运维可以在不改代码的前提下给插件加依赖**——比如强制某插件等另一个服务就绪。
+💡 **`inject` 可以写在配置里**（`L/index.ts:90-96`）：loader 在 `internal/plugin` 钩子里把 `entry.options.inject` 合并进 `fiber.inject`。这意味着**运维可以在不改代码的前提下给插件加依赖**——比如强制某插件等另一个服务就绪。
 
 💡 **`sortKeys()`（`L/config/entry.ts:27-32`）**：每次 update 后把 options 的键重排为 `id, name, <其余按字母序>, config`。写回 yml 时字段顺序稳定，diff 干净。
 
 ## 7.3 `Entry.update()`：判断"重载还是原地改"
 
-`L/config/entry.ts:100-133` 是 loader 的核心决策点：
+`L/config/entry.ts:100-134` 是 loader 的核心决策点：
 
 ![Entry.update 的决策分支](diagrams/07-entry-update.svg)
 
@@ -79,11 +79,11 @@ title: "Loader 与配置树"
 💡 **关键：已运行的 Entry 不重建 Fiber，走 `_patchContext`**（`L/config/entry.ts:84-92`）：
 
 ```ts
-private _patchContext(diff: string[]) {
-  this.context.waterfall('loader/patch-context', this, () => {
+private async _patchContext(diff: string[]) {
+  await this.context.waterfall('loader/patch-context', this, async () => {
     Object.setPrototypeOf(this.ctx, this.parent.ctx)          // ← 换父作用域
     if (this.fiber?.uid && (diff.includes('config') || this.options.group)) {
-      this.fiber.update(this._resolveConfig(this.fiber.runtime!.callback), true)
+      await this.fiber.update(this._resolveConfig(this.fiber.runtime!.callback), true)
     }
   })
 }
@@ -95,7 +95,7 @@ private _patchContext(diff: string[]) {
 
 ## 7.4 `Entry.init()`：真正启动
 
-`L/config/entry.ts:146-172`：
+`L/config/entry.ts:146-173`：
 
 ![Entry.init() 从配置项到插件就绪](diagrams/07-entry-init.svg)
 
@@ -105,7 +105,7 @@ private _patchContext(diff: string[]) {
 - **导出处理为什么必要**：CommonJS 与 ESM 的默认导出形态不一致 · unwrapExports 统一成 cordis 认得的插件对象 · 否则 registry.resolve 会拿到 Module 命名空间对象
 - **loader 就绪的广播**：全部 Entry 完成后才 notify(['loader']) · 依赖 loader 服务的插件在此刻才被唤醒 · 这形成了配置树加载与插件激活的分界
 
-💡 **`unwrapExports()`（`L/index.ts:156-163`）处理 ESM/CJS 互操作的历史包袱**，注释里直接引了两个 issue：
+💡 **`unwrapExports()`（`L/index.ts:164-171`）处理 ESM/CJS 互操作的历史包袱**，注释里直接引了两个 issue：
 
 ```ts
 unwrapExports(exports: any) {
@@ -120,13 +120,13 @@ unwrapExports(exports: any) {
 
 **要解两次 `default`**——esbuild 转译产物在某些配置下会双层包裹。
 
-💡 **`fiber.await().finally()` 里的 `notify(['loader'])`（`:154`）** 与 `Loader[Service.check]`（`L/index.ts:133`）配合，实现"所有配置项加载完毕后 loader 才算可用"。这样依赖 `loader` 且设了 `intercept: { loader: { await: true } }` 的插件（如某些需要完整插件列表的工具）会等到最后。
+💡 **`fiber.await().finally()` 里的 `notify(['loader'])`（`:155`）** 与 `Loader[Service.check]`（`L/index.ts:141`）配合，实现"所有配置项加载完毕后 loader 才算可用"。这样依赖 `loader` 且设了 `intercept: { loader: { await: true } }` 的插件（如某些需要完整插件列表的工具）会等到最后。
 
 ## 7.5 `include` 与 `applyPatches`
 
 `include` 插件把一个文件变成 EntryTree。**它的 `applyPatches` 是 DSH profile/bundle 系统的直接地基**（见 [DSH 05 篇](../hello-dsh/05-startup-and-cordis-runtime.md)）。
 
-`I/index.ts:101-164`：
+`I/patch.ts:47-109`：
 
 ![applyPatches 的两条处理路径](diagrams/07-apply-patches.svg)
 
@@ -140,11 +140,11 @@ unwrapExports(exports: any) {
 
 | 语义 | 含义 |
 |---|---|
-| **整体替换而非合并** | `target[key] = value`（`:159`）——patch 里写 `config` 会**替换整个 config 对象**，不是深合并 |
-| **`name` 是安全阀** | 若 patch 写了 `name`，它必须与目标行的 `name` 一致，否则跳过。防止 id 被复用后 patch 打到错误的插件上 |
-| **`insert` 与字段覆盖互斥** | 有 `insert` 就只做插入，忽略其余字段 |
+| **整体替换而非合并** | `target[key] = value`（`I/patch.ts:104`）——patch 里写 `config` 会**替换整个 config 对象**，不是深合并 |
+| **`name` 是安全阀** | 若 patch 写了 `name`，它必须与目标行的 `name` 一致，否则跳过（`:97-100`）。防止 id 被复用后 patch 打到错误的插件上 |
+| **`insert` 与字段覆盖互斥** | 有 `insert` 就只做插入，忽略其余字段（`:65-84`） |
 
-💡 **`applyPatches` 是纯函数式地在数组上操作**，但注意它**原地修改** `data`（`:127`、`:133`、`:159`）。调用方 `I/index.ts:179` 传的是 `[...this.data!]` 浅拷贝——顶层数组是新的，但嵌套的 group config 对象是共享的。
+💡 **`applyPatches` 不再原地修改传入的数组**：入口先 `data = structuredClone(data)`（`I/patch.ts:48`），插入的条目也各自 `structuredClone`（`:66`）——树拥有它挂载的每一个对象。调用方 `I/index.ts:428` 直接把 `this.cache.data` 传进去，文件缓存也不会被 patch 污染。
 
 ### 文件格式与写回
 
@@ -152,17 +152,17 @@ unwrapExports(exports: any) {
 |---|---|---|
 | `.json` | `application/json` | ✅ |
 | `.yaml` / `.yml` | `application/yaml` | ✅ |
-| 其它 | — | ❌（走 `import()`，只读） |
+| 其它 | — | ❌（构造函数直接抛错，不再回退 `import()`） |
 
-`writable` 映射在 `I/index.ts:19-22`，`supported` 集合在 `:24`。不支持的扩展名直接抛 `extension "${ext}" not supported`（`I/index.ts:64`）。
+扩展名到 MIME 的映射在 `I/index.ts:23-27`（`types`）。不支持的扩展名在构造函数里直接抛 `extension "${ext}" not supported`（`I/index.ts:111`）。
 
-💡 **写回是原子的**（`I/index.ts:192-204`）：先写 `filename + '.tmp'`，再 `rename` 覆盖。`rename` 在同一文件系统上是原子操作，避免写一半崩溃导致配置损坏。
+💡 **写回是原子的**（`I/index.ts:351-372` 的 `_writeText`）：先写 `.{basename}.{pid}.{序号}.tmp`，再 `rename` 覆盖。`rename` 在同一文件系统上是原子操作，避免写一半崩溃导致配置损坏；Windows 上被杀毒软件短暂占住导致的 `EACCES`/`EPERM`/`EBUSY` 会按 20ms×n 退避重试至多 10 次（`:58-59`、`:67-70`）。带期望内容写入时还会核对文件没被别人改过，改过则抛 `StaleWriteError` 触发重读（`:45-47`）。
 
-💡 **`writeFile` 用 `setTimeout(..., 0)` 去抖**（`I/index.ts:205-211`）：连续多次写只落盘最后一次。
+💡 **读写由 `_drain()` / `_loop()` 驱动**（`I/index.ts:194-226`）：读、写各有一个脏标记，任一置位就启动一轮 drain 循环，循环里反复"读—写"直到两个脏位都清空。连续多次写只落盘最后一次；读到写了一半的文件只告警并保留脏位等下一次触发。
 
 ### 自定义 YAML 标签 `!!js`
 
-`I/index.ts:8-15` 注册了一个 yaml 类型：
+`I/index.ts:13-19` 注册了一个 yaml 类型：
 
 ```ts
 const JsExpr = new yaml.Type('tag:yaml.org,2002:js', {
@@ -180,17 +180,17 @@ const JsExpr = new yaml.Type('tag:yaml.org,2002:js', {
 
 ## 7.6 `EntryTree`：id 解析
 
-`L/config/tree.ts`（123 行）：
+`L/config/tree.ts`（157 行）：
 
 | 方法 | 行号 | 作用 |
 |---|---|---|
-| `static sep = ':'` | 7 | id 分层分隔符 |
-| `getTasks()` | 33 | 收集所有未完成的 `_initTask` |
-| `ensureId(options)` | 47 | 没 id 就生成一个（防重） |
-| `resolve(id)` | 56 | 按 `a:b:c` 逐层下钻找 Entry |
-| `resolveGroup(id)` | 69 | 找到 id 对应的 EntryGroup |
-| `remove(id)` | 83 | 删除一行 |
-| `import(name, getOuterStack?)` | 103 | 动态 import，出错时接长堆栈 |
+| `static sep = ':'` | 25 | id 分层分隔符 |
+| `getTasks()` | 51 | 收集所有未完成的 `_initTask` |
+| `ensureId(options)` | 65 | 没 id 就生成一个（防重） |
+| `resolve(id)` | 74 | 按 `a:b:c` 逐层下钻找 Entry |
+| `resolveGroup(id)` | 87 | 找到 id 对应的 EntryGroup |
+| `remove(id)` | 102 | 删除一行 |
+| `import(name, getOuterStack?)` | 131 | 动态 import，出错时接长堆栈 |
 
 💡 **`id` 的全路径由 `Entry.get id()`（`L/config/entry.ts:56-62`）拼出**：
 
@@ -208,7 +208,7 @@ get id() {
 
 ## 7.7 isolate realm 的 7 步切换算法
 
-`L/config/isolate.ts:67-149` 是 loader 里最复杂的一段——它要在**不重启插件**的前提下把服务实例从一个 realm 搬到另一个。
+`L/config/isolate.ts:91-149` 是 loader 里最复杂的一段——它要在**不重启插件**的前提下把服务实例从一个 realm 搬到另一个。
 
 ### 两种 Realm
 
@@ -224,7 +224,7 @@ Symbol 的描述串形如 `logger#db` 或 `logger@shared`——**调试时能一
 
 ### 7 步算法
 
-`loader/patch-context` 的监听器（`L/config/isolate.ts:92-149`）：
+`loader/patch-context` 的监听器（`L/config/isolate.ts:91-149`）：
 
 ![patch-context 的三步切换](diagrams/07-patch-context.svg)
 
@@ -256,27 +256,28 @@ Symbol 的描述串形如 `logger#db` 或 `logger@shared`——**调试时能一
 
 ## 7.8 Loader 的三个钩子
 
-`L/index.ts:74-125` 注册了三个监听器：
+`L/index.ts:74-132` 注册了三个监听器：
 
 | 钩子 | 行号 | 作用 |
 |---|---|---|
-| `internal/update`（global, prepend） | 74 | **把新配置写回 yml**：`entry.options.config = unparse ? unparse(config) : config` 然后 `tree.write()`。有 `noSave` 或"是 entry 自己的根 fiber"时跳过 |
-| `internal/update`（global） | 82 | 打印 `reload` 日志 |
-| `internal/plugin` | 88 | ① 设置 `fiber.entry` 并合并配置里的 inject；② **6 个 case 的"自卸载"判定** |
+| `internal/update`（global, prepend） | 74 | **把新配置写回配置文件**：`entry.options.config = unparse ? unparse(config) : config` 然后 `entry.parent.tree.commit(...)`（include 的 commit 记入变更日志并异步落盘）。有 `noSave` 或"是 entry 自己的根 fiber"时跳过 |
+| `internal/update`（global） | 84 | 打印 `reload` 日志 |
+| `internal/plugin` | 90 | ① 设置 `fiber.entry` 并合并配置里的 inject；② **7 个 case 的"自卸载"判定** |
 
-### "自卸载"判定的 6 个 case
+### "自卸载"判定的 7 个 case
 
-`L/index.ts:98-122` —— loader 需要区分"用户在代码里调了 `ctx.fiber.dispose()`"（应该把 `disabled: true` 写回配置）和其它卸载原因（不应该写）：
+`L/index.ts:101-127` —— loader 需要区分"用户在代码里调了 `ctx.fiber.dispose()`"（应该把 `disabled: true` 写回配置）和其它卸载原因（不应该写）：
 
-![internal/plugin 的五道排除条件](diagrams/07-unload-cases.svg)
+![internal/plugin 的七道排除条件](diagrams/07-unload-cases.svg)
 
-**internal/plugin 的五道排除条件** — [交互版](diagrams/07-unload-cases.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/07-unload-cases.architecture.json)
+**internal/plugin 的七道排除条件** — [交互版](diagrams/07-unload-cases.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/07-unload-cases.architecture.json)
 
-- **为什么需要五道排除**：loader 要区分「用户主动禁用」与其余情形 · 只有前者该把 disabled 写回配置文件 · 误判会导致配置被意外改写
+- **为什么需要七道排除**：loader 要区分「用户主动禁用」与其余情形 · 只有前者该把 disabled 写回配置文件 · 误判会导致配置被意外改写
 - **case 4 是 HMR 的关键**：HMR 的顺序是先 registry.delete 再 dispose · 于是此刻 registry 里已查不到该 callback · 靠这个特征把热重载与真卸载区分开
-- **事件本身一体两用**：internal/plugin 在创建与卸载时各发一次 · case 1 用 fiber.uid 把创建事件先滤掉 · 其余四道逐层排除非用户意图的卸载
+- **case 6/7 排除 loader 自身的操作**：case 6：EntryGroup.remove 先注销再 dispose（:121-123） · case 7：注入检查器、配置更新、祖先 group 禁用（:125-127） · 二者都不算用户自卸载
+- **事件本身一体两用**：internal/plugin 在创建与卸载时各发一次 · case 1 用 fiber.uid 把创建事件先滤掉 · 其余六道逐层排除非用户意图的卸载
 
-💡 **case 4 的注释解释了顺序差异**（`L/index.ts:109-110`）：
+💡 **case 4 的注释解释了顺序差异**（`L/index.ts:111-112`）：
 
 ```
 // self-dispose: ctx.fiber.dispose() -> fiber / runtime dispose -> delete(plugin)
@@ -287,7 +288,7 @@ Symbol 的描述串形如 `logger#db` 或 `logger@shared`——**调试时能一
 
 ## 7.9 `EntryGroup` 与 `Group`
 
-`L/config/group.ts`（88 行）：
+`L/config/group.ts`（91 行）：
 
 | 符号 | 行号 | 说明 |
 |---|---|---|
@@ -295,9 +296,9 @@ Symbol 的描述串形如 `logger#db` 或 `logger@shared`——**调试时能一
 | `static key = Symbol.for('cordis.group')` | 6 | 标记"这是个 group 插件" |
 | `unlink(options)` | 30 | 从 data 数组里摘掉一行 |
 | `remove(id, isDispose?)` | 36 | 删除并 dispose |
-| `stop()` | 66 | 停掉全部子 Entry |
-| `class Group extends EntryGroup` | 73 | **可作为插件使用**的 group |
-| `Group.initial` | 74 | 静态初始配置 |
+| `stop()` | 71 | 停掉全部子 Entry |
+| `class Group extends EntryGroup` | 78 | **可作为插件使用**的 group |
+| `Group.initial` | 79 | 静态初始配置 |
 
 `packages/group/src/index.ts` 全文 3 行，就是把 `Group` 再导出，让配置能写 `name: '@cordisjs/plugin-group'`。
 

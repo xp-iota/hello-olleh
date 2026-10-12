@@ -26,7 +26,7 @@
     {
       "id": "node2",
       "type": "backend",
-      "label": "MemoryManager.prefetchall()",
+      "label": "MemoryManager.prefetch_all()",
       "pos": [
         391,
         65
@@ -34,12 +34,13 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "memory_manager.py:447"
     },
     {
       "id": "node3",
       "type": "frontend",
-      "label": "PromptBuilder.buildsystemprompt()",
+      "label": "prompt_builder 模块函数",
       "pos": [
         737,
         65
@@ -47,7 +48,8 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "组装 system prompt（无类）"
     },
     {
       "id": "node4",
@@ -65,7 +67,7 @@
     {
       "id": "node5",
       "type": "backend",
-      "label": "MemoryManager.syncall()",
+      "label": "MemoryManager.sync_all()",
       "pos": [
         1429,
         65
@@ -73,7 +75,8 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "memory_manager.py:533"
     },
     {
       "id": "node6",
@@ -86,7 +89,8 @@
       "size": [
         300,
         84
-      ]
+      ],
+      "sublabel": "context_engine.py:98"
     }
   ],
   "connections": [
@@ -152,7 +156,7 @@
       "title": "要点",
       "items": [
         "首节点：用户输入",
-        "末节点：ContextEngine.compress() (if…"
+        "末节点：ContextEngine.compress() (if needed)"
       ]
     }
   ]

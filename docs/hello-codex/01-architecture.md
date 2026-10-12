@@ -19,7 +19,7 @@ title: "架构全景：仓库形态、Crate/Package 拓扑、分层模型与核�
 
 ## 仓库形态判断
 
-判断 Codex 仓库重心最简单的方法，是看谁在组织真正的依赖图。`codex-rs/Cargo.toml` 的 workspace 收进了 **86 个 crate**，涵盖 `cli`、`core`、`app-server`、`app-server-protocol`、`mcp-server`、`exec`、`tui`、`cloud-tasks` 以及大量 utils crate（`sources/codex/codex-rs/Cargo.toml:1-140`）。这不是"一个 CLI 带若干子模块"的规模，而是**一个运行时平台被拆成多宿主与多服务**的规模。
+判断 Codex 仓库重心最简单的方法，是看谁在组织真正的依赖图。`codex-rs/Cargo.toml` 的 workspace 收进了 **156 个 crate**，涵盖 `cli`、`core`、`app-server`、`app-server-protocol`、`exec`、`tui`、`cloud-tasks`、`codex-mcp` 以及大量 utils crate（`sources/codex/codex-rs/Cargo.toml:1-159`）。这不是"一个 CLI 带若干子模块"的规模，而是**一个运行时平台被拆成多宿主与多服务**的规模。
 
 JS/TS 层则由 pnpm monorepo 管理，包含 3 个 package：
 
@@ -29,15 +29,15 @@ JS/TS 层则由 pnpm monorepo 管理，包含 3 个 package：
 | `@openai/codex-sdk` | `sdk/typescript/` | TypeScript SDK（消费 exec JSON 协议）|
 | `responses-api-proxy/npm` | `codex-rs/responses-api-proxy/npm/` | Responses API 代理 npm 包装 |
 
-核心结论：**Rust workspace 是运行时与协议中心，JS/TS 只做分发、封装和生态接入**（`sources/codex/codex-cli/bin/codex.js:15-204`; `sources/codex/sdk/typescript/src/codex.ts:11-37`）。
+核心结论：**Rust workspace 是运行时与协议中心，JS/TS 只做分发、封装和生态接入**（`sources/codex/codex-cli/bin/codex.js:1-295`; `sources/codex/sdk/typescript/src/codex.ts:11-37`）。
 
 ## Crate 拓扑与依赖图
 
-### 86 个 Crate 的分类
+### 156 个 Crate 的分类
 
 | 分类 | 数量 | 代表 |
 | --- | --- | --- |
-| 二进制入口 | 6 | `cli`, `tui`, `app-server`, `exec`, `mcp-server`, `exec-server` |
+| 二进制入口 | 6 | `cli`, `tui`, `app-server`, `exec`, `exec-server`, `execpolicy` |
 | 核心逻辑 | 4 | `core`, `app-server`, `codex-api`, `codex-mcp` |
 | 协议定义 | 4 | `protocol`, `app-server-protocol`, `codex-api`, `codex-client` |
 | 基础设施 | 25+ | `config`, `state`, `login`, `skills`, `hooks`, `sandboxing` |
@@ -94,20 +94,19 @@ Codex 的 Rust/TypeScript 跨界**不使用 N-API 或 WASM**，而是采用纯 H
 ### ts-rs 类型生成管线
 
 ```rust
-// codex-protocol 中的典型类型（行 98-101）
-#[derive(Serialize, Deserialize, ts_rs::TS)]
-pub struct ResponseEvent { ... }
-// → 自动生成 ResponseEvent.ts
+// app-server-protocol 中的典型类型（app-server-protocol/src/protocol/v2/turn.rs:30-36）
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, JsonSchema, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export_to = "v2/")]
+pub enum TurnStatus { ... }
+// → 自动生成 app-server-protocol/schema/typescript/v2/TurnStatus.ts
 ```
 
-生成产物示例（`codex-protocol/bindings/typescript/ResponseEvent.ts`）：
+生成产物示例（`app-server-protocol/schema/typescript/v2/TurnStatus.ts`）：
 
 ```typescript
-// 编译时自动生成，与 Rust struct 完全对齐
-export interface ResponseEvent {
-  type: 'created' | 'output_item_added' | 'output_text_delta' | ...;
-  data: {...};
-}
+// 编译时自动生成，与 Rust enum 完全对齐
+export type TurnStatus = "completed" | "interrupted" | "failed" | "inProgress";
 ```
 
 ### 进程边界与协议契约
@@ -118,13 +117,13 @@ export interface ResponseEvent {
 
 - **组成**：6 个节点
 - **关系**：源图 1 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
-- **要点**：codex-protocol / (ts-rs) → bindings/typescript/（tsrs::TS 宏）
+- **要点**：app-server-protocol / (ts-rs) → schema/typescript/（TS 宏）
 
-**协议版本不匹配的处理**：
+**协议契约的维护方式**：
 
-- `codex-protocol/schema/json/` 中维护 JSON schema 版本
-- TypeScript SDK 依赖特定 schema 版本，不兼容时编译期报错
-- Rust 侧通过 `ts_rs::TS` 宏确保源码改动自动触发 schema 更新
+- `app-server-protocol/schema/json/` 中维护 JSON schema 固件（配套 `precomputed/` 预生成目录与 `scripts/write_schema_fixtures.py`）
+- Rust 侧通过 `TS` / `JsonSchema` derive 宏保证类型改动自动同步到 `schema/typescript/` 与 `schema/json/` 产物
+- TypeScript SDK（`sdk/typescript/src/`）手工维护与 Rust 协议对齐的类型声明，消费的是 exec JSON 协议
 
 **把双向调用说直白**：
 
@@ -170,23 +169,23 @@ CLI 包装层 → TUI 编排层 → App Server 会话层 → Core Agent 层 → 
 
 ### ThreadManager / CodexThread
 
-`ThreadManager` 是线程生命周期总控（`sources/codex/codex-rs/core/src/thread_manager.rs:239-264`）。它持有 `PluginsManager`、`McpManager`、`SkillsManager`、`ModelsManager`、`file_watcher` 与 `AuthManager`，把这些全挂进 `ThreadManagerState`。
+`ThreadManager` 是线程生命周期总控（`sources/codex/codex-rs/core/src/thread_manager.rs:532`）。它持有 `PluginsManager`、`McpManager`、`HostSkillsService`、`ModelsManager` 与 `AuthManager`，把这些全挂进 `ThreadManagerState`（`core/src/thread_manager.rs:415`）。
 
 关键方法：
 
 | 方法 | 行号 | 作用 |
 | --- | --- | --- |
-| `new()` | 239-264 | 组装所有 Manager，创建状态 |
-| `start_thread()` | 406 | 新建线程（统一入口）|
-| `resume_thread_from_rollout()` | 455 | 从 rollout 恢复线程 |
-| `fork_thread()` | 598 | 从已有线程分叉 |
-| `spawn_thread()` | 内部 | start/resume/fork 都汇合到此 |
+| `new()` | 534 | 组装所有 Manager，创建状态 |
+| `start_thread()` | 1049 | 新建线程（统一入口）|
+| `resume_thread_with_history()` | 1271 | 按优先级（history > path > thread_id）恢复线程 |
+| `fork_thread_from_history()` | 1481 | 从已有线程分叉 |
+| `spawn_thread()` | 2072 | start/resume/fork 都汇合到此 |
 
 线程实例存储在 `Arc<RwLock<HashMap<ThreadId, Arc<CodexThread>>>>`，创建事件通过 `broadcast::channel`（容量 1024）广播。
 
 ### ModelClient / ModelClientSession
 
-这一对抽象分离"会话级 API 状态"和"单轮流式请求状态"（`sources/codex/codex-rs/core/src/client.rs:182-250`）：
+这一对抽象分离"会话级 API 状态"和"单轮流式请求状态"（`sources/codex/codex-rs/core/src/client.rs:267-294`）：
 
 - `ModelClient`：缓存认证、provider 配置、WebSocket 开关
 - `ModelClientSession`：每轮新建，持有 WebSocket 连接缓存和 sticky routing token
@@ -216,7 +215,7 @@ CLI 包装层 → TUI 编排层 → App Server 会话层 → Core Agent 层 → 
 | MCP 协议 | `rmcp` | 外部工具、资源、Apps/Connector 集成 |
 | 类型同步 | `ts-rs` | Rust struct → TypeScript 类型声明 |
 | 构建 | Cargo + Bazel + Just | 本地开发、CI、测试、发布 |
-| 包管理 | pnpm v10.29+ | JS/TS monorepo 管理 |
+| 包管理 | pnpm v10.34+ | JS/TS monorepo 管理 |
 
 ## 心智模型
 
@@ -224,7 +223,7 @@ CLI 包装层 → TUI 编排层 → App Server 会话层 → Core Agent 层 → 
 
 四个直接源码支点：
 
-1. 宿主很多，但入口统一由 `Subcommand` 与 `cli_main()` 暴露和分流（`sources/codex/codex-rs/cli/src/main.rs:88-152`; `sources/codex/codex-rs/cli/src/main.rs:590-715`）。
+1. 宿主很多，但入口统一由 `Subcommand` 与 `cli_main()` 暴露和分流（`sources/codex/codex-rs/cli/src/main.rs:1041`; `sources/codex/codex-rs/cli/src/main.rs:147-244`）。
 2. 运行时能力集中在 `codex-core`，尤其是 `ThreadManager` 对 start/resume/fork 的统一装配。
 3. app-server 把线程生命周期和内容模型公开成稳定协议：`Thread*Params`、`Thread`、`Turn`、`ThreadItem`。
 4. JS/TS 层不复制实现，只桥接二进制和协议。
@@ -235,16 +234,16 @@ CLI 包装层 → TUI 编排层 → App Server 会话层 → Core Agent 层 → 
 
 | 符号 | 文件 | 行号 | 职责 |
 | :------| :------| :------| :------|
-| `cli_main()` | `codex-rs/cli/src/main.rs` | 88-152 | 顶层入口：解析 argv[0]，分发给各子命令 |
-| `Subcommand` (enum) | `codex-rs/cli/src/main.rs` | 590-715 | 所有 CLI 子命令的枚举分发 |
-| `CodexThread` session struct | `codex-rs/core/src/codex_thread.rs` | 208 | 核心运行时对象（0.154 的 `Codex`，0.162 更名拆分），持有所有会话状态 |
+| `cli_main()` | `codex-rs/cli/src/main.rs` | 1041 | 顶层入口：解析 argv[0]，分发给各子命令 |
+| `Subcommand` (enum) | `codex-rs/cli/src/main.rs` | 147-244 | 所有 CLI 子命令的枚举分发 |
+| `CodexThread` session struct | `codex-rs/core/src/codex_thread.rs` | 208 | 核心运行时对象，持有所有会话状态 |
 | `submission_loop()` | `codex-rs/core/src/session/handlers.rs` | 439 | 单线程 session 事件分发器 |
 | `run_turn()` | `codex-rs/core/src/session/turn.rs` | 163 | 单轮执行控制，含 token 预算检查 |
 | `run_sampling_request()` | `codex-rs/core/src/session/turn.rs` | 1603 | LLM 调用编排与重试 |
 | `try_run_sampling_request()` | `codex-rs/core/src/session/turn.rs` | 2512 | 流式响应消费与工具并发调度 |
-| `ThreadManager::start_thread()` | `codex-rs/core/src/thread_manager.rs` | — | 创建并启动新会话线程 |
-| `ThreadManager::resume_thread_from_rollout()` | `codex-rs/core/src/thread_manager.rs` | — | 从 rollout 记录恢复会话 |
-| `TurnContext` | `codex-rs/core/src/session/turn_context.rs` | 321 | 单轮内存状态：token 用量、工具调用（0.154 曾含 Ghost snapshot；0.162 起 ghost 机制已不在采样路径上） |
+| `ThreadManager::start_thread()` | `codex-rs/core/src/thread_manager.rs` | 1049 | 创建并启动新会话线程 |
+| `ThreadManager::resume_thread_with_history()` | `codex-rs/core/src/thread_manager.rs` | 1271 | 按优先级（history > path > thread_id）恢复会话 |
+| `TurnContext` | `codex-rs/core/src/session/turn_context.rs` | 321 | 单轮内存状态：token 用量、工具调用 |
 
 ---
 
@@ -255,10 +254,10 @@ CLI 包装层 → TUI 编排层 → App Server 会话层 → Core Agent 层 → 
 - **IPC-only 跨语言边界**：JS 层通过 stdin/stdout JSON 协议与 Rust 通信，没有 N-API/WASM 绑定，两侧可独立编译和版本演进。
 - **线程协议稳定**：`app-server` 把 `Thread*Params`、`Turn`、`ThreadItem` 公开为稳定 HTTP 协议，多种宿主（CLI/app-server/SDK）可复用同一 Rust runtime。
 - **Tokio 单线程 session**：每个 session 独立 Tokio task，无跨 session 共享可变状态，消除了大量潜在竞态条件。
-- **Bazel + Buck2 双构建支持**：允许在不同 CI/CD 环境中复用，增量构建对大型 Rust codebase 效果显著。
+- **Bazel + Just 双构建支持**：Cargo 之外提供 Bazel 与 justfile 两套构建/任务入口，允许在不同 CI/CD 环境中复用，增量构建对大型 Rust codebase 效果显著。
 
 **风险与改进点**
 
-- **`codex.rs` 单文件超 7500 行**：四层嵌套循环全部在同一文件中，是当前代码库最高的技术债单点，任何核心流程修改都要在超大文件中定位。
+- **核心循环拆分后仍有超大文件**：Agent 核心循环拆进了 `core/src/session/` 模块，但 `session/mod.rs`（5,178 行）与 `session/turn.rs`（3,206 行）仍是核心流程修改时必须定位的超大文件。
 - **JS 与 Rust 版本松耦合**：`codex-cli` 包的 JS 部分需手动保持与 Rust binary 协议兼容，版本不同步可能导致静默行为异常。
-- **TUI（`chatwidget.rs`、`app.rs`）超过万行**：与核心运行时同等量级的代码在 TUI 层，调试渲染问题时负担沉重。
+- **TUI 渲染代码体量庞大**：`tui/src/chatwidget/` 模块目录（约 80,000 行，其中测试约 56,000 行）与核心运行时同等量级，调试渲染问题时负担沉重。

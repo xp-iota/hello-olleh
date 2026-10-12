@@ -22,11 +22,11 @@ title: "LSP 集成：代码理解能力的现状与设计取向"
 
 | 能力 | 实现方式 | 质量 |
 | :------| :---------| :------|
-| **文件读取** | `read_file` 工具 + 文本分析（`sources/gemini-cli/packages/core/src/tools/read-file.ts:199`） | 全量但无语义 |
-| **符号搜索** | `grep_search` / ripgrep（`sources/gemini-cli/packages/core/src/tools/grep.ts:657`, `sources/gemini-cli/packages/core/src/tools/ripGrep.ts:605`）| 模式匹配，无类型信息 |
+| **文件读取** | `read_file` 工具 + 文本分析（`sources/gemini-cli/packages/core/src/tools/read-file.ts:244`） | 全量但无语义 |
+| **符号搜索** | `grep_search` / ripgrep（`sources/gemini-cli/packages/core/src/tools/grep.ts:688`, `sources/gemini-cli/packages/core/src/tools/ripGrep.ts:621`）| 模式匹配，无类型信息 |
 | **代码库索引** | 无内置索引，依赖文件系统遍历 | 线性搜索 |
 | **类型推断** | 依赖模型本身的语言理解能力 | 模型层面推断 |
-| **诊断信息** | 不接入 LSP，需显式运行 lint/test/typecheck（`sources/gemini-cli/packages/core/src/tools/shell.ts:942`） | 工具化补偿 |
+| **诊断信息** | 不接入 LSP，需显式运行 lint/test/typecheck（`sources/gemini-cli/packages/core/src/tools/shell.ts:1190`） | 工具化补偿 |
 
 ## 2. 工具层面的代码理解
 
@@ -117,12 +117,12 @@ Gemini CLI 选择以**工具组合 + 大上下文**的方式处理代码理解�
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `GrepTool` | `sources/gemini-cli/packages/core/src/tools/grep.ts:657` | 代码搜索工具：通过正则在工作区文件中查找符号/文本 |
-| `RipGrepTool` | `sources/gemini-cli/packages/core/src/tools/ripGrep.ts:605` | ripgrep 优化路径 |
-| `ReadFileTool` | `sources/gemini-cli/packages/core/src/tools/read-file.ts:199` | 文件读取工具：支持按行范围读取代码上下文 |
-| `ShellTool` | `sources/gemini-cli/packages/core/src/tools/shell.ts:942` | 运行 lint/test/typecheck 补齐 diagnostics |
-| `McpClientManager` | `sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts:34` | MCP 接入桥接：第三方 LSP/代码分析 server 通过 MCP 接入 |
-| `ToolRegistry` | `sources/gemini-cli/packages/core/src/tools/tool-registry.ts:229` | LSP bridge 最终仍要注册成普通工具 |
+| `GrepTool` | `sources/gemini-cli/packages/core/src/tools/grep.ts:688` | 代码搜索工具：通过正则在工作区文件中查找符号/文本 |
+| `RipGrepTool` | `sources/gemini-cli/packages/core/src/tools/ripGrep.ts:621` | ripgrep 优化路径 |
+| `ReadFileTool` | `sources/gemini-cli/packages/core/src/tools/read-file.ts:244` | 文件读取工具：支持按行范围读取代码上下文 |
+| `ShellTool` | `sources/gemini-cli/packages/core/src/tools/shell.ts:1190` | 运行 lint/test/typecheck 补齐 diagnostics |
+| `McpClientManager` | `sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts:37` | MCP 接入桥接：第三方 LSP/代码分析 server 通过 MCP 接入 |
+| `ToolRegistry` | `sources/gemini-cli/packages/core/src/tools/tool-registry.ts:247` | LSP bridge 最终仍要注册成普通工具 |
 
 ---
 
@@ -146,10 +146,10 @@ Gemini CLI 当前更依赖文本搜索、工具调用和外部命令，而不是
 
 | 能力 | Gemini 现状 | 横向对比 |
 | --- | --- | --- |
-| symbol lookup | `sources/gemini-cli/packages/core/src/tools/grep.ts:657` | OpenCode/Claude 更强 |
-| diagnostics | `sources/gemini-cli/packages/core/src/tools/shell.ts:942` | Codex 类似 |
-| MCP LSP | `sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts:34` | 需要 ToolRegistry/Scheduler 接入 |
-| IDE context | `sources/gemini-cli/packages/core/src/ide/process-utils.ts:113` | 与 `21-bridge-system.md` 交叉 |
+| symbol lookup | `sources/gemini-cli/packages/core/src/tools/grep.ts:688` | OpenCode/Claude 更强 |
+| diagnostics | `sources/gemini-cli/packages/core/src/tools/shell.ts:1190` | Codex 类似 |
+| MCP LSP | `sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts:37` | 需要 ToolRegistry/Scheduler 接入 |
+| IDE context | `sources/gemini-cli/packages/core/src/ide/process-utils.ts:229` | 与 `21-bridge-system.md` 交叉 |
 
 ## 不支持实时 LSP 的影响
 

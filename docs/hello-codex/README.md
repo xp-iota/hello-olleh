@@ -3,9 +3,9 @@ title: "Codex 源码分析 README"
 ---
 # Codex 源码分析 README
 
-本目录记录 OpenAI Codex `rust-v0.162.1`（`092d3acd6`）的源码分析，覆盖当前 Rust workspace、skills 扩展、command safety、会话运行时和工具系统。0.154 → 0.162 期间上游把 7500 行的 `core/src/codex.rs` 拆分为 `codex_thread.rs` + `session/` 模块树，并把 ghost snapshot、`Op::ThreadRollback`、memories 启动任务从采样路径移除；本目录的源码锚点已对齐 0.162 布局，已消失的机制在章节内以"（rust-v0.162 起：…）"标注并保留 0.154 行为的历史分析（如 [26-ghost-snapshot.md](./26-ghost-snapshot.md)）。
+本目录记录 OpenAI Codex `rust-v0.162.1`（`092d3acd6`）的源码分析，覆盖当前 Rust workspace、skills 扩展、command safety、会话运行时和工具系统。主线阅读围绕 `codex_thread.rs` + `session/` 模块树的会话运行时、`app-server` 协议层与 `tools/` 工具治理链展开。
 
-> **Source baseline:** Codex `rust-v0.162.1` (`092d3acd6`). Source references are validated against this checkout; mechanisms removed in 0.162 keep their 0.154 analysis with an explicit historical note in their chapters.
+> **Source baseline:** Codex `rust-v0.162.1` (`092d3acd6`). Source references are validated against this checkout.
 
 ## 阅读入口
 
@@ -14,7 +14,7 @@ title: "Codex 源码分析 README"
 
 ## 推荐阅读顺序
 
-先读 `01-08`，建立“Rust runtime + 协议边界 + 工具闭环”的主线；再读 `09-21` 对齐其他 CLI 的共享主题；最后读 `22-26` 的专项补充。
+先读 `01-08`，建立“Rust runtime + 协议边界 + 工具闭环”的主线；再读 `09-21` 对齐其他 CLI 的共享主题；最后读 `22-25` 的专项补充。
 
 1. [01-architecture.md](./01-architecture.md)：Rust workspace、TypeScript 分发层、IPC/FFI 边界和核心抽象。
 2. [02-startup-flow.md](./02-startup-flow.md)：CLI/TUI/app-server 的入口分发与初始化顺序。
@@ -27,7 +27,7 @@ title: "Codex 源码分析 README"
 
 ## 章节索引
 
-> 横向对齐规则：`01-25` 是六个 AI Coding CLI 目录共享的主题主干；Codex 特有的 `26-ghost-snapshot.md` 作为附录保留。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
+> 横向对齐规则：`01-25` 是六个 AI Coding CLI 目录共享的主题主干。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
 
 | 文件 | 主题 | 阅读目的 |
 | --- | --- | --- |
@@ -56,7 +56,6 @@ title: "Codex 源码分析 README"
 | [23-input-command-queue.md](./23-input-command-queue.md) | 输入队列 | 用户输入、slash command、mailbox 分发 |
 | [24-mcp-system.md](./24-mcp-system.md) | MCP 系统 | RMCP 连接、工具发现、调用与资源管理 |
 | [25-debugging.md](./25-debugging.md) | 调试指南 | 本地调试、日志和常见定位路径 |
-| [26-ghost-snapshot.md](./26-ghost-snapshot.md) | GhostSnapshot | Git 快照、Undo、compaction 幸存机制 |
 
 ## 核心心智模型
 
@@ -65,4 +64,4 @@ Codex 应按“Rust runtime 为中心、TypeScript 只做分发和协议消费�
 ## 维护注意
 
 - 从仓库根目录运行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check_doc_refs.ps1 -DocDirs hello-codex`。
-- 源码路径以当前 `rust-v0.154.0` checkout 为准；易漂移位置优先引用文件和符号而不是固定行号。
+- 源码路径以当前 `rust-v0.162.1` checkout 为准；易漂移位置优先引用文件和符号而不是固定行号。

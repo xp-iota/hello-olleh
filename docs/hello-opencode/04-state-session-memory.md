@@ -3,7 +3,7 @@ title: "状态、会话与记忆：durable 事件日志、projection 与 compact
 ---
 # 状态、会话与记忆：durable 事件日志、projection 与 compaction
 
-> 基于 `sources/opencode/specs/v2/session.md` 与 `sources/opencode/packages/core/src/session/` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/specs/v2/session.md` 与 `sources/opencode/packages/core/src/session/` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 

@@ -78,7 +78,8 @@
     {
       "id": "F",
       "type": "backend",
-      "label": "listtools",
+      "label": "list_tools_with_connector_ids()",
+      "sublabel": "tools/list · rmcp_client.rs:678",
       "pos": [
         1775,
         65

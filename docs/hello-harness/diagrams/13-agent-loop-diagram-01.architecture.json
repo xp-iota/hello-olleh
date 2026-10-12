@@ -14,7 +14,7 @@
       "id": "CC1",
       "type": "backend",
       "label": "while(true)",
-      "sublabel": "query.ts:309",
+      "sublabel": "query.ts:307",
       "pos": [
         45,
         65
@@ -68,7 +68,7 @@
       "id": "CX1",
       "type": "backend",
       "label": "submissionloop()",
-      "sublabel": "session/handlers.rs:698",
+      "sublabel": "session/handlers.rs:439",
       "pos": [
         1429,
         65
@@ -82,7 +82,7 @@
       "id": "CX2",
       "type": "backend",
       "label": "runturn()",
-      "sublabel": "session/turn.rs:137",
+      "sublabel": "session/turn.rs:163",
       "pos": [
         1775,
         65
@@ -124,7 +124,7 @@
       "id": "GM1",
       "type": "external",
       "label": "sendMessageStream()",
-      "sublabel": "client.ts:910",
+      "sublabel": "client.ts:924",
       "pos": [
         737,
         205
@@ -138,7 +138,7 @@
       "id": "GM2",
       "type": "external",
       "label": "processTurn()",
-      "sublabel": "client.ts:614",
+      "sublabel": "client.ts:628",
       "pos": [
         1083,
         205
@@ -152,7 +152,7 @@
       "id": "GM3",
       "type": "backend",
       "label": "Turn.run()",
-      "sublabel": "turn.ts:257",
+      "sublabel": "turn.ts:270",
       "pos": [
         1429,
         205
@@ -166,7 +166,7 @@
       "id": "GM4",
       "type": "backend",
       "label": "Scheduler 三阶段",
-      "sublabel": "scheduler.ts:405",
+      "sublabel": "scheduler.ts:445",
       "pos": [
         1775,
         205
@@ -180,7 +180,7 @@
       "id": "GM5",
       "type": "messagebus",
       "label": "handleCompletedTools()",
-      "sublabel": "useGeminiStream.ts:1865",
+      "sublabel": "useGeminiStream.ts:1972",
       "pos": [
         45,
         345
@@ -193,8 +193,8 @@
     {
       "id": "OC1",
       "type": "backend",
-      "label": "loop()",
-      "sublabel": "prompt.ts:278",
+      "label": "SessionRunner.drain()",
+      "sublabel": "runner/llm.ts:54",
       "pos": [
         391,
         345
@@ -207,8 +207,8 @@
     {
       "id": "OC2",
       "type": "backend",
-      "label": "SessionProcessor.process()",
-      "sublabel": "processor.ts:49",
+      "label": "SessionStep.attempt()",
+      "sublabel": "runner/step.ts:77",
       "pos": [
         737,
         345
@@ -221,8 +221,8 @@
     {
       "id": "OC3",
       "type": "messagebus",
-      "label": "LLM.stream()",
-      "sublabel": "llm.ts:41",
+      "label": "llm.stream()",
+      "sublabel": "@opencode/ai",
       "pos": [
         1083,
         345
@@ -373,7 +373,7 @@
       "dot": "orange",
       "title": "要点",
       "items": [
-        "while(true) / query.ts:309 → callModel() 流式消费",
+        "while(true) / query.ts:307 → callModel() 流式消费",
         "callModel() 流式消费 → StreamingToolExecutor…",
         "StreamingToolExecutor… → toolResults 注回 messages"
       ]

@@ -3,7 +3,7 @@ title: "配置：config.json、pydantic schema 与环境变量"
 ---
 # 配置：config.json、pydantic schema 与环境变量
 
-> 基于 `sources/nanobot/nanobot/config/`（schema.py、loader.py、watcher.py、paths.py）中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/config/`（schema.py、loader.py、watcher.py、paths.py）中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
@@ -17,7 +17,7 @@ title: "配置：config.json、pydantic schema 与环境变量"
 
 ## 1. 配置文件与路径
 
-默认配置是 `~/.nanobot/config.json`（`config/loader.py` L31）；`--config` 经 `set_config_path` 覆盖。`config/paths.py` 从配置路径派生实例数据目录：`get_data_dir()`（配置文件的父目录）、`get_runtime_subdir(name)`，以及 `media/`、`cron/`、`logs/`、`webui/` 等命名子目录——**配置位置决定一切运行时产物的位置**，多实例就是多份配置（见 `docs/multiple-instances.md`）。
+默认配置是 `~/.nanobot/config.json`（`config/loader.py`）；`--config` 经 `set_config_path` 覆盖。`config/paths.py` 从配置路径派生实例数据目录：`get_data_dir()`（配置文件的父目录）、`get_runtime_subdir(name)`，以及 `media/`、`cron/`、`logs/`、`webui/` 等命名子目录——**配置位置决定一切运行时产物的位置**，多实例就是多份配置（见 `docs/multiple-instances.md`）。
 
 ## 2. schema 结构
 
@@ -26,7 +26,7 @@ title: "配置：config.json、pydantic schema 与环境变量"
 | 类 | 覆盖 |
 | --- | --- |
 | `AgentsConfig` / `AgentDefaults` / `ModelPresetConfig` | agent 默认值、工作区、模型 preset（命名的一套模型+参数） |
-| `ProvidersConfig` / `ProviderConfig` / `BedrockProviderConfig` | 45 个 provider 的凭据与端点 |
+| `ProvidersConfig` / `ProviderConfig` / `BedrockProviderConfig` | 46 个 provider 的凭据与端点 |
 | `ChannelsConfig` | 各渠道开关与凭据 |
 | `GatewayConfig`（port 18790）/ `ApiConfig` / `HeartbeatConfig` | 常驻、API 与心跳 |
 | `ToolsConfig` / `MCPServerConfig` | 工具开关与 MCP server 列表 |
@@ -48,7 +48,7 @@ title: "配置：config.json、pydantic schema 与环境变量"
 
 ## 4. 环境变量插值
 
-`resolve_env_refs(value)` 把配置字符串里的 `$ENV_VAR` / `${ENV_VAR}` 形式的引用替换为环境变量值（`_resolve_in_place` / `_env_replace` 递归处理嵌套结构）——密钥不落明文配置文件的官方做法。`_warn_deprecated_config_keys` 在加载后对废弃键告警。
+`resolve_env_refs(value)` 把配置字符串里的 `$ENV_VAR` / `${ENV_VAR}` 形式的引用替换为环境变量值（`_resolve_in_place` / `_env_replace` 递归处理嵌套结构）——密钥不落明文配置文件的官方做法。
 
 ## 5. watch 与运行时刷新
 

@@ -3,7 +3,7 @@ title: "项目概览与设计哲学"
 ---
 # 项目概览与设计哲学
 
-> **本篇回答**：cordis 解决什么问题、"时空可组合性"具体指什么、为什么一个 4000 行的框架值得单独一套分析。
+> **本篇回答**：cordis 解决什么问题、"时空可组合性"具体指什么、为什么一个 5000 行的框架值得单独一套分析。
 > **路径缩写**：`C/` = `packages/core/src/`，`L/` = `packages/loader/src/`。行号对应快照 `f8ea3cd5`。
 >
 > 🧭 **本篇导览**：1.1–1.2 定位与规模 → 1.3–1.4 时空可组合性与四个核心抽象 → 1.5–1.6 最小可运行示例与横向对比 → 1.7–1.8 阅读顺序与读源码前必知的六件事。
@@ -18,7 +18,7 @@ cordis 是一个 **元框架（meta-framework）**：它本身不提供任何业
 **元框架与普通框架的分工差异** — [交互版](diagrams/01-meta-framework.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/01-meta-framework.architecture.json)
 
 - **普通框架给的是槽位**：预置路由、ORM、模板引擎等具体能力 · 你的代码填进它规定的位置 · 能力集合由框架决定，扩展受限于预留的钩子
-- **cordis 只给四件东西**：Context 是能力的视图，Fiber 是生命周期的单元 · Service 是跨插件共享的能力，Event 是解耦通道 · 四者合计 1848 行，不含任何业务逻辑
+- **cordis 只给四件东西**：Context 是能力的视图，Fiber 是生命周期的单元 · Service 是跨插件共享的能力，Event 是解耦通道 · 四者合计 1874 行，不含任何业务逻辑
 - **差异的落点是可拆卸**：普通框架关心「如何把能力用起来」 · cordis 关心「如何把能力组装起来并安全拆掉」 · 因此每个副作用都必须可逆
 
 它最知名的下游是 **[DeepSeek Harness](../hello-dsh/README.md)**（`dsh`）——DSH 的口号"Everything is a Plugin"直接来自 cordis 的能力，连模型适配器、工具注册表、会话日志、agent 主循环本身都是插件。
@@ -31,26 +31,26 @@ cordis 是一个 **元框架（meta-framework）**：它本身不提供任何业
 
 | 指标 | 数值 |
 |---|---|
-| TS 文件 / 总行数 | 58 / **8365**（含仓库根 `vitest.config.ts` 10 行） |
-| 其中 **实现**（`*/src/*`） | 27 文件 / **4015 行** |
-| 其中 **测试**（`*/tests/*`） | 30 文件 / **4340 行** |
-| 核心包 `cordis` 实现 | **1848 行**（9 个文件） |
+| TS 文件 / 总行数 | 80 / **11498**（含仓库根 `vitest.config.ts` 10 行） |
+| 其中 **实现**（`*/src/*`） | 30 文件 / **4991 行** |
+| 其中 **测试**（`*/tests/*`） | 49 文件 / **6497 行** |
+| 核心包 `cordis` 实现 | **1874 行**（9 个文件） |
 
 各包实现行数：
 
 | 包 | npm 名 | 版本 | 行数 |
 |---|---|---|---|
-| `core` | `cordis` | 4.0.0-rc.10 | **1848** |
-| `loader` | `@cordisjs/plugin-loader` | 1.0.0-rc.5 | 870 |
-| `hmr` | `@cordisjs/plugin-hmr` | 1.0.15 | 440 |
+| `core` | `cordis` | 4.0.0-rc.10 | **1874** |
+| `loader` | `@cordisjs/plugin-loader` | 1.0.0-rc.7 | 997 |
+| `hmr` | `@cordisjs/plugin-hmr` | 1.1.0 | 531 |
 | `create` | `create-cordis` | 0.3.0 | 314 |
-| `include` | `@cordisjs/plugin-include` | 1.0.4 | 219 |
-| `timer` | `@cordisjs/plugin-timer` | 1.1.2 | 142 |
+| `include` | `@cordisjs/plugin-include` | 1.1.0 | 947 |
+| `timer` | `@cordisjs/plugin-timer` | 1.1.3 | 146 |
 | `logger-console` | `@cordisjs/plugin-logger-console` | 1.0.0 | 137 |
 | `utils` | `@cordisjs/utils` | 1.0.0 | 42 |
 | `group` | `@cordisjs/plugin-group` | 1.0.0 | **3** |
 
-💡 **测试行数（4340）超过实现行数（4015）**，而核心 `fiber.ts` 一个文件（486 行）就对应 `dispose.spec.ts` + `fiber.spec.ts` + `plugin.spec.ts` 共 607 行测试。对一个生命周期框架，这个比例是合理的——**状态机的正确性只能靠穷举验证**。
+💡 **测试行数（6497）超过实现行数（4991）**，而核心 `fiber.ts` 一个文件（496 行）就对应 `dispose.spec.ts` + `fiber.spec.ts` + `plugin.spec.ts` 共 666 行测试。对一个生命周期框架，这个比例是合理的——**状态机的正确性只能靠穷举验证**。
 
 💡 **`group` 包只有 3 行**：`export default Group`，把 loader 里的 `Group` 再导出一次。这是为了让配置文件能写 `name: '@cordisjs/plugin-group'` 而不必依赖 loader 的内部路径。
 
@@ -70,7 +70,7 @@ cordis 是一个 **元框架（meta-framework）**：它本身不提供任何业
 
 ## 1.4 四个核心抽象
 
-整个框架只有四个概念，全部在 `C/` 的 1848 行里：
+整个框架只有四个概念，全部在 `C/` 的 1874 行里：
 
 ![框架的四个概念与用户视角](diagrams/01-four-concepts.svg)
 
@@ -78,7 +78,7 @@ cordis 是一个 **元框架（meta-framework）**：它本身不提供任何业
 
 - **Context 与 Fiber**：ctx 是 Proxy，ctx.db 是动态解析而非普通属性 · extend / isolate / intercept 派生新视图（04 篇） · 每次 ctx.plugin(p) 产生一个 Fiber，effect() 是唯一副作用入口（03 篇）
 - **Service 与 Event**：provide 注册、inject 声明依赖，get trap 沿 fiber 链向上查找（05 篇） · isolate realm 决定服务可见性 · 事件有 emit / parallel / serial / bail / waterfall 五种派发（06 篇）
-- **四者合计 1848 行**：全部集中在 core 包的 C/ 目录 · fiber.ts 486 行是全框架最核心的文件 · 用户只需面对 ctx 一个入口
+- **四者合计 1874 行**：全部集中在 core 包的 C/ 目录 · fiber.ts 496 行是全框架最核心的文件 · 用户只需面对 ctx 一个入口
 
 ## 1.5 最小可运行示例（对照源码理解）
 
@@ -134,7 +134,7 @@ ctx.plugin(consumer)                         // greeter 已就绪 → consumer �
 | 代码热更新 | **HMR（Hot Module Replacement，模块热替换）到插件粒度** | 无 | 无 | 有（模块粒度） |
 | 中间件链 | waterfall（`next()`） | 需自己实现 | 无统一机制 | 有（钩子） |
 
-💡 **cordis 最独特的是"依赖变化触发重载"**。多数插件系统里，依赖注入是启动期一次性的；cordis 把它做成了运行期持续追踪的关系。代价是复杂度——`fiber.ts` 那 486 行几乎全在处理这件事。
+💡 **cordis 最独特的是"依赖变化触发重载"**。多数插件系统里，依赖注入是启动期一次性的；cordis 把它做成了运行期持续追踪的关系。代价是复杂度——`fiber.ts` 那 496 行几乎全在处理这件事。
 
 ## 1.7 阅读顺序建议
 
@@ -152,4 +152,4 @@ ctx.plugin(consumer)                         // greeter 已就绪 → consumer �
 
 ---
 
-**返回** ← [索引](README.md) ｜ **下一篇** → [02 代码结构与包边界](02-code-structure-and-package-boundaries.md)：9 个包的职责划分、依赖方向、以及为什么核心只有 1848 行。
+**返回** ← [索引](README.md) ｜ **下一篇** → [02 代码结构与包边界](02-code-structure-and-package-boundaries.md)：9 个包的职责划分、依赖方向、以及为什么核心只有 1874 行。

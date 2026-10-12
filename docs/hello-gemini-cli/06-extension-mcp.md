@@ -22,7 +22,7 @@ MCP 是 Gemini CLI 扩展能力的基石。它将外部服务的工具能力映�
 
 ### 1.1 McpClientManager：连接枢纽
 
-`sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts:34` 是 MCP 的核心。
+`sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts:37` 是 MCP 的核心。
 
 - **配置与发现**：读取 `settings` 中定义的 MCP 服务器列表。
 - **声明映射**：将 MCP 服务器暴露的 `tools` 转换为 Gemini 的 `FunctionDeclaration`。
@@ -42,14 +42,14 @@ MCP 是 Gemini CLI 扩展能力的基石。它将外部服务的工具能力映�
 
 | 函数/类 | 文件路径 | 行号 | 职责 |
 | :---| :---| :---| :---|
-| `McpClientManager` | `sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts` | 34 | MCP 连接管理、发现状态、server lifecycle |
-| `McpClientManager.discoverAllMcpTools()` | `sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts` | 535 | 遍历配置 server，连接并发现工具 |
-| `McpClient.connect()` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | 183 | 单 server 连接入口 |
-| `McpClient.discoverInto()` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | 226 | 将 MCP tools/resources/prompts 注册进 Gemini CLI |
-| `discoverTools()` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | 1272 | 拉取并校验 MCP tool declarations |
-| `DiscoveredMCPToolInvocation.callTool()` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | 1372 | 发起 JSON-RPC `tools/call`，带 per-request timeout |
-| `createTransport()` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | 2167 | 根据 stdio / HTTP / SSE 配置创建传输 |
-| `DiscoveredMCPTool.shouldConfirmExecute()` | `sources/gemini-cli/packages/core/src/tools/mcp-tool.ts` | 202 | 对 MCP server/tool trust 和 allowlist 做审批判断 |
+| `McpClientManager` | `sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts` | 37 | MCP 连接管理、发现状态、server lifecycle |
+| `McpClientManager.startConfiguredMcpServers()` | `sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts` | 575 | 遍历配置 server，连接并发现工具 |
+| `McpClient.connect()` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | 189 | 单 server 连接入口 |
+| `McpClient.discoverInto()` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | 232 | 将 MCP tools/resources/prompts 注册进 Gemini CLI |
+| `discoverTools()` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | 1295 | 拉取并校验 MCP tool declarations |
+| `McpCallableTool.callTool()` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | 1436 | 发起 JSON-RPC `tools/call`，带 per-request timeout |
+| `createTransport()` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | 2265 | 根据 stdio / HTTP / SSE 配置创建传输 |
+| `DiscoveredMCPToolInvocation.getConfirmationDetails()` | `sources/gemini-cli/packages/core/src/tools/mcp-tool.ts` | 347 | 对 MCP server/tool trust 和 allowlist 做审批判断 |
 | `activate-skill.ts` | `sources/gemini-cli/packages/core/src/tools/activate-skill.ts` | 1 | Skill 动态激活工具 |
 
 ## 3. 内建扩展与技能 (Extensions & Skills)
@@ -123,4 +123,4 @@ Gemini CLI 的 MCP 文档需要和 `13-skill-system.md`、`14-plugin-system.md` 
 | 执行调度 | Scheduler 对 MCP 工具仍走确认/调度链路 | 工具调用失败作为 tool error 反馈模型 | `07-error-security.md` |
 | Auth 刷新 | auth provider 处理需要授权的 server | 授权失败不应污染其他 server | `24-mcp-system.md` |
 
-源码上可从 `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:75`、`sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:183` 看扩展配置进入点，从 `sources/gemini-cli/packages/core/src/tools/tool-registry.ts:269` 看工具刷新，从 `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:191` 看 MCP 工具执行仍回到统一调度。
+源码上可从 `sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:37`、`sources/gemini-cli/packages/core/src/utils/extensionLoader.ts:64` 看扩展配置进入点，从 `sources/gemini-cli/packages/core/src/tools/tool-registry.ts:287` 看工具刷新，从 `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:211` 看 MCP 工具执行仍回到统一调度。

@@ -3,7 +3,7 @@ title: "Plugin 系统：MCP 作为 Codex 的主要插件机制"
 ---
 # Plugin 系统：MCP 作为 Codex 的主要插件机制
 
-本文分析 Codex 的插件扩展机制。Codex 没有独立的 Plugin 子系统，而是以 **MCP（Model Context Protocol）** 作为唯一的外部工具接入标准。
+本文分析 Codex 的插件扩展机制。Codex 以 **MCP（Model Context Protocol）** 作为外部工具接入标准；插件（plugin）则是把 skills、MCP server 与 apps 打包在一起的本地资产，由 `codex-core-plugins` 的 `PluginsManager` 统一发现与加载（`sources/codex/codex-rs/core-plugins/src/manager.rs:548`）。
 
 **目录**
 
@@ -24,65 +24,46 @@ Codex 的 Plugin 哲学比其他系统更为简洁：
 ```
 内置工具（Rust 实现）
     + MCP 服务器（任意语言）
+    + plugin（skills / MCP servers / apps 的本地打包）
     = 完整工具集
 ```
 
-不引入 Plugin 生命周期管理，不需要专门的插件沙箱——MCP 协议本身已经提供了进程隔离。
+plugin 本身不引入独立的生命周期沙箱——它复用 MCP 的进程隔离与 skill 的 prompt 注入路径；MCP 协议本身已经提供了进程隔离。
 
 ## 2. MCP 配置与加载
 
 ```toml
-# ~/.config/codex/config.toml 或 .codex/config.toml
-[[mcp_servers]]
-name = "filesystem-extended"
+# ~/.codex/config.toml
+[mcp_servers.filesystem-extended]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed"]
 
-[[mcp_servers]]
-name = "github"
+[mcp_servers.github]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-github"]
-env = { GITHUB_TOKEN = "$GITHUB_TOKEN" }
+env_vars = ["GITHUB_TOKEN"]
 
-[[mcp_servers]]
-name = "custom-tool"
-command = "/usr/local/bin/my-mcp-server"
-args = []
+[mcp_servers.remote-tool]
+url = "https://example.com/mcp"
+bearer_token_env_var = "REMOTE_TOOL_TOKEN"
 ```
 
 ### 配置字段说明
 
 | 字段 | 类型 | 说明 |
 | :------| :------| :------|
-| `name` | string | MCP 服务器标识名 |
-| `command` | string | 启动命令 |
-| `args` | string[] | 命令参数 |
-| `env` | object | 环境变量注入（支持 `$VAR` 引用） |
-| `timeout_ms` | number | 工具调用超时（毫秒，默认 30000） |
+| `command` / `args` / `env` | string / string[] / map | stdio 传输：启动命令、参数与环境变量 |
+| `url` / `bearer_token_env_var` / `http_headers` | string | streamable HTTP 传输与鉴权头 |
+| `env_vars` | list | 声明要透传给子进程的环境变量名（`sources/codex/codex-rs/config/src/mcp_types.rs:99`） |
+| `startup_timeout_sec` | number | 初始化 server 与首次 list_tools 的超时（秒） |
+| `tool_timeout_sec` | number | 该 server 上工具调用的默认超时 |
+| `default_tools_approval_mode` | string | 该 server 工具的默认审批档位（见 §5） |
 
 ## 3. MCP 工具注册流程
 
-```rust
-// codex-rs/core/src/mcp.rs
-pub async fn discover_mcp_tools(
-    servers: &[McpServerConfig],
-) -> Vec<Tool> {
-    let mut tools = Vec::new();
-    for server in servers {
-        let client = McpClient::connect(server).await?;
-        let server_tools = client.list_tools().await?;
-        tools.extend(server_tools.into_iter().map(|t| Tool {
-            name: format!("{}:{}", server.name, t.name),
-            description: t.description,
-            input_schema: t.input_schema,
-            executor: ToolExecutor::Mcp(client.clone()),
-        }));
-    }
-    tools
-}
-```
+MCP 工具的发现由 `McpManager` 驱动：它根据 config 建立连接、列出工具并维护工具目录缓存（`sources/codex/codex-rs/core/src/mcp.rs:104`），实际调用经连接管理器转发（`sources/codex/codex-rs/codex-mcp/src/connection_manager.rs:977` 的 `call_tool()`）。
 
-MCP 工具以 `<server_name>:<tool_name>` 格式注册，避免命名冲突。
+模型可见的工具名是 `mcp__<server>__<tool>` 形式的 namespaced 名称，避免命名冲突（`sources/codex/codex-rs/protocol/src/tool_name.rs:32` 的 `ToolName::namespaced()`；`sources/codex/codex-rs/codex-mcp/src/tools.rs:58` 的 `canonical_tool_name()`）。
 
 ## 4. 工具执行与隔离
 
@@ -94,35 +75,24 @@ MCP 服务器作为独立进程运行，通过 stdin/stdout 进行 JSON-RPC 通�
 
 - **组成**：5 个节点
 - **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
-- **要点**：首节点：Codex Agent · 末节点：文件系统 / API / 数据库
+- **要点**：首节点：CodexThread · 末节点：文件系统 / API / 数据库
 
 **进程级隔离**：MCP 服务器崩溃不影响 Codex 主进程，仅该工具不可用。
 
 ## 5. 权限控制
 
-Codex 通过 `approval_policy` 对 MCP 工具调用进行权限控制：
+Codex 通过两层机制对 MCP 工具调用进行权限控制：
 
-```toml
-[approval]
-# 自动批准安全工具（只读类）
-auto_approve_tools = [
-    "filesystem-extended:read_file",
-    "filesystem-extended:list_directory",
-]
-# 需要用户确认的工具
-require_approval_tools = [
-    "filesystem-extended:write_file",
-    "github:create_pull_request",
-]
-```
+- **server 级默认审批档位**：`McpServerConfig.default_tools_approval_mode` 取 `AppToolApproval` 枚举值（`auto` / `prompt` / `writes` / `approve`，`sources/codex/codex-rs/config/src/mcp_types.rs:28`），决定该 server 工具默认免批、每次提示还是写操作提示。
+- **线程级 approval policy**：`approval_policy` 与沙箱策略仍然约束真实执行，MCP 工具不因来自外部 server 而绕过审批链路（`sources/codex/codex-rs/core/src/tools/approvals.rs`）。
 
 ## 6. 与其他系统 Plugin 机制的对比
 
 | 特性 | Codex | Claude Code | Gemini CLI | OpenCode |
 | :------| :-------| :-------------| :-----------| :---------|
-| **插件协议** | MCP only | MCP + 内置 Skills | MCP（带 trust 级别）| MCP + 自定义 |
+| **插件协议** | MCP + plugin 打包（skills/MCP/apps） | MCP + 内置 Skills | MCP（带 trust 级别）| MCP + 自定义 |
 | **进程隔离** | 进程级（stdio） | 进程级 | 进程级 | 进程级 |
-| **发现机制** | config.toml 显式配置 | settings.json | settings.json | 配置文件 |
+| **发现机制** | config.toml 显式配置 + plugin 安装 | settings.json | settings.json | 配置文件 |
 | **信任模型** | approval_policy | 工具权限系统 | `trust: trusted/untrusted` | 用户授权 |
 | **Plugin 沙箱** | 无额外沙箱（MCP 进程隔离） | MCP 进程隔离 | MCP 进程隔离 | MCP 进程隔离 |
 
@@ -143,12 +113,12 @@ Codex 可以使用所有标准 MCP 服务器（与语言/框架无关），包�
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `McpClient::new()` | `codex-rs/mcp-client/src/lib.rs` | MCP 客户端工厂：初始化 stdio/HTTP 连接 |
-| `McpClient::call_tool()` | `codex-rs/mcp-client/src/lib.rs` | 发送 tools/call 请求并返回结果 |
-| `ToolRegistry::register_mcp()` | `codex-rs/core/src/tool_registry.rs` | 将 MCP server 的工具注册到全局工具表 |
-| `ConfigMcpServer` | `codex-rs/core/src/config.rs` | config.toml 中 MCP server 定义结构：command/args/env/type |
-| `mcp_server_list()` | `codex-rs/core/src/config.rs` | 从配置中读取所有已配置 MCP server 列表 |
-| connection health check | `codex-rs/mcp-client/src/lib.rs` | 定期 ping MCP server 检测连接存活 |
+| `McpManager` | `codex-rs/core/src/mcp.rs:104` | MCP 运行时入口：解析配置、维护连接与工具目录缓存 |
+| `ConnectionManager::call_tool()` | `codex-rs/codex-mcp/src/connection_manager.rs:977` | 向对应 server 发送 tools/call 请求并返回结果 |
+| `McpServerConfig` | `codex-rs/config/src/mcp_types.rs:223` | config.toml 中 MCP server 定义结构：transport/env/timeout/approval |
+| `AppToolApproval` | `codex-rs/config/src/mcp_types.rs:28` | server/工具级审批档位：auto / prompt / writes / approve |
+| `ToolRegistry` | `codex-rs/core/src/tools/registry.rs:307` | 统一工具注册表，MCP 工具与内置工具共享同一调用路径 |
+| `ToolName::namespaced()` | `codex-rs/protocol/src/tool_name.rs:32` | 生成 `mcp__<server>__<tool>` 形式的模型可见工具名 |
 
 ---
 
@@ -157,7 +127,7 @@ Codex 可以使用所有标准 MCP 服务器（与语言/框架无关），包�
 **优点**
 
 - **Rust 实现 MCP 客户端**：相比 JS 实现，Rust MCP 客户端内存安全、无 GC 暂停，适合高频工具调用场景。
-- **stdio/HTTP 双模式支持**：同一 `McpClient` 接口支持子进程 stdio 和远程 HTTP 两种传输，切换无需改调用代码。
+- **stdio/HTTP 双模式支持**：`McpServerTransportConfig` 同时覆盖子进程 stdio 与 streamable HTTP 两种传输（`codex-rs/config/src/mcp_types.rs:614`），切换无需改调用代码。
 - **工具注册中心化**：所有 MCP 工具通过 `ToolRegistry` 统一注册，工具调用路径一致，避免 built-in/MCP 双重路径。
 
 **风险与改进点**
@@ -166,15 +136,15 @@ Codex 可以使用所有标准 MCP 服务器（与语言/框架无关），包�
 - **子进程 MCP server 生命周期不托管**：codex 退出时子进程 MCP server 未被显式终止，可能留下孤儿进程。
 - **MCP 工具 schema 无版本管理**：server 更新工具 schema 后 codex 无通知机制，cached schema 与实际实现可能不一致。
 
-## Codex Plugin 主体是 MCP，而不是 JS 插件市场
+## Codex Plugin 是本地打包资产，外部能力仍走 MCP
 
-Codex 当前应按“外部能力通过 MCP 进入 Rust runtime”来理解 plugin 系统。和 Claude Code/OpenCode 的 plugin 生命周期不同，Codex 的插件性主要体现在 MCP server、tool spec、approval/sandbox 统一治理。
+Codex 当前应按“外部能力通过 MCP 进入 Rust runtime，plugin 把 skills/MCP/apps 打包成可安装的本地资产”来理解 plugin 系统。和 Claude Code/OpenCode 的 plugin 生命周期不同，Codex 的插件治理主要体现在 plugin 安装、MCP server、tool spec、approval/sandbox 统一治理。
 
 | 层级 | Codex 对应物 | 对齐说明 |
 | --- | --- | --- |
-| 插件发现 | MCP 配置与 skill dependency | 不以 JS/TS plugin package 为主 |
+| 插件发现 | plugin 安装与 skill dependency（`codex-rs/core-plugins/src/manager.rs:548`） | 不以 JS/TS plugin package 为主 |
 | 工具注册 | `ToolRegistry` / MCP tool spec | MCP 工具进入统一工具池 |
 | 执行治理 | `tools/orchestrator.rs`, `tools/sandboxing.rs` | 外部工具仍要经过 approval/sandbox |
-| 传输 | stdio / HTTP / SSE MCP transport | 对应 Claude/OpenCode/Gemini 的 MCP transport |
+| 传输 | stdio / streamable HTTP MCP transport | 对应 Claude/OpenCode/Gemini 的 MCP transport |
 
-横向读 `14-plugin-system.md` 时，应把 Codex 的“plugin”解释为 protocol-level extensibility，而不是应用内插件框架。
+横向读 `14-plugin-system.md` 时，应把 Codex 的“plugin”解释为 protocol-level extensibility 加本地能力打包，而不是应用内插件框架。

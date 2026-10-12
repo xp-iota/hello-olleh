@@ -31,14 +31,14 @@ title: "关键调用链速查"
 | 特殊属性判定 | `C/reflect.ts:33`（symbol / `prototype` / `then` / 数字串 / `_` 前缀） |
 | 已有属性 → traceable 包装 | `C/reflect.ts:68` → `C/utils.ts:110 getTraceable` |
 | accessor 分支 | `C/reflect.ts:75-77` |
-| 根 ctx 非严格分支 | `C/reflect.ts:79` |
-| `internal/get` waterfall | `C/reflect.ts:80` |
-| 沿 fiber 链向上查找 | `C/reflect.ts:81-93` |
-| 命中 → `getTraceable(ctx, impl.value)` | `C/reflect.ts:84` |
-| 声明了但不可用 → 抛 inactive | `C/reflect.ts:86-89` |
-| isolate 边界 → 抛错 | `C/reflect.ts:91` |
-| traceable 代理的 get trap | `C/utils.ts:163-190` |
-| `this.ctx` 改写成调用方 ctx | `C/utils.ts:166` |
+| 根 ctx 非严格分支 | `C/reflect.ts:81` |
+| `internal/get` waterfall | `C/reflect.ts:82` |
+| 沿 fiber 链向上查找 | `C/reflect.ts:84-95` |
+| 命中 → `getTraceable(ctx, impl.value)` | `C/reflect.ts:87` |
+| 声明了但不可用 → 抛 inactive | `C/reflect.ts:88-90` |
+| isolate 边界 → 抛错 | `C/reflect.ts:93` |
+| traceable 代理的 get trap | `C/utils.ts:165-194` |
+| `this.ctx` 改写成调用方 ctx | `C/utils.ts:168` |
 
 详见 [04 § 4.3](04-context-and-reflect-proxy.md)、[04 § 4.6](04-context-and-reflect-proxy.md)。
 
@@ -58,17 +58,17 @@ title: "关键调用链速查"
 
 | 步骤 | 位置 |
 |---|---|
-| `Include` 插件 `[Service.init]` | `I/index.ts:166` |
-| 读文件 → `yaml.load` / `JSON.parse` | `I/index.ts:85`（`read()`） |
-| **`applyPatches(data)`** | `I/index.ts:101` |
-| `root.update(data)` | `I/index.ts:180` |
+| `Include` 插件 `[Service.init]` | `I/index.ts:134` |
+| 读文件 → `yaml.load` / `JSON.parse` | `I/index.ts:228`（`_read()`） |
+| **`applyPatches(data)`** | `I/patch.ts:47` |
+| `root.update(data)` | `I/index.ts:435`（`_scheduleApply()` 内） |
 | `EntryGroup` 分发到各 `Entry.update()` | `L/config/group.ts` → `L/config/entry.ts:100` |
 | 首次 → `Entry.init()` | `L/config/entry.ts:146` |
-| `_init()` → `tree.import(name)` | `L/config/entry.ts:158` → `L/config/tree.ts:103` |
-| `unwrapExports()`（双层 default 解包） | `L/index.ts:156` |
-| `_patchContext([])` → isolate 7 步 | `L/config/entry.ts:169` → `L/config/isolate.ts:92` |
-| `ctx.registry.plugin(...)` | `L/config/entry.ts:171` |
-| 全部完成后 `notify(['loader'])` | `L/config/entry.ts:154` |
+| `_init()` → `tree.import(name)` | `L/config/entry.ts:159` → `L/config/tree.ts:131` |
+| `unwrapExports()`（双层 default 解包） | `L/index.ts:164` |
+| `_patchContext([])` → isolate 7 步 | `L/config/entry.ts:170` → `L/config/isolate.ts:91` |
+| `ctx.registry.plugin(...)` | `L/config/entry.ts:172` |
+| 全部完成后 `notify(['loader'])` | `L/config/entry.ts:155` |
 
 详见 [07 § 7.1](07-loader-and-configuration-tree.md)、[07 § 7.4](07-loader-and-configuration-tree.md)。
 
@@ -76,26 +76,26 @@ title: "关键调用链速查"
 
 | 步骤 | 位置 |
 |---|---|
-| chokidar `change` | `H/index.ts:127` |
-| 是 external → 整进程重启 | `H/index.ts:133` |
-| 在 loadCache → `stashed.add` + 去抖 | `H/index.ts:138` |
-| 是配置文件 → `include.refresh()` | `H/index.ts:144-149` |
-| **`partialReload()`** | `H/index.ts:229` |
-| **`analyzeChanges()`**（accepted/declined 传播） | `H/index.ts:174` |
-| 找候选插件（按 entry name 解析） | `H/index.ts:236-259` |
-| 判定真要重载的 | `H/index.ts:262-275` |
-| 清 ESM loadCache（`Map.prototype.delete.call`） | `H/index.ts:297` |
-| 清 CJS `require.cache` | `H/index.ts:304` |
-| 全部重新 import | `H/index.ts:322-329` |
-| `registry.delete` + `reload()` 换 Fiber | `H/index.ts:331`、`:344-361` |
-| 失败 → `rollback()` + 重装旧插件 | `H/index.ts:311`、`:363-373` |
+| chokidar `change` | `H/index.ts:162` |
+| 是 external → 整进程重启 | `H/index.ts:168` |
+| 配置文件（经 `ctx.hmr.watch` 注册） | `H/index.ts:172-181` + `I/index.ts:125-127` |
+| 在 loadCache → `stashed.add` + 去抖 | `H/index.ts:186-189` |
+| **`partialReload()`** | `H/index.ts:295` |
+| **`analyzeChanges()`**（accepted/declined 传播） | `H/index.ts:240` |
+| 找候选插件（按 entry name 解析） | `H/index.ts:303-325` |
+| 判定真要重载的 | `H/index.ts:327-340` |
+| 清 ESM loadCache（`Map.prototype.delete.call`） | `H/index.ts:366` |
+| 清 CJS `require.cache` | `H/index.ts:371-373` |
+| Stage 1 全部重新 import（含导出校验） | `H/index.ts:394-407` |
+| `registry.delete` + Stage 3 换 Fiber | `H/index.ts:425`、`:447-465` |
+| 失败 → import 期 `rollback()`；换 Fiber 期不回滚 | `H/index.ts:404-407`、`:458-464` |
 | 下游插件因 epoch 变化自动重载 | 无代码——[03 § 3.4](03-fiber-model.md) |
 
 详见 [08 § 8.3](08-hmr.md)。
 
 ## 9.2 `symbols` 全表
 
-`C/utils.ts:47-72`，全部用 `Symbol.for`（跨实例共享）：
+`C/utils.ts:47-75`，全部用 `Symbol.for`（跨实例共享）：
 
 | 分组 | 符号 | 用途 |
 |---|---|---|
@@ -124,12 +124,12 @@ title: "关键调用链速查"
 |---|---|---|
 | `Symbol.for('cordis.entry')` | `L/config/entry.ts:35` | `Entry.key`，挂在 ctx 上标记所属 entry |
 | `Symbol.for('cordis.group')` | `L/config/group.ts:6` | `EntryGroup.key`，标记 group 插件 |
-| `Symbol.for('cordis.is')` | `C/context.ts:32` | `Context.is` 的判定键 |
+| `Symbol.for('cordis.is')` | `C/context.ts:31` | `Context.is` 的判定键 |
 | `Symbol.for('ValidationError')` | `C/fiber.ts:14` | 配置校验错误标记 |
 
 ## 9.3 逐文件符号表
 
-### `C/fiber.ts`（486 行）
+### `C/fiber.ts`（496 行）
 
 | 符号 | 行号 |
 |---|---|
@@ -153,10 +153,10 @@ title: "关键调用链速查"
 | `_checkImpl()` | 371 |
 | **`_refresh()`** | **385** |
 | **`_setEpoch()`** | **399** |
-| `_reload()` / `_unload()` | 415 / 437 |
-| `await()` / `restart()` / `update()` | 460 / 468 / 476 |
+| `_reload()` / `_unload()` | 417 / 439 |
+| `await()` / `restart()` / `update()` | 462 / 470 / 478 |
 
-### `C/reflect.ts`（281 行）
+### `C/reflect.ts`（283 行）
 
 | 符号 | 行号 |
 |---|---|
@@ -166,15 +166,15 @@ title: "关键调用链速查"
 | `Impl` | 54 |
 | `class ReflectService` | 61 |
 | **`static handler`** | **62** |
-| get / set / has trap | 63 / 100 / 126 |
-| `store` / `props` | 135 / 136 |
-| `get()` / `_getImpl()` / `set()` | 150 / 154 / 162 |
-| **`provide()`** | **175** |
-| **`notify()`** | **205** |
-| `accessor()` / **`mixin()`** | 229 / **239** |
-| `trace()` / `bind()` | 267 / 271 |
+| get / set / has trap | 63 / 102 / 128 |
+| `store` / `props` | 137 / 138 |
+| `get()` / `_getImpl()` / `set()` | 152 / 156 / 164 |
+| **`provide()`** | **177** |
+| **`notify()`** | **207** |
+| `accessor()` / **`mixin()`** | 231 / **241** |
+| `trace()` / `bind()` | 269 / 273 |
 
-### `C/utils.ts`（278 行）
+### `C/utils.ts`（282 行）
 
 | 符号 | 行号 |
 |---|---|
@@ -185,10 +185,10 @@ title: "关键调用链速查"
 | `joinPrototype()` | 88 |
 | **`getTraceable()`** | **110** |
 | `withProps()` | 120 |
-| `createShadow()` / `createShadowMethod()` | 141 / 148 |
-| **`createTraceable()`** | **157** |
-| `applyTraceable()` / `createCallable()` | 214 / 219 |
-| `composeError()` / `buildOuterStack()` | 260 / 275 |
+| `createShadow()` / `createShadowMethod()` | 141 / 149 |
+| **`createTraceable()`** | **161** |
+| `applyTraceable()` / `createCallable()` | 218 / 223 |
+| `composeError()` / `buildOuterStack()` | 264 / 279 |
 
 ### `C/registry.ts`（214 行）
 
@@ -204,7 +204,7 @@ title: "关键调用链速查"
 | `resolve()` / `delete()` | 144 / 162 |
 | `inject()` / **`plugin()`** | 189 / **193** |
 
-### `C/events.ts`（178 行）
+### `C/events.ts`（188 行）
 
 | 符号 | 行号 |
 |---|---|
@@ -215,9 +215,9 @@ title: "关键调用链速查"
 | `internal/update` 全局钩子 | 62 |
 | **`_resolve()`** | **72** |
 | `parallel` / `emit` / `serial` / `bail` / **`waterfall`** | 89 / 96 / 101 / 109 / **117** |
-| `register()` / `unregister()` | 128 / 136 |
-| **`on()`** / `once()` | **144** / 160 |
-| **`interface Events`（8 事件）** | **169** |
+| `register()` / `unregister()` | 134 / 143 |
+| **`on()`** / `once()` | **154** / 169 |
+| **`interface Events`（8 事件）** | **178** |
 
 ### `C/service.ts`（80 行） · `C/context.ts`（78 行）
 
@@ -231,51 +231,52 @@ title: "关键调用链速查"
 | `[symbols.resolveConfig]` | service:51 |
 | `static [Symbol.hasInstance]` | service:69 |
 | `class Context` | context:21 |
-| `Context.is` | context:27 |
-| 构造函数 | context:36 |
-| `new Proxy(...)` | context:39 |
+| `Context.is` | context:26 |
+| 构造函数 | context:35 |
+| `new Proxy(...)` | context:38 |
 | `_disposables.clear()` | context:47 |
 | `extend()` / `isolate()` / `intercept()` | context:55 / 65 / 71 |
 
-### `L/`（loader，870 行）
+### `L/`（loader，997 行）
 
 | 符号 | 位置 |
 |---|---|
 | `class Loader` | `index.ts:47` |
 | `internal = ModuleLoader.fromInternal()` | `index.ts:55` |
 | `internal/update` 写回钩子 | `index.ts:74` |
-| `internal/plugin` 钩子（6 case 自卸载判定） | `index.ts:88` |
-| `[Service.check]()` | `index.ts:133` |
-| `unwrapExports()` | `index.ts:156` |
+| `internal/plugin` 钩子（7 case 自卸载判定） | `index.ts:90` |
+| `[Service.check]()` | `index.ts:141` |
+| `unwrapExports()` | `index.ts:164` |
+| `createResolve()`（`.cordis/resolve.mjs` 锚定解析） | `resolve.ts:65` |
 | `class Entry` | `config/entry.ts:34` |
 | `Entry.key` | `config/entry.ts:35` |
 | `get disabled()`（沿父链） | `config/entry.ts:64` |
 | `_patchContext()` | `config/entry.ts:84` |
 | **`update()`** | `config/entry.ts:100` |
 | `getOuterStack`（返回配置位置） | `config/entry.ts:136` |
-| `init()` / `_init()` | `config/entry.ts:146` / `:158` |
-| `EntryTree` / `sep = ':'` | `config/tree.ts:6` / `:7` |
-| `resolve()` / `import()` | `config/tree.ts:56` / `:103` |
-| `EntryGroup` / `Group` | `config/group.ts:5` / `:73` |
+| `init()` / `_init()` | `config/entry.ts:146` / `:159` |
+| `EntryTree` / `sep = ':'` | `config/tree.ts:24` / `:25` |
+| `resolve()` / `import()` | `config/tree.ts:74` / `:131` |
+| `EntryGroup` / `Group` | `config/group.ts:5` / `:78` |
 | `Realm` / `LocalRealm` / `GlobalRealm` | `config/isolate.ts:25` / `:47` / `:57` |
-| **`loader/patch-context` 7 步算法** | `config/isolate.ts:92` |
+| **`loader/patch-context` 7 步算法** | `config/isolate.ts:91` |
 | realm GC | `config/isolate.ts:151` |
 
-### `I/`（include，219 行） · `H/`（hmr，405 行）
+### `I/`（include，947 行） · `H/`（hmr，496 行）
 
 | 符号 | 位置 |
 |---|---|
-| `JsExpr` yaml 类型 | `I/index.ts:8` |
-| `class Include` | `I/index.ts:48` |
-| **`applyPatches()`** | `I/index.ts:101` |
-| `[Service.init]()` | `I/index.ts:166` |
-| `_writeFile()`（原子写） | `I/index.ts:192` |
-| `loadDependencies()` | `H/index.ts:31` |
-| `class Hmr` | `H/index.ts:51` |
-| `[Service.init]()` | `H/index.ts:97` |
-| **`analyzeChanges()`** | `H/index.ts:174` |
-| **`partialReload()`** | `H/index.ts:229` |
-| `rollback()` | `H/index.ts:311` |
+| `JsExpr` yaml 类型 | `I/index.ts:13` |
+| `class Include` | `I/index.ts:81` |
+| **`applyPatches()`** | `I/patch.ts:47` |
+| `[Service.init]()` | `I/index.ts:134` |
+| `_writeText()`（原子写） | `I/index.ts:351` |
+| `loadDependencies()` | `H/index.ts:32` |
+| `class Hmr` | `H/index.ts:82` |
+| `[Service.init]()` | `H/index.ts:129` |
+| **`analyzeChanges()`** | `H/index.ts:240` |
+| **`partialReload()`** | `H/index.ts:295` |
+| `rollback()` | `H/index.ts:380` |
 
 ## 9.4 错误消息对照表
 
@@ -286,21 +287,21 @@ title: "关键调用链速查"
 | `invalid config:\n  - ...` | `C/fiber.ts:16`（`ValidationError`） | Standard Schema 校验失败 |
 | `Async config validation is not supported` | `C/fiber.ts:39` | Config 的 validate 返回 Promise |
 | `cannot get property "x" without inject` | `C/reflect.ts:71` | 未声明依赖 |
-| `cannot get required service "x" in inactive context` | `C/reflect.ts:86` | 声明了但提供者非 ACTIVE |
-| `cannot set property "x" without provide` | `C/reflect.ts:105`、`:166` | 给未注册的名字赋值 |
-| `cannot set property "x" in multiple fibers` | `C/reflect.ts:169` | 非注册者试图改值 |
-| `property "x" is already declared as y` | `C/reflect.ts:180`、`:232` | service / accessor 名字冲突 |
-| `service "x" has been registered at <y>` | `C/reflect.ts:188` | 同 realm 重复 provide |
+| `cannot get required service "x" in inactive context` | `C/reflect.ts:89-90` | 声明了但提供者非 ACTIVE |
+| `cannot set property "x" without provide` | `C/reflect.ts:111`、`:168` | 给未注册的名字赋值 |
+| `cannot set property "x" in multiple fibers` | `C/reflect.ts:171` | 非注册者试图改值 |
+| `property "x" is already declared as y` | `C/reflect.ts:182`、`:234` | service / accessor 名字冲突 |
+| `service "x" has been registered at <y>` | `C/reflect.ts:190` | 同 realm 重复 provide |
 | `invalid plugin, expect function or object with an "apply" method, received z` | `C/registry.ts:196` | 传入非法插件 |
 | `@Inject() can only be used on class or class methods` | `C/registry.ts:37` | 装饰器位置错 |
-| `extension "x" not supported` | `I/index.ts:64` | include 的文件扩展名不支持 |
-| `config file not found: <path>` | `I/index.ts:174` | 文件不存在且无 `initial` |
-| `cannot overwrite readonly config` | `I/index.ts:194` | 配置文件不可写 |
-| `--expose-internals is required for HMR service` | `H/index.ts:81` | 缺启动参数 |
-| `patch: entry %C not found` | `I/index.ts:145`（warn） | patch 的 id 不存在 |
-| `patch: name mismatch for %C ...` | `I/index.ts:151`（warn） | patch 的 name 与目标不符 |
-| `patch insert: entry %C is not a group` | `I/index.ts:127`（warn） | 带 id 的 insert 目标不是 group |
-| `patch: id is required for non-insert patches` | `I/index.ts:139`（warn） | 非 insert patch 缺 id |
+| `extension "x" not supported` | `I/index.ts:111` | include 的文件扩展名不支持 |
+| `config file not found: <path>` | `I/index.ts:142` | 文件不存在且无 `initial` |
+| `config file %C is read-only, %d pending change(s) kept in memory` | `I/index.ts:326`（warn） | 配置文件不可写，变更暂存内存 |
+| `loader internals are unavailable, source code HMR is disabled; pass --expose-internals or install node-addon-require-builtin to enable it` | `H/index.ts:141`（warn） | 缺内部接口时源码 HMR 被禁用（进程不退出） |
+| `patch: entry %C not found` | `I/patch.ts:93`（warn） | patch 的 id 不存在 |
+| `patch: name mismatch for %C ...` | `I/patch.ts:98`（warn） | patch 的 name 与目标不符 |
+| `patch insert: entry %C is not a group` | `I/patch.ts:74`（warn） | 带 id 的 insert 目标不是 group |
+| `patch: id is required for non-insert patches` | `I/patch.ts:87`（warn） | 非 insert patch 缺 id |
 
 ## 9.5 配置项速查
 
@@ -315,19 +316,19 @@ title: "关键调用链速查"
 
 | 项 | 位置 | 说明 |
 |---|---|---|
-| `path: string` | `I/index.ts:41` | 配置文件路径 |
-| `initial?: any[]` | `I/index.ts:42` | 文件不存在时的初始内容 |
-| `patches?: PatchOptions[]` | `I/index.ts:43` | 补丁列表（§ [07 7.5](07-loader-and-configuration-tree.md)） |
-| `enableLogs?: boolean` | `I/index.ts:44` | 是否打印 apply/reload/unload 日志 |
+| `path: string` | `I/index.ts:74` | 配置文件路径 |
+| `initial?: any[]` | `I/index.ts:75` | 文件不存在时的初始内容 |
+| `patches?: PatchOptions[]` | `I/index.ts:76` | 补丁列表（§ [07 7.5](07-loader-and-configuration-tree.md)） |
+| `enableLogs?: boolean` | `I/index.ts:77` | 是否打印 apply/reload/unload 日志 |
 
 ### `Hmr.Config`
 
 | 项 | 默认 | 位置 |
 |---|---|---|
-| `base?: string` | — | `H/index.ts:390` |
-| `root: string[]` | `['.']` | `H/index.ts:391` |
-| `ignored: string[]` | `['**/node_modules', '**/.*', 'cache', 'data']` | `H/index.ts:392` |
-| `debounce: number` | `100` | `H/index.ts:398` |
+| `base?: string` | — | `H/index.ts:481` |
+| `root: string[]` | `['.']` | `H/index.ts:482` |
+| `ignored: string[]` | `['**/node_modules', '**/.*', 'cache', 'data']` | `H/index.ts:483` |
+| `debounce: number` | `100` | `H/index.ts:489` |
 
 ### 环境变量
 
@@ -339,7 +340,7 @@ title: "关键调用链速查"
 
 | 参数 | 必要性 |
 |---|---|
-| `--expose-internals` | HMR 必需（`ModuleLoader.fromInternal()`） |
+| `--expose-internals` | 可选增强：缺失时源码 HMR 禁用并告警（`ModuleLoader.fromInternal()` 返回 `undefined`） |
 | `--import tsx` | 直跑 TS 源码时需要 |
 | `--import @cordisjs/unyaml` | 需 `import x.yml` 时 |
 
@@ -374,12 +375,12 @@ title: "关键调用链速查"
 
 | 形态 | 处理位置 |
 |---|---|
-| `Disposable`（函数） | `:241` |
-| `Iterable<Disposable>`（生成器） | `:248-255` |
-| `Promise<Disposable>` | `:246` |
-| `AsyncIterable<Disposable>`（async 生成器） | `:256-269` |
-| `nullish` | `:243` |
-| 其它 → `TypeError` | `:245`、`:270` |
+| `Disposable`（函数） | `:239-241` |
+| `Iterable<Disposable>`（生成器） | `:249-255` |
+| `Promise<Disposable>` | `:247` |
+| `AsyncIterable<Disposable>`（async 生成器） | `:256-268` |
+| `nullish` | `:242-243` |
+| 其它 → `TypeError` | `:236`、`:245`、`:270` |
 
 ## 9.8 症状 → 分册路由
 
@@ -411,20 +412,20 @@ title: "关键调用链速查"
 | 想确认什么 | 读哪个测试 |
 |---|---|
 | effect 的卸载顺序与幂等 | `core/tests/dispose.spec.ts`（240 行） |
-| Fiber 状态机转移 | `core/tests/fiber.spec.ts`（183 行） |
+| Fiber 状态机转移 | `core/tests/fiber.spec.ts`（242 行） |
 | 插件注册与依赖 | `core/tests/plugin.spec.ts`（184 行） |
 | 服务基类行为 | `core/tests/service.spec.ts`（165 行） |
-| 5 种事件派发 | `core/tests/events.spec.ts`（158 行） |
-| `this` 归属（shadow） | `core/tests/shadow.spec.ts`（176 行） |
-| `a.b` 形式关联属性 | `core/tests/associate.spec.ts`（198 行） |
+| 5 种事件派发 | `core/tests/events.spec.ts`（282 行） |
+| `this` 归属（shadow） | `core/tests/shadow.spec.ts`（310 行） |
+| `a.b` 形式关联属性 | `core/tests/associate.spec.ts`（256 行） |
 | 可调用服务 | `core/tests/invoke.spec.ts`（116 行） |
 | `@Inject()` 装饰器 | `core/tests/decorator.spec.ts`（40 行） |
 | core 层 isolate | `core/tests/isolate.spec.ts`（123 行） |
 | **配置驱动的 isolate（realm 切换）** | `loader/tests/isolate.spec.ts`（**538 行**） |
-| group 的启停传播 | `loader/tests/group.spec.ts`（231 行） |
-| **HMR 全流程** | `hmr/tests/index.spec.ts`（**800 行**） |
-| **patch 语义** | `include/tests/patch.spec.ts`（243 行） |
-| 定时器可逆性 | `timer/tests/index.spec.ts`（261 行） |
+| group 的启停传播 | `loader/tests/group.spec.ts`（291 行） |
+| **HMR 全流程** | `hmr/tests/index.spec.ts`（**1294 行**） |
+| **patch 语义** | `include/tests/patch.spec.ts`（263 行） |
+| 定时器可逆性 | `timer/tests/index.spec.ts`（318 行） |
 
 ---
 

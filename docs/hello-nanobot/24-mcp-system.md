@@ -3,7 +3,7 @@ title: "MCP 系统：连接管理、工具适配与容错"
 ---
 # MCP 系统：连接管理、工具适配与容错
 
-> 基于 `sources/nanobot/nanobot/agent/tools/mcp.py` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/agent/tools/mcp.py` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
@@ -16,13 +16,13 @@ title: "MCP 系统：连接管理、工具适配与容错"
 
 ## 1. MCP 在 nanobot 的位置
 
-MCP 是唯一的"动态远端工具"来源：配置里的 `MCPServerConfig` 列表由 `AgentLoop._connect_mcp()` 在启动时连接，`agent/tools/mcp.py` 把每个远端工具适配成本地 `Tool` 注册进 ToolRegistry——此后模型看到的是与内建工具同构的声明（见 [05-tool-system.md](./05-tool-system.md)）。`agent/context.py` 提供独立的 `connect_mcp(state, tools)` / `close_mcp(state)` 供子代理等复用方走同一管线。
+MCP 是唯一的"动态远端工具"来源：配置里的 `MCPServerConfig` 列表由 `connect_mcp_servers(...)` / `MCPProvider.connect()` 在启动时连接，`agent/tools/mcp.py` 把每个远端工具适配成本地 `Tool` 注册进 ToolRegistry——此后模型看到的是与内建工具同构的声明（见 [05-tool-system.md](./05-tool-system.md)）。子代理等复用方经 `MCPProvider` 走同一管线。
 
 ## 2. 连接管理
 
 - `MCPConnection`（Protocol）抽象连接面；`_OwnedMCPConnection` 包装"本进程派生、本进程回收"的连接；
 - HTTP 传输在连接前 `_probe_http_url(url, timeout=3.0)` 探活，日志里 `_redact_url` 脱敏；
-- 连接生命周期挂在 AgentLoop 上，进程关停统一关闭。
+- 连接生命周期经 `MCPProvider.aclose()` 统一回收，进程关停时统一关闭。
 
 ## 3. 工具名适配
 

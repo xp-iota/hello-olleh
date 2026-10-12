@@ -45,7 +45,7 @@
       "type": "backend",
       "label": "② Fiber",
       "sublabel": "生命周期单元，6 态机 + epoch（fiber.ts）",
-      "tag": "486 行",
+      "tag": "496 行",
       "pos": [
         680,
         200
@@ -60,7 +60,7 @@
       "type": "database",
       "label": "③ Service",
       "sublabel": "跨插件共享，provide / inject（reflect.ts）",
-      "tag": "281 + 80 行",
+      "tag": "283 + 80 行",
       "pos": [
         990,
         200
@@ -75,7 +75,7 @@
       "type": "messagebus",
       "label": "④ Event",
       "sublabel": "解耦通道，5 种派发（events.ts）",
-      "tag": "178 行",
+      "tag": "188 行",
       "pos": [
         1300,
         200
@@ -130,10 +130,10 @@
     },
     {
       "dot": "violet",
-      "title": "四者合计 1848 行",
+      "title": "四者合计 1874 行",
       "items": [
         "全部集中在 core 包的 C/ 目录",
-        "fiber.ts 486 行是全框架最核心的文件",
+        "fiber.ts 496 行是全框架最核心的文件",
         "用户只需面对 ctx 一个入口"
       ]
     }

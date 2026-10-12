@@ -3,7 +3,7 @@ title: "错误与安全：工作区边界、SSRF 与配对"
 ---
 # 错误与安全：工作区边界、SSRF 与配对
 
-> 基于 `sources/nanobot/nanobot/security/`、`sources/nanobot/nanobot/pairing/` 与 `sources/nanobot/nanobot/agent/runner.py` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/security/`、`sources/nanobot/nanobot/pairing/` 与 `sources/nanobot/nanobot/agent/runner.py` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
@@ -47,7 +47,7 @@ nanobot 是"个人助手"定位：默认信任本地用户，威胁模型集中�
 
 | 层 | 策略 |
 | --- | --- |
-| 模型调用失败 | runner 捕获后用 `error_message`（默认 "Sorry, I encountered an error calling the AI model."）兜底回复，`fail_on_tool_error` 控制工具错误是否中断回合 |
+| 模型调用失败 | runner 捕获后用 `error_message`（默认 "Sorry, I encountered an error calling the AI model."）兜底回复；工具错误由 `tools/execution.py` 包装成带重试提示的错误结果回流给模型（`_with_retry_hint` / `_classify_violation`），不中断回合 |
 | 畸形 tool call | `_drop_malformed_tool_calls` + 纠正消息让模型重试，而不是整回合失败 |
 | 工具名打错 | `ToolRegistry._suggest_name` 在错误结果里给纠错建议 |
 | 会话文件损坏 | `SessionManager._repair` 截掉坏行重建 |

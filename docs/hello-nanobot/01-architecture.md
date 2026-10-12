@@ -3,7 +3,7 @@ title: "架构全景：单包分层与两层循环"
 ---
 # 架构全景：单包分层与两层循环
 
-> 基于 `sources/nanobot/nanobot/` 与 `sources/nanobot/docs/architecture.md` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/` 与 `sources/nanobot/docs/architecture.md` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
@@ -26,13 +26,13 @@ nanobot 是单 Python 包架构（`pyproject.toml` 包名 `nanobot-ai`，运行�
 | `agent/` | 推理核心：`loop.py`（AgentLoop）、`runner.py`（AgentRunner）、`context.py`（ContextBuilder）、`memory.py`、`subagent.py`、`skills.py`、`hook.py`、`autocompact.py`、`context_governance.py`、`tools/` |
 | `bus/` | 消息总线：`events.py`（Inbound/OutboundMessage）、`queue.py`（MessageBus）、`runtime_events.py` |
 | `channels/` | 17 个自包含聊天渠道包 + `base.py`/`contracts.py`/`registry.py`/`manager.py` |
-| `providers/` | 模型接入：`registry.py`（45 个 ProviderSpec）、`factory.py`、`fallback_provider.py`、各供应商实现 |
+| `providers/` | 模型接入：`registry.py`（46 个 ProviderSpec）、`factory.py`、`fallback_provider.py`、各供应商实现 |
 | `session/` | JSONL 会话持久化（`manager.py`） |
 | `config/` | pydantic 配置 schema、加载器、路径助手 |
-| `cli/` | typer 命令树（`commands.py` 约 2700 行） |
+| `cli/` | typer 命令树：`entry.py` 轻量入口与 `commands.py` 命令注册，实现拆分到 `agent.py`、`onboard.py`、`gateway.py`、`webui.py` 等子模块 |
 | `command/` | 聊天内 slash 命令路由与内建命令 |
 | `api/` | OpenAI 兼容 HTTP 服务（aiohttp） |
-| `webui/` | 浏览器 UI 服务（aiohttp，约 30 个模块） |
+| `webui/` | 浏览器 UI 服务（aiohttp，48 个模块） |
 | `gateway/` | 常驻进程编排与健康端口 |
 | `cron/`、`triggers/` | 定时与本地触发自动化 |
 | `sdk/` | 进程内 Python SDK |
@@ -43,7 +43,7 @@ nanobot 是单 Python 包架构（`pyproject.toml` 包名 `nanobot-ai`，运行�
 
 nanobot 把"agent 循环"拆成两个类，这是它区别于其他 CLI 的核心结构：
 
-- **`AgentLoop`（`agent/loop.py`）面向渠道**：按回合（turn）组织工作，维护 `TurnState` 状态机（RESTORE -> COMPACT -> COMMAND -> BUILD -> RUN -> SAVE -> RESPOND -> DONE），负责会话恢复、命令分发、上下文构建、持久化与回投。它知道渠道、会话键、cron/trigger 回合。
+- **`AgentLoop`（`agent/loop.py`）面向渠道**：按回合（turn）组织工作，每个回合沿 `restore -> compact -> command -> build -> run -> save -> respond` 七个固定阶段流水线推进（`_run_turn_stage` 逐段执行并计时），负责会话恢复、命令分发、上下文构建、持久化与回投。它知道渠道、会话键、cron/trigger 回合。
 - **`AgentRunner`（`agent/runner.py`）面向模型**：接收一个 `AgentRunSpec`（max_iterations、注入回调、错误文案等），执行"请求模型 -> 执行工具 -> 回流"的迭代循环，直到模型停止调用工具或触达迭代上限。它不知道渠道存在。
 
 拆分的收益：Runner 可以被子代理、SDK、cron 复用而不拖入渠道语义；Loop 可以把持久化、命令、注入等渠道侧关切集中在一处。
@@ -52,7 +52,7 @@ nanobot 把"agent 循环"拆成两个类，这是它区别于其他 CLI 的核�
 
 ```
 渠道(telegram/feishu/...) --InboundMessage--> MessageBus.publish_inbound
-  -> AgentLoop._dispatch -> TurnContext(TurnState 状态机)
+  -> AgentLoop._dispatch -> TurnContext(回合阶段流水线)
     -> ContextBuilder 组装 messages -> AgentRunner.run(spec)
       -> LLMProvider.chat <-> ToolRegistry 执行 -> 迭代
   -> Session 持久化(JSONL) -> OutboundMessage -> MessageBus.publish_outbound -> 渠道发送
@@ -70,7 +70,7 @@ nanobot 把"agent 循环"拆成两个类，这是它区别于其他 CLI 的核�
 
 ## 源码锚点
 
-- [`sources/nanobot/nanobot/agent/loop.py`](../../sources/nanobot/nanobot/agent/loop.py)：AgentLoop 与 TurnState
+- [`sources/nanobot/nanobot/agent/loop.py`](../../sources/nanobot/nanobot/agent/loop.py)：AgentLoop 与回合阶段流水线
 - [`sources/nanobot/nanobot/agent/runner.py`](../../sources/nanobot/nanobot/agent/runner.py)：AgentRunner 与 AgentRunSpec
 - [`sources/nanobot/nanobot/bus/events.py`](../../sources/nanobot/nanobot/bus/events.py)：Inbound/OutboundMessage
 - [`sources/nanobot/docs/architecture.md`](../../sources/nanobot/docs/architecture.md)：上游架构说明

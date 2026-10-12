@@ -3,7 +3,7 @@ title: "调试指南：debug 命令、日志开关与录制仿真"
 ---
 # 调试指南：debug 命令、日志开关与录制仿真
 
-> 基于 `sources/opencode/packages/cli/src/commands/handlers/debug/`、`packages/cli/src/` 与 `packages/http-recorder/`、`packages/simulation/` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/packages/cli/src/commands/handlers/debug/`、`packages/cli/src/` 与 `packages/http-recorder/`、`packages/simulation/` 中的 OpenCode `v2.0.27` 源码校对。
 
 **目录**
 
@@ -35,7 +35,7 @@ v2 的调试入口分四层：**debug 子命令**（检视目录与配置解析�
 
 - `--print-logs`：把日志打到 stderr；server 日志需要 `--standalone`（私有 server）才能直接观测，默认后台 service 的日志在 service 进程侧。
 - `heap.ts` / `cpu-profile.ts`：堆快照与 CPU profile 采集。
-- 事件日志器把 `agent.updated` / `catalog.updated` / `command.updated` / `config.updated` 桥接进日志，配合 `--print-logs` 观察配置与目录变更（见 [09-observability.md](./09-observability.md) §3）。
+- 事件日志器把 `agent.updated` / `provider.updated` / `model.updated` / `command.updated` / `config.updated` 桥接进日志，配合 `--print-logs` 观察配置与目录变更（见 [09-observability.md](./09-observability.md) §3）。
 
 ## 4. 录制与仿真
 

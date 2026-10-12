@@ -171,9 +171,9 @@ Gemini CLI 的 skill 生命周期可以拆成四步：
 
 | 阶段 | 源码锚点 | 说明 |
 | --- | --- | --- |
-| 发现 | `sources/gemini-cli/packages/core/src/skills/skillManager.ts:47` | `discoverSkills()` 扫描内建、extension、user、workspace skill |
-| 暴露 | `sources/gemini-cli/packages/core/src/prompts/promptProvider.ts:58` | PromptProvider 从 `SkillManager.getSkills()` 取 skill 列表 |
-| 渲染 | `sources/gemini-cli/packages/core/src/prompts/promptProvider.ts:111` | `renderAgentSkills()` 把可用 skill 名称/描述放入 system prompt |
+| 发现 | `sources/gemini-cli/packages/core/src/skills/skillManager.ts:54` | `discoverSkills()` 扫描内建、extension、user、workspace skill |
+| 暴露 | `sources/gemini-cli/packages/core/src/prompts/promptProvider.ts:63` | PromptProvider 从 `SkillManager.getSkills()` 取 skill 列表 |
+| 渲染 | `sources/gemini-cli/packages/core/src/prompts/promptProvider.ts:120` | `renderAgentSkills()` 把可用 skill 名称/描述放入 system prompt |
 | 激活 | `sources/gemini-cli/packages/core/src/tools/activate-skill.ts:130` | `activate_skill` 调用 `skillManager.activateSkill()`，再返回 skill body |
 
 因此，skill 的“生效”不是发现时发生，而是模型调用 `activate_skill` 后才发生。`activate_skill` 自身是工具调用，所以仍要经过工具治理路径；非内建 skill 还会在执行阶段发 policy/确认更新（`sources/gemini-cli/packages/core/src/tools/activate-skill.ts:105`）。

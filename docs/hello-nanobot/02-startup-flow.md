@@ -3,7 +3,7 @@ title: "启动链路：typer 命令树与常驻形态"
 ---
 # 启动链路：typer 命令树与常驻形态
 
-> 基于 `sources/nanobot/nanobot/cli/`、`sources/nanobot/nanobot/gateway/` 与 `sources/nanobot/nanobot/config/loader.py` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/cli/`、`sources/nanobot/nanobot/gateway/` 与 `sources/nanobot/nanobot/config/loader.py` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
@@ -17,7 +17,7 @@ title: "启动链路：typer 命令树与常驻形态"
 
 ## 1. 入口与命令树
 
-入口是 `nanobot/__main__.py` -> `cli/commands.py` 的 typer `app`。`main()` 回调处理全局选项（`--version` 经 `version_callback`）。命令树：
+入口是 `nanobot.cli.entry:main`（`python -m nanobot` 与安装后的 `nanobot` 脚本都先落到 `cli/entry.py`）：无参数或根选项调用先按 `agent` 别名直派 `cli/agent.py`，不导入完整 CLI 图；其余情况进入 `cli/commands.py` 的 typer `app`，`main()` 回调处理全局选项（`--version` 经 `version_callback`）。命令树：
 
 | 命令 | 作用 |
 | --- | --- |
@@ -37,7 +37,7 @@ title: "启动链路：typer 命令树与常驻形态"
 
 ## 3. onboard 向导
 
-`onboard` 命令（commands.py L630 起）的决策树：
+`onboard` 命令（注册于 commands.py，实现主体在 `cli/onboard.py`）的决策树：
 
 1. 解析 `--config` / `--workspace` 覆盖；
 2. 配置已存在时：`--wizard` 走交互重配，`--refresh` 走 `merge_missing_defaults` 合入新增默认值，否则提示用户；
@@ -46,7 +46,7 @@ title: "启动链路：typer 命令树与常驻形态"
 
 ## 4. agent：前台回合
 
-`nanobot agent`（commands.py L2236 起）是最常用的前台形态：构造 `AgentLoop.from_config(...)`，连接 MCP（`_connect_mcp`），然后要么跑单条消息，要么进入 prompt-toolkit 交互循环（见 [20-repl-and-state.md](./20-repl-and-state.md)）。交互模式的关键细节：`_init_prompt_session()` 用 `SafeFileHistory`（容错的历史文件）、`_build_cli_key_bindings()` 自定义键绑定、`_restore_terminal()` 保证退出时恢复终端。
+`nanobot agent`（`cli/agent.py`）是最常用的前台形态：构造 `AgentLoop.from_config(...)`，经 `MCPProvider.from_config(...)` 建立并 `connect()` MCP 工具，然后要么跑单条消息，要么进入 prompt-toolkit 交互循环（见 [20-repl-and-state.md](./20-repl-and-state.md)）。交互模式的关键细节（`cli/terminal.py`）：`_init_prompt_session()` 用 `SafeFileHistory`（容错的历史文件）、`_build_cli_key_bindings()` 自定义键绑定、`_restore_terminal()` 保证退出时恢复终端。
 
 ## 5. gateway 与常驻形态
 

@@ -3,7 +3,7 @@ title: "会话恢复：JSONL 重放、fork 与容错"
 ---
 # 会话恢复：JSONL 重放、fork 与容错
 
-> 基于 `sources/nanobot/nanobot/session/manager.py` 与 `sources/nanobot/nanobot/webui/forking.py` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/session/manager.py` 与 `sources/nanobot/nanobot/webui/forking.py` 中的 nanobot `v0.3.5` 源码校对。
 
 **目录**
 
@@ -17,13 +17,13 @@ title: "会话恢复：JSONL 重放、fork 与容错"
 
 ## 1. 恢复模型
 
-nanobot 的会话恢复是"重放 JSONL"：每条消息一行追加写，恢复就是把文件读回来重建 `Session.messages`。没有独立的事件日志与 projection 层（对照 OpenCode v2 的 durable event log）——JSONL 本身就是全部真相。恢复发生在回合的 `RESTORE` 状态（见 [03-agent-loop.md](./03-agent-loop.md)）。
+nanobot 的会话恢复是"重放 JSONL"：每条消息一行追加写，恢复就是把文件读回来重建 `Session.messages`。没有独立的事件日志与 projection 层（对照 OpenCode v2 的 durable event log）——JSONL 本身就是全部真相。恢复发生在回合的 `restore` 阶段（见 [03-agent-loop.md](./03-agent-loop.md)）。
 
 ## 2. 加载路径与迁移
 
 `SessionManager` 的加载决策：
 
-1. `_resolve_session_path(key, migrate=...)` 依次尝试当前命名（`_get_session_path`）与两个历史命名（`_get_legacy_lossy_path`、`_get_legacy_session_path`），命中旧格式时透明迁移；
+1. 加载按当前命名（`_get_session_path`）优先、两个历史命名（`_get_legacy_lossy_path`、`_get_legacy_session_path`）回退的顺序尝试，命中旧格式时透明迁移；
 2. `_load(key)` 读文件并重建 Session；失败进入 `_repair`；
 3. `get_or_create(key)` 是入口：缓存命中直接返回，否则加载或新建。
 
@@ -31,15 +31,15 @@ nanobot 的会话恢复是"重放 JSONL"：每条消息一行追加写，恢复�
 
 ## 3. fork：从某条用户消息分叉
 
-`SessionManager.fork_session_before_user_index(...)` 支持从历史的某个用户消息位置分叉出新会话——WebUI 的 `webui/forking.py` 把这个能力暴露为"从这里重开对话"。配合 `retain_recent_legal_suffix`，分叉点会被调整到合法边界（不切断 tool call/result 对）。
+`SessionManager.fork_session_before_user_index(...)` 支持从历史的某个用户消息位置分叉出新会话——WebUI 的 `webui/forking.py` 把这个能力暴露为"从这里重开对话"。回放与分叉都以 `find_legal_message_start` 保证边界合法（不切断 tool call/result 对）。
 
 ## 4. 损坏恢复
 
 | 损坏形态 | 处理 |
 | --- | --- |
 | JSONL 末行半截（崩溃时正在写） | `_repair` 截掉坏行 |
-| 保存冲突 | 写 `<key>.jsonl.tmp` 再原子替换，可选 `fsync` |
-| 历史含非法序列 | `get_history` 回放时清洗（`_sanitize_assistant_replay_text`），`retain_recent_legal_suffix` 修剪 |
+| 保存冲突 | 写随机后缀临时文件再原子替换，可选 `fsync` |
+| 历史含非法序列 | `get_history` 回放时清洗（`_sanitize_assistant_replay_text`），`find_legal_message_start` 跳过孤立 tool result |
 | 关停时未落盘 | `_install_gateway_shutdown_handlers` 里 `flush_all()` |
 
 ## 5. 与其他 CLI 的对照
