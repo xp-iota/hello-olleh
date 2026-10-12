@@ -5,7 +5,7 @@ title: "Hello Harness"
 
 `docs/hello-harness/` 是跨 AI Coding CLI 的综合分析层。它不绑定某一个上游工程，而是把 Claude Code、Codex、Gemini CLI、OpenCode、pi 等实现抽象成 Harness Engineering 的控制系统：控制平面、前馈控制、反馈控制、工具治理、上下文与记忆、可驾驭性、熵管理、多代理验证、人类导向和扩展性。
 
-> **Source baselines:** 各章结论均对照当前上游快照核验：Codex `rust-v0.162.1`、Gemini CLI `v0.63.0`、OpenCode `v2.0.27`、Hermes Agent `v2026.9.24`（包版本 0.21.5）、nanobot `v0.3.5`、pi `v1.1.0`（Claude Code 仍为 `v2.1.87`）。OpenCode 相关对比基于 [v2 architecture](../hello-opencode/01-architecture.md)。
+> **Source baselines:** 各章结论均对照当前上游快照核验：Codex `rust-v0.162.1`、Gemini CLI `v0.63.0`、OpenCode `v2.0.27`、Hermes Agent `v2026.9.24`（包版本 0.21.5）、nanobot `v0.3.5`、pi `v1.1.0`、OpenClaw `v2026.10.2`、cordis `4.0.0-rc.10`、DeepSeek Harness `dsh-v0.1.5-rc.2`（Claude Code 仍为 `v2.1.87`）。OpenCode 相关对比基于 [v2 architecture](../hello-opencode/01-architecture.md)。
 
 ## 阅读入口
 
@@ -15,6 +15,7 @@ title: "Hello Harness"
 - 篇章主题对齐矩阵：[15-topic-alignment-matrix.md](./15-topic-alignment-matrix.md)
 - 可插拔模块设计：[40-pluggable-context-memory-module.md](./40-pluggable-context-memory-module.md)
 - Runtime 对比：[42-runtime-comparison.md](./42-runtime-comparison.md)
+- 构建路线对比（含 Hermes）：[43-openclaw-pi-vs-dsh-cordis.md](./43-openclaw-pi-vs-dsh-cordis.md)
 
 ## 推荐阅读顺序
 
@@ -53,8 +54,9 @@ title: "Hello Harness"
 | [19-runtime-surface-comparison.md](./19-runtime-surface-comparison.md) | 入口与传输对比 | CLI/TUI/SDK/Bridge/Input Queue 的横向合并视角 |
 | [40-pluggable-context-memory-module.md](./40-pluggable-context-memory-module.md) | 可插拔模块 | 跨 OpenCode/Hermes 的 context/memory 抽象设计 |
 | [42-runtime-comparison.md](./42-runtime-comparison.md) | Runtime 对比 | OpenCode 与 Hermes Agent 的消息、上下文、存储对比 |
+| [43-openclaw-pi-vs-dsh-cordis.md](./43-openclaw-pi-vs-dsh-cordis.md) | 两两对决 | 底座层 pi vs cordis、agent 层 OpenClaw vs DSH vs Hermes 的成对对决：底座该懂什么、增长机制与信任机器的形状 |
 
 ## 维护注意
 
 - 本目录的判断必须回链到 `hello-*` 或上游源码证据，避免只写抽象结论。
-- 六个项目目录的 `01-25` 视为共享主干；项目特有深挖统一作为附录，并在 [15-topic-alignment-matrix.md](./15-topic-alignment-matrix.md) 登记。
+- 七个项目目录的 `01-25` 视为共享主干；项目特有深挖统一作为附录，并在 [15-topic-alignment-matrix.md](./15-topic-alignment-matrix.md) 登记。

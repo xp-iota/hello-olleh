@@ -24,7 +24,7 @@ title: "OpenCode 源码分析 README"
 
 ## 章节索引
 
-> 横向对齐规则：`01-25` 是六个 AI Coding CLI 目录共享的主题主干；OpenCode 在 v2 重建后没有项目特有附录，v1 时代的 `26-38` 深挖内容已按主题并入主干各章。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
+> 横向对齐规则：`01-25` 是七个 AI Coding CLI 目录共享的主题主干；OpenCode 在 v2 重建后没有项目特有附录，v1 时代的 `26-38` 深挖内容已按主题并入主干各章。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
 
 | 文件 | 主题 | 阅读目的 |
 | --- | --- | --- |

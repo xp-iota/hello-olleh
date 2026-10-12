@@ -33,6 +33,12 @@ Hello Harness 是 `docs/hello-claude-code/`、`docs/hello-codex/`、`docs/hello-
 | [18-extension-mcp-comparison.md](18-extension-mcp-comparison.md) | Skill、Plugin、MCP、Command 与 Hook |
 | [19-runtime-surface-comparison.md](19-runtime-surface-comparison.md) | 入口、传输、REPL、Bridge 与输入队列 |
 
+## 构建路线对比
+
+| 文档 | 内容 |
+| :--- | :--- |
+| [43-openclaw-pi-vs-dsh-cordis.md](43-openclaw-pi-vs-dsh-cordis.md) | 底座（pi vs cordis）与 agent（OpenClaw vs DSH vs Hermes）的两两对决 |
+
 ## 上下文与记忆运行时设计
 
 | 文档 | 内容 |
@@ -46,3 +52,4 @@ Hello Harness 是 `docs/hello-claude-code/`、`docs/hello-codex/`、`docs/hello-
 2. 用 [15-topic-alignment-matrix.md](15-topic-alignment-matrix.md) 对齐四个项目的同类章节。
 3. 阅读 [16-tool-governance-comparison.md](16-tool-governance-comparison.md) 到 [19-runtime-surface-comparison.md](19-runtime-surface-comparison.md) 获取专题横向结论。
 4. 需要跨运行时上下文与记忆设计时，进入 [40-pluggable-context-memory-module.md](40-pluggable-context-memory-module.md) 与 [42-runtime-comparison.md](42-runtime-comparison.md)。
+5. 对比底座与 agent 的构建路线（pi vs cordis，OpenClaw vs DSH vs Hermes 两两对决）时，读 [43-openclaw-pi-vs-dsh-cordis.md](43-openclaw-pi-vs-dsh-cordis.md)。

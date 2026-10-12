@@ -16,6 +16,7 @@
 | [pi](https://github.com/earendil-works/pi) | v1.1.0 | TypeScript（14 包 monorepo） | minimal extensible agent harness：双层 agent 循环 + 统一多 provider LLM API，一切增值能力皆为扩展 |
 | [hermes-agent](https://github.com/nousresearch/hermes-agent.git) | v2026.9.24（包版本 0.21.5） | Python / FastAPI | Nous Research 的多模态 Agent 框架 |
 | [nanobot](https://github.com/HKUDS/nanobot.git) | v0.3.5 | Python / asyncio | HKUDS 轻量级个人助手框架：17 渠道 + MessageBus + 两层 Agent 循环 |
+| [openclaw](https://github.com/openclaw/openclaw) | v2026.10.2 | TypeScript + Rust | 开源个人 AI 助理网关：单 Gateway 控制面 + 20+ 消息通道，模型/harness/通道皆插件 |
 | [cordis](sources/cordis) | 4.0.0-rc.10 | TypeScript | Fiber + Service 元框架，可逆插件组合 |
 | [deepseek-harness](sources/deepseek-harness) | 0.1.5-rc.2 | TypeScript / React | 基于 Cordis 的插件化 Agent Harness |
 
@@ -34,9 +35,9 @@
 | 路径 | 用途 |
 |:-----|:-----|
 | `sources/` | 上游源码快照目录 |
-| `sources/claude-code/`, `sources/codex/`, `sources/gemini-cli/`, `sources/opencode/`, `sources/hermes-agent/`, `sources/nanobot/`, `sources/cordis/`, `sources/deepseek-harness/` | 各项目源码，分析输入 |
+| `sources/claude-code/`, `sources/codex/`, `sources/gemini-cli/`, `sources/opencode/`, `sources/hermes-agent/`, `sources/nanobot/`, `sources/cordis/`, `sources/deepseek-harness/`, `sources/pi/`, `sources/openclaw/` | 各项目源码，分析输入 |
 | `docs/` | 分析输出目录 |
-| `docs/hello-claude-code/`, `docs/hello-codex/`, `docs/hello-gemini-cli/`, `docs/hello-opencode/`, `docs/hello-nanobot/`, `docs/hello-cordis/`, `docs/hello-dsh/` | 按主题拆分的 Markdown 分析文档 |
+| `docs/hello-claude-code/`, `docs/hello-codex/`, `docs/hello-gemini-cli/`, `docs/hello-opencode/`, `docs/hello-nanobot/`, `docs/hello-cordis/`, `docs/hello-dsh/`, `docs/hello-pi/`, `docs/hello-openclaw/` | 按主题拆分的 Markdown 分析文档 |
 | `docs/hello-harness/` | Harness Engineering 框架分析 |
 | `docs/okf/` | OKF v0.2 知识包：`dsh-example` 的可复用结论，带来源、验证方式与过期时间 |
 | `dsh-example/` | DeepSeek Harness 的 12 个方向模块、60 个可跑阶段（装在真实发布的 `@deepseek-ai/*` npm 包上，`0.1.5-rc.2`） |

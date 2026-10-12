@@ -21,6 +21,8 @@ cordiverse/cordis.git v4.0.0-rc.10
 deepseek-ai/deepseek-harness.git dsh-v0.1.5-rc.2
 # https://github.com/earendil-works/pi/tree/v1.1.0
 earendil-works/pi.git v1.1.0
+# https://github.com/openclaw/openclaw/tree/v2026.10.2
+openclaw/openclaw.git v2026.10.2
 '
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
