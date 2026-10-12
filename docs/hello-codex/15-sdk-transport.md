@@ -63,7 +63,7 @@ Codex 里至少有两层“传输”：
 
 ## 3. app-server protocol 才是多宿主复用的稳定面
 
-Codex 之所以能同时服务 TUI、`exec`、SDK 和 remote client，关键不在于每层都写了一遍逻辑，而在于 `app-server-protocol/src/protocol/v2.rs` 已经把核心对象固定下来：
+Codex 之所以能同时服务 TUI、`exec`、SDK 和 remote client，关键不在于每层都写了一遍逻辑，而在于 `app-server-protocol/src/protocol/v2/`（目录，rust-v0.162 起由单文件 `v2.rs` 拆为 `v2/` 多文件，`thread.rs` / `item.rs` 等）已经把核心对象固定下来：
 
 - `Thread`
 - `Turn`
@@ -124,12 +124,12 @@ TypeScript SDK 也是类似思路。`sdk/typescript/src/codex.ts` 的 `Codex` �
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `HttpTransport::new()` | `codex-rs/core/src/transport.rs` | 创建 HTTPS 传输层：配置 base_url、API key、超时 |
-| `HttpTransport::stream()` | `codex-rs/core/src/transport.rs` | 发起 SSE 流式请求，返回 `Stream<Event>` |
-| `BackoffRetry` | `codex-rs/core/src/retry.rs` | 指数退避重试包装器：处理 429/503 响应 |
-| `StreamDecoder` | `codex-rs/core/src/transport.rs` | SSE 字节流解码为结构化 `Event` 类型 |
-| `ApiKeyProvider` | `codex-rs/core/src/auth.rs` | API key 解析优先级：env → config file → keychain |
-| `ProviderConfig` | `codex-rs/core/src/config.rs` | 提供商配置：base_url、model_name、max_tokens 映射 |
+| `ModelClientSession::stream()` | `codex-rs/core/src/client.rs:2237` | 单轮流式请求入口：优先 Responses WebSocket，失败回退 HTTPS Responses API |
+| `ModelClient::new_session()` | `codex-rs/core/src/client.rs:609` | 创建会话级 API 状态：认证、provider、路由缓存 |
+| `stream_responses_websocket()` | `codex-rs/core/src/client.rs:1853` | Responses WebSocket 传输路径 |
+| `stream_responses_api()` | `codex-rs/core/src/client.rs:1662` | HTTPS Responses API（SSE）传输路径 |
+| `ResponsesStreamRetryState` | `codex-rs/core/src/responses_retry.rs:32` | 流式响应重试状态机（rust-v0.162 起流式重试收敛到 `responses_retry.rs`） |
+| `handle_unauthorized()` | `codex-rs/core/src/client.rs:2640` | 401 触发凭证恢复 |
 
 ---
 
@@ -138,14 +138,14 @@ TypeScript SDK 也是类似思路。`sdk/typescript/src/codex.ts` 的 `Codex` �
 **优点**
 
 - **Rust async 流式处理**：基于 `tokio` + `reqwest` 的异步 SSE 处理，无阻塞、高吞吐，适合长时间流式响应。
-- **指数退避内置**：`BackoffRetry` 直接处理 rate limit 和服务器错误，调用方无需关心重试逻辑。
+- **流式重试内置**：`ResponsesStreamRetryState`（`core/src/responses_retry.rs`）直接处理流中断、rate limit 和服务器错误，调用方无需关心重试逻辑。
 - **API key 多源解析**：env → config → keychain 优先级链，开发环境和生产环境均可无缝配置。
 
 **风险与改进点**
 
 - **SSE 重连无 `Last-Event-ID`**：断线后重连时不携带 `Last-Event-ID`，从流开头重新消费，可能丢失断线期间的 token。
 - **`reqwest` 无连接池复用配置**：未暴露连接池参数，高频会话切换时 TLS 握手开销累积。
-- **仅支持 HTTPS/SSE**：不支持 WebSocket，某些本地 provider（如 Ollama）可能仅支持 WebSocket 流，需要额外适配。
+- **本地 provider 适配有限**：模型传输只有 Responses WebSocket 与 HTTPS SSE 两条路径（见 §2.2），仅提供其他 WebSocket 流协议的本地 provider（如 Ollama）需要额外适配。
 
 ## SDK/Transport 是 runtime 复用边界
 
@@ -164,9 +164,9 @@ Codex 的关键点是 TypeScript SDK 不直接嵌入 Rust runtime，而是通过
 
 | 源码位置 | 说明 | 横向意义 |
 | --- | --- | --- |
-| `sources/codex/codex-rs/tui/src/lib.rs:372` | TUI 选择 embedded/remote app-server | 对应 OpenCode server-first 入口 |
-| `sources/codex/codex-rs/app-server/src/lib.rs:355` | app-server transport 启动入口 | 暴露 JSON-RPC 控制面 |
-| `sources/codex/codex-rs/app-server-transport/src/transport/mod.rs:1` | `stdio://` / `ws://` listen URL 解析 | 说明外部宿主协议边界 |
-| `sources/codex/codex-rs/app-server-client/src/lib.rs:470` | in-process app-server client 启动 | 对应本地 TUI 嵌入模式 |
-| `sources/codex/codex-rs/app-server-client/src/remote.rs:139` | remote WebSocket client connect | 对应远程宿主模式 |
-| `sources/codex/codex-rs/core/src/client.rs:1485` | 模型 Responses WebSocket/HTTP streaming | 与 app-server transport 分层 |
+| `sources/codex/codex-rs/tui/src/lib.rs:289` | TUI `start_embedded_app_server()`（remote 侧 `connect_remote_app_server()` 在 `lib.rs:498`） | 对应 OpenCode server-first 入口 |
+| `sources/codex/codex-rs/app-server/src/lib.rs:438` | app-server transport 启动入口（`run_main()`） | 暴露 JSON-RPC 控制面 |
+| `sources/codex/codex-rs/app-server-transport/src/transport/mod.rs:100` | `stdio://` / `unix://` / `ws://` listen URL 解析 | 说明外部宿主协议边界 |
+| `sources/codex/codex-rs/app-server-client/src/lib.rs:355` | in-process app-server client 启动（`InProcessAppServerClient::start()`） | 对应本地 TUI 嵌入模式 |
+| `sources/codex/codex-rs/app-server-client/src/remote.rs:181` | remote WebSocket client connect（`connect()`） | 对应远程宿主模式 |
+| `sources/codex/codex-rs/core/src/client.rs:2237` | 模型 Responses WebSocket/HTTP streaming（`ModelClientSession::stream()`） | 与 app-server transport 分层 |

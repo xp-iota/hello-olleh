@@ -5,6 +5,8 @@ title: "Nanobot 源码分析 README"
 
 本目录记录 nanobot `v0.3.0`（PyPI 包名 `nanobot-ai`）的源码分析。分析对象是 `sources/nanobot/` 上游快照。nanobot 是一个轻量级个人 AI 助手框架：单 Python 包（`nanobot/`），核心是把"聊天渠道接入"与"模型推理循环"拆成两层——`MessageBus` 承载入站/出站消息，`AgentLoop` 面向渠道做回合状态机，`AgentRunner` 面向模型做迭代与工具执行；外围再挂上 17 个聊天渠道、WebUI、OpenAI 兼容 API、cron/trigger 自动化与 MCP 扩展。
 
+> **版本基线：** 各章节撰写并校验于 `v0.3.0`；`sources/nanobot/` 快照已由 `sync_repos.sh` 前进到 `v0.3.5`。补丁版本间的行号锚点可能存在漂移；文件级路径以实际快照为准。
+
 ## 阅读入口
 
 - 总览版报告：[22-project-init-analysis.md](./22-project-init-analysis.md)
@@ -24,7 +26,7 @@ title: "Nanobot 源码分析 README"
 
 ## 章节索引
 
-> 横向对齐规则：`01-25` 是五个 AI Coding CLI 目录共享的主题主干；nanobot 目前没有项目特有附录。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
+> 横向对齐规则：`01-25` 是六个 AI Coding CLI 目录共享的主题主干；nanobot 目前没有项目特有附录。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
 
 | 文件 | 主题 | 阅读目的 |
 | --- | --- | --- |

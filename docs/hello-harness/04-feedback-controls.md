@@ -31,7 +31,7 @@ title: "反馈控制横向对比"
 
 **Claude Code**：无原生 Linter 配置，因此也没有结构化的 Lint Remediation 指令流程。测试/Lint 失败后，Agent 只能从原始输出里推断修复方向。
 
-**Codex**：`sources/codex/codex-rs/apply-patch/apply_patch_tool_instructions.md` 包含验证要求和使用说明，这是部分 remediation 指令——它告诉 Agent 如何正确使用 patch 工具，减少因工具误用导致的失败。但它不是动态的"基于当前 Lint 结果的修复建议"。
+**Codex**：apply_patch 工具的使用说明不再是独立 Markdown（rust-v0.162 起 `codex-rs/apply-patch/apply_patch_tool_instructions.md` 已移除），而是内联在工具定义与基础提示词里——`sources/codex/codex-rs/core/src/tools/handlers/apply_patch_spec.rs` 构建 freeform 工具定义（语法文件 `sources/codex/codex-rs/core/assets/tools/apply_patch.lark`），`sources/codex/codex-rs/protocol/src/prompts/base_instructions/default.md` 给出调用规范。这是部分 remediation 指令——它告诉 Agent 如何正确使用 patch 工具，减少因工具误用导致的失败。但它不是动态的"基于当前 Lint 结果的修复建议"。
 
 **Gemini CLI**：没有内建的 Lint remediation 子系统。更贴近现实的说法是：它能把测试、lint 或 shell 输出通过工具结果重新交给模型，再由模型自己推断修复策略；必要时 Hook 可以在执行前后补充额外约束，但仓库里没有一个专门负责“读 lint 结果并生成修复建议”的独立模块。
 
@@ -41,7 +41,7 @@ title: "反馈控制横向对比"
 
 Hook 是反馈控制里最直接的干预机制：它允许在 Agent 执行流程的特定点上注入检查逻辑，如果检查失败，可以阻断执行或修改参数。Hook 机制存在与否，决定了反馈控制是"观察型"还是"干预型"——前者只能事后发现，后者可以在问题造成损害前阻断。
 
-**Claude Code**：`sources/claude-code/src/utils/hooks/postSamplingHooks.ts` 提供了采样后 Hook，`sources/claude-code/src/utils/hooks.js` 是 Hook 执行入口。Hook 机制存在，但实际在生产中的触发状态需要结合 feature flag 系统判断——由于 feature() 始终返回 false，依赖 feature flag 的 Hook 分支可能不实际运行。
+**Claude Code**：`sources/claude-code/src/utils/hooks/postSamplingHooks.ts` 提供了采样后 Hook，`sources/claude-code/src/utils/hooks.ts` 是 Hook 执行入口。Hook 机制存在，但实际在生产中的触发状态需要结合 feature flag 系统判断——由于 feature() 始终返回 false，依赖 feature flag 的 Hook 分支可能不实际运行。
 
 **Codex**：`sources/codex/codex-rs/memories/write/templates/memories/stage_one_system.md:15-26` 定义了 Phase 1 的 NO-OP 门控：如果没有足够的信号，Phase 1 返回空，不入库。这是一种"阻断"的反馈逻辑——不是所有执行都会产生记忆，只有通过信号门控的才会。这比"把所有输出都写进记忆库"更克制，也更正确。
 

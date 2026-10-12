@@ -28,21 +28,26 @@ Codex 的执行生命周期由 `submission_loop` 统一编排，关键阶段如�
 
 ## 2. Op 事件总线
 
-Codex 用 `Op` 枚举作为生命周期事件的统一载体：
+Codex 用 `Op` 枚举作为生命周期事件的统一载体（定义在 `codex-protocol/src/protocol.rs:576`，分发在 `core/src/session/handlers.rs:439` 的 `submission_loop()`）：
 
 ```rust
-// codex-rs/core/src/codex.rs
+// codex-protocol/src/protocol.rs
 pub enum Op {
-    UserInput(String),
-    ToolResult { call_id: String, result: ToolOutput },
     Interrupt,
+    TurnInput {
+        request: Box<TurnInputRequest>,
+        mode: TurnInputMode,
+        reply: oneshot::Sender<CodexResult<TurnInputSubmission>>,
+    },
+    RecoverTurn { /* ... */ },
+    ExecApproval { id, turn_id, decision },
+    PatchApproval { id, decision },
     Shutdown,
-    McpToolsReady(Vec<Tool>),
-    ChildAgentResult(ChildAgentResult),
+    // ... 更多 Op 变体
 }
 ```
 
-`submission_loop` 对每个 Op 分派处理，这是 Codex 的核心事件驱动点。
+rust-v0.162 起，旧版 `UserInput` / `UserTurn` 变体合并为 `Op::TurnInput`（`session/handlers.rs:541` 分派给 `turn_input::handle`）。`submission_loop` 对每个 Op 分派处理，这是 Codex 的核心事件驱动点。
 
 ## 3. 可扩展的拦截点
 
@@ -64,14 +69,11 @@ audit_log.record(&tool_call, &result);
 
 ### 3.2 Turn 边界
 
-每个 `run_turn()` 结束时触发 memories 提取和 Thread 状态持久化：
+每个 `run_turn()` 结束时触发 turn stop hooks 和 Thread 状态持久化（`core/src/hook_runtime.rs:392` 的 `run_turn_stop_hooks()`；rust-v0.162 起 memories 提取模块已整体移除，此段描述 rust-v0.154 行为）：
 
 ```rust
 // run_turn 结束后
-if config.memories.enabled {
-    let mems = extract_memories(&turn_rollout).await;
-    thread.add_memories(mems);
-}
+run_turn_stop_hooks(&sess, &turn_context).await;
 thread.persist().await?;
 ```
 
@@ -104,12 +106,12 @@ Codex 的生命周期拦截是代码层面的扩展点，适合二次开发；Cl
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `HookRunner::run_before()` | `codex-rs/core/src/hook.rs` | 执行工具调用前置钩子：验证权限或修改参数 |
-| `HookRunner::run_after()` | `codex-rs/core/src/hook.rs` | 执行工具调用后置钩子：审计日志、结果转换 |
-| `LifecycleHook` enum | `codex-rs/core/src/hook.rs` | 钩子类型枚举：BeforeTool / AfterTool / SessionStart / SessionEnd |
-| `HookConfig` | `codex-rs/core/src/config.rs` | config.toml 中钩子命令配置：trigger → command 映射 |
-| `SessionLifecycle::on_start()` | `codex-rs/core/src/lifecycle.rs` | session 启动时触发：初始化沙盒、加载 skill、建立 LSP |
-| `SessionLifecycle::on_end()` | `codex-rs/core/src/lifecycle.rs` | session 结束时触发：持久化历史、清理沙盒、关闭 LSP |
+| `run_pre_tool_use_hooks()` | `codex-rs/core/src/hook_runtime.rs:188` | 执行工具调用前置钩子：验证权限或修改参数 |
+| `run_post_tool_use_hooks()` | `codex-rs/core/src/hook_runtime.rs:297` | 执行工具调用后置钩子：审计日志、结果转换 |
+| `run_pending_session_start_hooks()` | `codex-rs/core/src/hook_runtime.rs:128` | session 启动时触发：初始化环境、加载 skill |
+| `run_session_end_hooks()` | `codex-rs/core/src/hook_runtime.rs:471` | session 结束时触发：持久化历史、清理资源 |
+| `run_turn_stop_hooks()` | `codex-rs/core/src/hook_runtime.rs:392` | turn 结束时触发：stop/after-agent 语义的 hook 入口 |
+| `HooksConfig` | `codex-rs/hooks` crate（`hooks/src/registry.rs:42`） | hook 声明与配置：trigger → command 映射 |
 
 ---
 
@@ -117,7 +119,7 @@ Codex 的生命周期拦截是代码层面的扩展点，适合二次开发；Cl
 
 **优点**
 
-- **明确的四类生命周期点**：BeforeTool/AfterTool/SessionStart/SessionEnd 覆盖了用户最常需要介入的关键节点，不过多不过少。
+- **明确的多类生命周期点**：pre/post tool use、session start/end、turn stop、permission request（`core/src/hook_runtime.rs` 中对应的 `run_*_hooks()` 入口）覆盖了用户最常需要介入的关键节点，不过多也不过少。
 - **外部命令钩子可编程**：钩子执行外部可执行文件，用户无需修改 codex 源码即可扩展生命周期行为。
 - **Session 启动/关闭资源管理清晰**：start/end 钩子保证沙盒和 LSP 的生命周期与 session 对齐，无泄漏风险。
 
@@ -144,14 +146,14 @@ Codex 的 hook 生命周期分成两类：运行时治理 hook 和 app-server �
 
 | 维度 | 源码锚点 | 结论 |
 | --- | --- | --- |
-| Hook 事件进入 turn 流 | `sources/codex/codex-rs/core/src/session/turn.rs:530` | hook 开始事件可作为 `EventMsg::HookStarted` 发出 |
-| Hook 事件过滤 | `sources/codex/codex-rs/core/src/session/turn.rs:1547` | `HookStarted` / `HookCompleted` 属于特殊事件类型，和普通模型输出区分 |
-| app-server 投影 | `sources/codex/codex-rs/app-server/src/bespoke_event_handling.rs:1590` | `HookStarted` 转换成 app-server notification |
-| 完成事件投影 | `sources/codex/codex-rs/app-server/src/bespoke_event_handling.rs:1602` | `HookCompleted` 同样作为通知给外部宿主 |
-| hook prompt 持久化 | `sources/codex/codex-rs/app-server/src/bespoke_event_handling.rs:2215` | hook prompt message 可被解析成 `ThreadItem::HookPrompt` |
-| Permission hook | `sources/codex/codex-rs/core/src/tools/runtimes/zsh_fork/unix_escalation.rs` | shell escalation 先跑 `run_permission_request_hooks()`，可直接 allow、deny 或继续 prompt |
+| Hook 事件进入 turn 流 | `sources/codex/codex-rs/core/src/hook_runtime.rs:880` | `emit_hook_started_events()` 将 hook 开始事件作为 `EventMsg::HookStarted` 发出 |
+| Hook 事件过滤 | `sources/codex/codex-rs/core/src/session/turn.rs:2158` | `HookStarted` / `HookCompleted` 属于特殊事件类型，和普通模型输出区分 |
+| app-server 投影 | `sources/codex/codex-rs/app-server/src/bespoke_event_handling.rs:1144` | `HookStarted` 转换成 app-server notification |
+| 完成事件投影 | `sources/codex/codex-rs/app-server/src/bespoke_event_handling.rs:1154` | `HookCompleted` 同样作为通知给外部宿主 |
+| hook prompt 持久化 | `sources/codex/codex-rs/app-server-protocol/src/protocol/v2/item.rs:881` | hook prompt message 可被解析成 `ThreadItem::HookPrompt` |
+| Permission hook | `sources/codex/codex-rs/core/src/hook_runtime.rs:258`（由 `tools/approvals.rs:508` 调用） | shell escalation 前先跑 `run_permission_request_hooks()`，可直接 allow、deny 或继续 prompt |
 
-失败策略上，permission hook 不只是“记录一个事件”：它能短路后续交互审批。`sources/codex/codex-rs/core/src/tools/runtimes/zsh_fork/unix_escalation.rs`、`sources/codex/codex-rs/core/src/tools/runtimes/zsh_fork/unix_escalation.rs` 对 hook decision 做分支，失败或拒绝会改变 shell 执行路径。输出是否进入 prompt 要看事件类型：hook notification 面向宿主可见性，hook prompt item 才会进入 thread item 语义。
+失败策略上，permission hook 不只是“记录一个事件”：它能短路后续交互审批。`tools/approvals.rs:508` 对 hook decision 做分支，失败或拒绝会改变 shell 执行路径。输出是否进入 prompt 要看事件类型：hook notification 面向宿主可见性，hook prompt item 才会进入 thread item 语义。
 
 ### 与其他项目的边界
 

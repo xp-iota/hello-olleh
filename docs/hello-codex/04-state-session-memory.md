@@ -49,7 +49,7 @@ Codex 的状态模型分为三层：Thread（线程）、Turn（回合）、Thre
 - **关系**：源图 2 条有向关系 · 画布按主链顺序排列，完整关系见下方要点与正文
 - **要点**：Thread / id, preview, mod… → Turn / id, status, error… · Turn / id, status, error… → ThreadItem / UserMessage…
 
-**Thread**（`v2.rs:3575-3612`）保存线程级元信息：
+**Thread**（`app-server-protocol/src/protocol/v2/thread_data.rs:204`）保存线程级元信息：
 
 | 字段 | 类型 | 含义 |
 | --- | --- | --- |
@@ -66,7 +66,7 @@ Codex 的状态模型分为三层：Thread（线程）、Turn（回合）、Thre
 | `name` | Option | 线程名称 |
 | `turns` | Vec&lt;Turn&gt; | 回合列表（仅 resume/fork/read 时填充）|
 
-**Turn**（`v2.rs:3683-3692`）描述一次回合的状态与错误边界：
+**Turn**（`app-server-protocol/src/protocol/v2/thread_data.rs:386`）描述一次回合的状态与错误边界：
 
 | 字段 | 类型 | 含义 |
 | --- | --- | --- |
@@ -75,7 +75,7 @@ Codex 的状态模型分为三层：Thread（线程）、Turn（回合）、Thre
 | `status` | TurnStatus | 回合状态 |
 | `error` | Option | 错误信息 |
 
-**ThreadItem**（`v2.rs:4232+`）是回合内部的内容实体化，有 8+ 主要变体：
+**ThreadItem**（`app-server-protocol/src/protocol/v2/item.rs:236`）是回合内部的内容实体化，有 8+ 主要变体：
 
 | 变体 | 含义 |
 | --- | --- |
@@ -92,7 +92,7 @@ Codex 的状态模型分为三层：Thread（线程）、Turn（回合）、Thre
 
 #### 线程生命周期参数
 
-**ThreadStartParams**（`v2.rs:2546-2600`）创建线程的完整参数集：
+**ThreadStartParams**（`app-server-protocol/src/protocol/v2/thread.rs:62`）创建线程的完整参数集：
 
 - `model`, `provider`, `service_tier`, `cwd`
 - `approval_policy`, `sandbox`
@@ -100,24 +100,24 @@ Codex 的状态模型分为三层：Thread（线程）、Turn（回合）、Thre
 - `personality`, `dynamic_tools`
 - `persist_extended_history`（实验性：保存丰富事件用于重建）
 
-**ThreadResumeParams**（`v2.rs:2650-2703`）恢复线程的参数，有三种来源（优先级递降）：
+**ThreadResumeParams**（`app-server-protocol/src/protocol/v2/thread.rs:354`）恢复线程的参数，有三种来源（优先级递降）：
 
 1. `history`（不稳定）— 直接传入历史
 2. `path`（不稳定）— 从文件路径加载
 3. `thread_id` — 从数据库查找
 
-**ThreadForkParams**（`v2.rs:2734-2780`）分叉线程的参数：
+**ThreadForkParams**（`app-server-protocol/src/protocol/v2/thread.rs:544`）分叉线程的参数：
 
 - `thread_id` — 源线程 ID
 - `path`（不稳定）— rollout 文件路径
 - `ephemeral` — 是否临时
 - `persist_extended_history`
 
-`ThreadStartResponse`、`ThreadResumeResponse`、`ThreadForkResponse` 都返回线程快照（`v2.rs:2528-2703`），包含 `thread`、`model`、`model_provider`、`cwd`、`approval_policy`、`sandbox`、`reasoning_effort`。
+`ThreadStartResponse`、`ThreadResumeResponse`、`ThreadForkResponse` 都返回线程快照（`app-server-protocol/src/protocol/v2/thread.rs:188-632`），包含 `thread`、`model`、`model_provider`、`cwd`、`approval_policy`、`sandbox`、`reasoning_effort`。
 
 #### 内存状态管理
 
-**ThreadManagerState**（`thread_manager.rs:199-212`）：
+**ThreadManagerState**（`core/src/thread_manager.rs:415`）：
 
 ```rust
 threads: Arc<RwLock<HashMap<ThreadId, Arc<CodexThread>>>>
@@ -128,7 +128,7 @@ thread_created_tx: broadcast::Sender<ThreadId>  // 容量 1024
 - 单写者：`threads.write().await` 独占写入
 - `Arc<CodexThread>` 可跨 task 共享
 
-**SessionState**（`state/session.rs:19-36`）：
+**SessionState**（`core/src/state/session.rs:68`）：
 
 ```rust
 pub(crate) struct SessionState {
@@ -142,7 +142,7 @@ pub(crate) struct SessionState {
 }
 ```
 
-**ActiveTurn**（`state/turn.rs:26-78`）：
+**ActiveTurn**（`core/src/state/turn.rs:30`）：
 
 ```rust
 pub(crate) struct ActiveTurn {
@@ -166,7 +166,7 @@ TurnState 含：
 
 #### 持久化：双 SQLite 数据库
 
-**双数据库设计**（`state/runtime.rs:70-76`）：
+**双数据库设计**（文件名常量在 `state/src/sqlite.rs:34-38`，`StateRuntime` 在 `state/src/runtime.rs:91`；rust-v0.162 起状态持久化从 core 拆到独立的 `state` crate）：
 
 | 数据库 | 文件名 | 用途 |
 | --- | --- | --- |
@@ -185,7 +185,7 @@ PRAGMA auto_vacuum = INCREMENTAL; -- 增量回收
 -- max_connections: 5 (每个数据库)
 ```
 
-**State DB Schema**（`migrations/0001_threads.sql`）threads 表：
+**State DB Schema**（`state/migrations/0001_threads.sql`）threads 表：
 
 | 列 | 类型 | 说明 |
 | --- | --- | --- |
@@ -203,7 +203,7 @@ PRAGMA auto_vacuum = INCREMENTAL; -- 增量回收
 
 索引：`created_at DESC`、`updated_at DESC`、`archived`、`source`、`provider`。
 
-**Logs DB Schema**（`migrations/0001_logs.sql`）logs 表：
+**Logs DB Schema**（`state/migrations/0002_logs.sql`）logs 表：
 
 | 列 | 类型 | 说明 |
 | --- | --- | --- |
@@ -215,11 +215,11 @@ PRAGMA auto_vacuum = INCREMENTAL; -- 增量回收
 
 日志分区：每 10 MiB 一个分区（按 thread_id 桶分）。
 
-**LogDbLayer**（`state/log_db.rs:48-80`）：`mpsc::Sender<LogDbCommand>` channel（容量 512），后台任务批量插入（batch size 128，flush 间隔 2s），集成 `tokio::tracing`。
+**LogDbLayer**（`state/src/log_db.rs:139`）：`mpsc::Sender<LogDbCommand>` channel（容量 512），后台任务批量插入（batch size 128，flush 间隔 2s），集成 `tokio::tracing`。
 
 #### Rollout 记录与回放
 
-**RolloutItem 提取**（`extract.rs:15-41`）：
+**RolloutItem 提取**（`state/src/extract.rs:28`）：
 
 ```rust
 pub fn apply_rollout_item(
@@ -249,14 +249,14 @@ pub fn apply_rollout_item(
 - **关系**：源图 9 条消息 · 画布展示前 5 条主链消息，其余列在要点
 - **要点**：ThreadManager 自调用：优先级: history > path > threadid · ThreadManager 自调用：ForkSnapshot 策略截断 · 未上画布的调用：getrollouthistory()
 
-**ForkSnapshot 策略**（`thread_manager.rs:147-166`）：
+**ForkSnapshot 策略**（`core/src/thread_manager.rs:198`）：
 
 | 策略 | 行为 |
 | --- | --- |
 | `TruncateBeforeNthUserMessage(n)` | 在第 n 条用户消息前截断 |
 | `Interrupted` | 视为当前被中断（追加 turn_aborted）|
 
-**ThreadMetadata 模型**（`model/thread_metadata.rs:57-102`）：
+**ThreadMetadata 模型**（`state/src/model/thread_metadata.rs:125`）：
 
 ```rust
 pub struct ThreadMetadata {
@@ -291,9 +291,9 @@ pub struct ThreadMetadata {
 
 | 层 | 关键代码 | 作用 |
 | --- | --- | --- |
-| 项目级指令层 | `sources/codex/codex-rs/core/src/project_doc.rs` | 读取 `Config::user_instructions`、层级 `AGENTS.md`、可选 JS REPL / child-agents 附加说明 |
+| 项目级指令层 | `sources/codex/codex-rs/core/src/agents_md.rs`（0.154 的 `project_doc.rs` 在 0.162 更名） | 读取 `Config::user_instructions`、层级 `AGENTS.md`、可选 JS REPL / child-agents 附加说明 |
 | 会话上下文层 | `sources/codex/codex-rs/core/src/context_manager/history.rs` | 维护模型可见历史、做规范化、估算 token、处理 compaction 与 rollback 基线 |
-| 轻量记忆层 | `sources/codex/codex-rs/core/src/memories/*` | 从 rollout 抽取 raw memories、做两阶段 consolidation，并把 memory citation 写回线程结果 |
+| 轻量记忆层 | `sources/codex/codex-rs/memories/write/src/*`（rust-v0.162 起从 core 拆到独立的 `codex-memories-write` crate） | 从 rollout 抽取 raw memories、做两阶段 consolidation，并把 memory citation 写回线程结果 |
 
 ![三层链路](diagrams/04-state-session-memory-diagram-04.svg)
 
@@ -305,14 +305,14 @@ pub struct ThreadMetadata {
 
 #### build_prompt() 的四类输入收束
 
-`core/src/codex.rs` 里的 `build_prompt()` 把四类东西拼到一起：
+`core/src/session/turn.rs:1562` 的 `build_prompt()` 把四类东西拼到一起：
 
 1. `ContextManager::for_prompt()` 产出的历史 `input`
 2. `ToolRouter::model_visible_specs()` 产出的工具声明
 3. `BaseInstructions`
 4. 人格、并行工具调用能力、结构化输出 schema
 
-`project_doc.rs::get_user_instructions()` 构造 `base_instructions` 的路径：
+`agents_md.rs::load_project_instructions()`（`core/src/agents_md.rs:58`；0.154 中名为 `project_doc.rs::get_user_instructions()`）构造 `base_instructions` 的路径：
 
 - 先取 `config.user_instructions`
 - 再按"项目根 -> 当前目录"的顺序拼接所有 `AGENTS.md`
@@ -331,22 +331,22 @@ pub struct ThreadMetadata {
 
 #### memories pipeline 的异步特性
 
-`codex.rs` 会在启动后触发 `memories::start_memories_startup_task()`，由四个模块协作：
+rust-v0.162 起，`memories` 模块从 `core` 拆出为独立的 `codex-memories-write` crate（`memories/write/src/*`），不再由 `codex.rs` 直接触发：改由 app-server 在线程启动后调用 `codex_memories_write::start_memories_startup_task()`（定义在 `memories/write/src/start.rs:24`，调用点 `app-server/src/request_processors/turn_processor.rs:698`），由四个模块协作：
 
-- `memories/phase1.rs`：选择 rollout、提取 stage-1 raw memories
-- `memories/phase2.rs`：选择可用 raw memories、做 consolidation
-- `memories/storage.rs`：同步 `raw_memories.md` 与 rollout summary 文件
-- `memories/prompts.rs`：构建 memory tool 的 developer instructions 与 consolidation prompt
+- `memories/write/src/phase1.rs`：选择 rollout、提取 stage-1 raw memories
+- `memories/write/src/phase2.rs`：选择可用 raw memories、做 consolidation
+- `memories/write/src/storage.rs`：同步 `raw_memories.md` 与 rollout summary 文件
+- `memories/write/src/prompts.rs`：构建 memory tool 的 developer instructions 与 consolidation prompt
 
 这套 pipeline 的中心不是当前 turn，而是已经落盘的 rollout，因此 memory 更偏离线整理，而不是每轮都做复杂注入。
 
-`mcp_tool_call.rs` 与 `stream_events_utils.rs` 都会在满足条件时把 thread 标记为 `memory_mode_polluted`。配置里的 `no_memories_if_mcp_or_web_search` 说明：一旦上下文掺入外部 MCP 或 web search 结果，memory 会被主动降级，避免把高噪声输入错误固化。
+`core/src/mcp_tool_call.rs`（:929）与 `core/src/stream_events_utils.rs`（:136）都会在满足条件时把 thread 标记为 `memory_mode_polluted`。配置里的 `no_memories_if_mcp_or_web_search`（`config/src/types.rs:325`）说明：一旦上下文掺入外部 MCP 或 web search 结果，memory 会被主动降级，避免把高噪声输入错误固化。
 
 #### 横向对照特点
 
 - **比 Claude Code 更协议化**：Claude 会把 prompt、memory、context collapse 明确分成多个运行时专题；Codex 更强调"线程历史 + 指令拼接 + 异步 memory pipeline"。
 - **比 Gemini CLI 更少依赖层级文件常驻注入**：Gemini CLI 会持续读取 `GEMINI.md` 分层记忆；Codex 更依赖 `AGENTS.md` + rollout 反刍。
-- **比 OpenCode 更少显式 prompt compiler**：OpenCode 有很强的 `prompt -> loop -> processor -> durable writeback` 主线；Codex 在这一主题上把复杂度藏进 `ContextManager`、`project_doc` 和 memories startup 里。
+- **比 OpenCode 更少显式 prompt compiler**：OpenCode 有很强的 `prompt -> loop -> processor -> durable writeback` 主线；Codex 在这一主题上把复杂度藏进 `ContextManager`、`agents_md`（0.154 为 `project_doc`）和 memories startup 里。
 
 ---
 
@@ -361,10 +361,10 @@ pub struct ThreadMetadata {
 
 #### 会话内记忆管道
 
-每个 turn 结束后，Codex 会从当前 rollout（执行历史）中自动提取"值得记住"的信息：
+每个 turn 结束后，Codex 会从当前 rollout（执行历史）中自动提取"值得记住"的信息（下面两个代码块是示意性伪代码；rust-v0.162 的真实实现位于 `codex-memories-write` 的 `phase1.rs` / `phase2.rs`，并非这两个文件名）：
 
 ```rust
-// codex-rs/core/src/memories/extractor.rs
+// 示意：对应 codex-rs/memories/write/src/phase1.rs 的 raw memory 提取
 pub async fn extract_memories(rollout: &[ThreadItem]) -> Vec<RawMemory> {
     // 使用轻量模型从 rollout 中识别关键信息
     // 例如：用户偏好、项目约定、错误模式
@@ -384,7 +384,7 @@ pub async fn extract_memories(rollout: &[ThreadItem]) -> Vec<RawMemory> {
 - **要点**：首节点：新会话 memories · 末节点：模型可见的 memory 上下文
 
 ```rust
-// codex-rs/core/src/memories/consolidator.rs
+// 示意：对应 codex-rs/memories/write/src/phase2.rs 的 consolidation
 pub async fn consolidate(
     existing: Vec<Memory>,
     new_memories: Vec<RawMemory>,
@@ -465,13 +465,13 @@ Codex 的 Memory 设计偏向简洁：
 **场景一：新会话启动**
 
 1. `ThreadManager::start_thread()` 创建 Thread，写入 `state_5.sqlite`
-2. `project_doc.rs` 读取 `AGENTS.md` 与 `config.user_instructions`，构建 `base_instructions`
-3. `memories::start_memories_startup_task()` 异步启动，从历史 rollout 提取 memories
+2. `agents_md.rs`（0.154 为 `project_doc.rs`）读取 `AGENTS.md` 与 `config.user_instructions`，构建 `base_instructions`
+3. app-server 调用 `codex_memories_write::start_memories_startup_task()` 异步启动（rust-v0.162 起不再由 core 触发），从历史 rollout 提取 memories
 4. `build_prompt()` 将 base_instructions + 工具声明 + 空历史收束为首轮请求
 
 **场景二：会话恢复（resume）**
 
-1. `ThreadManager::resume_thread_from_rollout()` 按优先级（history > path > thread_id）定位历史
+1. `ThreadManager::resume_thread_with_history()` 按优先级（history > path > thread_id）定位历史（0.154 名为 `resume_thread_from_rollout()`）
 2. `ContextManager` 加载历史并做规范化，重置 `reference_context_item` 基线
 3. memories pipeline 从已有 rollout 中补充 phase1/phase2 记忆
 4. 恢复后的会话对模型透明，历史连续
@@ -543,14 +543,16 @@ pub fn apply_rollout_item(
 
 ### memories 提取与 consolidation
 
+（示意性伪代码；rust-v0.162 的真实实现位于 `codex-memories-write` crate 的 `memories/write/src/phase1.rs` 与 `phase2.rs`。）
+
 ```rust
-// codex-rs/core/src/memories/extractor.rs
+// 示意：对应 codex-rs/memories/write/src/phase1.rs 的 raw memory 提取
 pub async fn extract_memories(rollout: &[ThreadItem]) -> Vec<RawMemory> {
     let prompt = build_extraction_prompt(rollout);
     llm_extract(prompt).await
 }
 
-// codex-rs/core/src/memories/consolidator.rs
+// 示意：对应 codex-rs/memories/write/src/phase2.rs 的 consolidation
 pub async fn consolidate(
     existing: Vec<Memory>,
     new_memories: Vec<RawMemory>,
@@ -568,36 +570,32 @@ pub async fn consolidate(
 
 | 函数 | 文件 | 行号 |
 | --- | --- | --- |
-| `ThreadManager::start_thread()` | `thread_manager.rs` | 406 |
-| `ThreadManager::resume_thread_from_rollout()` | `thread_manager.rs` | 455 |
-| `ThreadManager::fork_thread()` | `thread_manager.rs` | 598 |
-| `StateRuntime::init()` | `state/runtime.rs` | 84 |
-| `apply_rollout_item()` | `extract.rs` | 15 |
-| `ThreadMetadataBuilder::build()` | `model/thread_metadata.rs` | 173 |
+| `ThreadManager::start_thread()` | `core/src/thread_manager.rs` | 1049 |
+| `ThreadManager::resume_thread_with_history()` | `core/src/thread_manager.rs` | 1271 |
+| `ThreadManager::fork_thread_from_history()` | `core/src/thread_manager.rs` | 1481 |
+| `StateRuntime::init()` | `state/src/runtime.rs` | 112 |
+| `apply_rollout_item()` | `state/src/extract.rs` | 28 |
+| `ThreadMetadataBuilder::build()` | `state/src/model/thread_metadata.rs` | 285 |
 
 ### 上下文管理
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `ContextManager` | `codex-rs/core/src/context_manager.rs` | 管理模型可见历史边界：决定哪些 turn/item 进入请求 |
-| `build_prompt()` | `codex-rs/core/src/codex.rs` | 三类输入收束：system message + tool descriptions + conversation history |
-| `auto_compact_limit` check | `codex-rs/core/src/codex.rs:5584` | token 预算在 `run_turn()` 入口检查，触发 compaction 或停止 |
-| `MemoryManager` (async pipeline) | `codex-rs/core/src/memory/` | 异步 memory 提取 pipeline：从历史中提取结构化记忆 |
-| `TurnContext.token_usage_at_turn_start` | `codex-rs/core/src/codex.rs:839` | 记录每轮 token 基线，用于判断本轮消耗 |
+| `ContextManager` | `codex-rs/core/src/context_manager/history.rs`（:93） | 管理模型可见历史边界：决定哪些 turn/item 进入请求 |
+| `build_prompt()` | `codex-rs/core/src/session/turn.rs`（:1562） | 三类输入收束：system message + tool descriptions + conversation history |
+| `auto_compact_limit` check | `codex-rs/core/src/session/turn.rs:183`（`run_pre_sampling_compact()` :1303） | token 预算在 `run_turn()` 入口检查，触发 compaction 或停止 |
+| memories pipeline (`codex_memories_write`) | `codex-rs/memories/write/src/` | 异步 memory 提取 pipeline：从历史 rollout 中提取结构化记忆（rust-v0.162 起从 core 拆出） |
+| `TurnContext.token_usage_at_turn_start` | `codex-rs/core/src/state/turn.rs`（`ActiveTurn` :30；`TurnContext` 在 `session/turn_context.rs:321`） | 记录每轮 token 基线，用于判断本轮消耗 |
 
 ### 记忆系统
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `RollingWindowContext` | `codex-rs/core/src/context.rs` | 滚动窗口上下文：限制消息历史到最近 N 条 |
-| `TokenBudgetManager` | `codex-rs/core/src/context.rs` | token budget 管理：根据模型限制截断历史 |
-| `context_trim()` | `codex-rs/core/src/context.rs` | 触发历史消息裁剪，保留最新消息优先 |
-| `ConversationHistory` | `codex-rs/core/src/conversation.rs` | 内存中的完整消息历史，有序追加 |
-| `write_history_file()` | `codex-rs/core/src/persist.rs` | 将对话历史序列化写入 `~/.codex/history/` |
-| `load_history_file()` | `codex-rs/core/src/persist.rs` | 从磁盘加载历史文件，用于 `--resume` 场景 |
-| `extract_memories()` | `codex-rs/core/src/memories/extractor.rs` | 从 rollout 中提取 raw memories |
-| `consolidate()` | `codex-rs/core/src/memories/consolidator.rs` | 两阶段去重、评分与筛选 memories |
-| `start_memories_startup_task()` | `codex-rs/core/src/memories/start.rs` | 启动异步 memories pipeline |
+| `start_memories_startup_task()` | `codex-rs/memories/write/src/start.rs:24`（crate `codex-memories-write`） | 启动异步 memories pipeline；rust-v0.162 起由 app-server 的 `turn_processor.rs:698` 触发 |
+| phase1 raw memory 提取 | `codex-rs/memories/write/src/phase1.rs` | 从 rollout 中提取 raw memories |
+| phase2 consolidation | `codex-rs/memories/write/src/phase2.rs` | 两阶段去重、评分与筛选 memories |
+
+（注：早期版本此处还列有 `RollingWindowContext`、`TokenBudgetManager`、`context_trim()`、`ConversationHistory`、`write_history_file()`、`load_history_file()` 及 `extract_memories()` / `consolidate()` 等条目；这些符号在 rust-v0.162 快照中已无法定位 —— `core/src/context.rs`、`core/src/conversation.rs`、`core/src/persist.rs`、`core/src/memory/` 与 `core/src/memories/extractor.rs`、`consolidator.rs` 均不存在，其中部分疑似从未对应真实符号，故删除。真实的历史窗口与 token 治理在 `context_manager/history.rs` 与 `session/context_window.rs` / `session/token_budget.rs`。）
 
 ---
 
@@ -620,9 +618,7 @@ pub async fn consolidate(
 
 **记忆系统层面**：
 
-- **滚动窗口保证实时性**：RollingWindowContext 保留最新 N 条消息，LLM 始终能看到最新上下文，不会因历史过长遗漏最近指令。
-- **磁盘持久化支持恢复**：对话历史写入本地文件，`--resume` 标志可续接上次会话，无需依赖服务端状态。
-- **token budget 自适应**：TokenBudgetManager 根据当前模型的 context window 动态调整裁剪阈值，兼容不同容量模型。
+- **（rust-v0.162 校正）早期版本此处的三个条目不可靠**：`RollingWindowContext`、`TokenBudgetManager` / `context_trim()`、`write_history_file()` / `load_history_file()` 及 `~/.codex/history/` 明文历史文件均无法在 0.154 / 0.162 快照中定位，相关"滚动窗口""明文历史"论述不成立。真实的对应机制是：历史持久化走 rollout 文件（`rollout` crate）+ 双 SQLite（`state` crate）；历史窗口与 token 治理在 `core/src/session/context_window.rs` 与 `core/src/session/token_budget.rs`，按模型 context window 动态判断 `token_limit_reached` / `auto_compact_limit` 并触发压缩。
 
 ### 风险与改进点
 
@@ -641,6 +637,4 @@ pub async fn consolidate(
 
 **记忆系统层面**：
 
-- **纯内存历史无对话隔离**：多个并发 shell 实例共享同一历史文件，并发写入可能导致历史文件损坏。
-- **trim 策略不可配置**：`context_trim()` 固定截取最旧消息，无法配置为"保留工具调用对""保留重要标记消息"等策略。
-- **历史文件无加密**：`~/.codex/history/` 中以明文存储对话历史，包含的代码片段和指令无访问控制保护。
+- **（rust-v0.162 校正）早期版本此处关于 `~/.codex/history/` 明文历史与 `context_trim()` 固定截断的两个风险条目无法在快照中定位，对应的"明文历史文件无加密""trim 策略不可配置"论述不再成立**。真实的持久化路径是 rollout 文件（`rollout` crate，JSONL 逐项落盘）+ `state_5.sqlite` / `logs_2.sqlite`；rollout 文件同样以明文保存对话与命令输出，访问控制依赖文件系统权限，"历史落盘无加密"这一安全关切对 rollout 文件依然成立。

@@ -236,7 +236,7 @@ Codex 是四个工程中层次最分明的。整条执行链在当前快照中�
 
 ### 4.2 第一层：submission_loop() — 事件分发
 
-**位置** — `sources/codex/codex-rs/core/src/session/handlers.rs`
+**位置** — `sources/codex/codex-rs/core/src/session/handlers.rs:439`
 
 ```rust
 async fn submission_loop(
@@ -245,14 +245,13 @@ async fn submission_loop(
     while let Ok(sub) = rx_sub.recv().await {
         match sub.op.clone() {
             Op::Interrupt => { handlers::interrupt(&sess).await; }
-            Op::UserInput { .. } | Op::UserTurn { .. } => {
-                handlers::user_input_or_turn(...).await;
+            Op::TurnInput { request, mode, reply } => {
+                let result = turn_input::handle(&sess, request, mode, sub.id.clone()).await;
             }
             Op::ExecApproval { id, turn_id, decision } => {
                 handlers::exec_approval(...).await;
             }
             Op::PatchApproval { id, decision } => { ... }
-            Op::ThreadRollback { num_turns } => { ... }
             Op::Shutdown => { return; }  // 唯一退出点
             // ... 更多 Op 变体
         }
@@ -260,11 +259,11 @@ async fn submission_loop(
 }
 ```
 
-这一层用**有界异步通道**（容量 512）接收外部操作。每个 `Op` 变体有独立的 handler。**关键设计**：`Op::Interrupt`、`Op::ExecApproval`、`Op::PatchApproval` 和 `Op::ThreadRollback` 都可以在 turn 运行期间被处理——这意味着审批和中断是**非阻塞地插入**闭环的，而不是在 loop 体内轮询检查。
+这一层用**有界异步通道**（容量 512，`core/src/session/mod.rs:515` 的 `SUBMISSION_CHANNEL_CAPACITY`）接收外部操作。每个 `Op` 变体有独立的 handler。**关键设计**：`Op::Interrupt`、`Op::ExecApproval`（`session/handlers.rs:638`）和 `Op::PatchApproval`（`session/handlers.rs:646`）都可以在 turn 运行期间被处理——这意味着审批和中断是**非阻塞地插入**闭环的，而不是在 loop 体内轮询检查。rust-v0.162 起旧版 `Op::UserInput` / `Op::UserTurn` 已合并为 `Op::TurnInput`（`session/handlers.rs:541` 分派给 `turn_input::handle`），`Op::ThreadRollback` 则被整体删除——运行期回滚不再作为 Op 存在，回滚语义只在 rollout 重放时处理（`core/src/session/rollout_reconstruction.rs:130-137` 的 `pending_rollback_turns`）。
 
 ### 4.3 第二层：run_turn() — Turn 编排
 
-**位置** — `sources/codex/codex-rs/core/src/session/turn.rs:137-2308`
+**位置** — `sources/codex/codex-rs/core/src/session/turn.rs:163`
 
 `run_turn()` 是单次对话轮的完整生命周期：
 
@@ -276,33 +275,32 @@ pub(crate) async fn run_turn(
     prewarmed_client_session: Option<ModelClientSession>,
     cancellation_token: CancellationToken,
 ) -> Option<String> {
-    // 1. Pre-sampling compaction          (line 5596)
+    // 1. Pre-sampling compaction          (session/turn.rs:183)
     run_pre_sampling_compact(...).await;
 
-    // 2. Context recording                (line 5608)
+    // 2. Context recording                (session/turn.rs:355)
     sess.record_context_updates_and_set_reference_context_item(...).await;
 
-    // 3. MCP/Plugin tool collection       (lines 5612-5645)
-    // 4. Skill injection                  (lines 5671-5689)
-    // 5. Client session preparation       (line 5804)
+    // 3. MCP/Plugin tool collection + Skill injection
+    // 4. Client session preparation
 
-    loop {  // <-- 内部采样循环 (line 5810)
+    loop {  // <-- 内部采样循环 (session/turn.rs:424)
         let sampling_request_input = sess.clone_history()
             .await
             .for_prompt(&turn_context.model_info.input_modalities);
 
         match run_sampling_request(...).await {
             Ok(SamplingRequestResult { needs_follow_up, last_agent_message }) => {
-                let total_usage_tokens = sess.get_total_token_usage().await;
-                let token_limit_reached = total_usage_tokens >= auto_compact_limit;
+                // token 上限 + needs_follow_up 判定 (session/turn.rs:547-609)
+                let token_limit_reached = ...;
 
                 if token_limit_reached && needs_follow_up {
-                    run_auto_compact(...).await;  // line 5908
+                    run_auto_compact(...).await;  // session/turn.rs:621
                     continue;  // 压缩后重新采样
                 }
                 if !needs_follow_up {
-                    // 运行 stop hooks、after_agent hooks
-                    break;  // line 5922
+                    // 运行 stop hooks、after_agent hooks (core/src/hook_runtime.rs:392)
+                    break;
                 }
                 continue;  // 工具结果已注录，继续采样
             }
@@ -317,38 +315,32 @@ pub(crate) async fn run_turn(
 
 ### 4.4 第三层：run_sampling_request() — 重试封装
 
-**位置** — `sources/codex/codex-rs/core/src/session/turn.rs:1036-2308`
+**位置** — `sources/codex/codex-rs/core/src/session/turn.rs:1603`
 
 ```rust
 loop {
     let err = match try_run_sampling_request(...).await {
-        Ok(output) => return Ok(output),
-        Err(CodexErr::ContextWindowExceeded) => {
-            sess.set_total_tokens_full(&turn_context).await;
-            return Err(CodexErr::ContextWindowExceeded);
-        }
-        Err(err) => err,
+        Ok(output) => return Ok((output, original_input)),
+        Err(err) => match err.details() {
+            CodexErrorDetails::ContextWindowExceeded => {
+                sess.set_total_tokens_full(&turn_context).await;
+                return Err(err);
+            }
+            _ => err,
+        },
     };
 
-    if !err.is_retryable() { return Err(err); }
-
-    let max_retries = turn_context.provider.stream_max_retries();
-    if retries >= max_retries
-       && client_session.try_switch_fallback_transport(...)
-    {
-        // WebSocket → HTTPS 传输层降级 (line 6441)
-        retries = 0;
-        continue;
-    }
-    if retries < max_retries {
-        retries += 1;
-        let delay = backoff(retries);  // 指数退避
-        tokio::time::sleep(delay).await;
-    } else {
-        return Err(err);
-    }
+    let retry = handle_response_stream_error(
+        &mut retry_state,  // ResponsesStreamRetryState
+        max_retries,
+        err,
+        client_session, ...
+    ).await?;
+    retry??;
 }
 ```
+
+重试与传输降级决策已收敛到 `core/src/responses_retry.rs`：`handle_response_stream_error()`（`:57`）配合 `ResponsesStreamRetryState`（`:32`）维护退避计数，并在重试耗尽时调用 `client_session.try_switch_fallback_transport()`（`responses_retry.rs:121`）做 WebSocket → HTTPS 传输层降级。
 
 **三级容错策略**：
 
@@ -358,15 +350,15 @@ loop {
 
 ### 4.5 第四层：try_run_sampling_request() — 流消费 + 工具派发
 
-**位置** — `sources/codex/codex-rs/core/src/session/turn.rs:1815-2308`
+**位置** — `sources/codex/codex-rs/core/src/session/turn.rs:2512`
 
 ```rust
 let mut stream = client_session
-    .stream(prompt, &turn_context.model_info, ...)
+    .stream(prompt, &step_context.settings.model_info, ...)
     .or_cancel(&cancellation_token)
     .await??;
 
-let mut in_flight: FuturesOrdered<BoxFuture<...>> = FuturesOrdered::new();
+let mut in_flight: FuturesOrdered<InFlightFuture<'static>> = FuturesOrdered::new();
 let mut needs_follow_up = false;
 
 loop {
@@ -378,10 +370,10 @@ loop {
 
     match event {
         Some(Ok(ResponseEvent::OutputItemDone(item))) => {
-            // 工具派发 (line 7263-7270)
+            // 工具派发 (session/turn.rs:2774-2782)
             if let Ok(Some(call)) = ToolRouter::build_tool_call(...).await {
                 let tool_future = Box::pin(
-                    ctx.tool_runtime.clone()
+                    tool_runtime.clone()
                        .handle_tool_call(call, cancellation_token)
                 );
                 in_flight.push_back(tool_future);
@@ -400,7 +392,7 @@ loop {
 }
 ```
 
-**关键设计**：工具调用的 future 被推入 `FuturesOrdered`（行 7212），这意味着**工具在模型流式输出期间就开始并行执行**，但结果按顺序收集。这与 Claude Code 的 `StreamingToolExecutor` 思路一致，但 Codex 使用 Rust 的 `FuturesOrdered` 实现，开销更低。
+**关键设计**：工具调用的 future 被推入 `FuturesOrdered`（`session/turn.rs:2579`），这意味着**工具在模型流式输出期间就开始并行执行**，但结果按顺序收集。这与 Claude Code 的 `StreamingToolExecutor` 思路一致，但 Codex 使用 Rust 的 `FuturesOrdered` 实现，开销更低。
 
 ### 4.6 并发工具执行
 
@@ -416,7 +408,7 @@ pub(crate) struct ToolCallRuntime {
 }
 ```
 
-并发策略（`parallel.rs:105-121`）：
+并发策略（`parallel.rs:205-208`）：
 
 ```rust
 let _guard = if supports_parallel {
@@ -432,23 +424,23 @@ let _guard = if supports_parallel {
 
 Codex 的审批不在 loop 内部轮询，而是通过 `Op::ExecApproval` 和 `Op::PatchApproval` 异步注入 `submission_loop`：
 
-- **Exec 审批** — `codex.rs:4382-4391`：通过 `approval_store` 查找待审批项，解除工具执行阻塞
-- **Patch 审批** — `codex.rs:2976-3012`：发射 `ApplyPatchApprovalRequestEvent`，用户决策后路由到 `apply_patch` 模块
-- **Thread 回滚** — `codex.rs:5110-5193`：`thread_rollback()` 从历史中移除最后 N 个 turn
+- **Exec 审批** — `session/handlers.rs:638`（rust-v0.154 时为 `codex.rs:4382-4391`）：通过 `approval_store` 查找待审批项，解除工具执行阻塞
+- **Patch 审批** — `session/handlers.rs:646`（rust-v0.154 时为 `codex.rs:2976-3012`）：发射 `ApplyPatchApprovalRequestEvent`，用户决策后路由到 `apply_patch` 模块
+- **Thread 回滚** — rust-v0.154 时 `codex.rs:5110-5193` 的 `thread_rollback()` 可从历史中移除最后 N 个 turn；rust-v0.162 起 `Op::ThreadRollback` 与该函数已删除，回滚仅在 rollout 重放时按 `ThreadRolledBack` 标记重算边界（`core/src/session/rollout_reconstruction.rs:130-137`）
 
 ### 4.8 关键函数清单
 
 | 函数 | 文件:行 | 职责 |
-| :------| :---------| :------|
-| `submission_loop()` | `session/handlers.rs:698` | Op 事件分发，最外层 |
-| `run_turn()` | `session/turn.rs:137` | Turn 生命周期编排 |
-| `run_sampling_request()` | `session/turn.rs:1036` | 重试 + 传输降级封装 |
-| `try_run_sampling_request()` | `session/turn.rs:1815` | 流消费 + 工具 future 派发 |
-| `handle_output_item_done()` | `stream_events_utils.rs:197` | 输出项完成处理 |
-| `ToolCallRuntime.handle_tool_call()` | `tools/parallel.rs:48` | 读写锁并发执行 |
-| `ToolRouter::build_tool_call()` | `tools/registry.rs:200` | 工具调用构建 |
-| `run_auto_compact()` | `codex.rs:6134` | 自动上下文压缩 |
-| `thread_rollback()` | `codex.rs:5110` | 历史回滚 |
+| :--- | :--- | :--- |
+| `submission_loop()` | `session/handlers.rs:439` | Op 事件分发，最外层 |
+| `run_turn()` | `session/turn.rs:163` | Turn 生命周期编排 |
+| `run_sampling_request()` | `session/turn.rs:1603` | 重试 + 传输降级封装（降级决策在 `responses_retry.rs:57`） |
+| `try_run_sampling_request()` | `session/turn.rs:2512` | 流消费 + 工具 future 派发 |
+| `handle_output_item_done()` | `stream_events_utils.rs:315` | 输出项完成处理 |
+| `ToolCallRuntime.handle_tool_call()` | `tools/parallel.rs:45` | 读写锁并发执行 |
+| `ToolRouter::build_tool_call()` | `tools/router.rs:246` | 工具调用构建 |
+| `run_auto_compact()` | `session/turn.rs:1434` | 自动上下文压缩 |
+| ~~`thread_rollback()`~~ | `codex.rs:5110`（rust-v0.162 起已删除） | 历史回滚：现仅在 rollout 重放时按标记重算（`session/rollout_reconstruction.rs:130`） |
 
 ---
 
@@ -897,7 +889,7 @@ async ask(req) {
 
 ### 6.7 Bus 事件系统
 
-**位置** — `sources/opencode/packages/core/src/event.ts`
+**位置** — `sources/opencode/packages/core/src/bus.ts`（v2.0.27 前，publish 与事件定义同在 `packages/core/src/event.ts`；现在事件定义移至 `sources/opencode/packages/schema/src/event.ts`，`publish()` 改为 core `bus.ts` 内基于 Effect 的 `publish`，不再直推 `GlobalBus.emit`）
 
 ```typescript
 export async function publish<Def extends BusEvent.Definition>(
@@ -976,7 +968,7 @@ export function retryable(error: NamedError): string | undefined {
 | 工程 | 回注位置 | 回注方式 | 代码引用 |
 | :------| :----------| :----------| :----------|
 | Claude Code | `query.ts:1710-1720` continue site | 拼接到 `state.messages` 数组 | 内存态直接拼接 |
-| Codex | `codex.rs:5810` loop continue | `sess.record_conversation_items()` 写入 history | 通过 ContextManager |
+| Codex | `session/turn.rs:424` loop continue | `sess.record_conversation_items()` 写入 history（`session/mod.rs:3467`） | 通过 ContextManager |
 | Gemini CLI | `useGeminiStream.ts:1712` | `submitQuery(toolResults, {isContinuation})` | 重新进入 sendMessageStream |
 | OpenCode | `processor.ts:157-188` | `Session.updatePart()` 写 SQLite | DB → `toModelMessages()` 重建 |
 
@@ -985,7 +977,7 @@ export function retryable(error: NamedError): string | undefined {
 | 工程 | 并发策略 | 并发决策方 | 最大并发 | 代码引用 |
 | :------| :----------| :------------| :----------| :----------|
 | Claude Code | 分批：连续只读合批并发 | **客户端** `isConcurrencySafe()` 判断 | `CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=10` | `toolOrchestration.ts:96-119` |
-| Codex | RwLock：读锁共享/写锁互斥 | **客户端** `tool_supports_parallel()` | 无硬限制（锁自然排序） | `tools/parallel.rs:105-121` |
+| Codex | RwLock：读锁共享/写锁互斥 | **客户端** `tool_supports_parallel()` | 无硬限制（锁自然排序） | `tools/parallel.rs:205-208` |
 | Gemini CLI | 默认并行，`wait_for_previous` 控制串行 | **模型端** 通过工具参数 | 无硬限制 | `scheduler.ts:549-558` |
 | OpenCode | AI SDK 内置（自动调度） | **SDK 层** | 取决于 AI SDK 实现 | `prompt.ts:766` (tool 注册) |
 
@@ -1004,7 +996,7 @@ export function retryable(error: NamedError): string | undefined {
 | 工程 | 检测机制 | 响应策略 | 代码引用 |
 | :------| :----------| :----------| :----------|
 | Claude Code | 无内置 loop detection | 依赖 maxTurns 硬限制 | `query.ts:1705-1710` |
-| Codex | 无内置 loop detection | 依赖 token 限制 | `codex.rs:5906-5915` |
+| Codex | 无内置 loop detection | 依赖 token 限制 | `session/turn.rs:547-609` |
 | Gemini CLI | `loopDetector` 模式匹配 | 两级：反馈恢复 → 强制终止 | `client.ts:749-820` |
 | OpenCode | `DOOM_LOOP_THRESHOLD=3` 精确匹配 | 要求用户确认 | `processor.ts:103-117` |
 
@@ -1013,7 +1005,7 @@ export function retryable(error: NamedError): string | undefined {
 | 工程 | 压缩层级 | 触发方式 | 压缩粒度 | 代码引用 |
 | :------| :----------| :----------| :----------| :----------|
 | Claude Code | 4 级（snip/micro/auto/reactive） | 每轮(micro) / 阈值(auto) / 错误(reactive) | 消息级摘要 | `query.ts:346-545, 1171-1220` |
-| Codex | 2 级（pre-sampling / auto） | 采样前 / token 达阈值 | 远程或内联 compact | `codex.rs:5596, 6134` |
+| Codex | 2 级（pre-sampling / auto） | 采样前 / token 达阈值 | 远程或内联 compact | `session/turn.rs:183, 1434` |
 | Gemini CLI | 2 级（compress / mask） | token 估算前 / 大输出 | 聊天压缩 + 输出遮罩 | `client.ts:614-711` |
 | OpenCode | 2 级（prune / compaction） | `finish-step` 事件后 | 旧工具输出裁剪 + session 压缩 | `compaction.ts:31-95` |
 
@@ -1026,7 +1018,7 @@ export function retryable(error: NamedError): string | undefined {
 | 业务场景 | 推荐工程 | 理由 |
 | :----------| :----------| :------|
 | **低延迟交互式编码** | Claude Code | 单核 loop 无跨层跳转，工具结果直接在内存拼接回注，路径最短 |
-| **企业级安全合规** | Codex | 四层分治有天然的控制点插入位置；RwLock 并发 + 异步审批通道 + thread rollback |
+| **企业级安全合规** | Codex | 四层分治有天然的控制点插入位置；RwLock 并发 + 异步审批通道（thread rollback 在 rust-v0.162 已收敛为 rollout 重放语义） |
 | **复杂交互式 TUI 产品** | Gemini CLI | 闭环在 UI hook 层闭合，确认框/提示/重试/loop detection 呈现自然 |
 | **长时持久化任务** | OpenCode | SQLite durable state，crash recovery 无损；Bus 系统支持外部观察 |
 | **多 provider 兼容** | OpenCode | AI SDK 抽象层，`LLM.stream()` 通过 `streamText()` 适配所有 provider |

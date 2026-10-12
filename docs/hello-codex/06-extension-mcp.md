@@ -40,45 +40,45 @@ Codex 的扩展体系分为五层：
 
 ## MCP Server 集成
 
-### McpManager（`core/src/mcp.rs:14-41`）
+### McpManager（`core/src/mcp.rs:111`）
 
 ```rust
 impl McpManager {
     pub fn new(plugins_manager: Arc<PluginsManager>) -> Self
-    pub fn configured_servers(&self, config: &Config) -> HashMap<String, McpServerConfig>
-    pub fn effective_servers(&self, config: &Config, auth: Option<&CodexAuth>) -> HashMap<String, McpServerConfig>
-    pub fn tool_plugin_provenance(&self, config: &Config) -> ToolPluginProvenance
+    pub fn new_with_extensions(plugins_manager, extensions, codex_apps_tools_cache) -> Self
+    pub async fn configured_servers(&self, config: &Config) -> HashMap<String, McpServerConfig>
+    pub async fn effective_servers(&self, config: &Config, auth: Option<&CodexAuth>) -> HashMap<String, McpServerConfig>
 }
 ```
 
-- `configured_servers()`：列出配置中声明的所有 MCP server
-- `effective_servers()`：应用认证过滤后的可用 server
-- `tool_plugin_provenance()`：映射工具到其所属插件
+- `configured_servers()`（:452）：列出配置中声明的所有 MCP server
+- `effective_servers()`（:464）：应用认证过滤后的可用 server
+- （rust-v0.162 起：0.154 的 `tool_plugin_provenance()` 已从 `mcp.rs` 移除，工具→插件的归属追踪改由 `core-plugins` 与 `codex-mcp` 的 catalog 侧维护）
 
-### McpConnectionManager（`codex-mcp/src/mcp_connection_manager.rs`）
+### McpConnectionSet（`codex-mcp/src/connection_manager.rs:226`）
 
-每个 MCP server 对应一个 `RmcpClient` 连接。工具聚合规则：
+（rust-v0.162 起由 `McpConnectionManager` 更名为 `McpConnectionSet`，连接聚合拆分到 `connection_manager/` 子模块。）每个 MCP server 对应一个 `RmcpClient` 连接。工具聚合规则：
 
 1. **全限定名**：`mcp__<server>__<tool>`
 2. **名称清洗**：仅保留字母数字和下划线（OpenAI Responses API 要求）
 3. **冲突处理**：名称过长或冲突时使用 SHA1 哈希后缀（最长 64 字符）
 
-ToolInfo 结构（行 184-195）：
+ToolInfo 结构（`codex-mcp/src/tools.rs:25`）：
 
 ```rust
 pub struct ToolInfo {
-    server_name: String,
-    tool_name: String,
-    tool_namespace: String,
-    tool: McpTool,
-    connector_id: Option<String>,
-    connector_name: Option<String>,
-    plugin_display_names: Vec<String>,
-    connector_description: Option<String>,
+    server_name: String,             // 路由工具调用时的原始 server 名
+    supports_parallel_tool_calls: bool,
+    server_origin: Option<String>,   // 遥测/诊断来源
+    callable_name: String,           // 模型可见工具名（旧序列化名 tool_name）
+    callable_namespace: String,      // 模型可见命名空间（延迟加载用）
+    namespace_description: Option<String>,
+    tool: Tool,                      // 原始 MCP 工具定义
+    ...
 }
 ```
 
-### McpConfig（`codex-mcp/src/mcp/mod.rs:72-101`）
+### McpConfig（`codex-mcp/src/mcp/mod.rs:124`）
 
 ```rust
 pub struct McpConfig {
@@ -96,9 +96,9 @@ pub struct McpConfig {
 
 ## 插件系统
 
-### PluginsManager（`core/src/plugins/manager.rs`，1813 行）
+### PluginsManager（`core-plugins/src/manager.rs`，3,838 行；rust-v0.162 起从 core 拆到独立的 `core-plugins` crate）
 
-核心结构（行 311-346）：
+核心结构（:548）：
 
 ```rust
 pub struct PluginsManager {
@@ -116,47 +116,51 @@ pub struct PluginsManager {
 
 | 操作 | 行号 | 签名 |
 | --- | --- | --- |
-| 发现 | 366-395 | `plugins_for_config(&self, config: &Config) -> PluginLoadOutcome` |
-| 安装 | 497-589 | `install_plugin(request) -> Result<PluginInstallOutcome>` |
-| 卸载 | 591-642 | `uninstall_plugin(&self, plugin_id) -> Result<()>` |
-| 远程同步 | 644-845 | `sync_plugins_from_remote(&self, config, auth, additive_only)` |
-| 列出市场 | 847-910 | `list_marketplaces_for_config(&self, config, additional_roots)` |
-| 读取插件 | 912-1004 | `read_plugin_for_config(&self, config, request)` |
+| 发现 | 813 | `plugins_for_config(&self, config: &PluginsConfigInput) -> PluginLoadOutcome` |
+| 安装 | 2066 | `install_plugin(request) -> Result<PluginInstallOutcome>` |
+| 卸载 | 2323 | `uninstall_plugin(&self, plugin_id) -> Result<()>` |
+| 远程同步 | 2122 / 2891 起 | `install_plugin_with_remote_sync()` / `uninstall_plugin_with_remote_sync()`，与 ChatGPT 后端对账 |
+| 列出市场 | 2389 | `list_marketplaces_for_config(&self, config, additional_roots)` |
+| 读取插件 | 2536 | `read_plugin_for_config(&self, config, request)` |
 
-### McpManager（`core/src/mcp.rs:14-41`）
-
-| 方法 | 行号 | 作用 |
-| --- | --- | --- |
-| `new()` | 14 | 构造实例，注入 PluginsManager |
-| `configured_servers()` | 21 | 返回 config.toml 中声明的所有 MCP server |
-| `effective_servers()` | 28 | 应用认证过滤后的可用 server 映射 |
-| `tool_plugin_provenance()` | 35 | 建立工具→插件的归属映射 |
-
-### McpConnectionManager（`codex-mcp/src/mcp_connection_manager.rs:48-120`）
+### McpManager（`core/src/mcp.rs:111`）
 
 | 方法 | 行号 | 作用 |
 | --- | --- | --- |
-| `connect()` | 71 | 建立单个 MCP server 的 RmcpClient 连接 |
-| `disconnect()` | 88 | 断开指定 server 连接 |
-| `list_tools()` | 103 | 发现并返回所有已连接 server 的工具清单 |
-| `call_tool()` | 115 | 通过 server 执行工具调用 |
-| `get_effective_tools()` | 95 | 聚合全限定名、去冲突（SHA1 后缀） |
+| `new()` | 112 | 构造实例，注入 PluginsManager |
+| `configured_servers()` | 452 | 返回 config.toml 中声明的所有 MCP server |
+| `effective_servers()` | 464 | 应用认证过滤后的可用 server 映射 |
 
-### SkillsManager（`core/src/skills.rs:20-42`）
+### McpConnectionSet（`codex-mcp/src/connection_manager.rs:226`）
 
 | 方法 | 行号 | 作用 |
 | --- | --- | --- |
-| `skills_load_input_from_config()` | 44-54 | 从 config 和 skill root 构建加载输入 |
-| `resolve_skill_dependencies_for_turn()` | 56-96 | 解析技能依赖，缺失时通过 UI 请求 |
-| `maybe_emit_implicit_skill_invocation()` | 171-230 | 检测隐式技能调用，发射遥测计数器 |
+| `new()` | 229 | 建立并维护各 MCP server 的 RmcpClient 连接 |
+| `shutdown()` | 931 | 断开所有 server 连接 |
+| `wait_for_server_ready()` | 964 | 等待指定 server 就绪 |
+| `call_tool()` | 977 | 通过 server 执行工具调用 |
+| 工具聚合 | `connection_manager/tool_catalog.rs` | 聚合全限定名、去冲突（SHA1 后缀）、裁决模型可见性（`tool_is_model_visible`） |
 
-### DynamicTool 注册路径（`core/src/codex.rs:577+`）
+### SkillsManager（`core/src/skills.rs`）
 
-| 步骤 | 行号 | 说明 |
+（0.154 中 `SkillsManager` 由 `core/src/skills.rs` 重导出的行号区间在 0.162 已不适用；`skills.rs` 现保留两个入口函数，技能加载主体在 `codex-skills` / `codex-skills-extension` crate。）
+
+| 函数 | 行号 | 作用 |
 | --- | --- | --- |
-| 延迟加载注册 | 577+ | dynamic_tools 不进入首轮 prompt |
-| 按需启用 | 594+ | deferred_dynamic_tools 从模型可见列表排除 |
-| 执行响应 | 4856 | `Op::DynamicToolResponse` 路由到工具输出 |
+| `skills_load_input_from_config()` | 29 | 从 config 和 skill root 构建加载输入 |
+| `maybe_emit_implicit_skill_invocation()` | 132 | 检测隐式技能调用，发射遥测计数器 |
+
+（rust-v0.162 起：0.154 的 `resolve_skill_dependencies_for_turn()`（技能 env 依赖解析）已不在 `skills.rs`；技能依赖检查改由 turn 准备阶段 `build_skills_and_plugins()` 内部处理，MCP 依赖安装提示在 `core/src/mcp_skill_dependencies.rs:40`。）
+
+### DynamicTool 注册路径（rust-v0.162 起移入工具注册层）
+
+| 步骤 | 位置 | 说明 |
+| --- | --- | --- |
+| 注册标记 | `core/src/tools/registry.rs:81` | `is_third_party_tool()` 标记 MCP/app 与客户端动态工具（built-in 同名也不抢占）|
+| 执行响应 | `session/handlers.rs:658` | `Op::DynamicToolResponse` 路由到工具输出 |
+| 执行处理 | `core/src/tools/handlers/dynamic.rs` | 动态工具调用的执行 handler |
+
+（0.154 的 `codex.rs:577+` 延迟加载过滤在 0.162 移入 `ToolRouter::model_visible_specs()` 与 `core/src/tools/spec_plan.rs` 的 deferred third-party tools 处理，见下文"工具过滤"。）
 
 ### 插件清单结构
 
@@ -170,7 +174,7 @@ pub struct PluginsManager {
 - **关系**：源图为文本框图，未提供可解析的有向关系 · 画布按源图中的出现顺序串联，供顺序阅读
 - **要点**：首节点：<pluginroot>/ · 末节点：.app.json # App/Connector 配置
 
-### 插件加载管线（行 1390-1487）
+### 插件加载管线（`core-plugins/src/loader.rs`，`load_plugin()` :824）
 
 1. 从 config name 解析 plugin ID
 2. 从 PluginStore 解析 active root
@@ -179,7 +183,7 @@ pub struct PluginsManager {
 5. 从 `.mcp.json` 加载 MCP servers
 6. 从 `.app.json` 加载 Apps
 
-### MCP Server 加载（行 1711-1809）
+### MCP Server 加载（`core-plugins/src/loader.rs:1592`）
 
 `load_mcp_servers_from_file()` 的规范化处理：
 
@@ -209,21 +213,21 @@ pub struct LoadedPlugin {
 ### Marketplace 系统
 
 - **策划仓库**：OpenAI marketplace（`openai-curated`）
-- **同步进程**（行 1037-1077）：每进程运行一次（原子标志防重复），后台线程刷新缓存
-- **远程同步**（行 644-845）：与 ChatGPT 后端对账，返回 `installed / enabled / disabled / uninstalled` 列表
+- **同步进程**（`core-plugins/src/manager.rs:149`，`CURATED_REPO_SYNC_STARTED`）：每进程运行一次（`AtomicBool` 防重复），后台线程刷新缓存
+- **远程同步**（`core-plugins/src/manager.rs:2122` 起的 `*_with_remote_sync` 系列，对账逻辑约 :2891 起）：与 ChatGPT 后端对账，返回 `installed / enabled / disabled / uninstalled` 列表
 
 ## 技能系统
 
-### SkillsManager（`core/src/skills.rs:20-42`）
+### SkillsManager（`core/src/skills.rs`）
 
-从 `codex_core_skills` crate 重导出：
+从技能 crate 重导出（rust-v0.162 为 `codex-skills` / `codex-skills-extension`；0.154 为 `codex_core_skills`）：
 
 - `SkillsManager` — 主技能加载器
 - `SkillLoadOutcome` / `SkillMetadata` — 技能信息
 - `SkillError` / `SkillPolicy` — 错误/策略类型
 - `SkillDependencyInfo` — 依赖定义
 
-### 技能加载（行 44-54）
+### 技能加载（`core/src/skills.rs:29`）
 
 ```rust
 pub(crate) fn skills_load_input_from_config(
@@ -239,7 +243,11 @@ pub(crate) fn skills_load_input_from_config(
 }
 ```
 
-### 依赖解析（行 56-96）
+### 依赖解析（rust-v0.162 起：`resolve_skill_dependencies_for_turn()` 已移除）
+
+0.154 中此处是 `resolve_skill_dependencies_for_turn()`（`skills.rs`）；rust-v0.162 起该函数已不在 `core/src/skills.rs`，技能 env 依赖在回合准备阶段由 `build_skills_and_plugins()`（`session/turn.rs:1030`）内部处理，MCP 依赖安装提示由 `maybe_prompt_and_install_mcp_dependencies()`（`core/src/mcp_skill_dependencies.rs:40`）承担。
+
+原 0.154 流程（保留作参考）：
 
 ```rust
 pub(crate) async fn resolve_skill_dependencies_for_turn(
@@ -256,7 +264,7 @@ pub(crate) async fn resolve_skill_dependencies_for_turn(
 3. 通过 UI 请求缺失值（标记为 secret/密码输入）
 4. 存储到 session dependency env
 
-### 隐式技能调用（行 171-230）
+### 隐式技能调用（`core/src/skills.rs:132`）
 
 ```rust
 pub(crate) async fn maybe_emit_implicit_skill_invocation(
@@ -287,36 +295,42 @@ pub(crate) dynamic_tools: Vec<DynamicToolSpec>,
 2. 从 rollout 数据库持久化
 3. 从对话历史检索
 
-### 工具过滤（`codex.rs:577-599`）
+### 工具过滤（rust-v0.162 起移入工具注册层）
 
-延迟加载的动态工具不会进入模型可见工具列表，等待按需启用：
+延迟加载的动态工具不会进入模型可见工具列表，等待按需启用。0.154 中这段过滤写在 `codex.rs:577-599`；rust-v0.162 起拆为三处：
 
 ```rust
-let deferred_dynamic_tools = turn_context.dynamic_tools
-    .iter()
-    .map(|spec| spec.name())
-    .collect::<Vec<_>>();
+// core/src/tools/registry.rs:81 —— 注册层标记第三方工具
+/// True for MCP/app and client-supplied dynamic tools.
+/// A built-in stays false even if a client's tool has the same name.
+fn is_third_party_tool(&self) -> bool { false }
 
-let tools = effective_mcp_tools()
-    .filter(|spec| !deferred_dynamic_tools.contains(spec.name()));
+// 模型可见性统一由 ToolRouter::model_visible_specs() 裁决，
+// 延迟启用的 deferred 第三方工具在 core/src/tools/spec_plan.rs 处理
+// （spec_plan.rs:887：Deferred third-party tools still need an exec route to be discoverable）
 ```
 
 ### 事件流
 
 - `EventMsg::DynamicToolCallRequest(_)` — 工具执行请求
 - `EventMsg::DynamicToolCallResponse(_)` — 工具结果
-- Handler：`Op::DynamicToolResponse { id, response }`（行 4529）
+- Handler：`Op::DynamicToolResponse { id, response }`（`session/handlers.rs:658`）
 
-### 持久化（`state_db_bridge.rs:5,11`）
+### 持久化（`state/migrations/0004_thread_dynamic_tools.sql` + `state/src/runtime/threads.rs`）
 
 ```rust
-pub use codex_rollout::state_db::get_dynamic_tools;
-pub use codex_rollout::state_db::persist_dynamic_tools;
+// state/src/runtime/threads.rs —— thread_dynamic_tools 表的写入/清理
+sqlx::query("INSERT INTO thread_dynamic_tools (thread_id, position, name, description, input_schema) ...")   // :2025
+sqlx::query("DELETE FROM thread_dynamic_tools WHERE thread_id = ?")                                          // :1185
 ```
+
+（0.154 的 `state_db_bridge.rs` 动态工具 re-export 在 0.162 已不在；`core/src/state_db_bridge.rs` 现只桥接 `init_state_db()` / `StateDbHandle`。会话历史侧的检索入口是 `history/src/lib.rs:441` 的 `get_dynamic_tools()`。）
 
 ## MCP Server 模式（codex 作为 MCP server）
 
-### 入口（`mcp-server/src/lib.rs:56-179`）
+**（rust-v0.162 起：已移除。）** 0.154 中的 `mcp-server` crate（`mcp-server/src/lib.rs` 的 `run_main()`、`message_processor.rs` 的 `MessageProcessor`、`codex_tool_runner.rs` 的 `run_codex_tool_session()`）在 0.162 快照中已整体删除，`run_main` / `run_codex_tool_session` 等入口不再存在。`codex mcp` 子命令保留，但语义变为 **MCP client 管理**（add / remove / login / logout，`cli/src/mcp_cmd.rs`），而非把 Codex 自身暴露为 MCP server。以下为 0.154 行为的存档分析：
+
+### 入口（0.154：`mcp-server/src/lib.rs:56-179`）
 
 ```rust
 pub async fn run_main(
@@ -333,7 +347,7 @@ pub async fn run_main(
 | message processor | 处理请求/响应 |
 | stdout writer | 序列化输出消息 |
 
-### MessageProcessor（`message_processor.rs:52-158`）
+### MessageProcessor（0.154：`message_processor.rs:52-158`）
 
 处理的请求类型：
 
@@ -345,7 +359,7 @@ pub async fn run_main(
 | `ListPromptsRequest` / `GetPromptRequest` | Prompts API |
 | `ListResourcesRequest` / `ReadResourceRequest` | Resources API |
 
-### CodexToolRunner（`codex_tool_runner.rs:55-142`）
+### CodexToolRunner（0.154：`codex_tool_runner.rs:55-142`）
 
 ```rust
 pub async fn run_codex_tool_session(
@@ -367,7 +381,7 @@ pub async fn run_codex_tool_session(
 
 ## Connector / App 发现
 
-### list_accessible_connectors_from_mcp_tools（`connectors.rs:95-100`）
+### list_accessible_connectors_from_mcp_tools（`core/src/connectors.rs:71`）
 
 ```rust
 pub async fn list_accessible_connectors_from_mcp_tools(
@@ -378,7 +392,7 @@ pub async fn list_accessible_connectors_from_mcp_tools(
 缓存策略：
 
 - Key：Account ID + ChatGPT User ID + workspace status
-- TTL：15 分钟（`CONNECTORS_CACHE_TTL`）
+- TTL：1 小时（`codex-connectors` crate `CONNECTORS_CACHE_TTL`，`connectors/src/lib.rs:56`；0.154 为 15 分钟）
 - 静态缓存 + instant-based 过期
 
 ## 新增工具的修改点
@@ -388,7 +402,7 @@ pub async fn list_accessible_connectors_from_mcp_tools(
 通常**不需要改 core 主链路**。原因：
 
 - `ToolRouter::build_tool_call()` 已能识别 namespaced MCP tool
-- `build_specs_with_discoverable_tools()` 会把 MCP tools 纳入注册
+- （0.154 的 `build_specs_with_discoverable_tools()` 在 0.162 已不在；MCP 工具经 `codex-mcp` 的 tool catalog 并入 `ToolRouter::model_visible_specs()`）
 - `McpHandler` 已是通用处理器
 
 需要做的工作：
@@ -403,8 +417,8 @@ pub async fn list_accessible_connectors_from_mcp_tools(
 
 | 修改位置 | 文件 | 说明 |
 | --- | --- | --- |
-| Handler 实现 | `core/src/tools/handlers/<new>.rs` | 实现 `ToolHandler` trait |
-| 工具规范 | `core/src/tools/spec.rs` | 注册到 `build_specs_with_discoverable_tools()` |
+| Handler 实现 | `core/src/tools/handlers/<new>.rs` | 实现 `ToolHandler` trait（trait 在 `core/src/tools/registry.rs`） |
+| 工具规范 | `core/src/tools/spec_plan.rs` | 声明 spec 与可见性计划（0.154 为 `tools/spec.rs` 的 `build_specs_with_discoverable_tools()`） |
 | 路由器 | `core/src/tools/router.rs` | 添加新的 `ToolHandlerKind` 变体 |
 | 协议类型 | `codex_protocol` | 若涉及新参数类型 |
 | 编排器 | `core/src/tools/orchestrator.rs` | 若涉及新审批/沙箱语义 |
@@ -415,7 +429,7 @@ pub async fn list_accessible_connectors_from_mcp_tools(
 | --- | --- | --- |
 | Plugins | `RwLock` 保护，force reload 重算 | 按需 |
 | Featured Plugins | 时间戳缓存 | 3 小时 |
-| Accessible Connectors | 静态缓存 + 认证 key | 15 分钟 |
+| Accessible Connectors | 静态缓存 + 认证 key | 1 小时（0.154 为 15 分钟） |
 | MCP Tools | 每用户账户缓存 | 连接生命周期 |
 
 ---
@@ -424,14 +438,14 @@ pub async fn list_accessible_connectors_from_mcp_tools(
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `McpClient::connect()` | `codex-rs/core/src/mcp/...` | 连接 MCP server（stdio / SSE）|
-| `McpClient::list_tools()` | `codex-rs/core/src/mcp/...` | 拉取远程工具声明列表 |
-| `McpClient::call_tool()` | `codex-rs/core/src/mcp/...` | 调用单个 MCP 工具 |
-| `PluginManager::load_plugins()` | `codex-rs/core/src/...` | 发现并加载 plugin 配置 |
-| `PluginManager::get_featured()` | — | 带时间戳缓存（3 小时）的 featured plugin 获取 |
-| `SkillManager::discover_skills()` | `codex-rs/core/src/...` | 扫描工作目录中的 `.md` skill 文件 |
-| `DynamicTool::resolve()` | `codex-rs/core/src/...` | 延迟加载动态工具 schema |
-| `codex_serve()` | — | Codex 作为 MCP server 模式的入口函数 |
+| `McpConnectionSet::new()` | `codex-rs/codex-mcp/src/connection_manager.rs:229` | 建立各 MCP server 的 RmcpClient 连接（连接生命周期管理）|
+| `McpConnectionSet::call_tool()` | `codex-rs/codex-mcp/src/connection_manager.rs:977` | 调用单个 MCP 工具 |
+| 工具聚合 / 可见性 | `codex-rs/codex-mcp/src/connection_manager/tool_catalog.rs` | 聚合全限定名、去冲突、裁决模型可见性（`tool_is_model_visible`）|
+| `PluginsManager::plugins_for_config()` | `codex-rs/core-plugins/src/manager.rs:813` | 发现并加载 plugin 配置 |
+| Featured plugins 缓存 | `codex-rs/core-plugins/src/manager.rs:551`（`featured_plugin_ids_cache`） | 带时间戳缓存的 featured plugin 获取 |
+| `skills_load_input_from_config()` | `codex-rs/core/src/skills.rs:29` | 从 config 与 skill roots 构建技能加载输入 |
+| 动态工具 handler | `codex-rs/core/src/tools/handlers/dynamic.rs` | 客户端/会话动态工具的执行处理（延迟启用见 `tools/registry.rs:81`）|
+| `codex_serve()` | （rust-v0.162 起：已移除） | 0.154 的 MCP server 模式入口；0.162 起 `codex mcp` 仅为 client 管理子命令（`cli/src/mcp_cmd.rs`） |
 
 ---
 
@@ -441,7 +455,7 @@ pub async fn list_accessible_connectors_from_mcp_tools(
 
 - **四类扩展点统一**：MCP 工具、Plugin、Skill、Dynamic Tool 通过统一的工具注册表接入，扩展机制不需要修改核心 loop。
 - **缓存策略分级**：Featured Plugins 3 小时、Connector 15 分钟、MCP 连接内缓存，不同生命周期的数据有各自合适的 TTL。
-- **Codex 能反向作为 MCP server**：`codex_serve()` 让 Codex 自身能被其它 AI 工具复用，拓展了生态集成场景。
+- **Codex 能反向作为 MCP server**（0.154）：`codex_serve()` 让 Codex 自身能被其它 AI 工具复用，拓展了生态集成场景。（rust-v0.162 起：该模式已随 `mcp-server` crate 移除，此优势不再成立）
 
 **风险与改进点**
 

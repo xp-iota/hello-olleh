@@ -5,6 +5,8 @@ title: "OpenCode 源码分析 README"
 
 本目录记录 OpenCode `v2.0.2` 的源码分析。分析对象是 `sources/opencode/` 上游快照。v2 是一次多包架构重建：公共形状归 `packages/schema`，HTTP 操作归 `packages/protocol`，运行时与持久化归 `packages/core`，传输与 SSE 归 `packages/server`，插件公共契约归 `packages/plugin`，CLI/TUI/SDK/Desktop 等宿主只消费组装后的 API。运行时内核基于 Effect-ts，会话状态采用 durable event log + projection 模型，而不是内存对象树。
 
+> **版本基线：** 各章节撰写并校验于 `v2.0.2`；`sources/opencode/` 快照已由 `sync_repos.sh` 前进到 `v2.0.27`。v2 线内的包结构未变，但补丁版本间的行号锚点可能存在漂移；文件级路径以实际快照为准。
+
 ## 阅读入口
 
 - 总览版报告：[22-project-init-analysis.md](./22-project-init-analysis.md)
@@ -24,7 +26,7 @@ title: "OpenCode 源码分析 README"
 
 ## 章节索引
 
-> 横向对齐规则：`01-25` 是五个 AI Coding CLI 目录共享的主题主干；OpenCode 在 v2 重建后没有项目特有附录，v1 时代的 `26-38` 深挖内容已按主题并入主干各章。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
+> 横向对齐规则：`01-25` 是六个 AI Coding CLI 目录共享的主题主干；OpenCode 在 v2 重建后没有项目特有附录，v1 时代的 `26-38` 深挖内容已按主题并入主干各章。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
 
 | 文件 | 主题 | 阅读目的 |
 | --- | --- | --- |

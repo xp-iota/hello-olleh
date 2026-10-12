@@ -5,6 +5,8 @@ title: "cordis 源代码全面分析（中文）"
 
 本目录是对 [cordiverse/cordis](https://github.com/cordiverse/cordis) 的系统性源码分析。所有结论均基于源码实读，文中引用的路径均相对于源码根目录。
 
+> **版本基线：** 分析撰写并校验于 `4.0.0-rc.8`；`sources/cordis/` 快照已由 `sync_repos.sh` 前进到 `4.0.0-rc.10`。rc 间的行号锚点可能存在漂移；文件级路径以实际快照为准。
+
 > **先读这里再决定要不要往下**：cordis 是一个**元框架**，实现只有 **4015 行**（核心包 1848 行）。它本身不提供任何业务能力，只提供"如何组装能力、并且能安全拆掉"的机制。
 >
 > 它最重要的下游是 **[DeepSeek Harness](../hello-dsh/README.md)**（`dsh`，52912 stars）——DSH 的"Everything is a Plugin"架构完全建立在 cordis 之上。**想读懂 DSH，必须先读懂 cordis 的 Fiber 与 Service 模型。**

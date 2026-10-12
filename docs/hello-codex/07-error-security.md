@@ -21,9 +21,11 @@ title: "错误处理与安全性：异常捕获、重试策略、沙箱隔离与
 
 ## 统一错误类型体系
 
-### CodexErr（`core/src/error.rs:66`）
+### CodexErr（`protocol/src/error.rs:77`）
 
-Codex 定义了统一错误枚举 `CodexErr`，包含 27+ 变体：
+（rust-v0.162 起，`CodexErr` 从 `core/src/error.rs` 移到 `protocol` crate，并由枚举改为携带 `CodexErrorDetails`（`protocol/src/error.rs:90`）的结构体；下表变体现在是 `CodexErrorDetails` 的成员。）
+
+Codex 定义了统一错误类型 `CodexErr`，包含 27+ 变体：
 
 | 分类 | 变体 | 含义 |
 | --- | --- | --- |
@@ -51,7 +53,7 @@ Codex 定义了统一错误枚举 `CodexErr`，包含 27+ 变体：
 | | `UnsupportedOperation(String)` | 不支持的操作 |
 | | `RetryLimit(RetryLimitReachedError)` | 重试上限 |
 
-### SandboxErr（`error.rs:31`）
+### SandboxErr（`protocol/src/error.rs:43`）
 
 ```rust
 pub enum SandboxErr {
@@ -64,9 +66,11 @@ pub enum SandboxErr {
 }
 ```
 
-### 可重试 vs 不可重试分类（`error.rs:197-232`）
+### 可重试 vs 不可重试分类（`protocol/src/error.rs:397`，`retry_delay()`）
 
-`is_retryable()` 是重试逻辑的核心判定点：
+（rust-v0.162 起：0.154 的 `is_retryable()` 布尔判定已被 `CodexErr::retry_delay(retry_count)` 取代 —— 返回 `None` 即不可重试的终态错误，返回 `Some(delay)` 即可重试并直接给出建议延迟。）
+
+`retry_delay()` 是重试逻辑的核心判定点：
 
 **不可重试**（返回 false）：
 
@@ -98,20 +102,22 @@ pub enum SandboxErr {
 
 | 结构 | 行号 | 关键字段 |
 | --- | --- | --- |
-| `UnexpectedResponseError` | 267 | HTTP status, body, URL, CloudFlare ray ID, request ID |
-| `ConnectionFailedError` | 236 | 包装 reqwest::Error |
-| `ResponseStreamFailed` | 247 | SSE 错误 + request ID |
-| `RetryLimitReachedError` | 385 | 最后尝试的 status code |
-| `UsageLimitReachedError` | 405 | plan type, reset time, rate limit, promo message |
-| `EnvVarError` | 538 | 变量名 + 设置说明 |
+| `UnexpectedResponseError` | 577 | HTTP status, body, URL, CloudFlare ray ID, request ID |
+| `ConnectionFailedError` | 546 | 包装 reqwest::Error |
+| `ResponseStreamFailed` | 557 | SSE 错误 + request ID |
+| `RetryLimitReachedError` | 671 | 最后尝试的 status code |
+| `UsageLimitReachedError` | 691 | plan type, reset time, rate limit, promo message |
+| `EnvVarError` | 868 | 变量名 + 设置说明 |
+
+（行号均为 `protocol/src/error.rs`。）
 
 ### UI 错误展示
 
-`get_error_message_ui()`（`error.rs:618-652`）对错误消息做长度裁剪，避免终端被刷爆。
+`get_error_message_ui()`（`protocol/src/error.rs:886`）对错误消息做长度裁剪，避免终端被刷爆。
 
 ## 重试策略
 
-### 指数退避（`util.rs:204-209`）
+### 指数退避（`async-utils/src/backoff.rs:7-16`）
 
 ```rust
 const INITIAL_DELAY_MS: u64 = 200;
@@ -134,20 +140,20 @@ pub fn backoff(attempt: u64) -> Duration {
 | 3 | 800ms | 720-880ms |
 | 4 | 1600ms | 1440-1760ms |
 
-### 流式重试机制（`codex.rs` 约行 6571）
+### 流式重试机制（rust-v0.162 起位于 `core/src/responses_retry.rs:57`，`handle_response_stream_error()`；0.154 在 `codex.rs` 约行 6571）
 
 ```
-if !err.is_retryable() -> 立即返回错误
+err.retry_delay(retry_count) 返回 None -> 立即返回错误（终态）
 
-if retries < provider.stream_max_retries():
-    retries += 1
-    wait backoff(retries) or server-provided delay
+if retry_state.retries < provider.stream_max_retries():
+    retry_state.retries += 1
+    wait retry_delay（server-provided delay 优先，否则 backoff(retry_count)）
     retry
 
-if retries >= max_retries:
+if retry_state.retries >= max_retries:
     if try_switch_fallback_transport() succeeds:
         emit warning("Falling back from WebSockets to HTTPS transport")
-        retries = 0  // 为新传输重置计数器
+        retry_state.retries = 0  // 为新传输重置计数器
         continue on HTTPS
     else:
         return error
@@ -155,9 +161,9 @@ if retries >= max_retries:
 
 ### 特殊重试处理
 
-- `CodexErr::Stream(_, Some(requested_delay))`：优先使用服务端建议的重试延迟
+- `CodexErr::Stream(_, Some(requested_delay))`：优先使用服务端建议的重试延迟（`retry_after()`，`protocol/src/error.rs:449`）
 - **WebSocket 到 HTTPS 回退**：会话级一次性（`AtomicBool` 原子交换保证单次激活）
-- **401 认证恢复**：`handle_unauthorized()` 尝试刷新凭证
+- **401 认证恢复**：`handle_unauthorized()`（`core/src/client.rs:2640`）尝试刷新凭证
 
 ## 沙箱隔离
 
@@ -197,7 +203,7 @@ WorkspaceWrite {
 
 **DangerFullAccess**：无限制，仅在显式审批后允许。
 
-### 沙箱选择逻辑（`manager.rs:138-165`）
+### 沙箱选择逻辑（`sandboxing/src/manager.rs:310`）
 
 ```rust
 pub fn select_initial(
@@ -222,7 +228,7 @@ pub fn select_initial(
 }
 ```
 
-### 沙箱命令转换（`manager.rs:167-259`）
+### 沙箱命令转换（`sandboxing/src/manager.rs:352`）
 
 `SandboxManager::transform()` 把原始命令包装成沙箱执行请求：
 
@@ -256,7 +262,7 @@ Codex 全面使用 `AbsolutePathBuf`（来自 `codex_utils_absolute_path`）：
 - **防止相对路径意外**：类型系统层面阻止
 - **符号链接规范化**：通过 `canonicalize()` 解析
 
-### 路径规范化（`seatbelt.rs:140-154`）
+### 路径规范化（`sandboxing/src/seatbelt.rs:217`）
 
 ```rust
 fn normalize_path_for_sandbox(path: &Path) -> Option<AbsolutePathBuf> {
@@ -272,24 +278,9 @@ fn normalize_path_for_sandbox(path: &Path) -> Option<AbsolutePathBuf> {
 }
 ```
 
-### 权限路径规范化（`policy_transforms.rs:166-184`）
+### 权限路径规范化（rust-v0.162 起：`normalize_permission_paths()` 已移除）
 
-```rust
-fn normalize_permission_paths(paths: Vec<AbsolutePathBuf>, _kind: &str) -> Vec<AbsolutePathBuf> {
-    let mut out = Vec::with_capacity(paths.len());
-    let mut seen = HashSet::new();
-    for path in paths {
-        let canonicalized = canonicalize(path.as_path())
-            .ok()
-            .and_then(|p| AbsolutePathBuf::from_absolute_path(p).ok())
-            .unwrap_or(path);
-        if seen.insert(canonicalized.clone()) {  // 去重
-            out.push(canonicalized);
-        }
-    }
-    out
-}
-```
+0.154 中 `policy_transforms.rs:166-184` 的 `normalize_permission_paths()` 负责对权限路径做 canonicalize + 去重；该函数在 0.162 快照中已不存在（`rg` 全仓无匹配），路径规范化职责收敛到 `AbsolutePathBuf::canonicalize()` 与沙箱策略构造处。原 0.154 行为（保留作参考）：对每条路径先 `canonicalize()` 解析符号链接与 `..` 遍历，失败时保留原路径，再按规范化结果去重。
 
 ## apply_patch 拦截机制
 
@@ -297,7 +288,7 @@ fn normalize_permission_paths(paths: Vec<AbsolutePathBuf>, _kind: &str) -> Vec<A
 
 防止模型通过 `exec_command` 绕过 `apply_patch` 的权限控制。
 
-### 拦截函数（`apply_patch.rs:257-298`）
+### 拦截函数（`core/src/tools/handlers/apply_patch.rs:436`）
 
 ```rust
 pub async fn intercept_apply_patch(
@@ -318,7 +309,7 @@ pub async fn intercept_apply_patch(
 3. 计算 patch 所需的写入权限（仅目标文件所在目录）
 4. 通过正规权限审批流程执行 patch
 
-### 权限计算（`apply_patch.rs:63-91`）
+### 权限计算（`core/src/tools/handlers/apply_patch.rs:226`）
 
 ```rust
 fn write_permissions_for_paths(
@@ -334,7 +325,7 @@ fn write_permissions_for_paths(
 
 ## 权限合并与升级
 
-### 权限 Profile 合并（`policy_transforms.rs:63-109`）
+### 权限 Profile 合并（`sandboxing/src/policy_transforms.rs:93`）
 
 ```rust
 pub fn merge_permission_profiles(
@@ -347,7 +338,7 @@ pub fn merge_permission_profiles(
 - **网络**：OR 逻辑 — 任一方授予则合并结果授予
 - **文件系统**：路径并集（read + write 分别合并）
 
-### 有效文件系统策略（`policy_transforms.rs:275-293`）
+### 有效文件系统策略（`sandboxing/src/policy_transforms.rs:582`）
 
 ```rust
 pub fn effective_file_system_sandbox_policy(
@@ -358,7 +349,7 @@ pub fn effective_file_system_sandbox_policy(
 
 仅在 `FileSystemSandboxKind::Restricted` 模式下追加额外写入路径；Unrestricted 和 ExternalSandbox 模式不做升级。
 
-### 有效网络策略（`policy_transforms.rs:327-340`）
+### 有效网络策略（`sandboxing/src/policy_transforms.rs:615`）
 
 ```rust
 pub fn effective_network_sandbox_policy(
@@ -396,19 +387,19 @@ Codex 的敏感文件保护不是靠单点过滤，而是**多层约束**：
 
 | 函数 | 文件 | 行号 |
 | --- | --- | --- |
-| `CodexErr::is_retryable()` | `error.rs` | 197 |
-| `CodexErr::to_codex_protocol_error()` | `error.rs` | 566 |
-| `get_error_message_ui()` | `error.rs` | 618 |
-| `backoff()` | `util.rs` | 204 |
-| `SandboxManager::select_initial()` | `manager.rs` | 138 |
-| `SandboxManager::transform()` | `manager.rs` | 167 |
-| `ToolOrchestrator::run()` | `orchestrator.rs` | 101 |
-| `with_cached_approval()` | `sandboxing.rs` | 70 |
-| `default_exec_approval_requirement()` | `sandboxing.rs` | 171 |
-| `intercept_apply_patch()` | `apply_patch.rs` | 257 |
-| `merge_permission_profiles()` | `policy_transforms.rs` | 63 |
-| `effective_file_system_sandbox_policy()` | `policy_transforms.rs` | 275 |
-| `normalize_permission_paths()` | `policy_transforms.rs` | 166 |
+| `CodexErr::retry_delay()`（0.154 为 `is_retryable()`） | `protocol/src/error.rs` | 397 |
+| `CodexErr::to_codex_protocol_error()` | `protocol/src/error.rs` | 473 |
+| `get_error_message_ui()` | `protocol/src/error.rs` | 886 |
+| `backoff()` | `async-utils/src/backoff.rs` | 12 |
+| `SandboxManager::select_initial()` | `sandboxing/src/manager.rs` | 310 |
+| `SandboxManager::transform()` | `sandboxing/src/manager.rs` | 352 |
+| `ToolOrchestrator::run()` | `core/src/tools/orchestrator.rs` | 125 |
+| `with_cached_approval()` | `core/src/tools/sandboxing.rs` | 71 |
+| `default_exec_approval_requirement()` | `core/src/tools/sandboxing.rs` | 195 |
+| `intercept_apply_patch()` | `core/src/tools/handlers/apply_patch.rs` | 436 |
+| `merge_permission_profiles()` | `sandboxing/src/policy_transforms.rs` | 93 |
+| `effective_file_system_sandbox_policy()` | `sandboxing/src/policy_transforms.rs` | 582 |
+| `normalize_permission_paths()` | （rust-v0.162 起：已移除） | — |
 
 ---
 
@@ -435,7 +426,7 @@ Codex 的错误与安全章节应突出“Rust runtime 统一治理”：shell�
 | --- | --- | --- |
 | 命令审批 | `sources/codex/codex-rs/core/src/tools/sandboxing.rs` | 强于 Gemini 的策略层，接近 OpenCode Permission 但更偏 sandbox |
 | 执行编排 | `sources/codex/codex-rs/core/src/tools/orchestrator.rs` | 对应 Claude `runTools()`、Gemini Scheduler、OpenCode tool execution |
-| patch 保护 | `sources/codex/codex-rs/core/src/apply_patch.rs` | Codex 特有的补丁层二次拦截 |
+| patch 保护 | `sources/codex/codex-rs/core/src/tools/handlers/apply_patch.rs` | Codex 特有的补丁层二次拦截（patch 应用本体在 `core/src/apply_patch.rs`） |
 | network 审批 | `sources/codex/codex-rs/core/src/tools/network_approval.rs` | 将网络访问显式纳入工具治理 |
 
 横向看，Codex 本章应作为四项目安全治理的基准章节：其他项目可以更灵活，但 Codex 的 approval/sandbox 组合最适合做安全模型对照。

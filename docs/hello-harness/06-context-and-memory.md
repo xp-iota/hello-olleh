@@ -35,7 +35,7 @@ export const getUserContext = memoize(async (): Promise<{ [k: string]: string }>
 
 ### Codex
 
-Codex 的 Context 分层更复杂，因为它是跨 session 的。`stage_one_system.md` 的 Phase 1 每次从 rollout 历史里提取结构化上下文，`consolidation.md` 的 Phase 2 把多次 Phase 1 的输出整合成全局记忆。这意味着 Codex 的"当前上下文"不只是当前 session 的信息，而是包含了历史 session 的提炼。从控制论角度看，这是跨 session 的状态持久化——是四个工程里唯一真正实现了这一点的。
+Codex 的 Context 分层更复杂，因为它是跨 session 的。`stage_one_system.md` 的 Phase 1 每次从 rollout 历史里提取结构化上下文，`consolidation.md` 的 Phase 2 把多次 Phase 1 的输出整合成全局记忆。这意味着 Codex 的"当前上下文"不只是当前 session 的信息，而是包含了历史 session 的提炼。从控制论角度看，这是跨 session 的状态持久化——是四个工程里唯一真正实现了这一点的。（rust-v0.162 起：`core/templates/memories/` 下的模板与 memories pipeline 已迁移到独立的 `codex-memories-write` crate，现位于 `codex-rs/memories/write/templates/memories/` 与 `codex-rs/memories/write/src/phase1.rs` / `phase2.rs`，机制仍在，下文路径按新版标注。）
 
 `ContextManager` 同时承担三件事，构成 Codex 上下文分层的核心：
 
@@ -43,7 +43,7 @@ Codex 的 Context 分层更复杂，因为它是跨 session 的。`stage_one_sys
 2. **上下文基线维护**：`reference_context_item` 记录下一轮 settings diff 的参考快照；发生 compaction、rollback 或历史替换时，这个基线会一起被重置。
 3. **窗口压力治理**：`estimate_token_count_with_base_instructions()` 用近似 token 估算配合 compaction 任务判断是否需要压缩。
 
-`project_doc.rs::get_user_instructions()` 构造 `base_instructions` 时，先取 `config.user_instructions`，再按"项目根 → 当前目录"的顺序拼接所有 `AGENTS.md`，受 `project_doc_max_bytes` 限制，超出预算时截断。这意味着 Codex 的项目级约束不是某个单点 prompt 文件，而是配置层和目录层共同生成的 developer context。
+`agents_md.rs::load_project_instructions()`（`codex-rs/core/src/agents_md.rs:58`；rust-v0.154 时为 `project_doc.rs::get_user_instructions()`）构造 `base_instructions` 时，先取 `config.user_instructions`，再按"项目根 → 当前目录"的顺序拼接所有 `AGENTS.md`，受 `project_doc_max_bytes` 限制，超出预算时截断。这意味着 Codex 的项目级约束不是某个单点 prompt 文件，而是配置层和目录层共同生成的 developer context。
 
 ### Gemini CLI
 
@@ -88,9 +88,9 @@ Claude Code 的 Compact 策略是四个工程里最精细的梯度体系。触�
 
 ### Codex
 
-Codex 的 compaction 机制集中在 `ContextManager` 内部。`auto_compact_limit` 在 `run_turn()` 入口检查 token 预算，触发 compaction 任务时 `ContextManager` 压缩历史，`reference_context_item` 基线随之重置，memories pipeline 将压缩前的关键信息异步固化到 `~/.codex/memories/`。
+Codex 的 compaction 机制集中在 `ContextManager` 内部。`auto_compact_limit` 在 `run_turn()` 入口检查 token 预算（rust-v0.162 起入口与压缩执行都在 `core/src/session/turn.rs`：`run_turn()` 在 `:163`，`run_auto_compact()` 在 `:1434`），触发 compaction 任务时 `ContextManager` 压缩历史，`reference_context_item` 基线随之重置。rust-v0.162 起 memories pipeline 模块已移除，压缩前的关键信息不再异步固化到 `~/.codex/memories/`（该行为为 rust-v0.154.0 所述，保留作历史分析）。
 
-memories pipeline 还有一个 **memory_mode_polluted 降级**机制：一旦上下文掺入外部 MCP 或 web search 结果（由 `mcp_tool_call.rs` 标记），memory 会被主动降级，避免把高噪声输入错误固化为长期记忆。配置里的 `no_memories_if_mcp_or_web_search` 控制这一行为。
+memories pipeline 还有一个 **memory_mode_polluted 降级**机制：一旦上下文掺入外部 MCP 或 web search 结果（标记入口在 `core/src/stream_events_utils.rs:168` 与 `mcp_tool_call.rs:929`，最终落库到 `state_db::mark_thread_memory_mode_polluted`），memory 会被主动降级，避免把高噪声输入错误固化为长期记忆。配置里的 `no_memories_if_mcp_or_web_search` 控制这一行为（rust-v0.162 起该键降级为 legacy 配置别名，`codex-rs/config/src/key_aliases.rs:18`）。
 
 ### Gemini CLI
 
@@ -133,9 +133,9 @@ Claude Code 还引入了 **KAIROS daily log 模式**：启用后，`loadMemoryPr
 
 ### Codex
 
-`sources/codex/codex-rs/core/templates/memories/consolidation.md` 的 Phase 2 产物包括 `raw_memories.md`（原始记忆合并）和 `rollout_summaries/`（每次 rollout 的摘要）。这些产物存储在 DB 里，有时间戳和 usage_count，支持基于使用频率的知识衰减（`max_unused_days` 窗口）。Codex 的知识版本化最完整：不只是"文件在 Git 里"，而是"知识有时间戳、有使用统计、有主动遗忘机制"。
+`sources/codex/codex-rs/memories/write/templates/memories/consolidation.md` 的 Phase 2 产物包括 `raw_memories.md`（原始记忆合并）和 `rollout_summaries/`（每次 rollout 的摘要）。这些产物存储在 DB 里，有时间戳和 usage_count，支持基于使用频率的知识衰减（`max_unused_days` 窗口）。Codex 的知识版本化最完整：不只是"文件在 Git 里"，而是"知识有时间戳、有使用统计、有主动遗忘机制"。（rust-v0.162 起该模板从 `core/templates/memories/` 迁移到 `codex-rs/memories/write/templates/memories/`。）
 
-memories pipeline 采用**两阶段 consolidation**：phase1（`memories/phase1.rs`）选择 rollout、提取 stage-1 raw memories；phase2（`memories/phase2.rs`）选择可用 raw memories、做去重评分筛选。这套 pipeline 的中心不是当前 turn，而是已经落盘的 rollout，因此 memory 更偏离线整理，而不是每轮都做复杂注入。
+memories pipeline 采用**两阶段 consolidation**：phase1（`memories/write/src/phase1.rs`）选择 rollout、提取 stage-1 raw memories；phase2（`memories/write/src/phase2.rs`）选择可用 raw memories、做去重评分筛选。这套 pipeline 的中心不是当前 turn，而是已经落盘的 rollout，因此 memory 更偏离线整理，而不是每轮都做复杂注入。（rust-v0.162 起这两个 phase 模块从 `core` 迁入 `codex-rs/memories/write/src/`。）
 
 ### Gemini CLI
 
@@ -178,7 +178,7 @@ Progressive Disclosure（渐进式揭示）在 UX 设计里指"只在需要时�
 
 `default.md` 的 276 行按节（Personality → AGENTS.md spec → Planning → Task execution → Validating）组织。每个节负责不同的任务阶段，这是一种隐式的 Progressive Disclosure：不同阶段的 Agent 关注不同的节，而不是每次都处理整个文档。节与节之间有清晰的边界，Agent 可以通过节标题快速定位相关规则。
 
-**AGENTS.md 层级发现**（`project_doc.rs`）受 `project_doc_max_bytes` 限制，超出预算时截断，避免把整个项目文档树无限制地塞进上下文。这是 Codex 在 Progressive Disclosure 上的主要工程约束：不是"按需加载"，而是"有上限的层级拼接"。
+**AGENTS.md 层级发现**（rust-v0.154 为 `project_doc.rs`，rust-v0.162 起为 `agents_md.rs`）受 `project_doc_max_bytes` 限制，超出预算时截断，避免把整个项目文档树无限制地塞进上下文。这是 Codex 在 Progressive Disclosure 上的主要工程约束：不是"按需加载"，而是"有上限的层级拼接"。
 
 ### Gemini CLI
 
@@ -314,7 +314,7 @@ OpenCode 的 **InstructionPrompt loaded/claim 机制**（`instruction.ts:168-190
 | 工具 | 长期知识载体 | 进入 prompt 的方式 | 关键取舍 |
 | :------| :--------------| :-------------------| :---------|
 | Claude Code | `MEMORY.md`、topic files、KAIROS daily log、SessionMemory | system prompt + relevant memory attachment + compact notes | 召回更智能，但系统复杂度最高 |
-| Codex | `AGENTS.md` + memories pipeline 结果 | `project_doc.rs` 拼 base instructions，memory pipeline 异步补充 | 长期知识显式，短期经验半自动 |
+| Codex | `AGENTS.md` + memories pipeline 结果 | `agents_md.rs` 拼 base instructions，memory pipeline 异步补充（rust-v0.162 起 pipeline 已移除） | 长期知识显式，短期经验半自动 |
 | Gemini CLI | global / extension / project `GEMINI.md` | global 进 system，extension / project 进会话内容 | 文件系统透明，但越久越容易膨胀 |
 | OpenCode | `AGENTS.md` / `CLAUDE.md` / `CONTEXT.md` 栈 + `session_diff` / summary | instruction stack + durable history 投影 + reminder | 更像 session 续航，不像独立长期知识库 |
 

@@ -94,7 +94,7 @@ Gemini CLI 的上下文由四层组成：
 
 #### 分层记忆进入上下文
 
-`sources/gemini-cli/packages/core/src/services/contextManager.ts` 把记忆分成三层：global memory、extension memory、project memory。这些内容来自 `sources/gemini-cli/packages/core/src/utils/memoryDiscovery.ts`，后者扫描 `GEMINI.md` 及其别名文件，按来源分类、去重、拼接。
+`sources/gemini-cli/packages/core/src/context/contextManager.ts` 把记忆分成三层：global memory、extension memory、project memory。这些内容来自 `sources/gemini-cli/packages/core/src/utils/memoryDiscovery.ts`，后者扫描 `GEMINI.md` 及其别名文件，按来源分类、去重、拼接。
 
 当 `experimentalJitContext` 打开时，配置层采用更细的策略：
 
@@ -108,7 +108,7 @@ Gemini CLI 的上下文由四层组成：
 
 当前默认和预览模型的 token 上限统一为 `1_048_576`（见 `sources/gemini-cli/packages/core/src/core/tokenLimits.ts`）。
 
-`GeminiClient` 在真正流式发送前，会先调用 `tryCompressChat()`，由 `sources/gemini-cli/packages/core/src/services/chatCompressionService.ts` 实现：
+`GeminiClient` 在真正流式发送前，会先调用 `tryCompressChat()`，由 `sources/gemini-cli/packages/core/src/context/chatCompressionService.ts` 实现：
 
 - 默认在上下文约达模型上限的 **50%** 时尝试压缩
 - 尽量保留最近约 **30%** 的历史
@@ -138,11 +138,11 @@ Gemini CLI 的上下文由四层组成：
 
 | 主题 | 代码锚点 | 说明 |
 | --- | --- | --- |
-| 分层记忆加载 | `sources/gemini-cli/packages/core/src/services/contextManager.ts` | 管 global / extension / project 三层记忆 |
+| 分层记忆加载 | `sources/gemini-cli/packages/core/src/context/contextManager.ts` | 管 global / extension / project 三层记忆 |
 | 记忆发现 | `sources/gemini-cli/packages/core/src/utils/memoryDiscovery.ts` | 扫描、分类、去重 `GEMINI.md` |
 | 系统提示词记忆注入 | `sources/gemini-cli/packages/core/src/config/config.ts` | `getSystemInstructionMemory()` / `getSessionMemory()` |
 | 会话历史维护 | `sources/gemini-cli/packages/core/src/core/geminiChat.ts` | 保存完整历史并导出 curated history |
-| 自动压缩 | `sources/gemini-cli/packages/core/src/services/chatCompressionService.ts` | 压缩历史并处理大工具输出 |
+| 自动压缩 | `sources/gemini-cli/packages/core/src/context/chatCompressionService.ts` | 压缩历史并处理大工具输出 |
 | 发送前保护 | `sources/gemini-cli/packages/core/src/core/client.ts` | 压缩、遮罩、溢出预警 |
 | 循环检测 | `sources/gemini-cli/packages/core/src/services/loopDetectionService.ts` | 工具重复、内容重复、LLM 辅助检测 |
 | token 上限 | `sources/gemini-cli/packages/core/src/core/tokenLimits.ts` | 当前默认模型窗口上限 |
@@ -232,7 +232,7 @@ DEFAULT_CONTEXT_FILENAME = 'GEMINI.md'
 | --- | --- | --- |
 | 记忆结构 | `sources/gemini-cli/packages/core/src/config/memory.ts` | `HierarchicalMemory` 定义 |
 | 记忆发现 | `sources/gemini-cli/packages/core/src/utils/memoryDiscovery.ts` | 扫描、去重、分类 `GEMINI.md` |
-| 记忆装载 | `sources/gemini-cli/packages/core/src/services/contextManager.ts` | 管理 global / extension / project memory |
+| 记忆装载 | `sources/gemini-cli/packages/core/src/context/contextManager.ts` | 管理 global / extension / project memory |
 | 配置侧注入 | `sources/gemini-cli/packages/core/src/config/config.ts` | system memory 与 session memory 分流 |
 | 记忆写入工具 | `sources/gemini-cli/packages/core/src/tools/memoryTool.ts` | `save_memory` 的真实实现 |
 | Slash 命令包装 | `sources/gemini-cli/packages/core/src/commands/memory.ts` | `/memory` 系列命令 |
@@ -319,7 +319,7 @@ async function saveMemory(content: string): Promise<void> {
 ### 历史压缩策略（TypeScript 伪代码）
 
 ```typescript
-// gemini-cli/packages/core/src/services/chatCompressionService.ts（简化示意）
+// gemini-cli/packages/core/src/context/chatCompressionService.ts（简化示意）
 class ChatCompressionService {
   // 默认在上下文达到模型上限 50% 时触发
   private readonly COMPRESSION_THRESHOLD = 0.5;
@@ -363,15 +363,15 @@ class ChatCompressionService {
 | `MessageBus.publish()` / `subscribe()` | `sources/gemini-cli/packages/core/src/confirmation-bus/message-bus.ts` | 事件总线广播，解耦工具执行与 UI |
 | `Scheduler.schedule()` | `sources/gemini-cli/packages/core/src/` | 只读工具并行、写操作顺序化 |
 | `useGeminiStream.submitQuery()` | `sources/gemini-cli/packages/cli/src/` | 有活跃流时拒绝新提交 |
-| `ContextManager.refresh()` | `sources/gemini-cli/packages/core/src/services/contextManager.ts` | 重新扫描并整理三层记忆 |
-| `ContextManager.discoverContext()` | `sources/gemini-cli/packages/core/src/services/contextManager.ts` | 按需路径发现子目录补充记忆（JIT） |
+| `ContextManager.refresh()` | `sources/gemini-cli/packages/core/src/context/contextManager.ts` | 重新扫描并整理三层记忆 |
+| `ContextManager.discoverContext()` | `sources/gemini-cli/packages/core/src/context/contextManager.ts` | 按需路径发现子目录补充记忆（JIT） |
 | `memoryDiscovery` | `sources/gemini-cli/packages/core/src/utils/memoryDiscovery.ts` | 扫描 `GEMINI.md` 及别名，按来源分类、去重 |
 | `Config.getSystemInstructionMemory()` | `sources/gemini-cli/packages/core/src/config/config.ts` | 返回用于 system prompt 的 global memory |
 | `Config.getSessionMemory()` | `sources/gemini-cli/packages/core/src/config/config.ts` | 返回用于对话内注入的 extension/project memory |
 | `Config.getTruncateToolOutputThreshold()` | `sources/gemini-cli/packages/core/src/config/config.ts` | 根据剩余上下文动态收紧工具输出阈值 |
 | `GeminiChat.getHistory(curated)` | `sources/gemini-cli/packages/core/src/core/geminiChat.ts` | 返回过滤空 turn 后的对话历史 |
 | `GeminiClient.tryCompressChat()` | `sources/gemini-cli/packages/core/src/core/client.ts` | 发送前触发历史压缩 |
-| `ChatCompressionService.compress()` | `sources/gemini-cli/packages/core/src/services/chatCompressionService.ts` | 保留最近 30%，大工具输出落盘 |
+| `ChatCompressionService.compress()` | `sources/gemini-cli/packages/core/src/context/chatCompressionService.ts` | 保留最近 30%，大工具输出落盘 |
 | `ToolOutputMaskingService` | `sources/gemini-cli/packages/core/src/services/` | 对历史中过大的工具输出二次瘦身 |
 | `LoopDetectionService` | `sources/gemini-cli/packages/core/src/services/loopDetectionService.ts` | 三类检测：工具重复（阈值5）、内容重复（阈值10）、LLM辅助（30轮后） |
 | `tokenLimits` | `sources/gemini-cli/packages/core/src/core/tokenLimits.ts` | 返回当前模型窗口上限（默认 1,048,576 tokens） |

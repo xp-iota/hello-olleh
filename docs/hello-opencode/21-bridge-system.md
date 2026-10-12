@@ -3,7 +3,7 @@ title: "Bridge / 外部集成：ACP、Desktop 与 IDE 事件"
 ---
 # Bridge / 外部集成：ACP、Desktop 与 IDE 事件
 
-> 基于 `sources/opencode/packages/cli/src/acp/`、`packages/desktop/` 与 `packages/schema/src/ide-event.ts` 中的 OpenCode `v2.0.2` 源码校对。
+> 基于 `sources/opencode/packages/cli/src/acp/`、`packages/desktop/` 与 OpenCode `v2.0.2` 源码校对（v2.0.27 起校对基础为前两者；`packages/schema/src/ide-event.ts` 已移除，见第 4 节）。
 
 **目录**
 
@@ -28,7 +28,7 @@ v2 的"桥接"不是 Claude Code 那种远程控制 bridge，而是三条外部�
 | `service.ts` | 服务装配 |
 | `config-option.ts` | ACP 配置选项映射 |
 | `content.ts` | 内容块转换 |
-| `event.ts` | 会话更新事件映射 |
+| `translate.ts` | 会话更新事件映射（OpenCode 事件 → ACP SessionUpdate；原 `event.ts`，v2.0.27 起由 `translate.ts` 承担） |
 | `permission.ts` | 权限请求桥接 |
 | `tool.ts` | 工具调用映射 |
 | `error.ts` | 错误映射 |
@@ -42,10 +42,10 @@ v2 的"桥接"不是 Claude Code 那种远程控制 bridge，而是三条外部�
 
 ## 4. IDE 事件
 
-`packages/schema/src/ide-event.ts` 定义 IDE 侧事件的公共形状，与 LSP 事件（见 [18-lsp-integration.md](./18-lsp-integration.md)）同属"编辑器智能"的公共事件层：Core 不内嵌编辑器能力，但为宿主/插件约定可互操作的事件形状。
+`packages/schema/src/ide-event.ts` 在 v2.0.2 中定义 IDE 侧事件的公共形状，与 LSP 事件（见 [18-lsp-integration.md](./18-lsp-integration.md)）同属"编辑器智能"的公共事件层：Core 不内嵌编辑器能力，但为宿主/插件约定可互操作的事件形状。（v2.0.27 起：该文件已从 `packages/schema/src/` 移除，schema 中不再存在 IDE 侧事件形状；本节描述基于 v2.0.2，保留作历史分析。）
 
 ## 源码锚点
 
 - [`sources/opencode/packages/cli/src/acp/`](../../sources/opencode/packages/cli/src/acp)：ACP 适配层
 - [`sources/opencode/packages/desktop/`](../../sources/opencode/packages/desktop)：桌面宿主
-- [`sources/opencode/packages/schema/src/ide-event.ts`](../../sources/opencode/packages/schema/src/ide-event.ts)：IDE 事件形状
+- [`sources/opencode/packages/cli/src/acp/translate.ts`](../../sources/opencode/packages/cli/src/acp/translate.ts)：ACP 会话更新事件映射（v2.0.27 起原 `event.ts` 由该文件承担）

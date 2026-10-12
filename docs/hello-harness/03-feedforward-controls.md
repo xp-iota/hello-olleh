@@ -100,7 +100,7 @@ Skill 是推断型前馈的核心载体：它告诉 Agent"遇到这类任务要�
 
 **Claude Code**：`src/tools/SkillTool/` 实现了 Skill 工具，在 `tools.ts:212` 注册。Skill 通过 CLAUDE.md 的 @include 引用链注入，没有独立的版本化管理机制。Skill 和普通上下文文件耦合在同一套加载体系里，无法单独审计 Skill 覆盖范围。
 
-**Codex**：`sources/codex/.codex/skills/` 目录提供基于 frontmatter 的结构化 Skill 定义（`sources/codex/codex-rs/skills/src/assets/samples/skill-installer/SKILL.md`）。frontmatter 定义了 Skill 的元数据（名称、触发条件、版本），使 Skill 库的管理有结构可循，比自由格式更规范。Skill 文件是独立的版本化资产。
+**Codex**：`sources/codex/codex-rs/skills/src/assets/samples/` 目录提供基于 frontmatter 的结构化 Skill 定义（示例：`sources/codex/codex-rs/skills/src/assets/samples/skill-installer/SKILL.md`；rust-v0.154 时另有 `.codex/skills/` 目录，rust-v0.162 检出中已不存在）。frontmatter 定义了 Skill 的元数据（名称、触发条件、版本），使 Skill 库的管理有结构可循，比自由格式更规范。Skill 文件是独立的版本化资产。
 
 **Gemini CLI**：`activate-skill.ts` 的 `ActivateSkillTool` 把 Skill 建模为"Agent 可主动激活的工具"，而不是"隐式注入的上下文"（`snippets.ts:107-115`）。这要求 Agent 先识别需要哪个 Skill 再调用 `ActivateSkillTool`，增加了一层推断，但也让 Skill 的使用在对话记录里更可见、可审计。
 

@@ -31,15 +31,15 @@ export const Definitions = Event.inventory(Updated)
 
 ## 3. v1 残留与迁移边界
 
-- `packages/core/src/v1/` 保留 v1 兼容代码（`v1/config/`、`v1/permission.ts`），其中 `v1/config/lsp.ts` 是 v1 LSP 配置的残留——它服务旧配置形状的读取，不代表 v2 运行时能力。
+- `packages/core/src/v1/` 保留 v1 兼容代码（`v1/config/`），但 v2.0.27 起 `v1/config/lsp.ts` 已从 v1 树移除；LSP 配置形状现在定义于 `packages/schema/src/config/lsp.ts`（`ConfigLSP`），接入当前配置 schema（`packages/schema/src/config.ts`）并由 `packages/core/src/config/normalize.ts` 读取。v1 形状仅作为迁移测试 fixture 保留（`packages/core/test/fixture/v1-config/lsp.ts`）。
 - 代码库其它位置出现的 `lsp` 字样（如 `tool/plugin/edit.ts`、`file-mutation.ts`）是编辑/诊断相关的局部引用，不构成 LSP 子系统。
 - TUI 侧的 `util/permission.ts`、`mini/tool.ts` 出现的 lsp 引用同理是局部的。
 
 ## 4. 阅读建议
 
-研究"编辑器智能"主题时，v2 的正确入口是 ACP 桥接（见 [21-bridge-system.md](./21-bridge-system.md)）：IDE 能力经 ACP 与 IDE 事件（`schema/ide-event.ts`）进入，而不是经内嵌 LSP client。
+研究"编辑器智能"主题时，v2 的正确入口是 ACP 桥接（见 [21-bridge-system.md](./21-bridge-system.md)）：IDE 能力经 ACP 进入；v2.0.2 时另有 `schema/ide-event.ts` 提供的 IDE 事件公共形状，v2.0.27 起该文件已移除，而不是经内嵌 LSP client。
 
 ## 源码锚点
 
 - [`sources/opencode/packages/schema/src/lsp-event.ts`](../../sources/opencode/packages/schema/src/lsp-event.ts)：仅存的公共 LSP 事件形状
-- [`sources/opencode/packages/core/src/v1/config/lsp.ts`](../../sources/opencode/packages/core/src/v1/config/lsp.ts)：v1 兼容残留
+- [`sources/opencode/packages/schema/src/config/lsp.ts`](../../sources/opencode/packages/schema/src/config/lsp.ts)：LSP 配置形状（v2.0.27 起的位置；v1 的 `core/src/v1/config/lsp.ts` 已移除，v1 形状仅余测试 fixture [`sources/opencode/packages/core/test/fixture/v1-config/lsp.ts`](../../sources/opencode/packages/core/test/fixture/v1-config/lsp.ts)）

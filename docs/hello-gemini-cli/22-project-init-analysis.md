@@ -87,7 +87,7 @@ gemini-cli/packages/cli/src/gemini.tsx
 当前仓库里已经有完整的 agents 子系统：
 
 - `sources/gemini-cli/packages/core/src/agents/registry.ts`
-- `sources/gemini-cli/packages/core/src/agents/subagent-tool.ts`
+- `sources/gemini-cli/packages/core/src/agents/agent-tool.ts`
 - `sources/gemini-cli/packages/core/src/agents/local-executor.ts`
 - `sources/gemini-cli/packages/core/src/agents/remote-invocation.ts`
 
@@ -163,7 +163,7 @@ gemini-cli/packages/cli/src/gemini.tsx
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `main()` | `sources/gemini-cli/packages/cli/src/index.ts` | CLI 最顶层入口，解析 argv 并分发给 `gemini.tsx` |
+| `main()` | `sources/gemini-cli/packages/cli/src/gemini.tsx` | CLI 最顶层入口（v0.63 起不再经由 `index.ts` 分发），加载配置并启动交互或非交互路径 |
 | `Config.initialize()` | `sources/gemini-cli/packages/core/src/config/config.ts:1289` | 所有服务的固定装配入口：ToolRegistry、MCP、GeminiClient |
 | `startInteractiveUI()` | `sources/gemini-cli/packages/cli/src/gemini.tsx` | 交互路径启动：初始化 Ink TUI + AppContainer |
 | `nonInteractiveMode()` | `sources/gemini-cli/packages/cli/src/gemini.tsx` | 非交互路径启动：处理 stdin/--message，headless 执行 |

@@ -28,7 +28,7 @@ Gemini CLI 的输入处理涉及以下核心模块：
 | 交互式 CLI | `sources/gemini-cli/packages/cli/src/interactiveCli.tsx` | 输入总入口 |
 | 命令服务 | `sources/gemini-cli/packages/cli/src/services/CommandService.ts` | 命令加载与匹配 |
 | Slash 命令处理器 | `sources/gemini-cli/packages/cli/src/ui/hooks/slashCommandProcessor.ts` | slash 命令执行 |
-| Shell 命令处理器 | `sources/gemini-cli/packages/cli/src/ui/hooks/shellCommandProcessor.ts` | bash/本地命令 |
+| Shell 命令处理器 | `sources/gemini-cli/packages/cli/src/ui/hooks/useExecutionLifecycle.ts` | bash/本地命令（v0.63 起由 `handleShellCommand()` 承担，原 `shellCommandProcessor.ts` 已移除） |
 | 消息队列 | `sources/gemini-cli/packages/cli/src/ui/hooks/useMessageQueue.ts` | 忙碌时输入排队 |
 | Shell 状态机 | `sources/gemini-cli/packages/cli/src/ui/hooks/shellReducer.ts` | UI 状态管理 |
 | 命令类型定义 | `sources/gemini-cli/packages/cli/src/ui/commands/types.ts` | 数据结构 |

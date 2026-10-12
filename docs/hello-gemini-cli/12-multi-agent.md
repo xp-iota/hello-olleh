@@ -40,12 +40,12 @@ title: "Gemini CLI 多代理与远程模式：本地子代理、A2A 远程代理
 
 ## 2. 子代理会被暴露成普通工具
 
-`sources/gemini-cli/packages/core/src/agents/subagent-tool.ts` 里的 `SubagentTool` 会把 agent definition 包装成一个普通 declarative tool：
+`sources/gemini-cli/packages/core/src/agents/agent-tool.ts` 里的 `AgentTool`（v0.63 前叫 `SubagentTool`）会把 agent definition 包装成一个普通 declarative tool：
 
-- 名称沿用 agent 名称
-- 输入参数来自 agent 的 JSON Schema
+- v0.63 起统一暴露为单个 `invoke_agent` 工具，通过 `agent_name` 参数选择子代理
+- 输入的 `prompt` 参数会被映射到该 agent 自己的 JSON Schema 参数
 - 调用前会做 schema 校验
-- 执行时通过 `SubagentToolWrapper` 继续分派到本地或远程实现
+- 执行时通过 `DelegateInvocation` 继续分派到本地或远程 invocation 实现
 
 这也是为什么在主循环里，子代理看起来像是“一个工具调用”，但内部其实已经切换到另一套执行上下文。
 
@@ -112,7 +112,7 @@ Gemini CLI 的并行不只是“未来可以做”，当前就已经有相当明
 | 主题 | 代码锚点 | 说明 |
 | --- | --- | --- |
 | Agent 注册 | `sources/gemini-cli/packages/core/src/agents/registry.ts` | 发现并注册本地/远程 agent |
-| 子代理工具封装 | `sources/gemini-cli/packages/core/src/agents/subagent-tool.ts` | 把 agent 暴露成普通工具 |
+| 子代理工具封装 | `sources/gemini-cli/packages/core/src/agents/agent-tool.ts` | 把 agent 暴露成普通工具 |
 | 本地子代理执行 | `sources/gemini-cli/packages/core/src/agents/local-executor.ts` | 隔离 registry、message bus 与执行循环 |
 | 远程代理调用 | `sources/gemini-cli/packages/core/src/agents/remote-invocation.ts` | A2A 远程 agent 流式调用 |
 | 子代理调度 | `sources/gemini-cli/packages/core/src/agents/agent-scheduler.ts` | 把 agent 工具调用接入调度器 |
@@ -125,11 +125,11 @@ Gemini CLI 的并行不只是“未来可以做”，当前就已经有相当明
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
 | `AgentRegistry` | `sources/gemini-cli/packages/core/src/agents/registry.ts` | 加载内建/用户级/项目级/extension agent 定义，提供统一注册表 |
-| `SubagentTool` | `sources/gemini-cli/packages/core/src/agents/subagent-tool.ts` | 将 agent 定义包装成标准 declarative tool，调用前做 schema 校验 |
+| `AgentTool` | `sources/gemini-cli/packages/core/src/agents/agent-tool.ts` | 将 agent 定义包装成标准 declarative tool（`invoke_agent`），把 `prompt` 参数映射到 agent 的输入 schema |
 | `LocalAgentExecutor` | `sources/gemini-cli/packages/core/src/agents/local-executor.ts` | 创建隔离执行环境（独立 ToolRegistry/PromptRegistry/MessageBus），阻止递归 |
 | `A2AClientManager` | `sources/gemini-cli/packages/core/src/agents/remote-invocation.ts` | 连接远端 agent，维护 contextId/taskId，流式接收执行进度 |
 | `Scheduler.scheduleAgentTools()` | `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts` | 将子代理工具调用接入主调度器的并发与审批链路 |
-| `SubagentToolWrapper.getConfirmationDetails()` | `sources/gemini-cli/packages/core/src/agents/subagent-tool.ts` | 决定远程 agent 调用是否需要用户确认 |
+| `RemoteAgentInvocation.getConfirmationDetails()` | `sources/gemini-cli/packages/core/src/agents/remote-invocation.ts` | 决定远程 agent 调用是否需要用户确认 |
 
 ---
 
@@ -137,7 +137,7 @@ Gemini CLI 的并行不只是“未来可以做”，当前就已经有相当明
 
 **优点**
 
-- **子代理看起来像工具**：`SubagentTool` 将 agent 包装为 declarative tool，主循环无需区分"工具调用"和"子代理调用"，扩展成本低。
+- **子代理看起来像工具**：`AgentTool` 将 agent 包装为 declarative tool，主循环无需区分"工具调用"和"子代理调用"，扩展成本低。
 - **LocalAgentExecutor 真正隔离执行**：独立的 ToolRegistry/PromptRegistry/MessageBus 防止父子代理状态污染，`kind=subagent` 的 chat recording 也独立归档。
 - **A2A 协议支撑远程 agent 调用**：不依赖 app-server 宿主，通过标准 A2A 协议接入，远端 agent 可以是任何实现了协议的服务。
 
@@ -166,4 +166,4 @@ Gemini CLI 的多代理能力比 Codex/Claude 更明显分成两层：本地 Loc
 | Browser agent | 作为工具/agent 能力接入调度 | 与浏览器执行环境隔离，状态不应直接污染 core chat | 需要显式确认或策略允许 | UI 自动化、网页上下文任务 |
 | A2A agent | `A2AClientManager` / remote invocation | 远端 contextId/taskId，流式 task event 回传 | 默认确认，远端能力受协议约束 | 跨进程/跨服务 agent 调用 |
 
-这三类能力的共同点是“作为工具被 Scheduler 看见”，差异在隔离边界：本地 agent 隔离的是 Gemini 内部 registry/message bus；browser agent 隔离的是外部执行环境；A2A agent 隔离的是远端协议上下文。源码锚点可从 `sources/gemini-cli/packages/core/src/agents/local-executor.ts`、`sources/gemini-cli/packages/core/src/agents/remote-invocation.ts`、`sources/gemini-cli/packages/core/src/agents/subagent-tool.ts` 与 `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:191` 对照阅读。
+这三类能力的共同点是“作为工具被 Scheduler 看见”，差异在隔离边界：本地 agent 隔离的是 Gemini 内部 registry/message bus；browser agent 隔离的是外部执行环境；A2A agent 隔离的是远端协议上下文。源码锚点可从 `sources/gemini-cli/packages/core/src/agents/local-executor.ts`、`sources/gemini-cli/packages/core/src/agents/remote-invocation.ts`、`sources/gemini-cli/packages/core/src/agents/agent-tool.ts` 与 `sources/gemini-cli/packages/core/src/scheduler/scheduler.ts:191` 对照阅读。

@@ -152,7 +152,7 @@ Gemini CLI 很容易被误读成“CLI 调 `core`，`core` 再起个服务”。
 - 项目级 agents
 - extension 附带 agents
 
-更有意思的是，`Config.createToolRegistry()` 会把子 Agent 注册成 `SubagentTool`。也就是说，本地 subagent 在主循环里是“以工具形态暴露”的。
+更有意思的是，`Config.createToolRegistry()` 会把子 Agent 注册成 `AgentTool`（v0.63 前叫 `SubagentTool`）。也就是说，本地 subagent 在主循环里是“以工具形态暴露”的。
 
 当真正执行本地 subagent 时，`sources/gemini-cli/packages/core/src/agents/local-executor.ts` 会：
 

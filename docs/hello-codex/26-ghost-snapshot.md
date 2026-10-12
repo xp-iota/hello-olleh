@@ -4,6 +4,8 @@ title: "Codex GhostSnapshot 机制：Git 快照、Undo 恢复与 Compaction 存�
 # Codex GhostSnapshot 机制：Git 快照、Undo 恢复与 Compaction 存活
 
 > 本章分析 Codex 独有的 GhostSnapshot 机制。GhostSnapshot 在 03-agent-loop 中被简要提及，本章完整展开其生命周期、与 Undo 的关系、以及在 Compaction 中如何保持幸存。
+>
+> **版本说明**：本章描述 rust-v0.154.0 的行为。rust-v0.162 起该机制已从采样路径整体移除——`maybe_start_ghost_snapshot()` 及 `core/src/tasks/ghost_snapshot.rs`、`core/src/tasks/undo.rs` 均已删除，compaction 不再保留 GhostSnapshot 条目，`git-utils` 中也不再有 ghost commit 相关函数；仅剩兼容用途的 `GhostSnapshotConfig` 配置（`core/src/config/mod.rs:237`，字段挂载点 `:1111`，注释明确标注为 "Compatibility-only settings retained for legacy `ghost_snapshot` config loading"）。本章其余章节按 0.154 源码保留，作为历史分析。
 
 **目录**
 
@@ -69,7 +71,7 @@ impl SessionTask for GhostSnapshotTask {
 
 ### 启动时机
 
-在 `run_turn` 的预采样准备阶段（`run_turn` 行 5792）：
+在 `run_turn` 的预采样准备阶段（rust-v0.154 时为 `codex.rs` 中 `run_turn` 行 5792；rust-v0.162 起该调用点已随机制一起移除）：
 
 ```rust
 sess.maybe_start_ghost_snapshot(
@@ -229,12 +231,12 @@ ignore_large_untracked_dirs = 1000
 
 | 文件 | 行号 | 职责 |
 | :------| :------| :------|
-| `core/src/tasks/ghost_snapshot.rs` | 全文（233 行）| GhostSnapshotTask 定义、Git 提交逻辑、warning 机制 |
-| `core/src/tasks/undo.rs` | 84-100 | Undo 如何消费 GhostSnapshot |
-| `core/src/compact.rs` | 207-212 | Compaction 中 GhostSnapshot 幸存逻辑 |
-| `core/src/codex.rs` | 5792 | `maybe_start_ghost_snapshot()` 启动点 |
-| `core/src/config/mod.rs` | 1342, 1602 | GhostSnapshotConfig 和 GhostSnapshotToml |
-| `codex_git_utils::create_ghost_commit_with_report` | crate 内部 | Git 命令编排 |
+| `core/src/tasks/ghost_snapshot.rs` | 全文（233 行）（rust-v0.162 起已删除）| GhostSnapshotTask 定义、Git 提交逻辑、warning 机制 |
+| `core/src/tasks/undo.rs` | 84-100（rust-v0.162 起已删除）| Undo 如何消费 GhostSnapshot |
+| `core/src/compact.rs` | 207-212（rust-v0.162 起该“幸存”逻辑已随 ghost snapshot 一并移除）| Compaction 中 GhostSnapshot 幸存逻辑 |
+| `core/src/codex.rs` | 5792 | rust-v0.154 中 `maybe_start_ghost_snapshot()` 在此启动；该文件已于 rust-v0.162 拆分且该调用点被整体移除 |
+| `core/src/config/mod.rs` | 1342, 1602 → 237, 1111 | `GhostSnapshotConfig`（:237）与兼容字段挂载点（:1111，v0.162 起仅作 legacy 配置兼容保留） |
+| `codex_git_utils::create_ghost_commit_with_report` | crate 内部（rust-v0.162 起已移除；当前对应 crate 为 `git-utils`，其中已无 ghost commit 函数）| Git 命令编排 |
 
 ---
 

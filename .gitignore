@@ -16,6 +16,7 @@ sources/hermes-agent/
 sources/nanobot/
 sources/cordis/
 sources/deepseek-harness/
+sources/pi/
 # sources/claude-code/ is committed (decompiled snapshot); do not ignore
 
 # Build output

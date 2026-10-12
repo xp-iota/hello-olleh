@@ -58,7 +58,7 @@ Codex 的核心设计围绕**单线程 Agent 执行循环**（`submission_loop` 
 child-agent 执行结束后，其结果（`final_response`）以 `tool_result` 形式回传给父 agent：
 
 ```rust
-// codex-rs/core/src/codex.rs
+// codex-rs/core/src/tools/handlers/multi_agents_v2/（示意代码，实际回传见 spawn.rs 的 tool_output_response_item）
 fn handle_child_agent_result(
     parent_thread: &mut Thread,
     child_result: ChildAgentResult,
@@ -75,7 +75,7 @@ fn handle_child_agent_result(
 对于不需要子代理的场景，Codex 支持**单轮内多工具并行**：
 
 ```rust
-// codex-rs/core/src/codex.rs
+// codex-rs/core/src/tools/parallel.rs（示意代码，实际并发由 ToolCallRuntime 的读写锁控制）
 async fn execute_tool_calls(
     tool_calls: Vec<ToolCall>,
 ) -> Vec<ToolResult> {
@@ -121,10 +121,10 @@ async fn execute_tool_calls(
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `ChildAgent` / `CodexAgent` | `codex-rs/core/src/agents/` | Child agent 定义：独立 tool set、独立 context、受限权限 |
-| `FuturesOrdered` (工具级并行) | `codex-rs/core/src/codex.rs:7176` | 在 `try_run_sampling_request()` 中并发执行多个工具调用 |
-| `submission_loop()` | `codex-rs/core/src/codex.rs:4289` | 主会话事件分发器：单线程顺序，防止多代理竞态 |
-| `ThreadManager::fork_thread()` | `codex-rs/core/src/thread_manager.rs:598` | Fork 创建子线程（独立快照），支持并行子任务 |
+| `ChildAgent` / agent 类型定义 | `codex-rs/core/src/agent/`（`registry.rs`、`role.rs` 等） | Child agent 定义：独立 tool set、独立 context、受限权限 |
+| `FuturesOrdered` (工具级并行) | `codex-rs/core/src/session/turn.rs:2579` | 在 `try_run_sampling_request()` 中并发执行多个工具调用 |
+| `submission_loop()` | `codex-rs/core/src/session/handlers.rs:439` | 主会话事件分发器：单线程顺序，防止多代理竞态 |
+| `ThreadManager::fork_thread_from_history()` | `codex-rs/core/src/thread_manager.rs:1481` | Fork 创建子线程（独立快照），支持并行子任务 |
 | `SandboxPolicy` | `codex-rs/core/src/sandboxing/` | 子代理沙箱约束：防止子代理越权访问父代理资源 |
 
 ---
@@ -152,7 +152,7 @@ Codex 的多代理能力应放在工具系统和 session runtime 之间理解：
 | 子代理控制 | `sources/codex/codex-rs/core/src/agent/control.rs` | 创建 agent thread 并提交初始 prompt |
 | 多代理工具 | `sources/codex/codex-rs/core/src/tools/handlers/multi_agents*` | `spawn`、`send_input`、message tool 等是模型可调用的协作面 |
 | Review 线程 | `sources/codex/codex-rs/core/src/session/review.rs` | 代码 review 走专用 prompt 和独立 thread |
-| 状态继承 | `sources/codex/codex-rs/core/src/tools/handlers/multi_agents_common.rs` | 复用父 turn 的模型、compact prompt 和部分配置 |
+| 状态继承 | `sources/codex/codex-rs/core/src/agent/child_config.rs` | 复用父 turn 的模型、运行时策略和部分配置（rust-v0.162 起 `build_agent_spawn_config()` 等逻辑从 `tools/handlers/multi_agents_common.rs` 移入） |
 | 结果回传 | `sources/codex/codex-rs/core/src/session/turn.rs` | 子任务结果最终仍落回 turn loop 事件流 |
 
 横向看，Codex 比 Gemini 的 A2A/agent manager 更靠近核心 runtime，比 Claude 的 `AgentTool` 更强调 typed thread/session 边界，比 OpenCode 的 `task` 工具更依赖 Rust 侧工具 handler 的状态复制。
@@ -163,16 +163,16 @@ Codex 的多代理不是 UI 旁路功能，而是工具 handler 驱动的新 thr
 
 | 阶段 | 源码位置 | 说明 |
 | --- | --- | --- |
-| 参数进入 handler | `sources/codex/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs:69` | handler 先基于父 turn 的 base instructions 构造子 agent config |
-| 继承与覆盖配置 | `sources/codex/codex-rs/core/src/tools/handlers/multi_agents_common.rs:203` | `build_agent_spawn_config()` 把父 base instructions 写入子 config |
-| 运行时覆盖 | `sources/codex/codex-rs/core/src/tools/handlers/multi_agents_common.rs:256` | 将当前 turn 的 cwd、approval、sandbox、模型等运行时字段应用到子 agent |
-| spawn 执行 | `sources/codex/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs:114` | 通过 `agent_control.spawn_agent_with_metadata()` 创建子线程 |
-| fork 约束 | `sources/codex/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs:236` | v2 明确拒绝 `fork_context` 参数，改用 `fork_turns` 语义 |
-| 结果回传 | `sources/codex/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs:30` | spawn 结果以 tool output response item 回到父 turn |
+| 参数进入 handler | `sources/codex/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs:102` | `handle_spawn_agent()` 先解析参数，再调用 `prepare_agent_spawn_config()`（`spawn.rs:134`）基于父 turn 的 base instructions 构造子 agent config |
+| 继承与覆盖配置 | `sources/codex/codex-rs/core/src/agent/child_config.rs:109` | `build_agent_spawn_config()` 把父 base instructions 写入子 config（rust-v0.154 位于 `multi_agents_common.rs:203`） |
+| 运行时覆盖 | `sources/codex/codex-rs/core/src/agent/child_config.rs:171` | `apply_spawn_agent_runtime_overrides()` 将当前 turn 的 cwd、approval、sandbox 等运行时字段应用到子 agent；模型覆盖走 `apply_requested_spawn_agent_model_overrides()`（`child_config.rs:196`） |
+| spawn 执行 | `sources/codex/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs:188` | 通过 `agent_control.spawn(SpawnRequest { ... })` 创建子线程 |
+| fork 约束 | `sources/codex/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs:280` | v2 明确拒绝 `fork_context` 参数，改用 `fork_turns` 语义 |
+| 结果回传 | `sources/codex/codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs:329` | spawn 结果以 tool output response item 回到父 turn |
 
 ### 状态继承边界
 
-子 agent 继承的是可复制的 runtime 配置，而不是父 agent 的全部内存状态。`build_agent_spawn_config()` 会保留 base instructions，但 resume 类路径会清空 base instructions（`sources/codex/codex-rs/core/src/tools/handlers/multi_agents_common.rs:219`），避免把父 turn 的临时上下文错误套到已存在子线程。这个设计让多代理更像“受控 thread spawn”，而不是共享堆内存的协程。
+子 agent 继承的是可复制的 runtime 配置，而不是父 agent 的全部内存状态。`build_agent_spawn_config()` 会保留 base instructions，但 resume 类路径会清空 base instructions（`build_agent_resume_config()`，`sources/codex/codex-rs/core/src/agent/child_config.rs:123`；rust-v0.154 时位于 `multi_agents_common.rs:219`），避免把父 turn 的临时上下文错误套到已存在子线程。这个设计让多代理更像“受控 thread spawn”，而不是共享堆内存的协程。
 
 ### 与普通工具并发的区别
 

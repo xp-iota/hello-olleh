@@ -59,6 +59,6 @@ v2 的配置不是一次性读取的静态文件，而是一条**可重放的 Lo
 ## 源码锚点
 
 - [`sources/opencode/packages/core/src/config/discovery.ts`](../../sources/opencode/packages/core/src/config/discovery.ts)：配置发现
-- [`sources/opencode/packages/core/src/catalog.ts`](../../sources/opencode/packages/core/src/catalog.ts)：catalog 组装
+- [`sources/opencode/packages/core/src/models-dev.ts`](../../sources/opencode/packages/core/src/models-dev.ts)：catalog 拉取与组装（v2.0.27 起原 `catalog.ts` 已并入该模块）
 - [`sources/opencode/packages/core/src/model-resolver.ts`](../../sources/opencode/packages/core/src/model-resolver.ts)、[`models-dev.ts`](../../sources/opencode/packages/core/src/models-dev.ts)：模型解析与目录
 - [`sources/opencode/specs/v2/catalog-config-plugin-lifecycle.md`](../../sources/opencode/specs/v2/catalog-config-plugin-lifecycle.md)：管线决策记录

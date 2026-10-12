@@ -3,7 +3,7 @@ title: "可观测性：日志、运行时事件与 token 统计"
 ---
 # 可观测性：日志、运行时事件与 token 统计
 
-> 基于 `sources/nanobot/nanobot/bus/runtime_events.py`、`sources/nanobot/nanobot/cli/commands.py` 与 `sources/nanobot/nanobot/webui/token_usage.py` 中的 nanobot `v0.3.0` 源码校对。
+> 基于 `sources/nanobot/nanobot/bus/runtime_events.py`、`sources/nanobot/nanobot/cli/commands.py` 与 `sources/nanobot/nanobot/llm_usage/store.py` 中的 nanobot 源码校对（撰写于 `v0.3.0`；`v0.3.5` 起 usage 聚合从 `webui/token_usage.py` 移入 `llm_usage/` 包，锚点已对齐）。
 
 **目录**
 
@@ -31,7 +31,7 @@ nanobot 用 loguru 做结构化日志。CLI 侧 `_set_nanobot_logs(enabled)` 控
 
 - runner 在每次模型响应后累计 usage；provider 不回报时 `_usage_or_estimate` / `_estimate_response_usage` 按字符估算，保证统计连续；
 - `AgentRunResult.usage` 把整回合的 token 带回给调用方；
-- WebUI 的 `webui/token_usage.py` 把 usage 聚合成展示数据；`metadata.py` / `transcript.py` 承载会话级展示。
+- usage 聚合与展示数据由 `llm_usage/store.py` 完成（SQLite 聚合 `SUM(total_tokens)`；`v0.3.0` 时位于 `webui/token_usage.py`）；`metadata.py` / `transcript.py` 承载会话级展示。
 
 ## 5. 外部观测接入
 
@@ -43,5 +43,5 @@ nanobot 用 loguru 做结构化日志。CLI 侧 `_set_nanobot_logs(enabled)` 控
 
 - [`sources/nanobot/nanobot/bus/runtime_events.py`](../../sources/nanobot/nanobot/bus/runtime_events.py)：运行时事件
 - [`sources/nanobot/nanobot/agent/loop.py`](../../sources/nanobot/nanobot/agent/loop.py)：StateTraceEntry
-- [`sources/nanobot/nanobot/webui/token_usage.py`](../../sources/nanobot/nanobot/webui/token_usage.py)：token 统计聚合
+- [`sources/nanobot/nanobot/llm_usage/store.py`](../../sources/nanobot/nanobot/llm_usage/store.py)：token 统计聚合（`v0.3.5` 起自 `webui/token_usage.py` 移入）
 - [`sources/nanobot/nanobot/webui/websocket_logging.py`](../../sources/nanobot/nanobot/webui/websocket_logging.py)：日志推送

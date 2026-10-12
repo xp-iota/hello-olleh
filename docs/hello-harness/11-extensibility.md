@@ -13,9 +13,9 @@ title: "扩展性与 Harness 生态对比"
 
 MCP（Model Context Protocol）是 AI 工具生态里的一个重要标准，它定义了 Agent 如何接入外部服务（数据库、代码仓库、通信工具等）。MCP 接入能力决定了工程师能否通过扩展工具集合来控制 Agent 的行为范围，而不必修改核心代码。
 
-**Claude Code**：`sources/claude-code/src/tools/McpTool/` 实现了 MCP 工具，在 `tools.ts:245-246` 注册 `ListMcpResourcesTool` 和 `ReadMcpResourceTool`。MCP 接入是运行时的——Agent 可以在运行时发现和调用 MCP Server 提供的工具，不需要修改代码来接入新的 MCP Server。
+**Claude Code**：`sources/claude-code/src/tools/MCPTool/` 实现了 MCP 工具，在 `tools.ts:245-246` 注册 `ListMcpResourcesTool` 和 `ReadMcpResourceTool`。MCP 接入是运行时的——Agent 可以在运行时发现和调用 MCP Server 提供的工具，不需要修改代码来接入新的 MCP Server。
 
-**Codex**：`codex-rs/app-server/src/codex_message_processor/plugin_mcp_oauth.rs` 的 MCP OAuth 实现表明 Codex 通过插件架构接入 MCP Server。OAuth 支持意味着 Codex 能接入需要认证的企业级 MCP Server（如 GitHub Enterprise、Jira、Confluence），这对团队级别的工具集成有实际价值。
+**Codex**：`codex-rs/app-server/src/request_processors/plugins.rs:1829` 的 `start_plugin_mcp_oauth_logins()`（rust-v0.154 时位于 `codex_message_processor/plugin_mcp_oauth.rs`）表明 Codex 通过插件架构接入 MCP Server。OAuth 支持意味着 Codex 能接入需要认证的企业级 MCP Server（如 GitHub Enterprise、Jira、Confluence），这对团队级别的工具集成有实际价值。
 
 **Gemini CLI**：`sources/gemini-cli/packages/core/src/tools/mcp-client.ts` 的 `McpClient` 和 `mcp-client-manager.ts` 的 `McpClientManager` 构成了完整的 MCP 客户端。Client Manager 负责管理多个 MCP Server 连接的生命周期，这是四个工程里 MCP 接入最完整的实现—— MCP 不只是"能用"，而是有完整的连接管理和生命周期控制。
 
@@ -29,7 +29,7 @@ Skills 和 Plugin 是推断型前馈的主要扩展机制：通过添加新的 S
 
 **Claude Code**：SkillTool 在工具列表里（`tools.ts:212`），通过 CLAUDE.md 的 @include 引用链加载 Skill。无版本锁定机制——Skill 内容随 CLAUDE.md 文件一起更新，没有独立的版本管理。
 
-**Codex**：`sources/codex/.codex/skills/` 目录的 Skill 文件用 frontmatter 定义元数据，`skill-installer/SKILL.md` 的格式示例展示了结构化 Skill 的写法。frontmatter 包含版本信息，这意味着 Skill 库可以有版本化的演进路径，不同项目可以锁定到不同版本的 Skill。
+**Codex**：`codex-rs/skills/src/assets/samples/`（rust-v0.154 时为根目录的 `.codex/skills/`）的 Skill 文件用 frontmatter 定义元数据，`skill-installer/SKILL.md` 的格式示例展示了结构化 Skill 的写法。frontmatter 包含版本信息，这意味着 Skill 库可以有版本化的演进路径，不同项目可以锁定到不同版本的 Skill。
 
 **Gemini CLI**：`activate-skill.ts` 的 `ActivateSkillTool` 把 Skill 激活建模为工具调用，`snippets.ts:107-115` 负责 Skills 渲染到 System Prompt。Skill 的版本化依赖文件系统，无独立版本锁定。
 

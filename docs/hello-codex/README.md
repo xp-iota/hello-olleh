@@ -3,9 +3,9 @@ title: "Codex 源码分析 README"
 ---
 # Codex 源码分析 README
 
-本目录记录 OpenAI Codex `rust-v0.154.0`（`6b9826e3`）的源码分析，覆盖当前 Rust workspace、skills 扩展、command safety、会话运行时和工具系统。
+本目录记录 OpenAI Codex `rust-v0.162.1`（`092d3acd6`）的源码分析，覆盖当前 Rust workspace、skills 扩展、command safety、会话运行时和工具系统。0.154 → 0.162 期间上游把 7500 行的 `core/src/codex.rs` 拆分为 `codex_thread.rs` + `session/` 模块树，并把 ghost snapshot、`Op::ThreadRollback`、memories 启动任务从采样路径移除；本目录的源码锚点已对齐 0.162 布局，已消失的机制在章节内以"（rust-v0.162 起：…）"标注并保留 0.154 行为的历史分析（如 [26-ghost-snapshot.md](./26-ghost-snapshot.md)）。
 
-> **Source baseline:** Codex `rust-v0.154.0` (`6b9826e3`). Source references are validated against this checkout; historical line-number notes are identified in their chapters.
+> **Source baseline:** Codex `rust-v0.162.1` (`092d3acd6`). Source references are validated against this checkout; mechanisms removed in 0.162 keep their 0.154 analysis with an explicit historical note in their chapters.
 
 ## 阅读入口
 
@@ -27,7 +27,7 @@ title: "Codex 源码分析 README"
 
 ## 章节索引
 
-> 横向对齐规则：`01-25` 是五个 AI Coding CLI 目录共享的主题主干；Codex 特有的 `26-ghost-snapshot.md` 作为附录保留。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
+> 横向对齐规则：`01-25` 是六个 AI Coding CLI 目录共享的主题主干；Codex 特有的 `26-ghost-snapshot.md` 作为附录保留。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
 
 | 文件 | 主题 | 阅读目的 |
 | --- | --- | --- |

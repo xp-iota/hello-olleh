@@ -1,17 +1,18 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-`hello-olleh` is a comparison-and-analysis workspace for AI Coding CLI projects. The primary upstream source snapshots are in `sources/claude-code/`, `sources/codex/`, `sources/gemini-cli/`, `sources/opencode/`, `sources/cordis/`, and `sources/deepseek-harness/`; treat them as vendor trees unless a task explicitly requires source edits inside one of them. The main authored output lives in the matching `docs/hello-*` directories, where analysis is split into topic-focused Markdown chapters.
+`hello-olleh` is a comparison-and-analysis workspace for AI Coding CLI projects. The primary upstream source snapshots are in `sources/claude-code/`, `sources/codex/`, `sources/gemini-cli/`, `sources/opencode/`, `sources/cordis/`, `sources/deepseek-harness/`, and `sources/pi/`; treat them as vendor trees unless a task explicitly requires source edits inside one of them. The main authored output lives in the matching `docs/hello-*` directories, where analysis is split into topic-focused Markdown chapters.
 
 **Current upstream versions:**
 - Claude Code: v2.1.87 (decompiled snapshot)
-- Codex: rust-v0.154.0
-- Gemini CLI: v0.47.0
-- OpenCode: v2.0.2
-- Hermes Agent: v0.21.2
-- Nanobot: v0.3.0
-- Cordis: 4.0.0-rc.8
+- Codex: rust-v0.162.1
+- Gemini CLI: v0.63.0
+- OpenCode: v2.0.27
+- Hermes Agent: v2026.9.24 (package version 0.21.5)
+- Nanobot: v0.3.5
+- Cordis: 4.0.0-rc.10
 - DeepSeek Harness: 0.1.5-rc.2
+- Pi: v1.1.0
 
 The repository has no static site generator: `docs/` is plain Markdown read directly on GitHub, so every link must resolve to a real file and no page carries generator-specific front matter. Root files remain lightweight: [`README.md`](README.md) records scope and upstream versions, and [`sync_repos.sh`](sync_repos.sh) refreshes local clones into `sources/`.
 

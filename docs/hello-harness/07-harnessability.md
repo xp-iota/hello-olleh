@@ -54,12 +54,16 @@ Rust 的 Ambient Affordance 是此次对比中最强的：
 `sources/codex/codex-rs/app-server/src/lib.rs` 的 crate 边界是编译期强制的：
 
 ```rust
-pub mod app_server_tracing;
-pub mod bespoke_event_handling;
-pub mod codex_message_processor;
+mod app_server_tracing;
+mod bespoke_event_handling;
+// ...
+mod message_processor;
+mod request_processors;
 ```
 
-在 Rust 里，`pub` 决定了哪些 API 可以跨 crate 边界访问，而这是编译器强制的——你不能从外部 crate 访问另一个 crate 的私有实现，编译器会拒绝。这使 Codex 的模块边界是真正的边界，而不只是建议性的目录组织。任何违反 crate 边界的代码都无法通过 `cargo build`，这是最强的机械执行。
+（rust-v0.154 的模块清单里有 `pub mod codex_message_processor;` 单文件；rust-v0.162 起已拆分为 `message_processor.rs` + `request_processors/` 目录，`request_processors/` 下按 RPC 域再分出 `turn_processor.rs`、`thread_lifecycle.rs`、`config_processor.rs` 等数十个 processor。）
+
+在 Rust 里，`pub`/`mod` 决定了哪些 API 可以跨 crate 边界访问，而这是编译器强制的——你不能从外部 crate 访问另一个 crate 的私有实现，编译器会拒绝。这使 Codex 的模块边界是真正的边界，而不只是建议性的目录组织。任何违反 crate 边界的代码都无法通过 `cargo build`，这是最强的机械执行。
 
 ### Gemini CLI
 
@@ -102,10 +106,10 @@ export function systemPromptSection(
 
 ### Codex
 
-`sources/codex/codex-rs/core/templates/` 目录是四个工程里最丰富的 Template 系统：
+`sources/codex/codex-rs/core/templates/` 目录是四个工程里最丰富的 Template 系统。rust-v0.154.0 时的布局是：
 
 ```
-templates/
+templates/          （rust-v0.154.0）
   agents/orchestrator.md
   collaboration_mode/
     default.md
@@ -121,7 +125,9 @@ templates/
     stage_one_system.md
 ```
 
-每个目录对应一个功能域（协作模式、压缩、记忆），每个文件是该功能域的一个变体。添加新的协作模式，只需在 `collaboration_mode/` 添加新的 Markdown 文件——不需要修改任何代码。这是 Template 系统最大化可驾驭性的核心设计。
+rust-v0.162 起该目录收敛为 `agents/orchestrator.md`、`collab/experimental_prompt.md`、`review/history_message_completed.md`、`review/history_message_interrupted.md`、`search_tool/request_plugin_install_description.md`、`search_tool/tool_description.md`——`collaboration_mode/` 改名为 `collab/` 并精简，`compact/` 与 `memories/` 模板已移除。
+
+每个目录对应一个功能域（协作模式、压缩、记忆），每个文件是该功能域的一个变体。添加新的协作模式，只需在 `collab/` 添加新的 Markdown 文件——不需要修改任何代码。这是 Template 系统最大化可驾驭性的核心设计。
 
 ### Gemini CLI
 

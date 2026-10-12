@@ -199,9 +199,9 @@ CLI 包装层 → TUI 编排层 → App Server 会话层 → Core Agent 层 → 
 - `ToolRouter`：解析模型输出为 `ToolCall`，路由到 handler
 - `ToolOrchestrator`：审批 → 沙箱选择 → 执行 → 沙箱拒绝升级重试
 
-### MessageProcessor / CodexMessageProcessor
+### MessageProcessor / request_processors
 
-`app-server` 不直接耦合 TUI，而是通过 `MessageProcessor` 统一处理配置、线程、认证、文件、事件订阅等 RPC 请求（`sources/codex/codex-rs/app-server/src/message_processor.rs`; `sources/codex/codex-rs/app-server/src/codex_message_processor.rs`）。
+`app-server` 不直接耦合 TUI，而是通过 `MessageProcessor` 统一处理配置、线程、认证、文件、事件订阅等 RPC 请求（`sources/codex/codex-rs/app-server/src/message_processor.rs`; `sources/codex/codex-rs/app-server/src/request_processors.rs`，turn/thread 等请求再分发到 `request_processors/` 下的专项处理器）。
 
 ## 技术选型一览
 
@@ -237,14 +237,14 @@ CLI 包装层 → TUI 编排层 → App Server 会话层 → Core Agent 层 → 
 | :------| :------| :------| :------|
 | `cli_main()` | `codex-rs/cli/src/main.rs` | 88-152 | 顶层入口：解析 argv[0]，分发给各子命令 |
 | `Subcommand` (enum) | `codex-rs/cli/src/main.rs` | 590-715 | 所有 CLI 子命令的枚举分发 |
-| `Codex` session struct | `codex-rs/core/src/codex.rs` | — | 核心运行时对象，持有所有会话状态 |
-| `submission_loop()` | `codex-rs/core/src/codex.rs` | 4289 | 单线程 session 事件分发器 |
-| `run_turn()` | `codex-rs/core/src/codex.rs` | 5584 | 单轮执行控制，含 token 预算检查 |
-| `run_sampling_request()` | `codex-rs/core/src/codex.rs` | 6363 | LLM 调用编排与重试 |
-| `try_run_sampling_request()` | `codex-rs/core/src/codex.rs` | 7176 | 流式响应消费与工具并发调度 |
+| `CodexThread` session struct | `codex-rs/core/src/codex_thread.rs` | 208 | 核心运行时对象（0.154 的 `Codex`，0.162 更名拆分），持有所有会话状态 |
+| `submission_loop()` | `codex-rs/core/src/session/handlers.rs` | 439 | 单线程 session 事件分发器 |
+| `run_turn()` | `codex-rs/core/src/session/turn.rs` | 163 | 单轮执行控制，含 token 预算检查 |
+| `run_sampling_request()` | `codex-rs/core/src/session/turn.rs` | 1603 | LLM 调用编排与重试 |
+| `try_run_sampling_request()` | `codex-rs/core/src/session/turn.rs` | 2512 | 流式响应消费与工具并发调度 |
 | `ThreadManager::start_thread()` | `codex-rs/core/src/thread_manager.rs` | — | 创建并启动新会话线程 |
 | `ThreadManager::resume_thread_from_rollout()` | `codex-rs/core/src/thread_manager.rs` | — | 从 rollout 记录恢复会话 |
-| `TurnContext` | `codex-rs/core/src/codex.rs` | 839 | 单轮内存状态：token 用量、工具调用、Ghost snapshot |
+| `TurnContext` | `codex-rs/core/src/session/turn_context.rs` | 321 | 单轮内存状态：token 用量、工具调用（0.154 曾含 Ghost snapshot；0.162 起 ghost 机制已不在采样路径上） |
 
 ---
 

@@ -6,19 +6,21 @@
 
 # 仓库及对应版本（与 README 一致；Claude Code 为非开源反编译快照，故不从 GitHub 同步）
 repo_specs='
-# https://github.com/openai/codex/tree/rust-v0.154.0
-openai/codex.git rust-v0.154.0
-# https://github.com/anomalyco/opencode/tree/v2.0.2
-anomalyco/opencode.git v2.0.2
-google-gemini/gemini-cli.git v0.47.0
-# https://github.com/NousResearch/hermes-agent/tree/v2026.9.11
-nousresearch/hermes-agent.git v2026.9.11
-# https://github.com/HKUDS/nanobot/tree/v0.3.0
-HKUDS/nanobot.git v0.3.0
+# https://github.com/openai/codex/tree/rust-v0.162.1
+openai/codex.git rust-v0.162.1
+# https://github.com/anomalyco/opencode/tree/v2.0.27
+anomalyco/opencode.git v2.0.27
+google-gemini/gemini-cli.git v0.63.0
+# https://github.com/NousResearch/hermes-agent/tree/v2026.9.24
+nousresearch/hermes-agent.git v2026.9.24
+# https://github.com/HKUDS/nanobot/tree/v0.3.5
+HKUDS/nanobot.git v0.3.5
 # git clone --branch v4.0.0-rc.10 https://github.com/cordiverse/cordis.git
 cordiverse/cordis.git v4.0.0-rc.10
 # git clone --branch dsh-v0.1.5-rc.2 https://github.com/deepseek-ai/deepseek-harness.git
 deepseek-ai/deepseek-harness.git dsh-v0.1.5-rc.2
+# https://github.com/earendil-works/pi/tree/v1.1.0
+earendil-works/pi.git v1.1.0
 '
 
 script_dir=$(cd "$(dirname "$0")" && pwd)

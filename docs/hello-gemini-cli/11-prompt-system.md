@@ -161,8 +161,8 @@ Gemini CLI 的 Prompt 系统容易被误读成 `snippets.ts` 模板集合。更�
 
 | 层级 | 源码入口 | 职责 |
 | --- | --- | --- |
-| 片段来源 | `sources/gemini-cli/packages/core/src/core/prompts/snippets.ts` | 维护模型/模式相关 prompt 片段 |
-| PromptProvider | `sources/gemini-cli/packages/core/src/core/prompts/prompt-provider.ts` | 根据配置、模式、skill 状态生成 system prompt |
+| 片段来源 | `sources/gemini-cli/packages/core/src/prompts/snippets.ts` | 维护模型/模式相关 prompt 片段 |
+| PromptProvider | `sources/gemini-cli/packages/core/src/prompts/promptProvider.ts` | 根据配置、模式、skill 状态生成 system prompt |
 | 客户端注入 | `sources/gemini-cli/packages/core/src/core/client.ts` | start chat、更新 system instruction、发送 stream |
 | CLI 回路 | `sources/gemini-cli/packages/cli/src/ui/hooks/useGeminiStream.ts` | 用户输入、工具结果 continuation 和 UI 状态联动 |
 

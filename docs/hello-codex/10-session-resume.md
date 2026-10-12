@@ -22,7 +22,7 @@ title: "配置、恢复与安全边界：config.toml、resume/fork、approval �
 | --- | --- | --- |
 | CLI 参数拼装 | `sources/codex/codex-rs/cli/src/main.rs` | 把 `resume` / `fork` / 根级 flags 合并成最终 `TuiCli` |
 | 配置解析 | `sources/codex/codex-rs/core/src/config/mod.rs` | 合并 `config.toml`、环境变量、CLI override，并解析 sandbox / memories / project-doc 预算 |
-| 协议层 | `sources/codex/codex-rs/app-server-protocol/src/protocol/v2.rs` | 定义 `ThreadStartParams`、`ThreadResumeParams`、`ThreadForkParams` |
+| 协议层 | `sources/codex/codex-rs/app-server-protocol/src/protocol/v2/`（目录；`thread.rs` 定义三类 Params） | 定义 `ThreadStartParams`、`ThreadResumeParams`、`ThreadForkParams` |
 | 生命周期枢纽 | `sources/codex/codex-rs/core/src/thread_manager.rs` | `start/resume/fork` 最终都汇合到 `spawn_thread()` |
 | 执行边界 | `sources/codex/codex-rs/core/src/exec.rs`, `tools/orchestrator.rs`, `tools/sandboxing.rs` | 把 approval policy 与 sandbox policy 变成真实执行约束 |
 
@@ -52,7 +52,7 @@ title: "配置、恢复与安全边界：config.toml、resume/fork、approval �
 
 ## 3. `resume` / `fork` 都是协议级能力，不只是 TUI 小功能
 
-`app-server-protocol/v2.rs` 对三类入口做了很明确的建模：
+`app-server-protocol/src/protocol/v2/`（`thread.rs`）对三类入口做了很明确的建模：
 
 - `ThreadStartParams`
 - `ThreadResumeParams`
@@ -69,7 +69,7 @@ fork 则允许基于：
 1. 现有 `thread_id`
 2. rollout `path`
 
-再配上 `persist_extended_history` 之类的实验位，说明 Codex 在设计上就是把“恢复和分叉”当作一等线程操作，而不是某个界面层快捷入口。
+再配上 `last_turn_id` / `before_turn_id` 之类的实验位（`ThreadForkParams`，rust-v0.162 起取代了早期的 `persist_extended_history`），说明 Codex 在设计上就是把“恢复和分叉”当作一等线程操作，而不是某个界面层快捷入口。
 
 ## 4. 安全边界同时存在于协议层、执行层和错误层
 
@@ -123,12 +123,12 @@ Codex 的安全模型不是单一的 `sandbox=true/false`。
 
 | 函数/类型 | 文件 | 职责 |
 | :----------| :------| :------|
-| `ThreadManager::start_thread()` | `codex-rs/core/src/thread_manager.rs:406` | 创建新会话线程，装配所有运行时参数 |
-| `ThreadManager::resume_thread_from_rollout()` | `codex-rs/core/src/thread_manager.rs:455` | 从 rollout 记录恢复会话，重放历史事件 |
-| `ThreadManager::fork_thread()` | `codex-rs/core/src/thread_manager.rs:598` | Fork 现有会话到新线程（带独立快照）|
+| `ThreadManager::start_thread()` | `codex-rs/core/src/thread_manager.rs:1049` | 创建新会话线程，装配所有运行时参数 |
+| `ThreadManager::resume_legacy_thread_from_rollout()` | `codex-rs/core/src/thread_manager.rs:1215` | 从 rollout 记录恢复会话，重放历史事件 |
+| `ThreadManager::fork_thread_from_history()` | `codex-rs/core/src/thread_manager.rs:1481` | Fork 现有会话到新线程（带独立快照）|
 | `Config::load()` / `Config::merge()` | `codex-rs/core/src/config/` | 双层配置叠加：根级全局配置 + 子命令级 override |
 | `Subcommand::Resume` | `codex-rs/cli/src/main.rs` | `--resume` / `--fork` CLI 参数解析与分发 |
-| `apply_rollout_item()` | `codex-rs/core/src/extract.rs:15` | 历史事件重放：将 rollout item 应用到当前状态 |
+| `reconstruct_history_from_rollout()` | `codex-rs/core/src/session/rollout_reconstruction.rs:188` | 历史事件重放：将 rollout item 应用到当前状态（rust-v0.154 的 `extract.rs::apply_rollout_item()` 在 v0.162 已由 rollout reconstruction 模块取代） |
 
 ---
 
@@ -154,7 +154,7 @@ Codex 的会话恢复应按 rollout reconstruction 和 thread state 读，而不
 | --- | --- | --- |
 | rollout item | 可重放历史单元 | 比 Gemini JSON conversation 更结构化 |
 | thread/session | runtime 级对象 | 对应 OpenCode durable session |
-| ghost snapshot | 文件系统回滚/undo 支撑 | Codex 特有附录 `26-ghost-snapshot.md` |
+| ghost snapshot | 文件系统回滚/undo 支撑 | Codex 特有附录 `26-ghost-snapshot.md`（rust-v0.162 起该机制已从采样路径移除，仅剩兼容配置） |
 | pending approval | 当前恢复弱项 | 四项目都容易遗漏运行中状态 |
 
 ## Resume 后状态恢复矩阵
@@ -166,7 +166,7 @@ Codex 的会话恢复应按 rollout reconstruction 和 thread state 读，而不
 | Pending tool call | 丢弃/需重新推理 | 运行中 future、进程句柄、stdout 状态不在 rollout 中 | 四项目共同弱点 |
 | Pending approval | 丢弃 | 用户决策通道是运行时状态，不应跨进程静默恢复 | 避免恢复后误执行危险命令 |
 | Cancel token | 丢弃 | token 绑定当前 async runtime | 恢复后需要新的 turn 控制面 |
-| Ghost snapshot | 视 snapshot 生命周期恢复 | 已持久化 snapshot 可用于 undo；未完成 snapshot 不应假定有效 | Codex 相比其他项目的独特恢复面 |
+| Ghost snapshot | 视 snapshot 生命周期恢复 | 已持久化 snapshot 可用于 undo；未完成 snapshot 不应假定有效（rust-v0.162 起该机制已移除，此行描述 rust-v0.154 行为，见 `26-ghost-snapshot.md`） | Codex 相比其他项目的独特恢复面 |
 | Compact summary | 恢复 | summary 已作为上下文消息/rollout item 写入 | 长会话 resume 的关键 |
 
 因此 Codex resume 是“恢复可重放事实”，不是“恢复运行中的异步控制流”。这解释了为什么中断在审批或工具执行期间时，恢复后应让模型重新规划，而不是继续旧 future。

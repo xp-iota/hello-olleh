@@ -35,7 +35,7 @@ title: "扩展与 MCP 横向对比"
 
 | 项目 | 配置 / 入口 | 连接 / 发现 | Tool / Resource 调用 |
 | --- | --- | --- | --- |
-| Claude Code | `sources/claude-code/src/services/mcp/config.ts`, `sources/claude-code/src/services/mcp/client.ts` | `sources/claude-code/src/services/mcp/mcpHub.ts`, `sources/claude-code/src/services/mcp/auth.ts:847` | `sources/claude-code/src/services/mcp/mcpHub.ts` |
+| Claude Code | `sources/claude-code/src/services/mcp/config.ts`, `sources/claude-code/src/services/mcp/client.ts` | `sources/claude-code/src/services/mcp/MCPConnectionManager.tsx`, `sources/claude-code/src/services/mcp/auth.ts:847` | `sources/claude-code/src/services/mcp/useManageMCPConnections.ts` |
 | Codex | `sources/codex/codex-rs/config/src/mcp_types.rs:118` | `sources/codex/codex-rs/codex-mcp/src/connection_manager.rs:107`, `sources/codex/codex-rs/codex-mcp/src/connection_manager.rs:448` | `sources/codex/codex-rs/core/src/mcp_tool_call.rs`, `sources/codex/codex-rs/core/src/tools/handlers/mcp.rs` |
 | Gemini CLI | `sources/gemini-cli/packages/core/src/tools/mcp-client-manager.ts`, `sources/gemini-cli/packages/core/src/tools/mcp-client.ts` | `sources/gemini-cli/packages/core/src/mcp/auth-provider.ts`, `sources/gemini-cli/packages/core/src/mcp/oauth-provider.ts` | `sources/gemini-cli/packages/core/src/tools/mcp-client.ts`, `sources/gemini-cli/packages/core/src/tools/tool-registry.ts` |
 | OpenCode | `sources/opencode/packages/core/src/mcp/index.ts`, `sources/opencode/packages/core/src/config.ts` | `sources/opencode/packages/cli/src/commands/handlers/mcp`, `sources/opencode/packages/cli/src/commands/handlers/mcp` | `sources/opencode/packages/core/src/tool.ts`, `sources/opencode/packages/core/src/config/plugin/command.ts` |

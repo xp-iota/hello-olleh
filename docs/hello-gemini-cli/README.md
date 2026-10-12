@@ -5,6 +5,8 @@ title: "Gemini CLI 源码分析 README"
 
 本目录记录 Gemini CLI `v0.47.0` 的源码分析。分析对象是 `sources/gemini-cli/` 上游快照，技术栈是 TypeScript monorepo：`packages/core` 承载 Agent runtime，`packages/cli` 承载 Ink TUI 和非交互入口，扩展面包括 MCP、Extensions、Skills、A2A 和 IDE 集成。
 
+> **版本基线：** 各章节撰写并校验于 `v0.47.0`；`sources/gemini-cli/` 快照已由 `sync_repos.sh` 前进到 `v0.63.0`。0.47 → 0.63 之间的源码移动尚未逐章重新校验，章节内行号锚点可能存在漂移；文件级路径以实际快照为准。
+
 ## 阅读入口
 
 - 总览版报告：[22-project-init-analysis.md](./22-project-init-analysis.md)
@@ -23,7 +25,7 @@ title: "Gemini CLI 源码分析 README"
 
 ## 章节索引
 
-> 横向对齐规则：`01-25` 是五个 AI Coding CLI 目录共享的主题主干；Gemini CLI 当前没有项目特有附录。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
+> 横向对齐规则：`01-25` 是六个 AI Coding CLI 目录共享的主题主干；Gemini CLI 当前没有项目特有附录。跨项目比较统一维护在 [`../hello-harness/15-topic-alignment-matrix.md`](../hello-harness/15-topic-alignment-matrix.md)。
 
 | 文件 | 主题 | 阅读目的 |
 | --- | --- | --- |
