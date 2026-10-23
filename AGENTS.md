@@ -23,6 +23,8 @@ The repository has no static site generator: `docs/` is plain Markdown read dire
 
 Bun 1.4.4 differs from Node on two seams dsh depends on, both fixed under `dsh-lab/runtime/` without touching `node_modules`. (1) It lacks `node:module.stripTypeScriptTypes`, so `@deepseek-ai/dsh-ptc-runtime-node` fails to link, `ptc-runtime` silently never activates, and the tool count drops from 26 to 25 — `runtime/bun-preload.mjs` patches that package's import at load time to `runtime/lib/bun-shim.mjs` (a `Bun.Transpiler` implementation that preserves the 35-byte prefix / `\n}` suffix the upstream `slice(35, -2)` depends on; `npm run check:shim` guards this). (2) Bun swallows the first `--` after the script path, which breaks the `dsh-subprocess-local` runner protocol in M07 — the same preload restores it for the runner entry only. The preload must be injected via `BUN_OPTIONS` (not command-line `--preload`), because the runner is a grandchild process; `runtime/lib/spawn.mjs` owns that injection. Known issue: M03.3 fails on the fuyao gateway because it hardcodes `maxTokens: 200` and that model spends the budget on a `thinking` block — this is provider-specific and fails identically on both runtimes.
 
+`dsh-web/` is **not** part of this repository. It is a standalone TypeScript project with its own Git repository and remote: `git@github.com:xp-iota/dsh-web.git` (branch `main`). It is a read-only chat Web service on top of `@deepseek-ai/dsh` 0.2.1-rc.2 — a hand-rolled `node:http` + SSE layer (no web framework), a React 19 + Vite 6 front end under `web/`, and the same Node/Bun dual-runtime idea as `dsh-lab/` (`runtime/run.mjs` dispatch; `npm run verify` ends in `RUNTIMES_VERIFY_OK`). The container image ships both runtimes and picks one via `DSH_RUNTIME`. Because it carries its own `.git`, the parent repo reports `?? dsh-web/` — **never `git add dsh-web/` here**; that would record a gitlink, not the source. Work on it inside `dsh-web/` with its own commits and push them to its own remote.
+
 The DSH analysis set was consolidated from 26 chapters into 11 topic files; section numbers were renumbered consecutively and every merged file records its original sources in a 📎 note. The consolidation helpers are migration scripts rather than daily generators: `scripts/merge_dsh_docs.py` and `scripts/rewrite_dsh_refs.py` detect the final 11-chapter layout and exit safely, while `scripts/link_examples_into_docs.py` is marker-idempotent. Validate cross-references with `python3 scripts/check_doc_links.py .`.
 
 ## Build, Test, and Development Commands
@@ -84,6 +86,7 @@ Recent commits use short, imperative English subjects such as `Add Claude Code d
 | Codex | `Codex <noreply@openai.com>` | `Co-authored-by: Codex <noreply@openai.com>` |
 | Gemini | `Gemini <noreply@google.com>` | `Co-authored-by: Gemini <noreply@google.com>` |
 | OpenCode | `OpenCode <opencode@ai.local>` | `Co-authored-by: OpenCode <opencode@ai.local>` |
+| MiniMax Code | `MiniMax Code <noreply@minimax.io>` | `Co-authored-by: MiniMax Code <noreply@minimax.io>` |
 
 ### Commit Template
 
