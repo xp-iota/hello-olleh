@@ -1,0 +1,19 @@
+# 依赖
+node_modules/
+
+# 运行时状态：会话日志、存储域、凭据、skill 缓存全部落在这里。
+# 这是本工程"不污染用户目录"的代价——状态留在工程内，但不进版本库。
+.dsh-home/
+
+# 本地配置（含密钥）
+.env
+
+# 类型检查/构建产物
+*.tsbuildinfo
+dist/
+
+# 编辑器与系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
