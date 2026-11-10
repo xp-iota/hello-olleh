@@ -8,7 +8,7 @@
 > 而只给放行选项时得到 `refusal = dsh-acp permission request offered no 'reject' option (kinds wanted: ['reject_once', 'reject_always'], offered: ['allow_once'])`。
 
 前置：[第 05 课 · 会话面](05-session-surface.md)。本课所有输出都来自真实运行，不是示意。
-同一编号的 DSH 侧教材见 [dsh-example/lessons/06-human-in-the-loop.md](../../dsh-example/lessons/06-human-in-the-loop.md)——那边讲六种人机协议，本课讲 iota 唯一拥有的权限决策与其余各面的归属。
+同一编号的 DSH 侧教材见 [`dsh-lab/M06-human-in-the-loop/README.md`](../../dsh-lab/M06-human-in-the-loop/README.md)——那边讲六种人机协议，本课讲 iota 唯一拥有的权限决策与其余各面的归属。
 
 ---
 
@@ -115,7 +115,7 @@ turn** 的本地动作（那次 `calls=1` 只是 probe）；iota 没有这张注
 自己解析，要么宿主在自己的 UI 层处理，编排层不假装有这个面。
 
 > **原理对照**：`iota-core/src/iota_core/capabilities.py::GOAL_COMMANDS`——能力名在类
-> 定义期校验，写错导入即失败。DSH 侧等价物是 `ctx.commands.execute`（dsh 第 06 课第 3 节）。
+> 定义期校验，写错导入即失败。DSH 侧等价物是 `ctx.commands.execute`（见 dsh-lab 的 M06 章）。
 
 ---
 
@@ -173,7 +173,7 @@ outcome = selected
 
 > **原理对照**：`iota-core/src/iota_core/adapters/dsh_acp.py::class DshAcpAdapter`——模块
 > 文档写明"未答复的请求会挂死整轮，所以决策是这个适配器必备的一部分"。DSH 侧等价物是
-> `ctx.approval.request` + 封闭四值 `ApprovalOutcome`（dsh 第 06 课第 4 节）：那边应答器
+> `ctx.approval.request` + 封闭四值 `ApprovalOutcome`（见 dsh-lab 的 M06 章）：那边应答器
 > 是宿主挂在 waterfall 上的监听者，这边是适配器的构造参数——策略部署期就已定。
 
 ---
@@ -208,7 +208,7 @@ Hermes 把非 `AllowedOutcome` 的回答映射成 `deny`——报错仍然是拒
 这就是 fail closed 的完整形状：**缺匹配 → 报错 → 内核按拒绝结算**——没有一环会"宽容地"猜一个答案。
 
 > **原理对照**：`iota-core/src/iota_core/adapters/acp_stdio.py::_decide_permission`——
-> "报错而不是发明一个答案；两个内核都把出错的权限请求当拒绝处理"。dsh 第 06 课缺应答器
+> "报错而不是发明一个答案；两个内核都把出错的权限请求当拒绝处理"。dsh-lab 的 M06 章缺应答器
 > 时的 `unavailable` 是同一条直觉：缺能力时拒绝，而不是默认放行，也不是无限等待。
 
 ---
@@ -226,7 +226,7 @@ require(faked == [], "AgentConfig 不伪造 plan_mode 字段", faked)
 ```
 
 对应 `faked_plan_fields = []` 与 `plan_mode = kernel/host-owned`。DSH 的计划模式是三件套
-（`ctx.planMode.set`、日志投影、稳定退出工具 `exit_plan_mode`，dsh 第 06 课第 6 节）；
+（`ctx.planMode.set`、日志投影、稳定退出工具 `exit_plan_mode`，见 dsh-lab 的 M06 章）；
 iota 编排层一件都没有，连 `AgentConfig` 里的字段都不设——**有字段没人读，比没有字段
 更糟**。计划模式要么具体内核自带，要么宿主自己管理。
 
@@ -251,7 +251,7 @@ todo_owner = kernel/host
 `auto_kanban` 默认全开（自动建任务、指派给 `iota-agent`、镜像到 Redis），但**开关不等于
 能力**：`NATIVE_KANBAN_TOOLSET` 是一条要内核声明的能力，声明了 iota 才在自己的进程里
 注册原生待办工具。当前内核没声明它，配置就不生效、也不假装生效——声明它的是 Hermes
-侧的适配器；换内核 → 换声明 → 归属就变。DSH 侧的 `todo_write` 则是永远注册的工具（dsh 第 06 课第 7 节）。
+侧的适配器；换内核 → 换声明 → 归属就变。DSH 侧的 `todo_write` 则是永远注册的工具（见 dsh-lab 的 M06 章）。
 
 > **原理对照**：`iota-core/src/iota_core/capabilities.py::NATIVE_KANBAN_TOOLSET`——能力名
 > 在类定义期校验。DSH 侧的边界写在"有没有装这个插件"上，iota 写在 `provides` 声明上。
@@ -279,10 +279,10 @@ feedback_owner = host
 
 `Message` 的全部字段就是这四个。`metadata` 是自由字典，但把反馈塞进去没有读取方——
 没有协议。DSH 那边反馈是耐久服务：经 `ctx.sessionPersistence` 落 JSONL、跨重启存活
-（dsh 第 06 课第 7 节）；iota 要做反馈，归宿主自己接存储，编排层不占位。
+（见 dsh-lab 的 M06 章）；iota 要做反馈，归宿主自己接存储，编排层不占位。
 
 > **原理对照**：`iota-core/src/iota_core/types.py::class Message`——四个字段就是消息的
-> 全部形状；DSH 侧等价物是 `ctx.messageFeedback` + `JsonlSessionPersistence`（dsh 第 06 课第 7 节）。
+> 全部形状；DSH 侧等价物是 `ctx.messageFeedback` + `JsonlSessionPersistence`（见 dsh-lab 的 M06 章）。
 
 ---
 
@@ -367,7 +367,7 @@ cd iota-example && uv run python -m runtime.runner M06 --scene 03_fail_closed_wi
 
 ### 练习 C：和 dsh 同编号阶段对读
 
-跑 `cd dsh-example && npm run M06`，看那边 M06.2 的三个局面（`unavailable` /
+跑 `cd dsh-lab && npm run M06`，看那边 M06.2 的三个局面（`unavailable` /
 `allowed-once` / `rejected`），再回看本课第 4、5 节。
 
 **可验证答案**：两边都没有"没人答就放行"的分支——dsh 缺应答器时归一成 `unavailable`，

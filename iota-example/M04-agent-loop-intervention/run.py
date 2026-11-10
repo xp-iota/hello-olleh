@@ -1,6 +1,6 @@
 """M04 的运行入口：阶段清单。
 
-编号与 `dsh-example/M04-agent-loop-intervention/run.ts` 对位：DSH 的干预面是事件、
+编号与 `dsh-lab/M04-agent-loop-intervention/index.ts` 同一编号空间：DSH 的干预面是事件、
 steering 与 inbox；iota 这边能干预的是节点边界，进行中的一轮属于内核。
 
     python -m runtime.runner M04

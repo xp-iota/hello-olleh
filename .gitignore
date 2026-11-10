@@ -58,7 +58,6 @@ venv/
 .render-props.json
 
 # 真实模式与课程构建的临时产物（每次运行重新生成，不入库）
-dsh-example/runtime/.real-logs/
 iota-example/.wheels/
 .acceptance/
 

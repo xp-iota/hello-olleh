@@ -10,7 +10,7 @@
 > `with_convention = 结论：3 加 4 等于 7。`。
 
 前置：[第 09 课 · 长任务与编排](09-long-running-orchestration.md)。本课所有输出都来自真实运行，不是示意。
-同一编号的 DSH 侧教材见 [dsh-example/lessons/10-external-capabilities.md](../../dsh-example/lessons/10-external-capabilities.md)——那边讲"数据优先，协议其次"，本课讲 iota 的三条接入路径与宿主平面的边界。
+同一编号的 DSH 侧教材见 [`dsh-lab/M10-external-capabilities/README.md`](../../dsh-lab/M10-external-capabilities/README.md)——那边讲"数据优先，协议其次"，本课讲 iota 的三条接入路径与宿主平面的边界。
 
 ---
 
@@ -120,7 +120,7 @@ skill 名读的是 frontmatter 的 `name:`，然后把整个 skill 目录复制�
 的是更彻底的数据路径：文件从源目录直达内核 home，发现权在文件系统。
 
 > **原理对照**：`iota-core/src/iota_core/skill_sync.py::def sync_skills`。
-> DSH 侧等价物是 `ctx.skills.register()` + filesystem provider（见 dsh 第 10 课第 4 节）——
+> DSH 侧等价物是 `ctx.skills.register()` + filesystem provider（见 dsh-lab 的 M10 章）——
 > 两边都把 Skill 当数据；差别在 DSH 注册进控制面再渲染注入，iota 直接把文件投影进内核 home。
 
 ---
@@ -181,7 +181,7 @@ require(text == "hello iota", "MCP 调用返回问候", called)
 进程外的内核，MCP 是 iota 工具能过去的唯一通道。同一套协议，两个方向。
 
 > **原理对照**：`iota-core/src/iota_core/mcp/server.py::class IotaMcpServer`。
-> DSH 侧是 `dsh-mcp-client` 插件与 stdio 子进程（见 dsh 第 10 课第 6 节）——两边共用同一套
+> DSH 侧是 `dsh-mcp-client` 插件与 stdio 子进程（见 dsh-lab 的 M10 章）——两边共用同一套
 > JSON-RPC 消息；差一个方向：DSH 用它消费外部工具，iota 用它发布自己的工具。
 
 ---
@@ -334,7 +334,7 @@ SKILL.md 正文经 `agent.inject()` 排进 `inbox.nextStep`，iota 能控制的�
 ### 原因与修改
 
 ① 这不是 bug，是边界。webhook、上传、UI 是宿主平面的能力：DSH 那边由宿主进程提供六项依赖
-（dsh 第 10 课 7.1 的 `loaded: false` 是如实的组合边界声明）；iota 这边连依赖声明都没有——
+（dsh-lab 的 M10 章如实报告"未挂 mcp-client 实例"；`loaded: false` 这个字段名待对 dsh-lab 复核）；iota 这边连依赖声明都没有——
 `Registry` 上没有这个面，将来也不会有。修改方向：把 webhook 服务写进**宿主应用**（你自己的
 进程），让它作为 iota 的使用者驱动编排层；不要试图给 `Registry` 补一个 `webhook` 属性绕过边界。
 

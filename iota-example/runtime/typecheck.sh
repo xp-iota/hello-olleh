@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 全工程类型检查：共享层一次，12 个模块各一次。
 #
-# 模块目录名带连字符（与 dsh-example 同名），不是合法 Python 包名，所以模块内部统一用顶层
+# 模块目录名带连字符（与 dsh-lab 同编号），不是合法 Python 包名，所以模块内部统一用顶层
 # `impl.*` / `scenes.*` 导入。这里把每个模块目录设为 MYPYPATH 的第一项，让 mypy 看到的
 # 导入形状与 runtime/runner.py 运行时的完全一致。
 set -euo pipefail

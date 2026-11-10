@@ -1,6 +1,6 @@
 # 第 04 课 · Agent 循环与干预面：事件、节点 hook 与编译期不变量
 
-> **本课任务**：对照 DSH 的事件、steering 与 inbox 四通道，确认 iota 的干预面收窄到**节点
+> **本课任务**：对照 DSH 的事件、steering 与 inbox 三条通道，确认 iota 的干预面收窄到**节点
 > 边界**：一轮真实运行产出标准事件且按**子序列**成立；mid-turn 注入在三处公开面上都找不到
 > 入口（负证据）；节点 hook 在节点边界拿到真实结果；未注册引用在编译期被点名拒绝。
 > **运行命令**：`cd iota-example && uv run python -m runtime.runner M04`
@@ -9,14 +9,14 @@
 > 注入入口全为空；`refusal = node 'work': unknown code_handler 'm04-not-registered'`。
 
 前置：[第 03 课 · 推理服务接入](03-inference-service-access.md)。本课所有输出都来自真实运行，不是示意。
-同一编号的 DSH 侧教材见 [dsh-example/lessons/04-agent-loop-intervention.md](../../dsh-example/lessons/04-agent-loop-intervention.md)——那边讲事件域/干预域与 inbox 四通道，本课讲 iota 的节点边界与编译期校验。
+同一编号的 DSH 侧教材见 [`dsh-lab/M04-agent-loop-intervention/README.md`](../../dsh-lab/M04-agent-loop-intervention/README.md)——那边讲事件订阅、回合边界与 inbox 三条通道，本课讲 iota 的节点边界与编译期校验。
 
 ---
 
 ## 1. 本课任务
 
-DSH 把 Agent 循环的干预面拆成事件观察、生命周期 hook、回合收尾、输入路由（inbox 四通道）与
-失败归属五块，真正能改变结果的写入点只有 inbox 一处（"data decides"，dsh 第 04 课 § 5–§ 6）。
+DSH 把 Agent 循环的干预面拆成事件观察、生命周期 hook、回合收尾、输入路由（inbox 三条通道）与
+失败归属五块，真正能改变结果的写入点只有 inbox 一处（"data decides"，见 dsh-lab 的 M04 章）。
 iota 的对照关系是**语义等价 + 结构性边界**（判定口径见 [`docs/dsh-vs-iota.md`](../docs/dsh-vs-iota.md)）：
 事件流、遥测账本与编译期校验语义等价；"往进行中的一轮里插消息"不是契约——进行中的一轮
 属于内核，干预面只在节点边界。
@@ -25,7 +25,7 @@ iota 的对照关系是**语义等价 + 结构性边界**（判定口径见 [`do
 |---|---|---|
 | 事件观察（`session/event` 只读事实流） | `AgentEvent` 流 + `require_event_order` 子序列校验（M04.1） | **语义等价**：编排层可观察 |
 | 生命周期 hook（`agent/*` waterfall，可否决步、换 config） | 没有对位物——进行中的一轮属于内核（M04.2 负证据） | **结构性边界**：mid-turn 归内核 |
-| 回合收尾 + 输入路由（`turn-stopping` + inbox 四通道） | 没有 inbox；干预收窄到节点边界（M04.3 `after_node_result`） | **结构性边界**：干预面 = 节点边界 |
+| 回合收尾 + 输入路由（`turn-stopping` + inbox 三条通道） | 没有 inbox；干预收窄到节点边界（M04.3 `after_node_result`） | **结构性边界**：干预面 = 节点边界 |
 | 遥测账本（`MemorySessionTelemetry`） | `RunStore` 按 run_id 记状态与事件，可换实现（M04.4） | **语义等价** |
 | 失败归属（`InvariantError` 带 `packageName`） | `GraphValidationError` 在编译期点名未注册引用（M04.5） | **语义等价**：不变量收在运行前 |
 
@@ -121,15 +121,15 @@ def require_event_order(observed: Sequence[str], expected: tuple[str, ...]) -> N
 > **原理对照**：`iota-core/src/iota_core/types.py::AgentEvent`——带 `type` 判别器的联合
 > （`TextDeltaEvent | ThinkingDeltaEvent | ToolCallStartEvent | ToolCallResultEvent |
 > StepStartEvent | StepEndEvent | SystemInitEvent | FinalEvent | AbortEvent | ErrorEvent`），
-> 标准三件套是语义骨架，其余类型是内核的自由插入空间。DSH 的 `session/event`（dsh 第 04 课
-> § 3）同样只读事实，但靠插件订阅广播、装晚了收不到 emit；iota 直接消费返回值里的事件列表。
+> 标准三件套是语义骨架，其余类型是内核的自由插入空间。DSH 的 `session/event`
+> （见 dsh-lab 的 M04 章）同样只读事实，但靠插件订阅广播、装晚了收不到 emit；iota 直接消费返回值里的事件列表。
 
 ---
 
 ## 4. M04.2 · 负证据：三处公开面上都没有 mid-turn 注入入口
 
 DSH 的 `agent.steer()` 能在 `turn-stopping` 边界往 inbox 写一条消息、让同一轮多跑一步，
-`inject` / `followup` / `send` 是另外三条输入通道（dsh 第 04 课 § 6.1）。iota 有没有？
+`inject` / `followup` / `send` 是另外三条输入通道（见 dsh-lab 的 M04 章）。iota 有没有？
 [`scenes/02_no_mid_turn_steering.py`](../M04-agent-loop-intervention/scenes/02_no_mid_turn_steering.py)
 的做法是**先真实跑完一轮，再在三个面上找注入入口**：
 
@@ -213,7 +213,7 @@ mid-turn 进不去，那编排层能插手的位置在哪？
 
 与 DSH 的结构性差别一句话：DSH 的 `agent/pre-step` 能否决一步、`agent/request` 能换请求
 config——干预在**一轮之内的每个 step 边界**；iota 的 hook 只在**图的节点边界**
-（dsh 第 04 课 § 4），内核往返的内部没有编排层的拦截点。
+（见 dsh-lab 的 M04 章），内核往返的内部没有编排层的拦截点。
 
 > **原理对照**：`iota-core/docs/develop/architecture/graph-node-hooks.md::执行顺序`——"差别在于**谁的
 > 执行栈**：节点结果的提交发生在 iota-core 的引擎里，所以 iota-core 能保证 hook 一定被调用；
@@ -249,7 +249,7 @@ config——干预在**一轮之内的每个 step 边界**；iota 的 hook 只�
   实现——生产里换耐久存储，调用方不改一行。
 
 > **原理对照**：`iota-core/src/iota_core/storage/run_store.py::InMemoryRunStore`（`RunStore`
-> 协议在同一文件）。DSH 侧等价物是 `MemorySessionTelemetry`（dsh 第 04 课 § 6.3）：
+> 协议在同一文件）。DSH 侧等价物是 `MemorySessionTelemetry`（见 dsh-lab 的 M04 章）：
 > 账本跟着事实走，不跟着 provider 走，生产里换 backend 即可。
 
 ---
@@ -377,7 +377,7 @@ cd iota-example && uv run python -m runtime.runner M04 --scene 01_observe_event_
 
 **可验证答案**：进程非零退出，注册处抛 `ConfigError`，消息原文
 `node_hook 'm04-audit' is already registered`——按名字注册默认拒绝重名（除非显式
-`overwrite=True`）。这与 dsh 第 04 课的 `duplicateNamesFailLoud: true` 是同一条纪律：
+`overwrite=True`）。这与 dsh-lab 的 M04 章是同一条纪律（`duplicateNamesFailLoud` 这个开关名待对 dsh-lab 复核）：
 **能在注册期拒绝的，不要拖到运行期**。
 
 ---

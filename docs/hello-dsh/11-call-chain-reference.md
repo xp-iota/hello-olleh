@@ -376,4 +376,4 @@ vendor 独有（三处加固，[05 § 5.15](05-startup-and-cordis-runtime.md)）
 
 ---
 
-**上一篇** ← [10 测试与工程实践](10-testing-and-engineering.md) ｜ **返回** → [索引](README.md) ｜ **动手** → [配套示例工程](../../dsh-example/README.md)
+**上一篇** ← [10 测试与工程实践](10-testing-and-engineering.md) ｜ **返回** → [索引](README.md) ｜ **动手** → [配套工程 dsh-lab](../../dsh-lab/README.md)

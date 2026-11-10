@@ -4,6 +4,11 @@
 Content extraction is deterministic: every lesson becomes seven pages with the
 same semantic slots. The source Markdown remains the authority; generated deck,
 audio and media live under each project's gitignored dist/ directory.
+
+Scope: the **iota side** only. The DSH-side course used to live in `dsh-example/lessons/`,
+but that project was retired; its successor `dsh-lab/` ships module READMEs rather than
+seven-slot lessons, and the DSH course deck/media is produced by `dsh-workshop/` (its own
+lusine pipeline, see `dsh-workshop/MAINTENANCE.md`).
 """
 from __future__ import annotations
 
@@ -20,19 +25,6 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECTS = {
-    "dsh-example": {
-        "brand": "DeepSeek Harness 自学课程",
-        "paper": "#071521", "ink": "#edf7f6", "muted": "#9fb8b8",
-        "accent": "#2dd4bf", "accent2": "#60a5fa", "accent3": "#fbbf24", "panel": "#102737",
-        "voices": [
-            ("zh-CN-XiaoxiaoNeural", "主旁白"),
-            ("zh-CN-XiaoyiNeural", "第二女声"),
-            ("zh-CN-YunxiNeural", "男声 1"),
-            ("zh-CN-YunjianNeural", "男声 2"),
-            ("zh-CN-YunxiaNeural", "另一女声"),
-            ("zh-CN-YunyangNeural", "新闻／播报备选"),
-        ],
-    },
     "iota-example": {
         "brand": "iota 对照自学课程",
         "paper": "#101329", "ink": "#f2f0ff", "muted": "#b7b5d3",
@@ -54,14 +46,9 @@ FONT_STACK = (
 # A visible slide may carry code syntax that is useful on screen but unsuitable
 # for an online voice. Overrides change narration only; visible lesson content
 # and exact voice assignment remain untouched and reproducible.
-NARRATION_OVERRIDES = {
-    ("dsh-example", "08-delegation-presets", "troubleshoot"):
-        "排障时，先确认子代理提供方已经注册，再确认模型可见的委派工具也已经注册。只注册提供方，并不会让模型自动学会委派。修复之后，请重新运行本课验收命令。",
-    ("dsh-example", "08-delegation-presets", "code"):
-        "阅读代码时，先看场景文件如何演示委派，再看实现文件如何注册提供方和模型工具。最后回到事件输出，确认委派开始与结束都留下了证据。",
-    ("dsh-example", "08-delegation-presets", "exercise"):
-        "练习要求你证明，只注册子代理提供方并不会自动让模型看见委派能力。完成最小改动后，运行本课命令，并用模型可见工具列表与委派事件验证答案。",
-}
+#: DSH 侧那三条覆盖随 `dsh-example` 一起退休（DSH 侧的旁白现在由 dsh-workshop 负责）。
+#: iota 侧暂不需要覆盖。
+NARRATION_OVERRIDES: dict[tuple[str, str, str], str] = {}
 
 
 @dataclass
@@ -273,7 +260,7 @@ def build_deck(project: str, lesson_path: Path, index: int) -> tuple[dict[str, A
     config = PROJECTS[project]
     title, metadata, sections = parse_lesson(lesson_path)
     slug = lesson_path.stem
-    deck_id = f"{'dsh' if project == 'dsh-example' else 'iota'}-{slug}"
+    deck_id = f"iota-{slug}"
     voice, role = config["voices"][index % len(config["voices"])]
     theme = {key: config[key] for key in ("paper", "ink", "muted", "accent", "accent2", "accent3", "panel")}
     slides = build_slides(title, metadata, sections, deck_id)

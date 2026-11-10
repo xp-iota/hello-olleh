@@ -1,6 +1,6 @@
 """M02 的运行入口：阶段清单。
 
-阶段编号与 `dsh-example/M02-context-assembly-economics/run.ts` 对位：DSH 把 Prompt 装配、
+阶段编号与 `dsh-lab/M02-context-assembly-economics/index.ts` 同一编号空间：DSH 把 Prompt 装配、
 压缩、计量、裁剪与 spill 连成一条治理链；iota 这边能组织作用域记忆，其余环节归内核。
 
     python -m runtime.runner M02

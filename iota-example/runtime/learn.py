@@ -1,4 +1,4 @@
-"""精选学习入口：对位 `dsh-example` 的 `npm run learn`（runtime/onboarding.mjs）。
+"""精选学习入口：交互式挑一个模块跑起来（本工程自有的教学入口）。
 
     uv run python -m runtime.learn                 # 交互选择（终端中使用）
     uv run python -m runtime.learn --tour          # 运行 M01 → M02 → M03

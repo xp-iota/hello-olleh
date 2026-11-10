@@ -4,7 +4,7 @@
 
 DSH 用 subagent Provider、agent/permission preset 与模型路由表达委派。iota 用显式 DAG：roster 与模型路由都必须写出来。
 
-对位的 DSH 模块：[M08 委派与预设](../../dsh-example/M08-delegation-presets/README.md)。阶段编号与它逐一对齐 ——
+对位的 DSH 模块：[M08 委派与预设](../../dsh-lab/M08-delegation-presets/README.md)。阶段编号与它逐一对齐 ——
 同一个编号指向同一个控制面，看 iota 这边是"有等价机制"还是"能力归内核/宿主"。
 本模块课件：[第 08 课 · 委派与预设](../lessons/08-delegation-presets.md)。
 

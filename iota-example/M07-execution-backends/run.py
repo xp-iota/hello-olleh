@@ -1,6 +1,6 @@
 """M07 的运行入口：阶段清单。
 
-编号与 `dsh-example/M07-execution-backends/run.ts` 对位：DSH 有 fs/subprocess/shell/sandbox
+编号与 `dsh-lab/M07-execution-backends/index.ts` 同一编号空间：DSH 有 fs/subprocess/shell/sandbox
 四层可换后端；iota 这边一层都不拥有，执行归内核，编排层只转发并观察事件。
 
     python -m runtime.runner M07

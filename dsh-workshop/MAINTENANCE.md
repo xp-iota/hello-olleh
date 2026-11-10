@@ -49,7 +49,7 @@ PPTX 与 MP4 都消费同一份 `presentation.json`。不要为两种输出维�
 - H.264 对静态课程画面采用高质量 CRF，并检查最终分辨率、帧率和音频流；
 - 每次生成后验证 deck 页数、PPTX 页数、MP4 视频/音频流、WAV 格式和时长。
 
-本轮 `dsh-example` 与 `iota-example` 共 26 课的验证结果证明了该模式：26 份 deck 与 PPTX 均为 7 页，26 个 MP4 均为 1920×1080@30fps H.264 + AAC，182 个 WAV 均为 PCM 16-bit、24 kHz、单声道。具体映射记录在各项目的 `lesson-media.json`。
+早前 `dsh-example`（已删除，继任工程是 `dsh-lab`）与 `iota-example` 共 26 课的验证结果证明了该模式：26 份 deck 与 PPTX 均为 7 页，26 个 MP4 均为 1920×1080@30fps H.264 + AAC，182 个 WAV 均为 PCM 16-bit、24 kHz、单声道。具体映射记录在各项目的 `lesson-media.json`。
 
 ## 4. 音色准确性靠 profile 和追踪，不靠记忆
 
@@ -106,4 +106,4 @@ uv run workshop build --episode e01
 | 缓存 | `.pytest_cache/`、`__pycache__/` | 始终可清理 |
 | 旧第二管线 | 已删除的 `tools/` | 不恢复；若确需审计可从 Git 历史读取 |
 
-不要清理兄弟项目 `dsh-example/dist/lessons/` 与 `iota-example/dist/lessons/`：它们是用户明确要求生成的 26 课交付物，虽被 Git 忽略，当前仍是有效产品产物。
+不要清理兄弟项目 `iota-example/dist/lessons/`：它与已删除的旧工程 `dsh-example/dist/lessons/` 一起，是用户明确要求生成的 26 课交付物，虽被 Git 忽略，当前仍是有效产品产物。

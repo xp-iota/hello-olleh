@@ -28,7 +28,18 @@ def strip_fences(text):
 
 
 TARGETS = []
-for pattern in ('README.md', 'docs/**/*.md', 'dsh-example/**/*.md', 'iota-example/**/*.md'):
+# 扫描范围：`dsh-example/**` 已经在提交 40dfeb4（以 dsh-lab 取代 dsh-example）里
+# 随目录一起消失，这条 glob 现在匹配不到任何文件。留着无害，但真正该被覆盖的是
+# 仓库里**还活着**的两个主力工程：dsh-lab/ 与 dsh-web/ —— 它们此前完全没有链接
+# 门禁覆盖（新增文档里的死链不会被报出来）。
+for pattern in (
+    'README.md',
+    'docs/**/*.md',
+    'dsh-example/**/*.md',
+    'iota-example/**/*.md',
+    'dsh-lab/**/*.md',
+    'dsh-web/**/*.md',
+):
     TARGETS += glob.glob(os.path.join(ROOT, pattern), recursive=True)
 TARGETS = sorted({os.path.normpath(t) for t in TARGETS if 'node_modules' not in t})
 

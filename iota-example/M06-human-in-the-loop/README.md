@@ -4,7 +4,7 @@
 
 DSH 把命令、审批、结构化问题、计划模式、todo 与消息反馈都做成显式协议。iota 这边只拥有权限决策这一条，其余归内核或宿主。
 
-对位的 DSH 模块：[M06 人在环路](../../dsh-example/M06-human-in-the-loop/README.md)。阶段编号与它逐一对齐 ——
+对位的 DSH 模块：[M06 人在环路](../../dsh-lab/M06-human-in-the-loop/README.md)。阶段编号与它逐一对齐 ——
 同一个编号指向同一个控制面，看 iota 这边是"有等价机制"还是"能力归内核/宿主"。
 本模块课件：[第 06 课 · 人在环路](../lessons/06-human-in-the-loop.md)。
 

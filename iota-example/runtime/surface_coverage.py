@@ -1,4 +1,4 @@
-"""统计示例真正用到的 iota-core 能力面（对位 `dsh-example` 的 `npm run coverage:surfaces`）。
+"""统计示例真正用到的 iota-core 能力面（本工程自有的能力面统计）。
 
 口径很直白：把 `impl/`、`scenes/` 与 `runtime/` 里对 `iota_core` / `iota_memory_protocol` 的
 每一个具名导入算作一个"面"。这样这份数字不会靠人手维护 —— 加一个阶段用到新协议，数字自己变；

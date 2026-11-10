@@ -11,8 +11,8 @@
 
 ## 1. 这套工程是什么
 
-`iota-example/` 是 `dsh-example/M01–M12` 的**同编号 Python 对照工程**：目录名、阶段编号与
-验收口径逐一相等，同一个编号在两边指向同一个控制面。iota 侧要么给出**语义等价**的机制，
+`iota-example/` 是 `dsh-lab/M01–M12` 的**同编号 Python 对照工程**：模块编号与阶段编号同属
+一套编号空间，同一个编号在两边指向同一个控制面。iota 侧要么给出**语义等价**的机制，
 要么给出**结构性边界**的可运行证据（"编排层没有这个注册面，能力归内核"），不为凑编号编造能力。
 
 有四件事和常见的"示例仓库"不一样，直接决定了你接下来的体验：
@@ -22,9 +22,11 @@
 | iota-core `2026.9.16` 以**本地 editable source** 装配（`[tool.uv.sources]` 指向本地源码树） | 你读到的是本地真实实现，不是 PyPI 快照 |
 | **没有 mock，没有离线路径** | 每个阶段都真的调用推理服务；缺密钥就当场抛 `KernelUnavailable` |
 | 默认内核是 `hermes_direct`（同进程、**OpenAI 兼容**协议）；也可切到 `claude`（Claude Agent SDK + CLI、Anthropic 兼容） | "内核"是一份真实实现，编排层只是它的一个消费者；**换内核不改编排层** |
-| 12 个模块共享一套装配（`runtime/harness.py`）与编排（`runtime/runner.py`） | 日志骨架与 `dsh-example` 逐行对齐，两边输出可对读 |
+| 12 个模块共享一套装配（`runtime/harness.py`）与编排（`runtime/runner.py`） | 日志骨架与 `dsh-lab` 同源（`REAL_STAGE_OK` / `REAL_MODULE_OK` 两行证据行同名），本工程多打调用与 token 字段 |
 
-工程共 **60 个阶段**，与 dsh 同一套编号（含三个 `.d` 专项演示）。
+工程共 **60 个阶段**；`dsh-lab` 也是 12 个模块、60 个阶段，同属一套编号，但模块内的阶段分布
+不逐一相等——iota 侧多出 `M01.d` / `M03.d` / `M10.d` 三个专项演示，dsh-lab 侧的 `model` 阶段则是
+`M03.3` / `M04.1` / `M04.2`。
 逐模块对照与源码引用见 [`docs/dsh-vs-iota.md`](../docs/dsh-vs-iota.md)。
 
 ---
@@ -149,12 +151,16 @@ REAL_ALL_OK modules=12 stages=60 provider=openai-compat
 
 ### 阶段分两类，但都必须留下真实证据
 
-这是本工程最重要的一条设计，与 `dsh-example` 同一口径：
+这是本工程最重要的一条设计，与 `dsh-lab` 同一口径（阶段同样分 `mechanism` 与 `model` 两类）：
 
 | 类型 | 谁驱动模型 | 检查什么 |
 |---|---|---|
 | `mechanism` | 阶段**入口先跑一次 probe**（完整装配链 + 真实内核），再由场景跑本地机制断言 | 既证明装配链通，又验证机制 |
 | `model` | 场景脚本自己发起真实请求 | 内核驱动的行为 |
+
+> **与 dsh-lab 的差别**：dsh-lab 也把阶段分成 `mechanism` 与 `model` 两类，但它的 `mechanism`
+> 阶段不需要模型（`M01` 全章都注明"不需要 `LLM_API_KEY`"），只在进程内验证机制；本工程每个
+> `mechanism` 阶段入口都先打一次真实内核 probe。
 
 `mechanism` 阶段的 probe 用的是**复述型指令**——内核没有拒答的理由，所以它只在链路真的断了时
 才失败。这就是为什么纯机制阶段（如 M12.1 的 LIFO 对照）也要求 `calls >= 1`。
@@ -325,11 +331,13 @@ cd iota-example && uv run python -m runtime.runner M12 --scene 01_dispose_lifo
 末行变成 `REAL_MODULE_OK M12 stages=1 calls=1 failed=0`——阶段过滤发生在编排层，
 `--scene` 是"只上一节课"的开关。
 
-### 练习 D：和 dsh-example 对读
+### 练习 D：和 dsh-lab 对读
 
-同一个编号在两边指向同一个控制面。跑完 iota 的 M01 后，到 `dsh-example` 跑同编号模块
-（`npm run M01`），对照两边 `M01.d` 的 `REAL_STAGE_OK` 行：dsh 侧 `tools=word_count`，
-iota 侧 `tools=Bash`——**工具从编排层注册变成内核自带**，这就是"结构性边界"在日志里的样子。
+同一个编号在两边指向同一个控制面，但阶段分布不同：dsh-lab 的 M01 全是 `mechanism` 阶段，
+iota 侧多一个 `M01.d`，让内核自主调用自己的工具。跑完 iota 的 M01 后，到 `dsh-lab` 跑同编号模块
+（`npm run M01`），对照两边的阶段输出：dsh 侧 `M01.1` 打印"注册后新增：word_count"，
+iota 侧的 `M01.d` 记录的是内核发出的 `Bash` 调用——**工具从编排层注册变成内核自带**，
+这就是"结构性边界"在日志里的样子。
 
 ---
 

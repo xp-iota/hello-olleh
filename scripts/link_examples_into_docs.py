@@ -1,11 +1,32 @@
 #!/usr/bin/env python3
-"""把 dsh-example 的可跑示例挂进对应文档章节。
+"""把可跑示例挂进对应文档章节（**已退役**）。
 
 在指定 `## N.M` 标题之后插入一个「📐 配套可跑示例」块。幂等：已插入过则跳过。
-"""
-import os, re
 
+⚠️ **本脚本不再可用，请勿运行。** 它的插入目标是初版的中文篇名
+（`03-能力缝与服务全景.md` 等），而文档集早已重命名为 `03-capability-seams-and-services.md`；
+它写入的示例块也指向已删除的 `dsh-example/`。当前的 📐 块是在
+`docs/hello-dsh/` 各篇里**手工维护**的，指向继任工程 `dsh-lab/`。
+保留本文件只为记录历史做法；它不匹配任何现有文件名，跑起来只会逐条打印 "no section"。
+"""
+import os, re, sys
+
+#: 退役判定：初版中文篇名仍存在，才认为还能用（实际早已不存在）。
+LEGACY_DOCS = [
+    '03-能力缝与服务全景.md',
+    '04-扩展与生态.md',
+    '05-启动与Cordis落地.md',
+    '06-Agent循环与会话日志.md',
+    '07-请求管线-LLM工具与提示.md',
+    '08-执行侧服务-文件Shell沙箱子代理压缩.md',
+    '09-宿主与运行面-Web网关编排存储类型.md',
+]
 DOCS = 'docs/hello-dsh'
+if not any(os.path.exists(os.path.join(DOCS, name)) for name in LEGACY_DOCS):
+    print('retired: 这一版文档集没有本脚本能插入的初版篇名，不做任何改动。')
+    print('当前的 📐 配套可跑示例块在 docs/hello-dsh/ 各篇里手工维护，指向 dsh-lab/。')
+    raise SystemExit(0)
+
 EX = '../../dsh-example'
 MARK = '📐 **配套可跑示例**'
 

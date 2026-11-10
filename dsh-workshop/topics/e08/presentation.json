@@ -37,10 +37,10 @@
       "title": "任务、命令与预期结果",
       "minDurationSec": 8,
       "subtitle": "委派与预设",
-      "body": "把活儿分给子代理：注册能力之外，还要给模型一个看得见的工具，并用预设收紧权限",
+      "body": "把活儿分给子代理：注册能力之外，还要给模型一个看得见的工具",
       "bullets": [
-        "命令：cd dsh-example && npm run M08",
-        "预期：子代理提供方注册好了，模型还是不会自动委派；包装成模型看得见的工具才行，未隔离命令行的权限预设会被直接拒绝"
+        "命令：cd dsh-lab && npm run M08",
+        "预期：委派提供方与委派工具（subagent / subagent_fork / list_agents）都在；spawn 起的子 agent 独立运行，fork 继承父会话前缀"
       ]
     },
     {

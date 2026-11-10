@@ -55,7 +55,7 @@ function isSpecialProperty(prop: string | symbol): prop is symbol {
 
 ## 4.2 三种派生：extend / isolate / intercept
 
-> 📐 **配套可跑示例**：[`M01 tool-restrict`](../../dsh-example/M01-tool-pipeline/README.md) 的 `npm run M01` 展示“在哪个 context 上调用，effect 就归哪个 Fiber”——`agent.ctx.tools.restrict()` 的 disposer 随 agent context 回收，而不是随注册监听器的插件 Fiber 回收。它使用的是 DSH 的 scoped context，**不等同于**本节的 cordis isolate realm；适合用来观察 Context 派生之后的 effect 归属边界，见 [`run.ts` 第 ⑥ 步](../../dsh-example/M01-tool-pipeline/scenes/04-narrow-visible-set.ts)。
+> 📐 **配套可跑示例**：[`M01 · 工具管线`](../../dsh-lab/M01-tool-pipeline/README.md) 的 M01.4 阶段用 `ctx.agents.create()` 拿到 scoped agent context，在其 `setup` 里调用 `agentCtx.tools.restrict({ allow: [...] })`，观察“在哪个 scope 上调用，可见性就归哪个 scope”——收紧后的 agent 只看得到允许列表里的工具，全局工具集合不受影响。在 `dsh-lab/` 运行 `npm run M01`，实现见 [`index.ts`](../../dsh-lab/M01-tool-pipeline/index.ts) 的 `restrictScope`。它使用的是 DSH 的 scoped context，**不等同于**本节的 cordis isolate realm；适合用来观察 Context 派生之后的可见性归属边界（dsh-lab 未断言 agent 回收后限制是否自动解除）。
 
 `Context` 只有三个公开方法，全部返回**新的 Context 视图**（不改原对象）：
 

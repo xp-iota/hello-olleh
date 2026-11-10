@@ -10,7 +10,7 @@
 
 前置：[第 01 课 · 工具管线](01-tool-pipeline.md)。本课所有输出都来自真实运行，不是示意。
 同一编号的 DSH 侧教材见
-[dsh-example/lessons/02-context-assembly.md](../../dsh-example/lessons/02-context-assembly.md)——那边讲 section/variable/assemble/compaction 治理链，本课讲 iota 侧哪些环节有等价机制、哪些归内核。
+[`dsh-lab/M02-context-assembly-economics/README.md`](../../dsh-lab/M02-context-assembly-economics/README.md)——那边讲 section/variable/assemble/compaction 治理链，本课讲 iota 侧哪些环节有等价机制、哪些归内核。
 
 ---
 
@@ -116,7 +116,7 @@ query = gateway.queries[0]
 - `included_count = 1`——计数的是**渲染进前缀的记录数**，不是桶数、不是字符数。
 
 > **原理对照**：`iota-core/src/iota_core/memory/context.py::class MemoryContextService`。
-> DSH 侧等价物是 `ctx.systemPrompt.section()`（见 dsh 第 02 课第 3 节）——那边按 `order` 贡献
+> DSH 侧等价物是 `ctx.systemPrompt.section()`（见 dsh-lab 的 M02 章）——那边按 `order` 贡献
 > **静态片段**，这边按作用域召回**动态内容**；dsh 的段落注册即生效，iota 的前缀默认不注入。
 
 ---
@@ -144,8 +144,7 @@ require(surface == [], "编排层没有 Prompt 装配/改写注册面", surface)
   AgentConfig.model_fields`：系统提示只是普通可选字符串字段，是**交给内核的值**，不是编排层上
   的结构——没有 section、没有变量插值、没有 waterfall。
 
-边界判定：DSH 把"贡献片段、延迟插值、整体改写"三个钩子全开在编排层（见 dsh 第 02 课第 4、5
-节）；iota 编排层没有这三张注册面，请求由内核自己装配——`assembly_owner = kernel` 就是这个
+边界判定：DSH 把"贡献片段、延迟插值、整体改写"三个钩子全开在编排层（见 dsh-lab 的 M02 章）；iota 编排层没有这三张注册面，请求由内核自己装配——`assembly_owner = kernel` 就是这个
 判定在日志里的形式。
 
 ---
@@ -166,8 +165,7 @@ require(faked == [], "AgentConfig 不伪造压缩 seam", faked)
 （`iota-core/src/iota_core/types.py::AgentConfig`）里与上下文有关的只有四个：`system_prompt`、
 `memory_namespace`、`enable_memory_prompt`、`disable_conversation_history`——没有一个管"历史怎么变短"。
 
-对比 dsh：那边 M02.3 的压缩引擎把 12 条模型可见面折成 4 条、会话日志仍 13 条（见 dsh 第 02 课
-第 6 节）。那条 seam 在 iota 编排层没有对位物，`compression_seam = kernel-owned` 的含义不是
+对比 dsh：那边 M02.3 的压缩引擎把 12 条模型可见面折成 4 条、会话日志仍 13 条（见 dsh-lab 的 M02 章；该运行数字待对 dsh-lab 复核）。那条 seam 在 iota 编排层没有对位物，`compression_seam = kernel-owned` 的含义不是
 "压缩不可用"，而是"**编排层不伪造接不上任何东西的开关**"。
 
 ---
@@ -198,7 +196,7 @@ require(meter_surface == [], "编排层没有 token 计量注册面", meter_surf
 提示、工具目录与上下文。装配发生在内核，这就是它在数字上的样子（`usage_reported_by = kernel`）。
 
 `meter_surface = []` 是负证据，与 dsh 的方向差正好互补：那边的 tokenMeter **回放会话日志估算**
-压力（`baseline: 'estimated'`），作为压缩触发器的输入（见 dsh 第 02 课第 6.7 节）；iota 没有
+压力（`baseline: 'estimated'`），作为压缩触发器的输入（见 dsh-lab 的 M02 章）；iota 没有
 "要不要压"的决策点，也就不需要估算器——**用量是事后从内核读的事实，不是事前算出的预算**。
 
 ---
@@ -226,7 +224,7 @@ ConversationStore 为该 agent 读/写短期 transcript，历史连续性完全�
 **它是"这轮带不带"的整体开关，不是"带多少"的裁剪器**：粒度只有全有/全无。
 
 对比 dsh 的 pruner：确定性裁剪超长工具结果，`before: 112 → after: 55`、带 `PRUNE_MARKER`
-（见 dsh 第 02 课第 6.7 节）。iota 编排层没有这张注册面，`truncation_owner = kernel`：想裁剪，
+（见 dsh-lab 的 M02 章）。iota 编排层没有这张注册面，`truncation_owner = kernel`：想裁剪，
 要么内核自己裁，要么这一轮就别把内容送进去。
 
 ---
@@ -274,7 +272,7 @@ written = await gateway.write_memories(
 这一节是**同一条链路的两端**：一端召回、一端写回，作用域是两端共用的键。
 
 `spill_equivalent = scoped memory write-back` 的语义对照：DSH 的 spill 是"完整结果落本地文件，
-模型只看预览 + locator"（见 dsh 第 02 课第 6.7 节）；iota 的等价物是"内容写进作用域记忆，
+模型只看预览 + locator"（见 dsh-lab 的 M02 章）；iota 的等价物是"内容写进作用域记忆，
 下一轮按 scope 召回"。**外溢的介质从文件系统换成记忆系统，语义相同：这一轮放不下的内容，
 换个地方存，之后还能取回。** 差别在时机：spill 的 locator 当轮可见，写回的记忆要等下一轮。
 

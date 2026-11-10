@@ -39,14 +39,17 @@
 | `docs/` | 分析输出目录 |
 | `docs/hello-claude-code/`, `docs/hello-codex/`, `docs/hello-gemini-cli/`, `docs/hello-opencode/`, `docs/hello-nanobot/`, `docs/hello-cordis/`, `docs/hello-dsh/`, `docs/hello-pi/`, `docs/hello-openclaw/` | 按主题拆分的 Markdown 分析文档 |
 | `docs/hello-harness/` | Harness Engineering 框架分析 |
-| `docs/okf/` | OKF v0.2 知识包：`dsh-example` 的可复用结论，带来源、验证方式与过期时间 |
-| `dsh-example/` | DeepSeek Harness 的 12 个方向模块、60 个可跑阶段（装在真实发布的 `@deepseek-ai/*` npm 包上，`0.1.5-rc.2`） |
+| `docs/okf/` | OKF v0.2 知识包：`dsh-lab` 的可复用结论，带来源、验证方式与过期时间 |
+| `dsh-lab/` | DeepSeek Harness 的能力实验室：12 个方向模块、60 个可跑阶段（装在真实发布的 `@deepseek-ai/*` npm 包上，`0.2.1-rc.2`），Node/Bun 双运行时 |
 | `iota-example/` | 与 DSH 同编号的 Python 对照教材：12 个模块、41 个可跑阶段，共享运行器输出阶段清单、真实内核证据与结构性边界 |
-| `docs/03-streaming-agent-resilience.md` | 六个源码快照的流式 Agent 韧性横向分析 |
+| `docs/03-streaming-agent-resilience.md` | 六个源码快照的流式 Agent 韧性横向分析（表头区分「分析基线」与「当前快照」） |
 | `scripts/check_doc_refs.ps1` | 校验 Markdown 中的 `path:line` 源码锚点是否能解析到本地快照 |
 | `scripts/check_markdown_links.ps1` | 校验 README 与 docs 中的本地 Markdown 链接是否存在 |
 | `scripts/check_doc_links.py` | 校验全仓 Markdown 的本地链接与 DSH 文档的 `§ N.M` 章节引用（跨平台，跳过代码围栏） |
 | `scripts/merge_dsh_docs.py`, `scripts/rewrite_dsh_refs.py`, `scripts/link_examples_into_docs.py` | DSH 文档与示例链接维护脚本 |
+
+> 🔗 **仓库外的相关工程**：`dsh-web/`（基于 `@deepseek-ai/dsh` `0.2.1-rc.2` 的只读对话 Web 服务，自建 HTTP+SSE 薄层 + React 19 前端，Node/Bun 双运行时）
+> **不在本仓库内**——它有自己的 Git 仓库与远端（`git@github.com:xp-iota/dsh-web.git`，分支 `main`），改动在那边提交。
 
 ## 附录
 

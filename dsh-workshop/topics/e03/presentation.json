@@ -37,10 +37,10 @@
       "title": "任务、命令与预期结果",
       "minDurationSec": 8,
       "subtitle": "推理服务接入",
-      "body": "把推理服务换成 MiniMax：注册一个适配器，让同一个消费循环拿到真实流",
+      "body": "把推理服务换成 Anthropic 兼容网关：注册一个适配器，让同一个消费循环拿到真实流",
       "bullets": [
-        "命令：cd dsh-example && npm run M03",
-        "预期：同一个循环消费真实 SSE：block 先开始再有增量，结束时给出 finish 原因，还有 usage 里的 token 数"
+        "命令：cd dsh-lab && npm run M03",
+        "预期：先列出路由与模型目录，再在 llm/stream 外侧包一层 waterfall 改写增量；最后真实调用一次模型（需要 LLM_API_KEY）"
       ]
     },
     {

@@ -1,6 +1,6 @@
 """M05 的运行入口：阶段清单。
 
-编号与 `dsh-example/M05-session-surface/run.ts` 对位：DSH 分事实日志与模型 surface；
+编号与 `dsh-lab/M05-session-surface/index.ts` 同一编号空间：DSH 分事实日志与模型 surface；
 iota 这边是 ConversationStore + RunStore，两者都可换，但不承诺 DSH 的 seq/surface 语义。
 
     python -m runtime.runner M05

@@ -27,8 +27,8 @@ title: "执行侧服务：文件、Shell、沙箱、子代理、压缩"
 
 ## 8.2 `FileSystem` 抽象类：13 个抽象方法
 
-> 📐 **配套可跑示例**：[`M07.1 · fs-shell-side-effects`](../../dsh-example/M07-execution-backends/impl/01-fs-shell-side-effects.ts) 的 `write_note` 工具只用
-> `resolve` → `writeText` → `processPath` 三个口，就在真实 `LocalFileSystem`（`@deepseek-ai/dsh-fs-local`）上落了盘。
+> 📐 **配套可跑示例**：[`M07.1 · 用沙箱化文件系统读写`](../../dsh-lab/M07-execution-backends/index.ts) 在真实沙箱文件系统上写一个文件再读回来，
+> 并断言读回成功（`isError=false`）——写与读都按会话的 sandbox 策略判定。
 
 
 `F/index.ts:86`（`extends Service`）。**全部是 abstract**，没有默认实现——与 `LlmAdapter`（只有 1 个必需，[07 § 7.2](07-request-pipeline-llm-tools-and-prompts.md)）形成鲜明对比。
@@ -157,9 +157,9 @@ title: "执行侧服务：文件、Shell、沙箱、子代理、压缩"
 
 ## 8.11 `ShellExecutor`：三个抽象方法
 
-> 📐 **配套可跑示例**：[`M07.2 · run-and-start`](../../dsh-example/M07-execution-backends/scenes/02-run-and-start.ts) 把三个方法都跑了一遍 ——
-> `resolve` 把 999999ms 的请求夹到实现上限（实测 600000）、`run` 对非零退出/超时/取消都 **resolve**、
-> `start` 的 `readOutput()` 是消费性增量读。注意 `stdout`/`stderr` 是 `CollectedOutput`（`{ text, truncated }`）而不是裸字符串。
+> 📐 **配套可跑示例**：[`M07.2 · 一次性 shell 命令`](../../dsh-lab/M07-execution-backends/index.ts) 通过真实工具通道跑一条一次性命令
+> （Windows 走 `pwsh`，其他平台走 `bash`），并断言 `isError=false`。
+> ⚠️ 配套工程**没有**覆盖旧版示例里的"请求超时值被夹到实现上限"、"非零退出 / 超时 / 取消都 resolve"、"消费性增量读"这几条——它们以本快照的源码分析为准。
 
 
 `SH/index.ts:65`。类注释（`:47`）："Abstract bash execution service. Subclass, implement the abstract methods, ..."
@@ -281,17 +281,12 @@ title: "执行侧服务：文件、Shell、沙箱、子代理、压缩"
 
 ## 8.18 `SandboxProvider.confine()`：唯一的方法
 
-> 📐 **配套可跑示例**：[`M07.3 · sandbox-seam`](../../dsh-example/M07-execution-backends/impl/03-sandbox-seam.ts) 提供两个后端演示两端 ——
-> `WrapSandbox` 返回可强制执行的 argv，`RefuseSandbox` 对强制不了的模式抛 `SandboxUnavailableError`。
->
-> ```ts
-> export class RefuseSandbox extends SandboxProvider {
->   confine(argv: readonly string[], policy: SandboxPolicy): ConfinedArgv {
->     if (policy.mode === 'read-only') return { /* 可强制执行的包装 */ }
->     throw new SandboxUnavailableError(policy.mode, '本后端只会 read-only')   // ← fail-closed
->   }
-> }
-> ```
+> 📐 **配套可跑示例**：[`M07.3 · 沙箱模式与 fail-closed`](../../dsh-lab/M07-execution-backends/index.ts) 打印当前挂载的 sandbox provider
+> 与策略（`mode` / `workspaceRoot`），并说明模式取自 `DSH_PERMISSION_MODE`（默认 `workspace-write`），
+> `read-only` 下写操作会被拒绝。
+> ⚠️ 配套工程**没有**自造 `WrapSandbox` / `RefuseSandbox` 两个后端——沙箱后端全部来自官方包
+> （`@deepseek-ai/dsh-sandbox-local`、`dsh-fs-sandbox`、`dsh-bash-sandbox`、`dsh-pwsh-sandbox`），
+> 所以"由谁来提供 fail-closed 的 `confine`"这条以本快照的源码分析为准。
 
 
 `SB/index.ts:158-176`。类注释（`:152-157`）是全仓最重要的安全声明之一：
@@ -347,10 +342,9 @@ sandbox 组四个包的行数对比：
 
 ## 8.21 审批链：从 `ask` 到用户
 
-> 📐 **配套可跑示例**：[`M06.2 · approval-answerer`](../../dsh-example/M06-human-in-the-loop/impl/02-approval-answerer.ts) 把四值 outcome 的三种局面都跑了一遍。
-> 它还暴露了一条容易踩的不变量：`approval.request()` **必须在打开的 turn 内**
-> （`approval/asked` + `approval/decided` 这对审计事件要被 turn 包住），所以示例用明确的指令让真实模型
-> 让真实 agent-loop 在轮内派发，实测事件序列是 `tool/call → approval/asked → approval/decided → tool/result`。
+> 📐 **配套可跑示例**：[`M06.2 · 三种审批结果`](../../dsh-lab/M06-human-in-the-loop/index.ts) 把审批的几种局面都跑了一遍：
+> ① 监听拒绝 → `rejected`；② 监听放行 → `allowed-once`；③ **无人认领 → `unavailable`（fail closed：不给结论就不放行）**；
+> ④ 服务层裸调 → `turn-enclosed`（审计对必须包在 turn 里）。
 
 
 ![工具审批的参与方](diagrams/08-approval-flow.svg)
@@ -452,10 +446,11 @@ CI 里有专门的 sandbox workflow（[02 § 2.9](02-codebase-map.md) 的 15 个
 
 ## 8.27 六种驱动的谱系
 
-> 📐 **配套可跑示例**：[`M08.1 · subagent-delegation`](../../dsh-example/M08-delegation-presets/impl/01-subagent-delegation.ts) 写了第七种（一个离线的
-> `local-reviewer`），并把它暴露成模型工具。注意 `start()` 返回的是**句柄**而不是结果：
-> `{ id, localAgent, result: Promise<SubagentResult>, dispose() }` —— 正因如此
-> `subagent/start` 与 `subagent/end` 才能分成两个事件。
+> 📐 **配套可跑示例**：[`M08.1 · 列出委派 provider`](../../dsh-lab/M08-delegation-presets/index.ts) 列出已注册的委派 provider
+> 与委派工具（`subagent` / `subagent_fork` / `list_agents`）。
+> ⚠️ 配套工程**没有**自造第七种离线的 `local-reviewer` provider——委派后端全部来自官方包
+> （`@deepseek-ai/dsh-subagent`、`dsh-subagent-spawn-in-process`、`dsh-subagent-fork-in-process`），
+> 所以"`start()` 返回句柄而不是结果"这条契约以本快照的源码分析为准。
 
 
 ![subagent 的进程内与外部两组实现](diagrams/08-subagent-groups.svg)
@@ -545,9 +540,11 @@ CI 里有专门的 sandbox workflow（[02 § 2.9](02-codebase-map.md) 的 15 个
 
 ## 8.33 `CompactionEngine`：三个抽象方法
 
-> 📐 **配套可跑示例**：[`M02.3 · compaction-provider`](../../dsh-example/M02-context-assembly-economics/impl/03-compaction-provider.ts) 是这个抽象类的最小 provider，
-> 形状与 25 的沙箱后端同型：继承 → `static inject` / `static Config` → 构造里 `super(ctx)` 即挂到
-> `ctx.compaction` → `export default`。**没有** `ctx.provide('compaction', engine)` 这种写法。
+> 📐 **配套可跑示例**：压缩后端在配套工程里由**官方包**提供（`@deepseek-ai/dsh-compaction-basic`、
+> `dsh-compaction-image-offload`、`dsh-compaction-tool-result-pruner`），
+> [M02.3 · 折叠会话历史为模型表面](../../dsh-lab/M02-context-assembly-economics/index.ts) 用的就是它。
+> 配套工程**不再自己实现 compaction provider**；"继承 → `static inject` / `static Config` → 构造里 `super(ctx)` 即挂到
+> `ctx.compaction` → `export default`"这条形状以本快照的源码分析为准。
 
 
 `CP/index.ts:96`（`super(ctx, 'compaction')`，`:98`）：
@@ -568,10 +565,10 @@ CI 里有专门的 sandbox workflow（[02 § 2.9](02-codebase-map.md) 的 15 个
 
 ## 8.34 压缩怎么做到"不丢日志"
 
-> 📐 **配套可跑示例**：[`M02.3 · fold-history`](../../dsh-example/M02-context-assembly-economics/scenes/03-fold-history.ts) 实测把 12 个 surface 节点折成 4 个
-> （摘要 + 保留最近 3 条），返回的 `CompactionResult` 报出 `summarySeq` / `shadowedRange` / `shadowedSeqs` /
-> `shadowedTokenCount` 这份可核对的账。两个真实约束：摘要只能以 `assistant/message` 进 surface，
-> 且**必须带 model 来源**（消息本体要经 `createAssistantMessage` 铸造）。
+> 📐 **配套可跑示例**：[M02.3 · 折叠会话历史为模型表面](../../dsh-lab/M02-context-assembly-economics/index.ts) 读出一个真实会话的模型表面并打印事件条数，
+> 同时核对 `tokenMeter` 在位。
+> ⚠️ 配套工程**没有**逐字复现旧版示例"12 个 surface 节点折成 4 个"那组计数；
+> `summarySeq` / `shadowedRange` / `shadowedSeqs` / `shadowedTokenCount` 这份账以本快照的源码分析为准。
 
 
 这是 DSH 的一个关键设计，全靠 [06 § 6.15](06-agent-loop-and-session-log.md) 的表面机制。

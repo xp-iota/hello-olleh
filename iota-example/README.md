@@ -1,14 +1,14 @@
 # iota-example：DSH 能力方向的 iota 对照 · 13 课自学课程
 
-与 `dsh-example/M01–M12` 同编号、同目录名的 Python 示例工程，使用本地 editable 安装的
+与 `dsh-lab/M01–M12` 同编号的 Python 示例工程，使用本地 editable 安装的
 iota-core `2026.9.16`，对比两个框架在工具、上下文、会话和任务编排等 12 个方向上的实现。
 各模块说明可复用的能力、需要补充的机制，以及由内核或宿主负责的功能。
 
 这套工程配了 **13 课自学课程**：`lessons/00` 教你跑通环境，`lessons/01`–`lessons/12` 每个模块一课。
 每课都包含**真实运行输出**、**机制原理**、**常见排障**和**动手练习**，可以脱离讲师自学；
-同编号的 DSH 侧教材在 `dsh-example/lessons/`，两边可以逐课对读。
+同编号的 DSH 侧教材在 `dsh-lab` 的各模块 `README.md`，两边可以逐课对读。
 
-工程包含 12 个模块、60 个可跑阶段，**阶段编号与 `dsh-example` 一一对齐**（含三个 `.d` 专项演示）：同一个编号在两边指向同一个控制面，所以两边的日志可以逐行对读。
+工程包含 12 个模块、60 个可跑阶段，**模块编号与 `dsh-lab` 一一对应**（`dsh-lab` 同样是 12 个模块、60 个阶段，但模块内的阶段分布不逐一相等；iota 侧另有三个 `.d` 专项演示）：同一个编号在两边指向同一个控制面。
 每个模块只有一个入口 `run.py`（阶段清单），每个阶段指向 `scenes/` 下的一个场景脚本，可复用
 实现放在 `impl/`，编排与输出收敛在共享的 `runtime/`。
 
@@ -118,7 +118,7 @@ OpenAI 端点都在 `/v1` 下。
 `ANTHROPIC_MODEL`；此外设置固定的安全与兼容开关。三档默认模型别名统一指向配置的模型。
 Fuyao 子进程禁用 thinking，以避免工具结果之后回放无签名 reasoning。
 
-### 日志骨架（与 dsh-example 逐行对齐）
+### 日志骨架（与 dsh-lab 同源）
 
 ```text
 ████ M01 · 工具管线：包装、拒绝与可见性归属 ████
@@ -185,7 +185,7 @@ REAL_MODULE_OK M01 stages=6 calls=7 failed=0
 
 ## 统一阅读方法
 
-12 个模块结构相同，与 `dsh-example` 一一对应：
+12 个模块结构相同，与 `dsh-lab` 一一对应：
 
 ```text
 iota-example/
@@ -205,7 +205,7 @@ iota-example/
     fix_venv_flags.sh  macOS：清 .venv 隐藏标志，修回 editable 安装
 ```
 
-模块目录名带连字符（与 `dsh-example` 同名），不是合法 Python 包名，所以模块内部统一用顶层
+模块目录名带连字符（与 `dsh-lab` 的模块目录同名，M09 / M11 / M12 三章除外），不是合法 Python 包名，所以模块内部统一用顶层
 `impl.*` / `scenes.*` 导入：`runtime/runner.py` 把模块目录设为导入根，和直接运行 `run.py`
 时的形状一致。
 
@@ -213,7 +213,7 @@ iota-example/
 
 1. 先读对应课件 `lessons/NN-*.md`：本课任务、真实输出、机制原理、排障与动手练习。
 2. 运行 `uv run python -m runtime.runner MXX`，按 banner 与 `REAL_STAGE_OK` 逐阶段核对事实，
-   再打开 `dsh-example` 同编号阶段的输出对读。
+   再打开 `dsh-lab` 同编号阶段的输出对读。
 3. 只读对应的 `scenes/*.py`，文件名就是这个阶段的名字。
 4. 需要理解可复用部分时读 `impl/*.py`，需要理解装配时读 `runtime/harness.py`。
 5. 最后回到 [`docs/dsh-vs-iota.md`](docs/dsh-vs-iota.md) 的同编号行，看 DSH 事实与 iota 证据逐条对位。
@@ -244,6 +244,10 @@ pytest 不调用模型：它检查**阶段编号与 dsh 的 `run.ts` 逐一相�
 对应、只有执行侧演示能打开内核 shell、模块目录与 DSH 同名、README 覆盖每个编号、对照表锚点
 真实存在，以及缺少内核或配置时会失败（两种内核各测一遍）。`runtime.runner --all` 连接模型
 服务，检查全部 12 个模块、60 个阶段的运行结果。
+
+> **已对齐**：这两处门禁现已改读继任工程 `dsh-lab/`（旧工程 `dsh-example/` 已删除）。
+> `tests/test_stages.py` 按模块**编号**定位 dsh-lab 的目录（`dsh-lab` 改过 M09/M11/M12 的目录名），
+> 并把 6 个模块的阶段分布差异显式登记在 `KNOWN_STAGE_DIVERGENCE`——两侧总数都是 60。
 
 ### macOS：`.venv` 的隐藏标志会让 editable 安装消失
 
@@ -282,7 +286,7 @@ bash runtime/fix_venv_flags.sh   # 幂等；清标志后自检 iota_core 能否�
 | 位置 | 回答的问题 | 形态 |
 |---|---|---|
 | [`docs/hello-dsh/`](../docs/hello-dsh/README.md) | DSH 源码怎么实现、在哪一行 | 按章节编排的长文 |
-| [`dsh-example/`](../dsh-example/README.md) | 同编号方向在 DSH 怎么亲手跑一遍 | 13 课自学教材 + 可执行示例 |
+| [`dsh-lab/`](../dsh-lab/README.md) | 同编号方向在 DSH 怎么亲手跑一遍 | 12 个模块的 README + 可执行示例 |
 | **`iota-example/`（本目录）** | 同编号方向在 iota 怎么对位、边界在哪 | 13 课自学教材 + 可执行对照 |
 | [`docs/dsh-vs-iota.md`](docs/dsh-vs-iota.md) | 每个编号两侧的证据逐条对位 | 带源码锚点的对照表 |
 | [`docs/hello-dsh/12-iota-cross-framework-comparison.md`](../docs/hello-dsh/12-iota-cross-framework-comparison.md) | 两个框架的架构级对照 | 分析长文 |

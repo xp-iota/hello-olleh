@@ -1,6 +1,6 @@
 """M10 的运行入口：阶段清单。
 
-编号与 `dsh-example/M10-external-capabilities/run.ts` 对位：DSH 有 Skill、MCP、Webhook 与
+编号与 `dsh-lab/M10-external-capabilities/index.ts` 同一编号空间：DSH 有 Skill、MCP、Webhook 与
 动态 Cordis 扩展；iota 这边 Skill 是文件投影、MCP 是协议、Host plane 归宿主。
 
     python -m runtime.runner M10

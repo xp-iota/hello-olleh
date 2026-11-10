@@ -2,215 +2,292 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "12 个方向模块：四条扩展路径汇入一个装配枢纽",
+    "title": "dsh-lab 的真实拓扑：一份装配清单驱动一棵 cordis 服务树",
     "output": "12-example-topology.html",
     "viewBox": [
-      1780,
-      720
+      1940,
+      780
     ],
     "quality_profile": "showcase"
   },
   "components": [
     {
-      "id": "registration",
-      "type": "frontend",
-      "label": "按注册扩展",
-      "sublabel": "M01 工具 · M02 提示 · M06 命令 · M08 预设 · M09 任务 · M11 配置",
-      "tag": "register() 返回 disposer，effect 负责回收",
-      "pos": [
-        60,
-        45
-      ],
-      "size": [
-        360,
-        115
-      ]
-    },
-    {
-      "id": "events",
-      "type": "messagebus",
-      "label": "按事件扩展",
-      "sublabel": "M01 管线 · M04 生命周期 · M05 投影 · M06 反馈 · M12 dispatch",
-      "tag": "ctx.on / ctx.before / waterfall 拦截真实运行时",
-      "pos": [
-        60,
-        210
-      ],
-      "size": [
-        360,
-        115
-      ]
-    },
-    {
-      "id": "services",
-      "type": "backend",
-      "label": "按服务扩展",
-      "sublabel": "M02/M03/M05/M07/M08/M09/M10/M11：Definition → Provider → Consumer",
-      "tag": "换 Provider，不改 Consumer",
-      "pos": [
-        60,
-        375
-      ],
-      "size": [
-        360,
-        115
-      ]
-    },
-    {
-      "id": "data",
+      "id": "root-config",
       "type": "database",
-      "label": "按数据扩展",
-      "sublabel": "M10：SKILL.md 是能力数据包；注册、发现、渲染与注入彼此分离",
-      "tag": "改内容不必 fork 主循环",
+      "label": "cordis.yml",
+      "sublabel": "空根表：文件里只有 []",
+      "tag": "11 行注释 + 一个空数组",
       "pos": [
         60,
-        540
+        30
       ],
       "size": [
-        360,
-        115
+        300,
+        110
       ]
     },
     {
-      "id": "hub",
-      "type": "backend",
-      "label": "createHarness()",
-      "sublabel": "唯一装配枢纽；12 个模块共享同一棵 Cordis Context",
-      "tag": "runtime/harness.ts:L136 · 度数 66 = 入 62 + 出 4",
+      "id": "patch-config",
+      "type": "database",
+      "label": "cordis.patch.yml",
+      "sublabel": "439 行 · 88 条 - id: 行",
+      "tag": "唯一的装配清单",
       "pos": [
-        650,
-        270
+        60,
+        175
       ],
       "size": [
-        360,
-        180
+        300,
+        110
+      ]
+    },
+    {
+      "id": "boot",
+      "type": "backend",
+      "label": "官方 boot()",
+      "sublabel": "@deepseek-ai/dsh-app-boot",
+      "tag": "根表 + patch 层 → 校验行 → 失败即大声",
+      "pos": [
+        470,
+        100
+      ],
+      "size": [
+        300,
+        110
+      ]
+    },
+    {
+      "id": "ctx",
+      "type": "cloud",
+      "label": "cordis Context 服务树",
+      "sublabel": "26 工具 · 5 命令 · 2 路由",
+      "tag": "没有一行是代码里手工 new 出来的",
+      "pos": [
+        900,
+        100
+      ],
+      "size": [
+        340,
+        110
       ]
     },
     {
       "id": "runtime",
       "type": "cloud",
-      "label": "18 个真实运行时服务",
-      "sublabel": "timer → settings → session → llm/tools → agentLoop；逐个等待 Fiber ACTIVE",
-      "tag": "发布版 @deepseek-ai/dsh-* 0.1.5-rc.2",
+      "label": "双运行时",
+      "sublabel": "Node v26.12.1 · Bun v1.4.4",
+      "tag": "60 个阶段 · npm run traj 看轨迹",
       "pos": [
-        1230,
-        70
+        1360,
+        100
       ],
       "size": [
-        500,
+        340,
+        110
+      ]
+    },
+    {
+      "id": "grp-a",
+      "type": "backend",
+      "label": "工具 · 上下文 · 数据",
+      "sublabel": "M01 工具管线 · M02 上下文与成本 · M11 配置与数据",
+      "tag": "16 个阶段 · 关键阶段 M01.1 注册与回收",
+      "pos": [
+        60,
+        330
+      ],
+      "size": [
+        410,
         140
       ]
     },
     {
-      "id": "providers",
+      "id": "grp-b",
+      "type": "backend",
+      "label": "推理 · 循环 · 会话",
+      "sublabel": "M03 推理接入 · M04 循环干预 · M05 会话表面",
+      "tag": "13 个阶段 · 关键阶段 M03.3 真实调用一次模型",
+      "pos": [
+        530,
+        330
+      ],
+      "size": [
+        410,
+        140
+      ]
+    },
+    {
+      "id": "grp-c",
+      "type": "backend",
+      "label": "人机 · 执行 · 外部能力",
+      "sublabel": "M06 人机协同 · M07 执行后端 · M10 外部能力",
+      "tag": "16 个阶段 · 关键阶段 M07.3 沙箱模式",
+      "pos": [
+        1000,
+        330
+      ],
+      "size": [
+        410,
+        140
+      ]
+    },
+    {
+      "id": "grp-d",
+      "type": "backend",
+      "label": "委派 · 长任务 · Cordis 机制",
+      "sublabel": "M08 委派预设 · M09 长任务 · M12 Cordis 机制",
+      "tag": "15 个阶段 · 关键阶段 M12.5 装配树概况",
+      "pos": [
+        1470,
+        330
+      ],
+      "size": [
+        410,
+        140
+      ]
+    },
+    {
+      "id": "adapter",
       "type": "external",
-      "label": "真实推理服务路由",
-      "sublabel": "每个模块一个 run.ts；全部走 anthropic-compat",
-      "tag": "npm run all 需要 LLM_API_KEY",
+      "label": "自写 provider：只有一处",
+      "sublabel": "AnthropicCompatAdapter",
+      "tag": "src/llm/anthropic-compat/index.ts",
       "pos": [
-        1230,
-        290
+        530,
+        590
       ],
       "size": [
-        500,
-        140
+        410,
+        120
       ]
     },
     {
-      "id": "openSeams",
-      "type": "security",
-      "label": "两个 Provider 缝刻意留空",
-      "sublabel": "M02 实现 CompactionEngine；M07 实现 SandboxProvider",
-      "tag": "核心 harness 不预装默认压缩与沙箱后端",
+      "id": "official",
+      "type": "backend",
+      "label": "其余 11 个模块走官方包",
+      "sublabel": "24 个 @deepseek-ai/dsh-* 服务包",
+      "tag": "压缩、沙箱、子进程都不再自研",
       "pos": [
-        1230,
-        510
+        1470,
+        590
       ],
       "size": [
-        500,
-        140
+        410,
+        120
       ]
     }
   ],
   "connections": [
     {
-      "id": "registration-hub",
-      "from": "registration",
-      "to": "hub",
-      "label": "register + effect",
+      "id": "root-boot",
+      "from": "root-config",
+      "to": "boot",
+      "label": "空根表"
+    },
+    {
+      "id": "patch-boot",
+      "from": "patch-config",
+      "to": "boot",
+      "label": "88 条行"
+    },
+    {
+      "id": "boot-ctx",
+      "from": "boot",
+      "to": "ctx",
+      "label": "装配成树",
       "variant": "emphasis"
     },
     {
-      "id": "events-hub",
-      "from": "events",
-      "to": "hub",
-      "label": "event / waterfall",
-      "labelSegment": 0
-    },
-    {
-      "id": "services-hub",
-      "from": "services",
-      "to": "hub",
-      "label": "service injection",
-      "labelSegment": 0
-    },
-    {
-      "id": "data-hub",
-      "from": "data",
-      "to": "hub",
-      "label": "content registration"
-    },
-    {
-      "id": "hub-runtime",
-      "from": "hub",
+      "id": "ctx-runtime",
+      "from": "ctx",
       "to": "runtime",
-      "label": "按依赖顺序装载",
+      "label": "双运行时"
+    },
+    {
+      "id": "ctx-grp-a",
+      "from": "ctx",
+      "to": "grp-a",
+      "label": "tools · systemPrompt",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "ctx-grp-b",
+      "from": "ctx",
+      "to": "grp-b",
+      "label": "llm · agentLoop",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "ctx-grp-c",
+      "from": "ctx",
+      "to": "grp-c",
+      "label": "approval · sandbox",
+      "labelDy": 30,
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "ctx-grp-d",
+      "from": "ctx",
+      "to": "grp-d",
+      "label": "subagents · jobs",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "grp-b-adapter",
+      "from": "grp-b",
+      "to": "adapter",
+      "label": "M03 自写适配器",
+      "labelAt": [
+        735,
+        484
+      ],
+      "fromSide": "bottom",
+      "toSide": "top",
       "variant": "emphasis"
     },
     {
-      "id": "hub-providers",
-      "from": "hub",
-      "to": "providers",
-      "label": "registerAdapter",
+      "id": "grp-d-official",
+      "from": "grp-d",
+      "to": "official",
+      "label": "其余走官方包",
       "labelAt": [
-        1175,
-        345
-      ]
-    },
-    {
-      "id": "hub-open-seams",
-      "from": "hub",
-      "to": "openSeams",
-      "label": "由模块提供实现",
-      "variant": "dashed"
+        1675,
+        484
+      ],
+      "fromSide": "bottom",
+      "toSide": "top"
     }
   ],
   "cards": [
     {
       "dot": "cyan",
-      "title": "graphify 0.9.53 有向图",
+      "title": "装配只有一份清单",
       "items": [
-        "13 个扫描根：runtime + M01–M12，共 169 文件",
-        "584 节点 · 744 边 · 45 社区",
-        "739 条 EXTRACTED · 5 条 INFERRED"
+        "cordis.yml 是空表 []，11 行全是注释",
+        "cordis.patch.yml 439 行、88 条 - id: 行",
+        "boot() 来自官方 @deepseek-ai/dsh-app-boot"
       ]
     },
     {
       "dot": "emerald",
-      "title": "结构与覆盖可复算",
+      "title": "模块与阶段",
       "items": [
-        "12 个方向模块；57 impl + 57 scenes",
-        "3 条真实 Provider 专项演示；12 个模块全部走真实推理服务",
-        "核心扩展面 25 + 补充扩展面 34 = 覆盖 59，门槛 ≥ 50"
+        "12 个模块 · 60 个阶段 · 每个模块一个 index.ts",
+        "src/lab/runner.ts 驱动，阶段失败即非零退出",
+        "缺 LLM_API_KEY 立即失败，没有 mock 或离线回退"
       ]
     },
     {
       "dot": "violet",
-      "title": "单中心与版本边界",
+      "title": "provider 只有一处自写",
       "items": [
-        "createHarness 匹配 1 个；度数 66 = 入 62 + 出 4",
-        "4 条扩展路径：按注册 · 按事件 · 按服务 · 按数据",
-        "Node ≥ 22.18；DSH 精确锁定 0.1.5-rc.2"
+        "自写：src/llm/anthropic-compat/index.ts 的 AnthropicCompatAdapter",
+        "官方：24 个 @deepseek-ai/dsh-* 服务包",
+        "沙箱是官方 LocalSandboxProvider（M07.3 实测）"
       ]
     }
   ]

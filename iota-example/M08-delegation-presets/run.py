@@ -1,6 +1,6 @@
 """M08 的运行入口：阶段清单。
 
-编号与 `dsh-example/M08-delegation-presets/run.ts` 对位：DSH 用 subagent Provider 与
+编号与 `dsh-lab/M08-delegation-presets/index.ts` 同一编号空间：DSH 用 subagent Provider 与
 preset 表达委派；iota 用显式 DAG，roster 与模型路由都必须写出来。
 
     python -m runtime.runner M08

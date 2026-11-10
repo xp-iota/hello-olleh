@@ -12,11 +12,10 @@ title: "能力缝 Seam 与服务全景"
 
 ## 3.1 seam 的三角色定义
 
-> 📐 **配套可跑示例**：[M03 推理服务接入](../../dsh-example/M03-inference-service-access/README.md) 是三角色模型的实例 ——
-> Definition 是真实包 `@deepseek-ai/dsh-llm` 导出的抽象类 `LlmAdapter`，Provider 是
-> `runtime/llm.ts` 的 `AnthropicCompatAdapter`，Consumer 是 agent-loop（示例里换成
-> `ctx.llm.stream(...)` 直接消费）；`npm run M03` 用同一个循环消费 `anthropic-compat` 路由，
-> 验证"换 provider 不换 Consumer"。
+> 📐 **配套可跑示例**：[M03 推理服务接入](../../dsh-lab/M03-inference-service-access/README.md) 是三角色模型的实例 ——
+> Definition 是真实包 `@deepseek-ai/dsh-llm` 导出的抽象类 `LlmAdapter`，Provider 是配套工程里**唯一自写**的
+> `src/llm/anthropic-compat/index.ts`（`AnthropicCompatAdapter`），Consumer 是 agent-loop；
+> `npm run M03` 用同一个循环消费 `anthropic-compat` 路由，验证"换 provider 不换 Consumer"。
 >
 > ```ts
 > export default class AnthropicCompatAdapter extends LlmAdapter {   // ← Provider
@@ -174,12 +173,14 @@ cordis 的 `waterfall(thisArg, name, ...)` 会用 `thisArg[Context.filter]` 过�
 
 ## 3.8 全部 seam 一览
 
-> 📐 **配套可跑示例**：下面这张表里的每个 seam 都有一个能真跑的最小 provider / consumer ——
-> `ctx.llm` → [M03](../../dsh-example/runtime/llm.ts)、`ctx.fs` / `ctx.subprocess` → [M07.1](../../dsh-example/M07-execution-backends/impl/01-fs-shell-side-effects.ts)、
-> `ctx.shell` → [M07.2](../../dsh-example/M07-execution-backends/scenes/02-run-and-start.ts)、`ctx.sandbox` → [M07.3](../../dsh-example/M07-execution-backends/impl/03-sandbox-seam.ts)、
-> `ctx.compaction` → [M02.3](../../dsh-example/M02-context-assembly-economics/impl/03-compaction-provider.ts)、`ctx.subagents` → [M08.1](../../dsh-example/M08-delegation-presets/impl/01-subagent-delegation.ts)、
-> `ctx.jobs` → [M09.1](../../dsh-example/M09-long-running-orchestration/scenes/01-job-start-read-kill.ts)、`ctx.goals` → [M09.2](../../dsh-example/M09-long-running-orchestration/scenes/02-goal-cas-conflict.ts)、
-> `ctx.settings` → [M11.1](../../dsh-example/M11-config-data-infrastructure/impl/01-settings-namespaces.ts)、`ctx.approval` → [M06.2](../../dsh-example/M06-human-in-the-loop/impl/02-approval-answerer.ts)。
+> 📐 **配套可跑示例**：下面这张表里的每个 seam 都有**真实发布包**提供的 provider，配套工程把它们装配起来就能跑 ——
+> `ctx.llm` → [M03 · 自写 anthropic-compat](../../dsh-lab/src/llm/anthropic-compat/index.ts)、`ctx.fs` / `ctx.subprocess` → [M07.1](../../dsh-lab/M07-execution-backends/index.ts)、
+> `ctx.shell` → [M07.2](../../dsh-lab/M07-execution-backends/index.ts)、`ctx.sandbox` → [M07.3](../../dsh-lab/M07-execution-backends/index.ts)、
+> `ctx.compaction` → [M02.3](../../dsh-lab/M02-context-assembly-economics/index.ts)、`ctx.subagents` → [M08.1](../../dsh-lab/M08-delegation-presets/index.ts)、
+> `ctx.jobs` → [M09.1 · 后台任务与输出环](../../dsh-lab/M09-long-running-work/index.ts)、`ctx.goals` → [M09.2 · 目标生命周期](../../dsh-lab/M09-long-running-work/index.ts)、
+> `ctx.storage` → [M11.1 · 存储域与 schema 校验](../../dsh-lab/M11-config-data-durability/index.ts)、`ctx.approval` → [M06.2 · 三种审批结果](../../dsh-lab/M06-human-in-the-loop/index.ts)。
+>
+> ⚠️ 两点与旧版示例不同：**其一**，配套工程不再"刻意留空再自己补 provider"——压缩、沙箱、溢写都直接用官方包（`dsh-compaction-basic`、`dsh-sandbox-local`、`dsh-spill-local`），自写的只剩 M03 那一个 provider；**其二**，`ctx.settings` 在配套工程里**没有挂载**（`dsh-settings` 不在 `cordis.patch.yml` 的 88 条行里），所以它没有可跑对照。
 
 
 按 `ctx` 键整理（来自 `docs/architecture.md` 的映射表 + 包结构）：
@@ -218,8 +219,11 @@ cordis 的 `waterfall(thisArg, name, ...)` 会用 `thisArg[Context.filter]` 过�
 
 ## 3.9 "新行为放哪"：官方映射表
 
-> 📐 **配套可跑示例**：[示例工程的能力索引](../../dsh-example/README.md) 就是按同一套"四条扩展路径"组织的 ——
-> 按注册（01/02/04/10/15/16/23）· 按事件（03/06/07/09/13/17/19/20）· 按服务（05/11/12/14/25）· 按数据（08）。
+> 📐 **配套可跑示例**：[配套工程的能力索引](../../dsh-lab/README.md) 就是按同一套"四条扩展路径"组织的 ——
+> 按注册（M01 工具 · M02 提示 · M06 命令 · M08 预设 · M09 任务 · M11 配置）·
+> 按事件（M01 管线 · M04 生命周期 · M05 投影 · M06 反馈 · M12 dispatch）·
+> 按服务（M02 · M03 · M05 · M07 · M08 · M09 · M10 · M11）·
+> 按数据（M10：`SKILL.md` 是能力数据包，注册、发现、渲染与注入彼此分离）。
 
 
 `docs/architecture.md` 的表（21 条）是最权威的定位指南。摘录关键几条：

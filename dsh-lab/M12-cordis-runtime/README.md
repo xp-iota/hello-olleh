@@ -60,7 +60,7 @@ cannot get property "tools" without inject
 
 第一次遇到会觉得啰嗦，但它是装配期检查的来源：依赖没声明，就无法在启动时发现缺失，只能等到运行期某个分支才炸。
 
-`src/lab/runner.ts` 里有一个副作用：阶段包装插件必须把 21 个服务全列进 `inject`，因为阶段脚本要摸整棵树。可选服务（如 `schedule`）用 `ctx.get(name)` 读，不进 inject——那正是 `ctx.get` 存在的意义。
+`src/lab/runner.ts` 里有一个副作用：阶段包装插件必须把 23 个服务全列进 `inject`，因为阶段脚本要摸整棵树。可选服务（如 `schedule`）用 `ctx.get(name)` 读，不进 inject——那正是 `ctx.get` 存在的意义。
 
 ## patch 层的三种操作
 

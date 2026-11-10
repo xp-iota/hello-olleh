@@ -1,6 +1,6 @@
 """M11 的运行入口：阶段清单。
 
-编号与 `dsh-example/M11-config-data-infrastructure/run.ts` 对位：DSH 有 settings、storage、
+编号与 `dsh-lab/M11-config-data-durability/index.ts` 同一编号空间：DSH 有 settings、storage、
 attachment、file-reference、credential、workspace 六层；iota 这边只治理配置投影与存储协议。
 
     python -m runtime.runner M11

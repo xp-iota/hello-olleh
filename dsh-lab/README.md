@@ -4,7 +4,7 @@
 
 **两套运行时**（Node.js v26.12.1 / Bun 1.4.4，都取各自最新版本）跑同一份阶段清单，判据相同。Bun 有两处需要适配的地方，见[用 Bun 跑](#用-bun-跑)。
 
-不被 `dsh-example/` 依赖，也**不复制**父工程实现——装配全部交给官方 `boot()`，本工程只写配置和教学代码。
+不复制上游实现——装配全部交给官方 `boot()`，本工程只写配置和教学代码。
 
 ## 这是什么
 
@@ -12,7 +12,7 @@
 
 - **12 个模块**覆盖工具管线、上下文装配、推理接入、agent 循环、会话持久化、人机交互、执行边界、委派、长任务、外部能力、数据持久化、cordis 装配树；
 - **一个 CLI** 用同一个服务树提供聊天、审批、提问、斜杠命令、计划模式、trajectory；
-- **0 行手工装配**：`cordis.yml`（空根表）+ `cordis.patch.yml`（约 70 行）就是全部。
+- **0 行手工装配**：`cordis.yml`（空根表）+ `cordis.patch.yml`（88 条行，439 行含注释）就是全部。
 
 ## 快速开始
 
@@ -321,7 +321,7 @@ sandbox-local windows-acl temp grant materialization failed and its cleanup also
 ```text
 dsh-lab/
 ├─ cordis.yml                 # 根表（空）
-├─ cordis.patch.yml           # 装配清单（全部 ~70 行）
+├─ cordis.patch.yml           # 装配清单（88 条行）
 ├─ runtime/                   # 双运行时支撑层
 │  ├─ runtimes.json           # 版本锁定（Node 26.12.1 / Bun 1.4.4）
 │  ├─ run.mjs                 # 统一调度器：所有 npm script 都经它

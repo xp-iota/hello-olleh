@@ -11,7 +11,7 @@
 
 前置：[第 11 课 · 配置与数据设施](11-config-data-infrastructure.md)。本课所有输出都来自真实运行，不是示意。
 同一编号的 DSH 侧教材见
-[dsh-example/lessons/12-framework-mechanisms.md](../../dsh-example/lessons/12-framework-mechanisms.md)——那边讲 Cordis 派发语义与 Fiber 生命周期，本课讲 iota 借了哪些机制、没搬哪套架构。
+[`dsh-lab/M12-cordis-runtime/README.md`](../../dsh-lab/M12-cordis-runtime/README.md)——那边讲可逆 effect、依赖注入与 patch 覆盖，本课讲 iota 借了哪些机制、没搬哪套架构。
 
 ---
 
@@ -30,6 +30,11 @@ DSH 侧的五个控制面，iota 各给了什么：
 | Fiber 状态机与 `effect()` 栈（`assertActive`） | `EffectStack`：LIFO 拆除、幂等 dispose、失效后拒绝（M12.1） | **语义等价 + 结构性边界**：借三条语义，不搬 fiber |
 | `provide` / isolate realm（同名服务隔离） | 名字注册表 + 身份安全 disposer + `iota_core.providers` entry-point（M12.2、M12.4） | **语义等价 + 结构性边界**：能力错名在定义期拒绝（M12.3） |
 | intercept 配置链（Proxy Context 按调用域换配置） | 配置分层：装配默认、调用点覆盖、`extra` 各层互不覆写（M12.5） | **语义等价 + 结构性边界**：不搬 Proxy |
+
+> **口径说明**：DSH 侧这一章现在由 `dsh-lab/M12-cordis-runtime/README.md` 承担，它演示的是**可逆
+> effect、依赖注入、patch 覆盖、失败即大声与装配树概况**五件事。下表这五个控制面（dispatch /
+> timer / fiber / provide-realm / intercept）是 DSH 侧更细的口径，dsh-lab 未逐项展开，
+> **待对 dsh-lab 复核**。
 
 没有对位物的三套架构，M12.2 把它们写成一条事实行留在案：
 `architecture_not_imported = [event-bus, hmr, intercept]`——事件总线（派发模式的载体）、
@@ -127,7 +132,7 @@ if self._disposed:
 > （"Disposers run last-installed-first"）、**Idempotence**（"Disposing twice is a no-op
 > rather than a double-undo"）、**Refusal after disposal**（"Pushing onto a disposed stack
 > raises instead of silently accepting an effect nobody will ever clean up"，cordis 里叫
-> `assertActive` / `INACTIVE_EFFECT`）。dsh 第 12 课里 fiber 卸载时挂起的定时器被拒，
+> `assertActive` / `INACTIVE_EFFECT`）。dsh-lab 的 M12 章里 fiber 卸载时挂起的定时器被拒，
 > 就是同一族语义——iota 借走三条语义，不搬 fiber 状态机。
 
 ---
@@ -168,7 +173,7 @@ effects.push(
 )
 ```
 
-> **原理对照**：dsh 第 12 课 M12.2 演示"定时器挂在 fiber 的 effect 上、fiber 卸载时统一清理"；
+> **原理对照**：dsh-lab 的 M12 章 M12.1 演示"定时器挂在 fiber 的 effect 上、fiber 卸载时统一清理"；
 > iota 同编号演示"Provider 注册挂在 EffectStack 上、close 时统一回收"。两边同构的只有一句话：
 > **注册挂在可逆资源上**。差别的部分（realm 隔离、Proxy 调用域视图）留在 Cordis 侧——iota 的
 > 注册表是一个普通的进程级字典，要换内核，就显式 `register_adapter()` 一个工厂，回收交给 disposer。
@@ -210,7 +215,7 @@ if unknown:
 `goal_commands`、`native_goal_manager`、`native_kanban_toolset`。
 
 > **原理对照**：cordis 的对应物是 `provide` / `inject` 声明式依赖——依赖未满足时 fiber 停在
-> `PENDING` 静静等，dsh 第 12 课 M12.3 专门演示了这种"不报错"。iota 刻意反着做：
+> `PENDING` 静静等，dsh-lab 的 M12 章 M12.2 专门演示了这种"不报错"。iota 刻意反着做：
 > `capabilities.py` 的文档把这记为与 cordis 的刻意差别——iota 在装配期校验并失败，cordis 让
 > fiber 挂起等待，而等待只会掩盖配置错误。这是第 01 课那条纪律在框架层的版本。
 
@@ -249,7 +254,7 @@ registration this caller never owned"。同一条纪律第 01 课已经演过（
 effect 退出按身份比较，[第 01 课](01-tool-pipeline.md)的 `replaced_handler_kept = True`）；
 M12.4 是它在注册表上的版本。
 
-> **原理对照**：dsh 第 12 课 M12.4 的 realm 隔离靠不同的存储键做到"同名服务互不串门"；iota
+> **原理对照**：DSH 侧的 realm 隔离靠不同的存储键做到"同名服务互不串门"（dsh-lab 的 M12 章未展开这一项，**待对 dsh-lab 复核**）；iota
 > 没有 realm，同名就是同一个槽，安全性改由 disposer 的身份比较提供——覆盖后旧 disposer 失效，
 > 新值的生死只归覆盖方自己的 disposer。两条路线殊途同归：谁都不允许"先来的回收，把后来者的
 > 注册悄悄带走"。
@@ -285,7 +290,7 @@ def agent(self, *, name: str, **config: Any) -> Agent:
 只出现在调用点这一层）。场景末尾还有第四条 `require`，断言 `base.config.extra == {}`
 ——**上层多出来的键不会落进默认层**，`extra` 各层互不覆写。
 
-> **原理对照**：dsh 第 12 课 M12.5 的 `intercept` 不重建实例、只换调用域配置——同一个服务在
+> **原理对照**：DSH 侧的 `intercept` 不重建实例、只换调用域配置（dsh-lab 的 M12 章未展开这一项，**待对 dsh-lab 复核**）——同一个服务在
 > 根 ctx 与 scoped 视图读出两套配置，靠 Proxy 原型链浅合并。iota 没有这层代理：要不同的配置，
 > 就显式创建一个带覆盖的 `AgentConfig`（`iota-core/src/iota_core/types.py::class AgentConfig`
 > 的 `model` 与 `extra` 字段），每个 agent 拿自己那份数据；没有跨层覆写，也就不需要拦截链。
@@ -315,7 +320,7 @@ def agent(self, *, name: str, **config: Any) -> Agent:
 - **想让新值消失**，用覆盖方自己保存的 disposer（`register(..., overwrite=True)` 的返回值）；
 - **想整栈终局**，用 `EffectStack`：`dispose()` 幂等，重复调用不报错、不重复执行；失效后拒绝
   新 effect，回收不了的栈宁可当场抛 `EffectStackDisposedError`，也不静默接受一个永远没人
-  清理的 effect。要新的作用域就新建一个栈——已释放的栈不可复活，与 dsh 第 12 课 fiber 进入
+  清理的 effect。要新的作用域就新建一个栈——已释放的栈不可复活，与 dsh-lab 的 M12 章 fiber 进入
   `DISPOSED` 后 `uid = null`、不能重新激活，是同一条单向门。
 
 ---
@@ -395,4 +400,4 @@ cd iota-example && uv run python -m runtime.runner M12 --scene 03_reject_unknown
 
 ---
 
-**课程结束** → 回到 [课程首页](../README.md) ｜ 想横向对照另一个框架，见 [dsh-example 第 12 课](../../dsh-example/lessons/12-framework-mechanisms.md)。
+**课程结束** → 回到 [课程首页](../README.md) ｜ 想横向对照另一个框架，见 [dsh-lab 的 M12 章](../../dsh-lab/M12-cordis-runtime/README.md)。

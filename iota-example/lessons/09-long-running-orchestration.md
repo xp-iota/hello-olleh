@@ -8,7 +8,7 @@
 > `queue_api = [ack, claim, enqueue, fail, get, heartbeat, list_dlq]`——没有任何拉起 worker 的入口。
 
 前置：[第 08 课 · 委派与预设](08-delegation-presets.md)。本课所有输出都来自真实运行，不是示意。
-同一编号的 DSH 侧教材见 [dsh-example/lessons/09-long-running-orchestration.md](../../dsh-example/lessons/09-long-running-orchestration.md)——那边讲运行句柄 vs 目标状态机，本课讲 iota 的幂等键、租约与恢复序号。
+同一编号的 DSH 侧教材见 [`dsh-lab/M09-long-running-work/README.md`](../../dsh-lab/M09-long-running-work/README.md)——那边讲运行句柄 vs 目标状态机，本课讲 iota 的幂等键、租约与恢复序号。
 
 ---
 
@@ -135,7 +135,7 @@ owner 来结算，当场抛 `graph task 'm09-task' is not leased by 'worker-b'`�
 > **原理对照**：`iota-core/src/iota_core/graph/task_queue.py::class GraphTask`；
 > `InMemoryGraphTaskQueue` 的 docstring 写明 "Reference queue implementation with the same
 > lease semantics as Redis"——教学内存队列与生产用的 `RedisGraphTaskQueue` 共享同一套租约语义。
-> DSH 侧的运行句柄见 dsh 第 09 课第 3 节：那边准入靠 controller，这边"准入"就是 claim 到租约本身。
+> DSH 侧的运行句柄见 dsh-lab 的 M09 章：那边准入靠 controller，这边"准入"就是 claim 到租约本身。
 
 ---
 
@@ -225,7 +225,7 @@ iota-core 并非没有 worker——同一个文件里就有 `GraphWorker`，docs
 生死与节奏。这就是"拉起 worker 进程属于宿主"：队列负责把"谁能拿、拿多久、拿几次"写清楚，
 **谁去拿**是宿主的事。
 
-> **原理对照**：DSH 侧的 workflow worker（worker thread 里跑脚本）见 dsh 第 09 课第 6 节——
+> **原理对照**：DSH 侧的 workflow worker（worker thread 里跑脚本）见 dsh-lab 的 M09 章——
 > 那边 provider 拉起线程、脚本在隔离环境里执行；iota 的队列连"有没有人在跑"都不持有，
 > `execution_driver = caller` 是唯一事实。
 
@@ -270,7 +270,7 @@ checkpoint 只存重建调度状态所需的最小集。`store.latest(RUN_ID)` �
 "长任务因此可以从中间恢复"的数据基础。
 
 > **原理对照**：`iota-core/src/iota_core/graph/checkpoint.py::def build_checkpoint`。
-> DSH 侧的对位物是 Goal 的"日志即状态"（dsh 第 09 课第 5 节）：那边靠折叠会话日志重建
+> DSH 侧的对位物是 Goal 的"日志即状态"（见 dsh-lab 的 M09 章）：那边靠折叠会话日志重建
 > 目标；这边把恢复所需的调度状态连同 `sequence` 显式写进 checkpoint——这也是本套模块里
 > "iota 提供更多耐久语义"最直观的一处。
 

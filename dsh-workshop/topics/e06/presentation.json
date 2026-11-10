@@ -39,8 +39,8 @@
       "subtitle": "人在环路",
       "body": "让危险操作先回到人这里：工具在执行前请示，没有应答方就必须拒绝",
       "bullets": [
-        "命令：cd dsh-example && npm run M06",
-        "预期：同一次部署请求在三种应答局面下分别得到 unavailable、allowed-once、rejected"
+        "命令：cd dsh-lab && npm run M06",
+        "预期：同一次审批请求在三种局面下分别得到 rejected、allowed-once、unavailable；turn 之外的裸调被拒绝"
       ]
     },
     {

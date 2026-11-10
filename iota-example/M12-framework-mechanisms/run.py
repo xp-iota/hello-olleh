@@ -1,6 +1,6 @@
 """M12 的运行入口：阶段清单。
 
-编号与 `dsh-example/M12-framework-mechanisms/run.ts` 对位：DSH 展示 Cordis 的派发模式、
+编号与 `dsh-lab/M12-cordis-runtime/index.ts` 同一编号空间：DSH 展示 Cordis 的派发模式、
 Fiber 状态机与 realm 隔离；iota 只借可逆 effect 与注册表，不搬那套架构。
 
     python -m runtime.runner M12

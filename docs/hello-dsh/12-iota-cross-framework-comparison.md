@@ -14,18 +14,18 @@
 
 | 模块 | DSH 教材 | iota 教材 | 关系摘要 |
 |---|---|---|---|
-| M01 工具管线 | [DSH](../../dsh-example/M01-tool-pipeline/README.md) | [iota](../../iota-example/M01-tool-pipeline/README.md) | ToolPipeline 可补齐编排层工具阶段；内核可见性保持边界 |
-| M02 上下文装配 | [DSH](../../dsh-example/M02-context-assembly-economics/README.md) | [iota](../../iota-example/M02-context-assembly-economics/README.md) | 作用域记忆等价；完整 Prompt 压缩属于内核 |
-| M03 推理接入 | [DSH](../../dsh-example/M03-inference-service-access/README.md) | [iota](../../iota-example/M03-inference-service-access/README.md) | DSH 换 LLM Adapter；iota 换整个 KernelAdapter |
-| M04 循环干预 | [DSH](../../dsh-example/M04-agent-loop-intervention/README.md) | [iota](../../iota-example/M04-agent-loop-intervention/README.md) | 事件和节点 hook 等价；mid-turn 状态归内核 |
-| M05 会话面 | [DSH](../../dsh-example/M05-session-surface/README.md) | [iota](../../iota-example/M05-session-surface/README.md) | 存储语义可对位；日志投影不变量不同 |
-| M06 人在环路 | [DSH](../../dsh-example/M06-human-in-the-loop/README.md) | [iota](../../iota-example/M06-human-in-the-loop/README.md) | permission fail-closed 等价；计划模式归宿主 |
-| M07 执行后端 | [DSH](../../dsh-example/M07-execution-backends/README.md) | [iota](../../iota-example/M07-execution-backends/README.md) | DSH 在 harness 提供 seam；iota 将执行栈留给内核 |
-| M08 委派 | [DSH](../../dsh-example/M08-delegation-presets/README.md) | [iota](../../iota-example/M08-delegation-presets/README.md) | SubagentProvider 与 GraphSpec DAG 语义对位 |
-| M09 长任务 | [DSH](../../dsh-example/M09-long-running-orchestration/README.md) | [iota](../../iota-example/M09-long-running-orchestration/README.md) | iota 另有租约队列、checkpoint 与恢复语义 |
-| M10 外部能力 | [DSH](../../dsh-example/M10-external-capabilities/README.md) | [iota](../../iota-example/M10-external-capabilities/README.md) | Skill 数据与 MCP server 均有真实路径 |
-| M11 配置数据 | [DSH](../../dsh-example/M11-config-data-infrastructure/README.md) | [iota](../../iota-example/M11-config-data-infrastructure/README.md) | Profile/store 可对位；凭证附件归宿主 |
-| M12 框架机制 | [DSH](../../dsh-example/M12-framework-mechanisms/README.md) | [iota](../../iota-example/M12-framework-mechanisms/README.md) | 可逆 effect 等价；不复制事件总线与 Proxy/Fiber 架构 |
+| M01 工具管线 | [DSH](../../dsh-lab/M01-tool-pipeline/README.md) | [iota](../../iota-example/M01-tool-pipeline/README.md) | ToolPipeline 可补齐编排层工具阶段；内核可见性保持边界 |
+| M02 上下文装配 | [DSH](../../dsh-lab/M02-context-assembly-economics/README.md) | [iota](../../iota-example/M02-context-assembly-economics/README.md) | 作用域记忆等价；完整 Prompt 压缩属于内核 |
+| M03 推理接入 | [DSH](../../dsh-lab/M03-inference-service-access/README.md) | [iota](../../iota-example/M03-inference-service-access/README.md) | DSH 换 LLM Adapter；iota 换整个 KernelAdapter |
+| M04 循环干预 | [DSH](../../dsh-lab/M04-agent-loop-intervention/README.md) | [iota](../../iota-example/M04-agent-loop-intervention/README.md) | 事件和节点 hook 等价；mid-turn 状态归内核 |
+| M05 会话面 | [DSH](../../dsh-lab/M05-session-surface/README.md) | [iota](../../iota-example/M05-session-surface/README.md) | 存储语义可对位；日志投影不变量不同 |
+| M06 人在环路 | [DSH](../../dsh-lab/M06-human-in-the-loop/README.md) | [iota](../../iota-example/M06-human-in-the-loop/README.md) | permission fail-closed 等价；计划模式归宿主 |
+| M07 执行后端 | [DSH](../../dsh-lab/M07-execution-backends/README.md) | [iota](../../iota-example/M07-execution-backends/README.md) | DSH 在 harness 提供 seam；iota 将执行栈留给内核 |
+| M08 委派 | [DSH](../../dsh-lab/M08-delegation-presets/README.md) | [iota](../../iota-example/M08-delegation-presets/README.md) | SubagentProvider 与 GraphSpec DAG 语义对位 |
+| M09 长任务 | [DSH](../../dsh-lab/M09-long-running-work/README.md) | [iota](../../iota-example/M09-long-running-orchestration/README.md) | iota 另有租约队列、checkpoint 与恢复语义 |
+| M10 外部能力 | [DSH](../../dsh-lab/M10-external-capabilities/README.md) | [iota](../../iota-example/M10-external-capabilities/README.md) | Skill 数据与 MCP server 均有真实路径 |
+| M11 配置数据 | [DSH](../../dsh-lab/M11-config-data-durability/README.md) | [iota](../../iota-example/M11-config-data-infrastructure/README.md) | Profile/store 可对位；凭证附件归宿主 |
+| M12 框架机制 | [DSH](../../dsh-lab/M12-cordis-runtime/README.md) | [iota](../../iota-example/M12-framework-mechanisms/README.md) | 可逆 effect 等价；不复制事件总线与 Proxy/Fiber 架构 |
 
 ## 建议阅读方法
 

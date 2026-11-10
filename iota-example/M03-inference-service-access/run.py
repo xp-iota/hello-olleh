@@ -1,6 +1,7 @@
 """M03 的运行入口：阶段清单。
 
-编号与 `dsh-example/M03-inference-service-access/run.ts` 逐一对齐：那边把流中间件演示
+编号与 `dsh-lab/M03-inference-service-access/index.ts` 同一编号空间
+（逐模块的已知差异登记在 `tests/test_stages.py`）：那边把流中间件演示
 记为 M03.1、专项真实演示记为 M03.d（离线 Adapter 阶段已删除），这里同一编号指向同一个
 控制面 —— iota 侧用"引用内核不支持的模型 middleware 在编译期被拒绝"来对位。
 

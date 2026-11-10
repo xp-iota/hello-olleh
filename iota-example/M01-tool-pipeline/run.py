@@ -1,6 +1,7 @@
 """M01 的运行入口：阶段清单。
 
-阶段编号与 `dsh-example/M01-tool-pipeline/run.ts` 一一对位：同一个控制面，看 iota 这边
+阶段编号与 `dsh-lab/M01-tool-pipeline/index.ts` 同一编号空间
+（逐模块的已知差异登记在 `tests/test_stages.py`）：同一个控制面，看 iota 这边
 是"有等价机制"还是"能力归内核"。编排、证据与输出由 `runtime/runner.py` 驱动。
 
     python -m runtime.runner M01

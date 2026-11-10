@@ -11,8 +11,9 @@ title: "启动流程与 Cordis 落地"
 
 ## 5.1 两个概念：Profile 与 Bundle
 
-> 📐 **配套可跑示例**：[`cordis.yml`](../../dsh-example/cordis.yml) 是一份"把一组插件挂进真实 agent"的 patch 示范 ——
-> 每一行就是本节说的那种配置行（`id` / `name` / `config`）。
+> 📐 **配套可跑示例**：[`cordis.yml`](../../dsh-lab/cordis.yml) + [`cordis.patch.yml`](../../dsh-lab/cordis.patch.yml) 是**真实的装配清单** ——
+> 根表是空的，全部行由 patch 层一次性挂载；每一行就是本节说的那种配置行（`id` / `name` / `config`），
+> 由官方 `boot()` 应用到根表上。这与本节讲的"profile 叠加 bundle"是同一套语义，只是换了个文件放。
 
 
 ![Bundle 与 Profile 的关系](diagrams/05-bundle-and-profile.svg)
@@ -440,9 +441,13 @@ function emitPluginDisposed(context: Context, fiber: Fiber) {
 
 ## 5.17 DSH 怎么用 cordis 的每个原语
 
-> 📐 **配套可跑示例**：[`M12.1 · dispatch-modes`](../../dsh-example/M12-framework-mechanisms/impl/01-dispatch-modes.ts) 在真实 `@deepseek-ai/cordis` 上把五种派发模式各跑一遍
-> （含 `parallel` 的 `AggregateError`、`serial` 的截链、`waterfall` 的"最后一个实参就是内建默认"）；
-> [`M12.2 · dispose-pending-timer`](../../dsh-example/M12-framework-mechanisms/scenes/02-dispose-pending-timer.ts) 演示 effect 化的定时器与 fiber 卸载时的拒绝语义。
+> 📐 **配套可跑示例**：[`M12 · Cordis 运行时与装配树`](../../dsh-lab/M12-cordis-runtime/index.ts) 在真实 `@deepseek-ai/cordis` 上逐条演示本节说的原语 ——
+> [M12.1 · 可逆 effect](../../dsh-lab/M12-cordis-runtime/index.ts)：插件卸载时它注册的 section 与监听器随 fiber 一起回收；
+> [M12.2 · 依赖注入：缺席即不启动](../../dsh-lab/M12-cordis-runtime/index.ts)：依赖不满足时 `apply` 根本不被调用，插件停在 pending；
+> [M12.3 · 行 id 与 patch 覆盖](../../dsh-lab/M12-cordis-runtime/index.ts)：同一行 id 在后一层 patch 里被整段替换；
+> [M12.4 · 失败即大声](../../dsh-lab/M12-cordis-runtime/index.ts)：非法配置在装配期就抛错，不允许带病运行。
+>
+> ⚠️ 与旧版示例的差别：配套工程**没有**逐一跑 `parallel` / `serial` / `bail` / `waterfall` 五种派发模式的阶段——那五种模式的覆盖在 cordis 自身的测试里，本模块聚焦的是装配语义。
 
 
 ![每个能力都是一个 cordis Service](diagrams/05-services-as-plugins.svg)
@@ -451,13 +456,15 @@ function emitPluginDisposed(context: Context, fiber: Fiber) {
 
 - **全部是普通 cordis Service**：每个都通过 provide 注册到 ctx 上 · 都可以被 inject 声明为依赖 · 都能被上层 patch 换成别的实现
 - **没有一个是特权的**：连 agentLoop 也只是一个 Service · 换掉它就换掉整个 turn/step 语义 · 这是没有特权内核的最终证据
-- **可跑的最小示例**：dsh-example 以 12 个方向模块组织 60 个阶段 · 例如 M12 的 cordis-timer 阶段演示如何接入定时器 · 装的是真实发布的 npm 包
+- **可跑的最小示例**：配套工程 dsh-lab 以 12 个方向模块组织 60 个阶段 · 例如 M12 演示可逆 effect、行 id 覆盖与失败即大声 · 装的是真实发布的 npm 包 · 装配全部写在 `cordis.patch.yml` 里，没有一行是代码里手工 new 出来的
 
 ## 5.18 DSH 在 cordis 之上加的一层：`Scoped<T>` 与 `core/scope`
 
-> 📐 **配套可跑示例**：[`M01.4 · tool-restrict`](../../dsh-example/M01-tool-pipeline/impl/04-tool-restrict.ts) 是 scope 的最小落点 ——
-> `agent.ctx.tools.restrict(...)` 在 plain context 上会**抛错**，示例把这条 fail-closed 连同
-> "effect 归属被调用的那个 context"的实际后果一起打印出来。
+> 📐 **配套可跑示例**：[`M01.4 · 按 agent 收紧可见工具`](../../dsh-lab/M01-tool-pipeline/index.ts) 是 scope 的最小落点 ——
+> 它在 `ctx.agents.create()` 的 `setup` 里对 **agent 作用域**调 `agentCtx.tools.restrict({ allow: [...] })`，
+> 并断言"收紧只影响这个 agent 的下一轮装配、不外溢到全局"：全局工具集合条数不变。
+> 与旧版示例不同：配套工程**没有**在 plain context 上调用 `restrict` 去撞那条 fail-closed 报错——
+> 它改用"收紧是否外溢"这个更贴近真实用法的断言。
 
 
 cordis 的隔离粒度是 **realm**（配置级）。DSH 需要更细的粒度：**每个 Agent 一套注册**。这就是 `core/scope`（561 行）。

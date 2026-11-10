@@ -11,7 +11,7 @@ title: "Loader 与配置树"
 
 ## 7.1 从配置到运行
 
-> 📐 **配套对照与可跑入口**：[`cordis.yml`](../../dsh-example/cordis.yml) 用 `id` / `name` / `config` 展示 DSH 插件配置行的形态；[`runtime/harness.ts`](../../dsh-example/runtime/harness.ts) 则用真实 npm 包完成等价的服务与插件装配。`cordis.yml` 是配置示范，**不是本工程的直接执行入口**；要观察插件挂载与卸载，请在 `dsh-example/` 运行 `npm run M12`，并把 [`M12 timer phase`](../../dsh-example/M12-framework-mechanisms/scenes/02-dispose-pending-timer.ts) 的 `loadPlugin()` / `fiber.dispose()` 与本篇 `Entry.init()` / Fiber 回收链对照阅读。
+> 📐 **配套对照与可跑入口**：[`cordis.yml`](../../dsh-lab/cordis.yml) 是**空根表**，[`cordis.patch.yml`](../../dsh-lab/cordis.patch.yml) 才是真正的装配清单（全部行都在这里）；[`src/boot.ts`](../../dsh-lab/src/boot.ts) 调用官方 `boot()` 把两者组合成服务树，[`src/lab/services.ts`](../../dsh-lab/src/lab/services.ts) 则集中 import 24 个 `@deepseek-ai/*` 服务包做 Context 类型增强。配套工程里没有一行服务是手工 `new` 出来的，装配全部来自这两份 yml；要观察插件挂载与卸载，请在 `dsh-lab/` 运行 `npm run M12`，并把 [`M12.1`](../../dsh-lab/M12-cordis-runtime/index.ts) 的 `ctx.plugin(plugin)` / `fiber.dispose()` 与本篇 `Entry.init()` / Fiber 回收链对照阅读。
 
 一个典型配置文件：
 

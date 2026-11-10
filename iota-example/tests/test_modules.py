@@ -84,8 +84,9 @@ def test_unknown_provider_fails_before_any_module_runs() -> None:
     assert "未知 IOTA_PROVIDER" in completed.stderr
 
 
-def test_exactly_twelve_modules_match_dsh_names() -> None:
-    dsh_root = ROOT.parent / "dsh-example"
-    dsh_names = sorted(path.name for path in dsh_root.glob("M[0-9][0-9]-*") if path.is_dir())
+def test_exactly_twelve_modules_match_dsh_numbers() -> None:
+    """12 个模块必须与 dsh-lab 同编号（dsh-lab 改过 M09/M11/M12 的目录名，故比编号）。"""
+    dsh_root = ROOT.parent / "dsh-lab"
+    dsh_numbers = sorted(path.name[:3] for path in dsh_root.glob("M[0-9][0-9]-*") if path.is_dir())
     assert len(MODULES) == 12
-    assert [path.name for path in MODULES] == dsh_names
+    assert [path.name[:3] for path in MODULES] == dsh_numbers

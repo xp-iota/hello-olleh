@@ -1,7 +1,7 @@
 [project]
 name = "iota-example"
 version = "0.1.0"
-description = "Comparison examples aligned with dsh-example M01-M12, run against a real kernel"
+description = "Comparison examples aligned with dsh-lab M01-M12, run against a real kernel"
 requires-python = ">=3.11,<3.14"
 dependencies = [
   "iota-core==2026.9.16",

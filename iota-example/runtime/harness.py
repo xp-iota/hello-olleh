@@ -444,7 +444,7 @@ class TeachingCheckError(RuntimeError):
     """Raised when an observed fact does not match a lesson's stated expectation."""
 
 
-#: 模块目录 → banner 标题。与 `dsh-example` 的 `runModule(module, title, …)` 同一角色：
+#: 模块目录 → banner 标题。与 dsh-lab `src/lab/runner.ts` 的 `defineModule` 同一角色：
 #: 教学正文（目标、三类边界、结论）都在各模块 README 里，运行日志只留骨架。
 MODULE_TITLES = {
     "M01-tool-pipeline": "工具管线：包装、拒绝与可见性归属",
@@ -547,7 +547,7 @@ def all_evidence() -> Sequence[CallEvidence]:
 class CountingKernelAdapter(KernelAdapter):
     """把真实内核适配器包一层：事件一条不改地透传，同时留下调用证据。
 
-    与 `dsh-example` 的 `CountingAnthropicCompatAdapter` 同一角色 —— 它仍是真实
+    与 dsh-lab `src/llm/anthropic-compat/index.ts` 的适配器同一角色 —— 它仍是真实
     `KernelAdapter`，所以每个阶段"到底有没有真的调用过内核"是可核验的事实，而不是自报。
     """
 

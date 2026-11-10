@@ -26,7 +26,7 @@ def test_comparison_has_twelve_evidenced_rows() -> None:
     rows = comparison_rows()
     assert len(rows) == 12
     for row in rows:
-        anchors = re.findall(r"`(?:iota-core|iota-example|dsh-example)/[^`]+::[^`]+`", row)
+        anchors = re.findall(r"`(?:iota-core|iota-example|dsh-lab)/[^`]+::[^`]+`", row)
         assert len(anchors) >= 3, row
 
 
@@ -40,14 +40,14 @@ def test_every_structural_boundary_cites_architecture_decision() -> None:
 def test_every_evidence_file_and_anchor_exist() -> None:
     text = (ROOT / "docs/dsh-vs-iota.md").read_text(encoding="utf-8")
     locations = re.findall(
-        r"`(iota-core|iota-example|dsh-example)/([^`:]+)::([^`]+)`",
+        r"`(iota-core|iota-example|dsh-lab)/([^`:]+)::([^`]+)`",
         text,
     )
     assert locations
     roots = {
         "iota-core": ROOT.parents[1] / "petite/sources/iota-core",
         "iota-example": ROOT,
-        "dsh-example": ROOT.parent / "dsh-example",
+        "dsh-lab": ROOT.parent / "dsh-lab",
     }
     for project, relative, anchor in locations:
         path = roots[project] / relative
@@ -94,7 +94,7 @@ def test_capability_surface_coverage_holds() -> None:
     assert covered >= REQUIRED, covered
 
 
-# ── 课件自学文档（lessons/）：对位 dsh-example 的 13 课教材 ──────────────────
+# ── 课件自学文档（lessons/）：对位 dsh-lab 的 12 个模块 + 1 课环境课 ─────────
 LESSON_NAMES = (
     "00-getting-started.md",
     "01-tool-pipeline.md",
@@ -115,7 +115,7 @@ LESSONS = ROOT / "lessons"
 
 
 def test_lessons_directory_is_complete() -> None:
-    """13 课一课不能少：文件名与 dsh-example/lessons 同名对齐。"""
+    """13 课一课不能少：编号与模块一一对齐（`00` 是环境课，`01`–`12` 每模块一课）。"""
     assert LESSONS.is_dir(), LESSONS
     actual = sorted(path.name for path in LESSONS.glob("*.md"))
     assert actual == sorted(LESSON_NAMES), actual
@@ -125,7 +125,7 @@ def test_lesson_numbers_are_contiguous_from_zero() -> None:
     """课件编号必须从 00 起连续：`00` 是环境课，`01`–`12` 每模块一课，中间不许跳号。
 
     跳号会让"下一课"这句话失去唯一答案——读者拿着 `02` 找不到 `03` 时，无法判断
-    是自己漏读了还是工程没写完。`dsh-example/lessons/` 用的是同一套编号。
+    是自己漏读了还是工程没写完。dsh-lab 的 12 个模块用的是同一套编号。
     """
     numbers = sorted(int(name[:2]) for name in LESSON_NAMES)
     assert numbers == list(range(13)), numbers

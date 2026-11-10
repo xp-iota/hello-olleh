@@ -124,6 +124,11 @@ voice、emotion、seed 或采样参数。
 旁白（`narration`）是唯一会发给外部语音服务的文本，不得包含内部代码托管地址、内部包索引主机、
 内部分支名、凭证、本机路径或个人信息，也不得包含建设过程、内部批次、文档制作术语与 AI 自述。
 
+**工程名**：DSH 侧的示例工程是 `dsh-lab/`，旧的 `dsh-example/` 已删除，deck 与旁白里都不得再出现
+`dsh-example`。DSH 侧命令写成 `cd dsh-lab && npm run MXX`（`M01`…`M12`；`npm run all` 跑 60 个
+阶段并需要 `LLM_API_KEY`）。iota 侧命令写成 `cd iota-example && uv run python -m runtime.runner MXX`
+——`runtime.runner` 只有 `--scene` / `--all` 两个开关，没有 `--real`。
+
 ## 5. 验收
 
 - 每集生成前必须通过 `workshop build` 内置的 `check`（始终带 `--brief`）；`render` 编码前会再次自动校验。

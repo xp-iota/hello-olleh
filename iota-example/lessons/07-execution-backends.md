@@ -9,14 +9,14 @@
 > 开关只有 `assembly_knobs = [allow_shell, timeout, workspace]`。
 
 前置：[第 06 课 · 人在环路](06-human-in-the-loop.md)。本课所有输出都来自真实运行，不是示意。
-同一编号的 DSH 侧教材见 [dsh-example/lessons/07-execution-backends.md](../../dsh-example/lessons/07-execution-backends.md)——那边讲 fs/shell/sandbox 五层可换后端，本课讲 iota 为什么一层都不拥有、剩下的两件事是什么。
+同一编号的 DSH 侧教材见 [`dsh-lab/M07-execution-backends/README.md`](../../dsh-lab/M07-execution-backends/README.md)——那边讲 fs/shell/sandbox 五层可换后端，本课讲 iota 为什么一层都不拥有、剩下的两件事是什么。
 
 ---
 
 ## 1. 本课任务
 
 DSH 把执行侧拆成 fs、subprocess、shell、terminal 与 sandbox **五层可换后端**：工具表达 I/O 意图，
-执行 seam 选后端，沙箱把策略落到进程边界（dsh 第 07 课）。iota 这边的对照答案是**结构性边界**——
+执行 seam 选后端，沙箱把策略落到进程边界（见 dsh-lab 的 M07 章）。iota 这边的对照答案是**结构性边界**——
 一层都不拥有：副作用由内核执行，编排层只转发提示词、观察工具事件。于是本课要回答两个问题：
 怎么**证明**执行真的归内核（不是编排层替它做的），以及编排层在执行侧还剩下什么。
 
@@ -149,8 +149,7 @@ def task_prompt() -> str:
 ```
 
 > **原理对照**：`bypassPermissions` 是**内核侧**的许可模式。dsh 的 sandbox 在编排层把策略
-> （`read-only` / `workspace-write`）包装成可强制的 argv、强制不了就 fail-closed（dsh 第 07 课
-> 第 6 节）；iota 这边连"这条命令能不能跑"都看不见——编排层只在装配期决定"给不给内核这只手"，
+> （`read-only` / `workspace-write`）包装成可强制的 argv、强制不了就 fail-closed（见 dsh-lab 的 M07 章）；iota 这边连"这条命令能不能跑"都看不见——编排层只在装配期决定"给不给内核这只手"，
 > 给了之后执行与许可都发生在内核进程内部。策略位到底存不存在，M07.3 会用负证据量出来。
 
 ---
@@ -182,7 +181,7 @@ def task_prompt() -> str:
 > **原理对照**：`ToolCallResultEvent`（`iota-core/src/iota_core/types.py::class ToolCallResultEvent`）
 > 除类型判别字段外只带 `id` / `ok` / `output` 三个字段。iota 只消费内核回传的结果事件——没有
 > canonical/content 双通道（[第 01 课](01-tool-pipeline.md)第 5 节），也没有 dsh 那种把退出码、
-> 超时、信号结构化展开的 `ShellRunResult`（dsh 第 07 课第 5 节）；执行的事实细节留在内核里，
+> 超时、信号结构化展开的 `ShellRunResult`（见 dsh-lab 的 M07 章；`ShellRunResult` 这个类型名待对 dsh-lab 复核）；执行的事实细节留在内核里，
 > 到编排层只剩"这次调用成功与否，以及输出"。
 
 ---
@@ -208,7 +207,7 @@ def task_prompt() -> str:
 `policy_owner = kernel adapter configuration` 就是结论：策略的 owner 是**内核适配器的构造参数**，
 不是编排层的 seam。
 
-和 dsh 的差距在这一节看得最清楚：dsh 第 07 课里，策略可以按调用合成（`sandboxPolicy.resolve`，
+和 dsh 的差距在这一节看得最清楚：dsh-lab 的 M07 章里，策略可以按调用合成（`sandboxPolicy.resolve`，**待对 dsh-lab 复核**），
 部署默认 `read-only`、会话覆盖 `workspace-write`），沙箱后端要么给出可强制的 argv、要么
 fail-closed；iota 唯一的"策略动作"是装配期问一句 `allow_shell`——`True` 就是白名单开 `Bash` 加
 `bypassPermissions`，`False` 就是 `disallowed_tools` 全关。想在这两档之间加第三档？装配面里

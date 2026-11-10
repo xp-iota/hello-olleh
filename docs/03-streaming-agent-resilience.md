@@ -3,15 +3,21 @@ title: "Streaming 模式下推理服务异常时的 Agent 自保机制分析"
 ---
 # Streaming 模式下推理服务异常时的 Agent 自保机制分析
 
-> 基于 `sources/` 下 6 个 AI Coding CLI 工程的源码复核
-> 分析版本：
+> 基于 `sources/` 下 6 个 AI Coding CLI 工程的源码复核。
+> **分析基线**＝本文结论实际复核所依据的版本；**当前快照**＝仓库 `sources/` 现在同步到的版本：
 >
-> - Claude Code v2.1.87
-> - Codex rust-v0.154.0
-> - Gemini CLI v0.47.0
-> - OpenCode v2.0.2
-> - Hermes Agent 0.21.2
-> - Nanobot v0.3.0
+> | 工程 | 分析基线 | 当前快照 |
+> |---|---|---|
+> | Claude Code | v2.1.87 | v2.1.87 |
+> | Codex | rust-v0.154.0 | rust-v0.162.1 |
+> | Gemini CLI | v0.47.0 | v0.63.0 |
+> | OpenCode | v2.0.2 | v2.0.27 |
+> | Hermes Agent | 0.21.2 | v2026.9.24（包版本 0.21.5） |
+> | Nanobot | v0.3.0 | v0.3.5 |
+>
+> ⚠️ **只有 Claude Code 的两列相同**：其余 5 个工程在本次分析之后上游继续迭代，
+> 本文结论**未针对新版本逐条复核**。涉及具体 API 形状、常量名与重试参数时，请以「分析基线」列的版本为准；
+> 「当前快照」列只说明仓库里的源码现在是什么状态。
 
 ---
 

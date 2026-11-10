@@ -10,7 +10,7 @@
 
 前置：[第 04 课 · Agent 循环与干预面](04-agent-loop-intervention.md)。本课所有输出都来自真实运行，不是示意。
 同一编号的 DSH 侧教材见
-[dsh-example/lessons/05-session-surface.md](../../dsh-example/lessons/05-session-surface.md)——那边讲"日志是事实、surface 是投影"，本课讲 iota 的两条存储协议与它不承诺的 seq/surface 语义。
+[`dsh-lab/M05-session-surface/README.md`](../../dsh-lab/M05-session-surface/README.md)——那边讲"日志是事实、surface 是投影"，本课讲 iota 的两条存储协议与它不承诺的 seq/surface 语义。
 
 ---
 
@@ -149,7 +149,7 @@ assistant，**不需要谁维护序号**——`get_messages` 的协议承诺就�
 ```
 
 > **原理对照**：`iota-core/src/iota_core/storage/conversation_store.py::class ConversationStore`。
-> DSH 侧等价物是事实日志 + `deriveMessages()` 投影（见 dsh 第 05 课第 3 节）——两边都回答
+> DSH 侧等价物是事实日志 + 模型表面投影（见 dsh-lab 的 M05 章；0.2.1 的对应接口是 `ctx.sessionQuery.readSurface()`）——两边都回答
 > "模型看见的内容有没有被记录、能不能读回"；差别在 DSH 存**两份视图**（append-only 日志 +
 > surface 投影），iota 只存**一份有序消息**。"user/assistant 按序"在 iota 是唯一的存储事实，
 > 不存在"投影与日志不一致"的问题——因为没有投影。
@@ -187,7 +187,7 @@ search_messages]`、`swapped_store = InMemoryConversationStore`、`messages = [d
   Protocol。练习 C 让你把文件后端亲手换上。
 
 > **原理对照**：`iota-core/src/iota_core/storage/backend_loader.py::def load_conversation_store`。
-> DSH 侧等价物是 `ctx.plugin(sessionPersistence)` 装载 JSONL Provider（见 dsh 第 05 课第 6 节）
+> DSH 侧等价物是 `ctx.plugin(sessionPersistence)` 装载 JSONL Provider（见 dsh-lab 的 M05 章）
 > ——两边都证明"运行时面向接口而不是后端"；差别在 DSH 换 Provider 要走插件装载与生命周期，
 > iota 换后端只是构造另一个对象。
 
@@ -228,8 +228,7 @@ Returns a list of dicts containing at least ``session_id``, ``role``,
 每个后端都得提供。
 
 > **原理对照**：`iota-core/src/iota_core/storage/conversation_store.py::class ConversationStore`
-> 的 `list_sessions` / `search_messages`。DSH 侧等价物是 `SessionQueryEngine`（见 dsh 第 05 课
-> 第 6 节）——精确读取在基类共用，全文检索是抽象方法、必须由 Provider 提供。iota 把两者
+> 的 `list_sessions` / `search_messages`。DSH 侧等价物是 `ctx.sessionQuery`（见 dsh-lab 的 M05 章）——精确读取在基类共用，全文检索是抽象方法、必须由 Provider 提供。iota 把两者
 > **都写进协议**：不存在"只支持精确读取"的后端，检索能力与存储能力同价。
 
 ---
@@ -290,7 +289,7 @@ succeeded / failed / cancelled 三个终态上补 `finished_at`。运行记录�
 
 > **原理对照**：`iota-core/src/iota_core/storage/run_store.py::class RunStore`。
 > DSH 侧同编号阶段（M05.4）装载的是 projection checkpoint——**可丢弃**的加速层，落后于日志
-> 是允许的、丢了可以从日志重算（见 dsh 第 05 课第 6 节）。iota 没有投影层，所以也没有这层
+> 是允许的、丢了可以从日志重算（见 dsh-lab 的 M05 章）。iota 没有投影层，所以也没有这层
 > 缓存：`RunStore` 保存的就是运行事实本体。同编号、同一个控制面（"运行之后，事实与派生状态
 > 还能不能拿回来"），两边的答案一个是"加速"，一个是"落账"。
 
@@ -332,16 +331,16 @@ async def run(harness: WorkshopHarness) -> dict[str, Any]:
 没有 `seq` / `sequence` / `surface` 中的任何一个——`TextDeltaEvent` 的全部定义就是
 `type: Literal["text_delta"] = "text_delta"` 与 `text: str` 两行。
 
-这条边界直接推出三件事，逐条与 dsh 第 05 课对照：
+这条边界直接推出三件事，逐条与 dsh-lab 的 M05 章对照：
 
 1. **顺序的承诺是"插入顺序"，不是"编号日志"**。`get_messages` 与 `get_events` 的协议文档
    都只说 insertion order；iota 不承诺 `seq === 数组下标` 那种可重放不变量，也没有 `fork`
    的"稳定前缀"检查。
 2. **没有 surface/replace/位置性折叠**。DSH 用 `surfaceOp={"op":"replace",…}` 在投影上
-   原地折叠历史（见 dsh 第 05 课第 4 节）；`ConversationStore` 上能改变存储状态的只有
+   原地折叠历史（见 dsh-lab 的 M05 章）；`ConversationStore` 上能改变存储状态的只有
    `ensure_session` / `append_message` / `clear`——没有任何"改写第 N 条"的入口。
 3. **没有 latest-wins 标题投影**。DSH 的 title 是 `session/title` 日志事件折叠出来的
-   （见 dsh 第 05 课第 6 节）；iota 的 `AgentEvent` 是十个事件模型的判别联合
+   （见 dsh-lab 的 M05 章）；iota 的 `AgentEvent` 是十个事件模型的判别联合
    （discriminator 是 `type`），里面没有任何标题事件。想要标题，宿主自己存。
 
 > **原理对照**：`iota-core/src/iota_core/types.py::AgentEvent`。这不是"还没实现"，是
@@ -355,7 +354,7 @@ async def run(harness: WorkshopHarness) -> dict[str, Any]:
 
 ### 症状
 
-你想把 dsh 第 05 课的直觉搬过来：读 `event.seq` 给事件编页码，或者想找"折叠历史"的
+你想把 dsh-lab 的 M05 章的直觉搬过来：读 `event.seq` 给事件编页码，或者想找"折叠历史"的
 `surfaceOp` / `replace` 入口，或者想给会话改个标题。翻遍 `ConversationStore` / `RunStore`
 与事件模型，都找不到——没有 `seq` 字段，没有 replace，没有 title。
 

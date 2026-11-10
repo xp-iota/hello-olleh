@@ -8,16 +8,16 @@
 
 前置：[第 00 课 · 跑起来](00-getting-started.md)。本课所有输出都来自真实运行，不是示意。
 同一编号的 DSH 侧教材见
-[`dsh-example/lessons/01-tool-pipeline.md`](../../dsh-example/lessons/01-tool-pipeline.md)——那边讲"五个正交控制面"，本课讲**其中哪些属于编排层，哪些必须归内核**。
+[`dsh-lab/M01-tool-pipeline/README.md`](../../dsh-lab/M01-tool-pipeline/README.md)——那边讲"五个干预点"，本课讲**其中哪些属于编排层，哪些必须归内核**。
 
 ---
 
 ## 1. 本课任务
 
-DSH 把工具管线拆成注册、pre 裁决、post 变换、按 Agent 收紧、单调守卫五个控制面
+DSH 把工具管线拆成注册、pre 裁决、post 变换、按 Agent 收紧、单调守卫五个干预点
 （对照关系：**机制补齐 + 结构性边界**）。iota 这边只有一层**具名可逆包装**，其余归内核：
 
-| DSH 控制面 | iota 侧 | 归属 |
+| DSH 干预点 | iota 侧 | 归属 |
 |---|---|---|
 | 注册 + Fiber 回收 | `ToolPipeline.install()` + `EffectStack` 回收 | **机制补齐**：iota 有 |
 | pre-execute 权限门（allow/deny/ask） | 一层包装能在执行前抛错 | **结构性边界**：三态协议归内核 |
@@ -112,7 +112,7 @@ with EffectStack("m01-register") as effects:
   （回收包装不等于注销工具）。
 
 > **原理对照**：`iota-core/src/iota_core/tool_pipeline.py::class ToolPipeline`。
-> DSH 侧等价物是 `ctx.tools.register()` + Fiber 回收（见 dsh 第 01 课第 3 节）——
+> DSH 侧等价物是 `ctx.tools.register()` + Fiber 回收（见 dsh-lab 的 M01 章）——
 > 两边都是"注册挂在可逆资源上"，差别在 Cordis 用插件 fiber，iota 用显式 effect 栈。
 
 ---

@@ -1,6 +1,6 @@
 """模块编排入口：读阶段清单、跑场景、按阶段核验真实调用证据。
 
-与 `dsh-example/runtime/harness.ts` 的 `runModule()` 严格对位，日志骨架逐行一致：
+与 dsh-lab `src/lab/runner.ts` 的阶段驱动同一角色，日志骨架同源（`REAL_STAGE_OK` / `REAL_MODULE_OK` 两行与 dsh-lab 一致）：
 
     ████ MXX · 标题 ████
     provider=anthropic-compat model=… timeout=…ms
@@ -66,7 +66,7 @@ StageKind = Literal["model", "mechanism"]
 
 @dataclass(frozen=True, slots=True)
 class Stage:
-    """阶段：`run.py` 里的编排单位，编号与 `dsh-example` 同一编号空间。
+    """阶段：`run.py` 里的编排单位，编号与 dsh-lab 同一编号空间。
 
     `scene` 是 `scenes/` 下的文件名（不带 `.py`）；`shell` 表示这一阶段需要内核自带的
     Bash 工具（执行侧演示），其余阶段的内核工具全部关闭。

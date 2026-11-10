@@ -1,6 +1,6 @@
 """M09 的运行入口：阶段清单。
 
-编号与 `dsh-example/M09-long-running-orchestration/run.ts` 对位：DSH 用 Job/Goal/workflow/
+编号与 `dsh-lab/M09-long-running-work/index.ts` 同一编号空间：DSH 用 Job/Goal/workflow/
 schedule 表达长任务；iota 用带租约与 checkpoint 的任务队列，worker 由调用方驱动。
 
     python -m runtime.runner M09

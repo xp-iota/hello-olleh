@@ -9,7 +9,7 @@
 > M03.d 的 `event_counts = {step_start: 1, text_delta: 1, final: 1, step_end: 1}`（Hermes 内核）。
 
 前置：[第 02 课 · 上下文装配与经济学](02-context-assembly.md)。本课所有输出都来自真实运行，不是示意。
-同一编号的 DSH 侧教材见 [dsh-example/lessons/03-inference-service-access.md](../../dsh-example/lessons/03-inference-service-access.md)——那边讲 Provider 路由与流中间件 waterfall，本课讲 iota 的替换单元为什么是整个适配器、能力声明为什么在编译期兑现。
+同一编号的 DSH 侧教材见 [`dsh-lab/M03-inference-service-access/README.md`](../../dsh-lab/M03-inference-service-access/README.md)——那边讲 Provider 路由与流中间件 waterfall，本课讲 iota 的替换单元为什么是整个适配器、能力声明为什么在编译期兑现。
 
 ---
 
@@ -137,7 +137,7 @@ ClaudeAdapter，名字理应在。原因是每个 `mechanism` 阶段的入口 pr
 
 > **原理对照**：`iota-core/src/iota_core/adapters/base.py::class KernelAdapter`——内核接入的
 > 全部抽象面（`start()`、`capabilities()`、`create_session()`、`stream()`、`close()`）都定义在
-> 这一个基类上。DSH 侧等价物是 `ctx.llm` 的 Provider 路由 + 流中间件（dsh 第 03 课第 3 节）：
+> 这一个基类上。DSH 侧等价物是 `ctx.llm` 的 Provider 路由 + 流中间件（见 dsh-lab 的 M03 章）：
 > 那边"路由发生在每次请求"，iota"替换发生在整个内核"。
 
 ---
@@ -290,8 +290,7 @@ found in one graph spec."）；场景里 `"; ".join(exc.problems)` 就是为多 
 静默降级路径"。
 
 > **原理对照**：`iota-core/src/iota_core/graph/compiler.py::class GraphCompiler`。同一个
-> 诉求——"我想包装一次模型调用"——在 DSH 那里做成 `llm/stream` waterfall（dsh 第 03 课
-> 第 3 节），在 iota 这里被能力声明打发回编译期；ACP 侧的这份拒绝见
+> 诉求——"我想包装一次模型调用"——在 DSH 那里做成 `llm/stream` waterfall（见 dsh-lab 的 M03 章），在 iota 这里被能力声明打发回编译期；ACP 侧的这份拒绝见
 > `iota-core/docs/develop/architecture/graph-node-hooks.md::引用语法与校验`。
 
 ---
@@ -363,7 +362,7 @@ def require_event_order(observed: Sequence[str], expected: tuple[str, ...]) -> N
 思考事件也不进文本面：`ClaudeAdapter` 把内核的 `ThinkingBlock` 忠实翻译成
 `ThinkingDeltaEvent`（`type="thinking"`）单独成面（`iota-core/src/iota_core/adapters/claude.py`），
 而场景里 `text` 只累加 `text_delta`、`final.text` 是内核裁定的答案——所以 `thinking` 出现与否，
-`text_sample` 都是 `事件协议已核对。`。这与 dsh 第 03 课第 6 节"thinking 块映射成
+`text_sample` 都是 `事件协议已核对。`。这与 dsh-lab 的 M03 章"thinking 块映射成
 reasoning-delta、单独成面"是同一条纪律，只是事件名不同。
 
 ### finish 与 usage：从 `final` 读，不从 delta 拼

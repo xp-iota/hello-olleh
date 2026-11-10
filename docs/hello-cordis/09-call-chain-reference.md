@@ -429,4 +429,4 @@ title: "关键调用链速查"
 
 ---
 
-**上一篇** ← [08 HMR 热重载](08-hmr.md) ｜ **返回** → [索引](README.md) ｜ **动手** → [配套示例工程](../../dsh-example/README.md)
+**上一篇** ← [08 HMR 热重载](08-hmr.md) ｜ **返回** → [索引](README.md) ｜ **动手** → [配套工程 dsh-lab](../../dsh-lab/README.md)

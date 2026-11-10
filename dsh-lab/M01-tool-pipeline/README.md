@@ -62,7 +62,7 @@ M01-tool-pipeline/index.ts
 
 ### M01.4 按 agent 收紧可见工具
 
-`agentCtx.tools.restrict({allow: ['word_count']})` 只影响该 agent 的下一次装配。全局注册表不变，所以另一个 agent 仍然看见全部 27 个工具。
+`agentCtx.tools.restrict({allow: ['word_count']})` 只影响该 agent 的下一次装配。全局注册表不变，所以另一个 agent 仍然看见全部工具（基础 26 个，加上本阶段注册的 `word_count`，共 27 个）。
 
 单向收紧是刻意的：agent 作用域**只能减少**工具，不能凭空增加。否则一个子 agent 就能给自己授权父级没有的能力。
 

@@ -17,7 +17,7 @@
 
 The repository has no static site generator: `docs/` is plain Markdown read directly on GitHub, so every link must resolve to a real file and no page carries generator-specific front matter. Root files remain lightweight: [`README.md`](README.md) records scope and upstream versions, and [`sync_repos.sh`](sync_repos.sh) refreshes local clones into `sources/`.
 
-`dsh-lab/` is the companion runnable workspace for the DeepSeek Harness analysis: 12 capability modules (M01–M12, 60 runnable phases), an interactive CLI (`chat`), trajectory inspection (`traj`), and a dual-runtime harness. It targets the current `@deepseek-ai/*` line **0.2.1-rc.2** and assembles its service tree through the official `boot()` + declarative `cordis.patch.yml` — it does **not** hand-wire services. `dsh-example/` is the earlier 0.1.5-rc.2 project and is superseded by `dsh-lab/`; treat `dsh-example/` as historical. Every phase runs against the real provider: `npm run all` runs all 60 phases and needs `LLM_API_KEY` (see `dsh-lab/.env`, gitignored); there is no mock or offline path, and a missing key fails loudly.
+`dsh-lab/` is the companion runnable workspace for the DeepSeek Harness analysis: 12 capability modules (M01–M12, 60 runnable phases), an interactive CLI (`chat`), trajectory inspection (`traj`), and a dual-runtime harness. It targets the current `@deepseek-ai/*` line **0.2.1-rc.2** and assembles its service tree through the official `boot()` + declarative `cordis.patch.yml` (88 rows) — it does **not** hand-wire services. `dsh-example/` is the earlier 0.1.5-rc.2 project and is superseded by `dsh-lab/`; treat `dsh-example/` as historical. There is no mock or offline path: the `model` phases (M03.3, M04.1, M04.2) really call a provider and fail loudly without `LLM_API_KEY` (see `dsh-lab/.env`, gitignored), while `mechanism` phases drive the runtime in-process and need no key — so `npm run all` (all 60 phases) needs the key, but a single mechanism module does not.
 
 `dsh-lab/` runs on **two runtimes**, both verified to produce identical results: latest Node.js (**v26.12.1**, Current line) and latest Bun (**v1.4.4**). Versions live in `dsh-lab/runtime/runtimes.json`; `npm run runtime:status` reports what resolves and whether it meets the minimum (Node **>= 22.18** for native TypeScript type stripping; Bun **>= 1.4.4**). Every `npm run` goes through `runtime/run.mjs`; `DSH_RUNTIME=bun` or the `:bun` script suffix switches the runtime, and `npm run verify` runs typecheck + tests + a boot probe on both, ending in `RUNTIMES_VERIFY_OK runtimes=2 checks=6`. Note `npm run M07 -- --runtime bun` does **not** work (`--runtime` is npm's own flag, `EUNKNOWNCONFIG`).
 
@@ -25,7 +25,9 @@ Bun 1.4.4 differs from Node on two seams dsh depends on, both fixed under `dsh-l
 
 `dsh-web/` is **not** part of this repository. It is a standalone TypeScript project with its own Git repository and remote: `git@github.com:xp-iota/dsh-web.git` (branch `main`). It is a read-only chat Web service on top of `@deepseek-ai/dsh` 0.2.1-rc.2 — a hand-rolled `node:http` + SSE layer (no web framework), a React 19 + Vite 6 front end under `web/`, and the same Node/Bun dual-runtime idea as `dsh-lab/` (`runtime/run.mjs` dispatch; `npm run verify` ends in `RUNTIMES_VERIFY_OK`). The container image ships both runtimes and picks one via `DSH_RUNTIME`. Because it carries its own `.git`, the parent repo reports `?? dsh-web/` — **never `git add dsh-web/` here**; that would record a gitlink, not the source. Work on it inside `dsh-web/` with its own commits and push them to its own remote.
 
-The DSH analysis set was consolidated from 26 chapters into 11 topic files; section numbers were renumbered consecutively and every merged file records its original sources in a 📎 note. The consolidation helpers are migration scripts rather than daily generators: `scripts/merge_dsh_docs.py` and `scripts/rewrite_dsh_refs.py` detect the final 11-chapter layout and exit safely, while `scripts/link_examples_into_docs.py` is marker-idempotent. Validate cross-references with `python3 scripts/check_doc_links.py .`.
+The DSH analysis set was consolidated from 26 chapters into 12 files (11 topic chapters `01`–`11` plus the cross-framework comparison `12`); section numbers were renumbered consecutively and every merged file records its original sources in a 📎 note. The consolidation helpers are migration scripts rather than daily generators: `scripts/merge_dsh_docs.py` and `scripts/rewrite_dsh_refs.py` detect the final 11-chapter layout and exit safely, while `scripts/link_examples_into_docs.py` is now **retired** (it targeted the first-edition Chinese filenames and would re-insert `dsh-example/` links; it exits without touching anything). Validate cross-references with `python3 scripts/check_doc_links.py .`.
+
+⚠️ **The DSH doc set and the companion project are on different version lines.** The prose analyses the `0.1.5-rc.2` source snapshot (`sources/deepseek-harness/`), while `dsh-lab/` runs the published `0.2.1-rc.2` packages. `dsh-lab` also has a different shape than the deleted `dsh-example`: one `index.ts` per module (no `impl/` + `scenes/` split), assembly in `cordis.yml` + `cordis.patch.yml` (88 rows) through the official `boot()` instead of a hand-written `createHarness()`, and exactly one self-written provider (M03 `anthropic-compat`) instead of the old "blank seam, example fills it" design. Wherever a 📐 block says "以本快照的源码分析为准", that assertion has **no runnable counterpart** in `dsh-lab` — do not present it as measured there.
 
 ## Build, Test, and Development Commands
 There is no single monorepo build. Use the command that matches the area you changed.
@@ -159,7 +161,7 @@ The upstream reference agent (BigQuery + Gemini) and its `visualize` subcommand 
 
 ### archify — validated diagrams
 
-archify replaces Mermaid across `docs/hello-cordis/` and `docs/hello-deepseek-harness/`. Agents write typed JSON IR; archify deterministically compiles and **validates** it, so layout defects are caught by a checker instead of by a reader.
+archify replaces Mermaid across `docs/hello-cordis/` and `docs/hello-dsh/`. Agents write typed JSON IR; archify deterministically compiles and **validates** it, so layout defects are caught by a checker instead of by a reader.
 
 GitHub access is intermittent in some sandboxes. The skill was obtained from npm (`@tt-a1i/archify-dsh`) and vendored to `tools/archify/`, which is self-contained — `node tools/archify/bin/archify.mjs doctor` must report all checks green before use.
 
@@ -210,6 +212,7 @@ Install notes for this workspace:
 
 - The PyPI package is **`graphifyy`**, not `graphify` (the shorter name is being reclaimed); the CLI and skill command are still `graphify`.
 - `python3 -m venv` fails here (no `ensurepip`), so install with `pip3 install --target .tools/graphify graphifyy==0.9.53` and run via `PYTHONPATH=/workspace/.tools/graphify python3 -m graphify`. `.tools/` is gitignored.
+- The install can fail with `THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE` when the index is reached through a mirror that re-serves a different artifact. That is an environment problem, not a version problem: **retry** (add `--no-cache-dir` if the cached artifact is the bad one) rather than pinning a different `graphifyy` version.
 - `graphify install --platform kiro` writes into the Kiro config directory, which is **outside `/workspace` and blocked by this environment's directory policy**. The Kiro skill and steering files are therefore vendored to `tools/graphify/` instead; read them from there.
 
 The CLI is an installer and query surface, not the builder: `install`, `path A B`, `explain X`, `diagnose multigraph`, `clone`, `merge-graphs`, `hook install`. Graph construction is driven through the Python modules, in this order:
@@ -223,6 +226,10 @@ graphify.extract.collect_files(Path(target)) → extract(paths)
 ```
 
 Verified on this repo: `collect_files(Path('scripts'))` found 7 files, `extract` produced 24 nodes and 43 edges all tagged `EXTRACTED`, `cluster` found 8 communities, and `graphify explain "Vault"` resolved to `scripts/rewrite_dsh_refs.py L83` with community and degree.
+
+Also verified on `dsh-lab/` (2026-10-23): 51 files, 396 nodes, 600 edges, 32 communities, `EXTRACTED` 537 / `INFERRED` 63; `diagnose multigraph --directed` reports 0 dangling / 0 self-loop / 0 duplicate. The same data rebuilt **undirected** collapses 12 edges. Full write-up and the rebuild commands live in [`docs/okf/references/01-graphify-dsh-lab.md`](docs/okf/references/01-graphify-dsh-lab.md).
+
+⚠️ **YAML does not enter the AST graph.** `cordis.yml` / `cordis.patch.yml` contribute **0 nodes** — tree-sitter covers code, not config. So "the assembly comes from one declarative manifest" is **not** verifiable from the graph; count it with `rg -c '^\s*- id:' dsh-lab/cordis.patch.yml` instead.
 
 Two traps:
 

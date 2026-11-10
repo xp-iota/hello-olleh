@@ -4,7 +4,7 @@
 
 DSH 分事实日志与模型可见 surface，并有 JSONL persistence、query、projection checkpoint 与 title 五层。iota 这边是 ConversationStore + RunStore，两者都可换。
 
-对位的 DSH 模块：[M05 会话面](../../dsh-example/M05-session-surface/README.md)。阶段编号与它逐一对齐 ——
+对位的 DSH 模块：[M05 会话面](../../dsh-lab/M05-session-surface/README.md)。阶段编号与它逐一对齐 ——
 同一个编号指向同一个控制面，看 iota 这边是"有等价机制"还是"能力归内核/宿主"。
 本模块课件：[第 05 课 · 会话面](../lessons/05-session-surface.md)。
 

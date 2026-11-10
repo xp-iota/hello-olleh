@@ -11,7 +11,7 @@
 
 前置：[第 07 课 · 执行侧后端](07-execution-backends.md)。本课所有输出都来自真实运行，不是示意。
 同一编号的 DSH 侧教材见
-[dsh-example/lessons/08-delegation-presets.md](../../dsh-example/lessons/08-delegation-presets.md)——那边讲"注册了 provider，模型却还不会委派"，本课讲 iota 的委派为什么从编译期就是确定的。
+[`dsh-lab/M08-delegation-presets/README.md`](../../dsh-lab/M08-delegation-presets/README.md)——那边讲"注册了 provider，模型却还不会委派"，本课讲 iota 的委派为什么从编译期就是确定的。
 
 ---
 
@@ -130,7 +130,7 @@ return GraphSpec(
 > "Author-time declaration of a DAG"）与
 > `iota-core/src/iota_core/graph/compiler.py::class GraphCompiler`
 > （"Turns a validated ``GraphSpec`` into a frozen execution plan"）。DSH 侧等价物是
-> subagent Provider + 模型可见工具（dsh 第 08 课第 3 节）——那边 provider 注册好了，模型仍可能
+> subagent Provider + 模型可见工具（见 dsh-lab 的 M08 章）——那边 provider 注册好了，模型仍可能
 > 一次也不委派；这边 `compile_graph()` 一返回，research 就一定先于 review。
 
 ---

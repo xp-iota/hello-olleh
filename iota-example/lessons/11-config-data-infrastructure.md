@@ -9,7 +9,7 @@
 > 而 M11.6 的拒绝原文以 `config_profile is not supported for adapter 'dsh'` 开头。
 
 前置：[第 10 课 · 外部能力接入](10-external-capabilities.md)。本课所有输出都来自真实运行，不是示意。
-同一编号的 DSH 侧教材见 [dsh-example/lessons/11-config-data-infrastructure.md](../../dsh-example/lessons/11-config-data-infrastructure.md)——那边讲分层解析与内容寻址，本课讲 iota 的投影、协议与"不读秘密"。
+同一编号的 DSH 侧教材见 [`dsh-lab/M11-config-data-durability/README.md`](../../dsh-lab/M11-config-data-durability/README.md)——那边讲分层解析与内容寻址，本课讲 iota 的投影、协议与"不读秘密"。
 
 ---
 
@@ -140,7 +140,7 @@ Claude 投影器把来源复制成 profile 目录里的 `settings.json`（没有
 > `extra["config_profile"]` 的 `AgentConfig` 调同一个 `prepare(adapter="claude", …)`，把
 > `profile.claude_options`（含 `settings` 与 `CLAUDE_CONFIG_DIR`）合并进 SDK 选项
 > （`iota-core/src/iota_core/adapters/claude.py::class ClaudeAdapter`）。DSH 的三层解析与 `revision`
-> CAS 在框架内（dsh 第 11 课第 3、4 节）；iota 不解析配置内容，**只治理内核读到哪份文件**。
+> CAS 在框架内（见 dsh-lab 的 M11 章）；iota 不解析配置内容，**只治理内核读到哪份文件**。
 
 ---
 
@@ -172,7 +172,7 @@ Claude 投影器把来源复制成 profile 目录里的 `settings.json`（没有
 运行存储与会话存储是**两条协议**：装配处把它们作为两个独立参数递给 `IotaRuntime`
 （`conversation_store=…` 与 `run_store=…`，见 [`runtime/harness.py`](../runtime/harness.py)）。
 
-> **原理对照**：DSH 的 storage 是 hub + backend + **domain 声明式路由**（dsh 第 11 课第 5 节）；
+> **原理对照**：DSH 的 storage 是 hub + backend + **domain 声明式路由**（见 dsh-lab 的 M11 章）；
 > iota 没有路由层——`IotaRuntime` 直接选择协议实现，"可换"体现在 `Protocol` 上而不是路由表上
 > （会话那条协议见 `iota-core/src/iota_core/storage/conversation_store.py::class ConversationStore`，
 > 第 05 课）。语义等价：两边换后端都不改调用方。

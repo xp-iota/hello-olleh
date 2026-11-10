@@ -1,6 +1,6 @@
 """M06 的运行入口：阶段清单。
 
-编号与 `dsh-example/M06-human-in-the-loop/run.ts` 对位：DSH 把命令、审批、问题、计划模式、
+编号与 `dsh-lab/M06-human-in-the-loop/index.ts` 同一编号空间：DSH 把命令、审批、问题、计划模式、
 todo 与反馈都做成显式协议；iota 这边只拥有权限决策，其余归内核或宿主。
 
     python -m runtime.runner M06
