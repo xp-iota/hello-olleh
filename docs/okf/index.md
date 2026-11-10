@@ -11,7 +11,7 @@ generated: { by: mcode/minimax-m3.1-flash, at: 2026-10-23T10:00:00Z }
 本目录是一个 [OKF v0.2](../../tools/okf/SPEC-v0.2.md) bundle，记录 `dsh-lab/`
 的服务装配、扩展接口和工具调用流程。
 
-`dsh-lab/` 是本仓库的配套可运行工程，基于已发布的 `@deepseek-ai/*` 0.2.1-rc.2，
+`dsh-lab/` 是本仓库的配套可运行工程，基于已发布的 `@deepseek-ai/*` 0.2.2-rc.1，
 含 12 个能力模块（M01–M12）、60 个可运行阶段，并支持 Node.js 与 Bun 双运行时。
 本包 2026-09 的初版针对的是它的前身 `dsh-example/`，该目录已随提交 `40dfeb4`
 删除；2026-10-23 整包迁移到 `dsh-lab/`，见 [log.md](log.md)。

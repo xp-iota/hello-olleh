@@ -1,6 +1,6 @@
 # dsh-lab
 
-基于 **DeepSeek Harness 0.2.1-rc.2** 的独立示例工程：12 个能力模块、60 个可运行阶段、一个真正能用的交互式终端，以及 trajectory 记录与查看。
+基于 **DeepSeek Harness 0.2.2-rc.1** 的独立示例工程：12 个能力模块、60 个可运行阶段、一个真正能用的交互式终端、一个可观察的安全护栏插件，以及 trajectory 记录与查看。
 
 **两套运行时**（Node.js v26.12.1 / Bun 1.4.4，都取各自最新版本）跑同一份阶段清单，判据相同。Bun 有两处需要适配的地方，见[用 Bun 跑](#用-bun-跑)。
 
@@ -12,7 +12,7 @@
 
 - **12 个模块**覆盖工具管线、上下文装配、推理接入、agent 循环、会话持久化、人机交互、执行边界、委派、长任务、外部能力、数据持久化、cordis 装配树；
 - **一个 CLI** 用同一个服务树提供聊天、审批、提问、斜杠命令、计划模式、trajectory；
-- **0 行手工装配**：`cordis.yml`（空根表）+ `cordis.patch.yml`（88 条行，439 行含注释）就是全部。
+- **0 行手工装配**：`cordis.yml`（空根表）+ `cordis.patch.yml`（89 条行）就是全部。
 
 ## 快速开始
 
@@ -252,7 +252,7 @@ Bun     1.4.4      59 / 60 个阶段通过
 唯一失败（两边同一处）：M03.3 真实调用模型 —— reason 见「已知问题」
 ```
 
-两套运行时逐模块结果完全相同（M01–M12 全部 `REAL_MODULE_OK`），差异只在启动耗时上。
+两套运行时逐模块结果完全相同：除 M03.3 这一处 provider 特有问题外，其余 59 个阶段在两边都通过，差异只在启动耗时上。
 
 ## 12 个模块
 
@@ -273,6 +273,26 @@ Bun     1.4.4      59 / 60 个阶段通过
 
 每个模块的 `README.md` 就是那一课：任务 → 真实输出 → 机制 → 排错 → 代码地图 → 练习。
 
+## 安全护栏插件
+
+除了 12 个教学模块，本工程还带一个**自己的 cordis 插件**：`safety-guardrail`。它挂在
+`tools/pre-execute` 接缝上，在模型发起的工具调用真正执行之前记录 `tool`、`agent` 和
+参数预览：
+
+```text
+[safety-guardrail] pre-execute tool=read agent=5cbcb16a-... args={"file_path":"README.md"}
+[safety-guardrail] pre-execute tool=pwsh agent=5cbcb16a-... args={"command":"npm test"}
+```
+
+当前只观察、不拦截；`decide()` 里已经留好 `deny` / `ask` / `cancel` 的扩展点。日志走
+stderr，不打断 REPL 的 stdout 流式渲染；参数会按 `redactKeys` 脱敏并截断。设
+`DSH_GUARDRAIL=0` 可整行关掉。
+
+它的 README 里有一张三层的同心圆架构图，说明插件位于 dsh-lab 最外层、dsh 能力包在
+中间、cordis 运行时在最内层：
+
+👉 [`src/plugins/safety-guardrail/README.md`](src/plugins/safety-guardrail/README.md)
+
 ## 配置
 
 ```bash
@@ -287,6 +307,7 @@ cp .env.example .env
 | `LLM_VENDOR` | `minimax` / `fuyao` | `minimax` |
 | `DSH_MODEL_PROVIDER` | 路由名 | `anthropic-compat` |
 | `DSH_PERMISSION_MODE` | 沙箱模式 | `workspace-write` |
+| `DSH_GUARDRAIL` | 设 `0` 关闭安全护栏日志 | 开启 |
 | `DSH_LAB_HOME` | harness home | `<项目>/.dsh-home` |
 | `DSH_LAB_TEMP` | 沙箱临时根（见下） | 自动探测 |
 | `DEEPSEEK_API_KEY` | 官方 DeepSeek 路由 | — |
@@ -321,7 +342,7 @@ sandbox-local windows-acl temp grant materialization failed and its cleanup also
 ```text
 dsh-lab/
 ├─ cordis.yml                 # 根表（空）
-├─ cordis.patch.yml           # 装配清单（88 条行）
+├─ cordis.patch.yml           # 装配清单（89 条行）
 ├─ runtime/                   # 双运行时支撑层
 │  ├─ runtimes.json           # 版本锁定（Node 26.12.1 / Bun 1.4.4）
 │  ├─ run.mjs                 # 统一调度器：所有 npm script 都经它
@@ -344,7 +365,9 @@ dsh-lab/
 │  ├─ lab/
 │  │  ├─ runner.ts            # 阶段驱动器（每个阶段一个 fiber）
 │  │  ├─ services.ts          # Context 类型增强集中点
-│  │  └─ tools.ts             # 工具调用辅助
+│  │  └─ tools.ts             # 工具调用辅助（0.2.2 的批次 API 封装）
+│  ├─ plugins/
+│  │  └─ safety-guardrail/    # 安全护栏插件 + 同心圆架构图 + README
 │  └─ llm/anthropic-compat/   # M03 的适配器插件
 ├─ M01-tool-pipeline/         # 每个模块：index.ts + README.md
 ├─ M02-.../ … M12-cordis-runtime/
@@ -386,10 +409,10 @@ npm run check:shim                   # Bun shim 的位置契约（只在 Bun 下
 ```text
 运行时         版本          检查           结果
 node        26.12.1     typecheck    ✓ exit 0
-node        26.12.1     test         ✓ 23 pass / 0 fail
+node        26.12.1     test         ✓ 27 pass / 0 fail
 node        26.12.1     boot         ✓ services ok, tools 26
 bun         1.4.4       typecheck    ✓ exit 0
-bun         1.4.4       test         ✓ 23 pass / 0 fail
+bun         1.4.4       test         ✓ 27 pass / 0 fail
 bun         1.4.4       boot         ✓ services ok, tools 26
 RUNTIMES_VERIFY_OK runtimes=2 checks=6
 ```
@@ -401,7 +424,7 @@ RUNTIMES_VERIFY_OK runtimes=2 checks=6
 | 检查 | Node.js（默认） | Bun |
 |---|---|---|
 | 类型检查 | `npm run typecheck` | `npm run typecheck:bun` |
-| 单元测试（23 个） | `npm test` | `npm run test:bun` |
+| 单元测试（27 个） | `npm test` | `npm run test:bun` |
 | 启动探针（19 服务 + 工具数） | `node runtime/boot-probe.ts` | `bun runtime/boot-probe.ts` |
 | trajectory 渲染（真实 turn） | `node scripts/probe-trajectory.ts` | `bun scripts/probe-trajectory.ts` |
 | REPL 渲染（真实 turn） | `node scripts/probe-repl.ts` | `bun scripts/probe-repl.ts` |
@@ -409,6 +432,20 @@ RUNTIMES_VERIFY_OK runtimes=2 checks=6
 | CLI 冒烟 | `printf '/help\n/quit\n' \| npm run chat` | `printf '/help\n/quit\n' \| npm run chat:bun` |
 
 也可以只用一条 `npm run verify` 让两套运行时都跑一遍（typecheck / test / boot 各三项）。
+
+### 0.2.2 升级记录
+
+从 `0.2.1-rc.2` 升到 `0.2.2-rc.1` 时，有三处契约变化会直接影响本工程，都已经在代码里
+落地：
+
+| 变化 | 0.2.1 的写法 | 0.2.2 的写法 | 本工程的落点 |
+|---|---|---|---|
+| 工具执行改为批次 API | `execute({ callId, name, arguments, ... })` | `execute({ calls: ToolCallBlock[], signal, agent? })` → `ToolBatchResult` | [`src/lab/tools.ts`](src/lab/tools.ts) 的 `executeTool()` 统一封装；M07 改用它 |
+| 执行器与注册表分离 | `dsh-tools` 自带执行 | 必须另挂 `@deepseek-ai/dsh-tool-executor-native`，否则 `TOOL_EXECUTOR_UNAVAILABLE` | 装配清单新增 `tool-executor-native` 行 |
+| 子 agent 控制工具合并入口 | `dsh-tool-subagent-control/list-agents` 子路径 | 主入口一次注册 `send_message` / `interrupt_agent` / `list_agents`；子路径不再导出 | 删掉 `tool-subagent-list` 行 |
+
+装配清单因此从 88 条变为 **89 条**：删 1 条（`tool-subagent-list`）、加 2 条
+（`tool-executor-native`、`safety-guardrail`）。工具总数仍是 26。
 
 ### 已知问题：M03.3 在部分网关上失败
 

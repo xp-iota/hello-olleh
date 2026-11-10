@@ -7,7 +7,7 @@
 | 存储域 | `ctx.storageDomain` | schema 校验的领域记录 |
 | 附件 | `ctx.attachments` | 不可变字节，日志只存引用 |
 | 凭据 | `ctx.credentials` | 引用解析，值永不进日志 |
-| 引用 | `ctx.sessionReferences` / `ctx.fileReferences` | 跨会话/文件的快照 |
+| 引用 | `ctx.sessionReferenceResolver` / `ctx.fileReferences` | 跨会话/文件的快照 |
 
 贯穿这一章的原则是：**引用而不是内容**。日志里出现的是 id，真实字节在各自后端里。
 

@@ -58,7 +58,7 @@ src/cli/traj.ts               # 读取与展示（折叠 turn、逐事件明细�
 - 有空洞 → 说明丢了事件，重放结果不可信；
 - `seq` 与下标不相等 → 说明有并行写入，append-only 被破坏。
 
-0.2.1 在构造期就校验（`seed event at index N has seq M (expected N)`），所以损坏的日志进不来。
+0.2.x（0.2.1 起）在构造期就校验（`seed event at index N has seq M (expected N)`），所以损坏的日志进不来。
 
 ## 三种读法
 
@@ -72,7 +72,7 @@ src/cli/traj.ts               # 读取与展示（折叠 turn、逐事件明细�
 
 ### 为什么不能用 `snapshotEvents()`
 
-0.2.1 把 `snapshotEvents()` / `eventAt()` / `ownEvents()` 标记为**弃用**，措辞是"new calls are prohibited"。原因是同步快照读会鼓励调用方在事件提交中途读，读到不一致的中间状态。
+0.2.x（0.2.1 起）把 `snapshotEvents()` / `eventAt()` / `ownEvents()` 标记为**弃用**，措辞是"new calls are prohibited"。原因是同步快照读会鼓励调用方在事件提交中途读，读到不一致的中间状态。
 
 新代码一律异步：`await ctx.sessionQuery.readSession(id)`。本工程全部按新接口写，M05.1 的注释里也点明了这一点。
 
@@ -100,7 +100,7 @@ M05.4 演示恢复：`ctx.agents.resume({resumeSessionId})` 从日志重建，�
 ### 一个真实踩到的坑：`data` 有两种形状
 
 写 `traj` 时我一度只按 `data.message.content` 取消息体，结果所有 `user` 行和
-`result` 行都是空的。原因是 0.2.1 里这两种事件的负载位置**不一样**：
+`result` 行都是空的。原因是 0.2.x 里这两种事件的负载位置**不一样**：
 
 | 事件 | 负载位置 | 为什么 |
 |---|---|---|

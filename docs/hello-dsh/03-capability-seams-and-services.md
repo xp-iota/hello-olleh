@@ -180,7 +180,7 @@ cordis 的 `waterfall(thisArg, name, ...)` 会用 `thisArg[Context.filter]` 过�
 > `ctx.jobs` → [M09.1 · 后台任务与输出环](../../dsh-lab/M09-long-running-work/index.ts)、`ctx.goals` → [M09.2 · 目标生命周期](../../dsh-lab/M09-long-running-work/index.ts)、
 > `ctx.storage` → [M11.1 · 存储域与 schema 校验](../../dsh-lab/M11-config-data-durability/index.ts)、`ctx.approval` → [M06.2 · 三种审批结果](../../dsh-lab/M06-human-in-the-loop/index.ts)。
 >
-> ⚠️ 两点与旧版示例不同：**其一**，配套工程不再"刻意留空再自己补 provider"——压缩、沙箱、溢写都直接用官方包（`dsh-compaction-basic`、`dsh-sandbox-local`、`dsh-spill-local`），自写的只剩 M03 那一个 provider；**其二**，`ctx.settings` 在配套工程里**没有挂载**（`dsh-settings` 不在 `cordis.patch.yml` 的 88 条行里），所以它没有可跑对照。
+> ⚠️ 两点与旧版示例不同：**其一**，配套工程不再"刻意留空再自己补 provider"——压缩、沙箱、溢写都直接用官方包（`dsh-compaction-basic`、`dsh-sandbox-local`、`dsh-spill-local`），自写的只剩 M03 那一个 provider 与安全护栏插件；**其二**，`ctx.settings` 在配套工程里**没有挂载**（`dsh-settings` 不在 `cordis.patch.yml` 的 89 条行里），所以它没有可跑对照。
 
 
 按 `ctx` 键整理（来自 `docs/architecture.md` 的映射表 + 包结构）：

@@ -40,7 +40,7 @@
 | `docs/hello-claude-code/`, `docs/hello-codex/`, `docs/hello-gemini-cli/`, `docs/hello-opencode/`, `docs/hello-nanobot/`, `docs/hello-cordis/`, `docs/hello-dsh/`, `docs/hello-pi/`, `docs/hello-openclaw/` | 按主题拆分的 Markdown 分析文档 |
 | `docs/hello-harness/` | Harness Engineering 框架分析 |
 | `docs/okf/` | OKF v0.2 知识包：`dsh-lab` 的可复用结论，带来源、验证方式与过期时间 |
-| `dsh-lab/` | DeepSeek Harness 的能力实验室：12 个方向模块、60 个可跑阶段（装在真实发布的 `@deepseek-ai/*` npm 包上，`0.2.1-rc.2`），Node/Bun 双运行时 |
+| `dsh-lab/` | DeepSeek Harness 的能力实验室：12 个方向模块、60 个可跑阶段（装在真实发布的 `@deepseek-ai/*` npm 包上，`0.2.2-rc.1`），安全护栏插件，Node/Bun 双运行时 |
 | `iota-example/` | 与 DSH 同编号的 Python 对照教材：12 个模块、41 个可跑阶段，共享运行器输出阶段清单、真实内核证据与结构性边界 |
 | `docs/03-streaming-agent-resilience.md` | 六个源码快照的流式 Agent 韧性横向分析（表头区分「分析基线」与「当前快照」） |
 | `scripts/check_doc_refs.ps1` | 校验 Markdown 中的 `path:line` 源码锚点是否能解析到本地快照 |

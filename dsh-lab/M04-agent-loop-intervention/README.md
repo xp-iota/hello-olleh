@@ -80,7 +80,7 @@ M04.2 在 `agent/turn-stopping` 里 steer：这是"turn 本来要结束，但我
 | `steer` 没效果 | 在 `turn/end` 之后才调；要在 `agent/turn-stopping` 里 |
 | 消息进了 inbox 但 agent 不动 | `wakeup: false` |
 | `cancel` 后工具还在跑 | 工具没观察 `exec.signal`（协作式取消） |
-| `snapshotEvents()` 报弃用 | 0.2.1 禁止新调用；改用 `ctx.sessionQuery` |
+| `snapshotEvents()` 报弃用 | 0.2.x 禁止新调用；改用 `ctx.sessionQuery` |
 
 ## 练习
 

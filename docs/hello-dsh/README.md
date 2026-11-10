@@ -6,7 +6,7 @@ title: "DeepSeek Harness 源代码全面分析（中文）"
 本目录是对 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的系统性源码分析。正文形成于 `0.1.5-rc.2` 历史快照；当前 `sources/deepseek-harness/` 已同步到 `dsh-v0.1.5-rc.2`（`fb2c4b9e`），根包和四个发布 manifest 均声明 `0.1.5-rc.2`。
 
 > **Source baseline:** DeepSeek Harness `dsh-v0.1.5-rc.2` (`fb2c4b9e`)。**文中的行号、API 形状与符号索引都以这份源码快照为准**。
-> 配套工程 [`dsh-lab/`](../../dsh-lab/README.md) 跑在更新的 **`0.2.1-rc.2`** 发布线上——它与正文基线不是同一版本，差异集中列在 [§ 五 配套工程](#五配套工程-dsh-lab) 一节。
+> 配套工程 [`dsh-lab/`](../../dsh-lab/README.md) 跑在更新的 **`0.2.2-rc.1`** 发布线上——它与正文基线不是同一版本，差异集中列在 [§ 五 配套工程](#五配套工程-dsh-lab) 一节。
 
 ## 零基础先跑：15 分钟建立直觉
 
@@ -51,7 +51,7 @@ npm run M03      # 推理服务
 交互版：[12-example-topology.html](diagrams/12-example-topology.html)　·　
 IR 源：[12-example-topology.architecture.json](diagrams/12-example-topology.architecture.json)
 
-- **装配只有一份清单**：`cordis.yml` 是空表 `[]`（11 行全是注释），`cordis.patch.yml` 439 行、**88 条 `- id:` 行**，`boot()` 来自官方 `@deepseek-ai/dsh-app-boot`。
+- **装配只有一份清单**：`cordis.yml` 是空表 `[]`（11 行全是注释），`cordis.patch.yml` 450 行、**89 条 `- id:` 行**，`boot()` 来自官方 `@deepseek-ai/dsh-app-boot`。
 - **模块与阶段**：12 个模块 · 60 个阶段 · 每个模块一个 `index.ts`，由 `src/lab/runner.ts` 驱动；`npm run all` 缺 `LLM_API_KEY` 立即失败，没有 mock 或离线回退。
 - **provider 只有一处自写**：自写的是 `src/llm/anthropic-compat/index.ts` 的 `AnthropicCompatAdapter`，其余走 24 个官方 `@deepseek-ai/dsh-*` 服务包；沙箱实测是官方 `LocalSandboxProvider`（M07.3）。
 - **依赖图谱（2026-10-23 实测）**：对 `dsh-lab/` 重新建图得 **51 文件 · 396 节点 · 600 边 · 32 社区**；`EXTRACTED` 537 条、`INFERRED` 63 条；`diagnose multigraph --directed` 0 dangling / 0 self-loop / 0 duplicate。
@@ -81,7 +81,7 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 | 当前 tag | `dsh-v0.1.5-rc.2` |
 | 当前 commit | `fb2c4b9e698e30edb738bca4cf0618587db7d203` |
 | 当前源码版本 | `0.1.5-rc.2` |
-| 配套工程 npm 版本 | `0.2.1-rc.2`（`dsh-lab/` 锁定的发布线） |
+| 配套工程 npm 版本 | `0.2.2-rc.1`（`dsh-lab/` 锁定的发布线） |
 | 配套工程 cordis | `4.0.5`（快照内 vendored 的是 `4.0.2`） |
 
 ### 当前仓库事实
@@ -91,7 +91,7 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 - Node.js 要求：`^22.19.0 || >=24.0.0`
 - Package manager：`pnpm@11.7.0`
 - Vendored Cordis：`4.0.2`
-- 配套 `dsh-lab/` 锁定的是**更新的 `0.2.1-rc.2` 发布线**（cordis `4.0.5`）。**它与上面的源码快照不是同一版本**：正文讲的是 `0.1.5-rc.2` 的代码，配套工程跑的是 `0.2.1-rc.2` 的发布包，两者的契约差异集中列在 [§ 五](#五配套工程-dsh-lab)。
+- 配套 `dsh-lab/` 锁定的是**更新的 `0.2.2-rc.1` 发布线**（cordis `4.0.5`）。**它与上面的源码快照不是同一版本**：正文讲的是 `0.1.5-rc.2` 的代码，配套工程跑的是 `0.2.2-rc.1` 的发布包，两者的契约差异集中列在 [§ 五](#五配套工程-dsh-lab)。
 
 ⚠️ **README 首屏的声明**：
 
@@ -171,13 +171,13 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 ## 五、配套工程 dsh-lab
 
 本仓库带一套**能真跑**的配套工程：[`dsh-lab/`](../../dsh-lab/README.md)。
-它的每一个 `import` 都指向 npm 公共 registry 上真实发布的 `@deepseek-ai/*` 包（版本线 `0.2.1-rc.2`），
-`src/boot.ts` 调官方 `@deepseek-ai/dsh-app-boot` 的 `boot()`，把 `cordis.yml`（**空根表**）+ `cordis.patch.yml`（**唯一装配清单**，88 条行）组合成真实服务树（含真实 `dsh-agent-loop` 主循环），
+它的每一个 `import` 都指向 npm 公共 registry 上真实发布的 `@deepseek-ai/*` 包（版本线 `0.2.2-rc.1`），
+`src/boot.ts` 调官方 `@deepseek-ai/dsh-app-boot` 的 `boot()`，把 `cordis.yml`（**空根表**）+ `cordis.patch.yml`（**唯一装配清单**，89 条行）组合成真实服务树（含真实 `dsh-agent-loop` 主循环），
 "模型"那一处是本工程**唯一自写的 provider**——`AnthropicCompatAdapter`，打真实推理服务（需 `LLM_API_KEY`）。
 
-> ⚠️ **配套工程与正文基线不是同一版本**：正文分析的是 `0.1.5-rc.2` 源码快照（`fb2c4b9e`），配套工程跑的是 `0.2.1-rc.2` 发布包。
+> ⚠️ **配套工程与正文基线不是同一版本**：正文分析的是 `0.1.5-rc.2` 源码快照（`fb2c4b9e`），配套工程跑的是 `0.2.2-rc.1` 发布包。
 > 跨版本契约差异记在配套工程的代码注释里——例如 `src/llm/anthropic-compat/index.ts` 开头逐条列了 0.1.5 → 0.2.1 的四处 `LlmAdapter` 变化（工具结果成为独立 `role: 'tool'` 消息、必须带 `attributionHeaders()`、`providerInfo()`/`listModels()`/`resolveModel()`、`purpose` 标记）。
-> 配套工程**不手写装配**：`cordis.patch.yml` 里 88 条行中 87 条是官方包、1 条是自写的 `anthropic-compat`；压缩、沙箱、溢写都走官方包，**不再有"刻意留空再由示例补上"的缝**。
+> 配套工程**不手写装配**：`cordis.patch.yml` 里 89 条行中 87 条是官方包、2 条是自写插件（`anthropic-compat`、`safety-guardrail`）；压缩、沙箱、溢写都走官方包，**不再有"刻意留空再由示例补上"的缝**。
 
 | 文档章节 | 配套工程里的可跑点 |
 |---|---|

@@ -36,7 +36,7 @@ stale_after: 2027-04-30T00:00:00Z
 的 `boot()`。**工程里没有一行手工 `new` 出来的服务**——`src/boot.ts` 只做三件事：
 把 `DSH_HOME` 指向工程内的 `.dsh-home/`、调用 `boot()`、把 `Context` 交回调用方。
 
-- **唯一装配来源**：`dsh-lab/cordis.patch.yml` 里 88 条 `- id:` 记录，覆盖基础设施、
+- **唯一装配来源**：`dsh-lab/cordis.patch.yml` 里 89 条 `- id:` 记录，覆盖基础设施、
   会话核心、存储栈、Agent 循环、上下文工程、工具运行时、人机交互、文件与进程边界、
   委派、长期运行、外部能力、凭据与诊断十二组。
 - **类型增强不是装配**：`src/lab/services.ts` 只有 24 个 `import '@deepseek-ai/dsh-*'`——
@@ -54,7 +54,7 @@ stale_after: 2027-04-30T00:00:00Z
 IR 源：[12-example-topology.architecture.json](../../hello-dsh/diagrams/12-example-topology.architecture.json)
 
 - **装配只有一份清单**：`cordis.yml` 是空表 `[]`（11 行全是注释）；
-  `cordis.patch.yml` 439 行、88 条 `- id:` 行；`boot()` 来自官方 `@deepseek-ai/dsh-app-boot`。
+  `cordis.patch.yml` 450 行、89 条 `- id:` 行；`boot()` 来自官方 `@deepseek-ai/dsh-app-boot`。
 - **模块与阶段**：12 个模块、60 个阶段，每个模块一个 `index.ts`；`src/lab/runner.ts` 驱动，
   阶段失败即非零退出；缺 `LLM_API_KEY` 立即失败，没有 mock 或离线回退。
 - **provider 只有一处自写**：自写 `src/llm/anthropic-compat/index.ts` 的

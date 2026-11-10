@@ -78,7 +78,7 @@ const id = ctx.jobs.start({
 
 `workflowEngine` 是 `PtcWorkflowEngine`：工作流脚本通过 `phase()` / `agent()` / `pipeline()` 这些 hook 把子任务 fan-out 出去。
 
-`run_code`（PTC = programmatic tool calling）在 **native 模式**下不注册——M09.4 打印 `run_code 工具已注册：false` 就是在确认这一点。要启用得把 `tools.mode` 设成 `ptc`。
+`run_code`（PTC = programmatic tool calling）在 **native 执行器**下不注册——M09.4 打印 `run_code 工具已注册：false` 就是在确认这一点。0.2.2 把执行器拆成了独立包：要启用 PTC，挂 `@deepseek-ai/dsh-tool-executor-ptc`（并保留 `ptc-runtime`），而不是改某个 `tools.mode` 配置——那个字段在 0.2.2 已被移除。
 
 两者不是"新旧"关系：native 模式下模型一次调一个工具，PTC 模式下模型写一段代码调用多个工具。前者简单可审计，后者省 token。本工程选 native，因为教学要看清每一次调用。
 
@@ -93,7 +93,7 @@ const id = ctx.jobs.start({
 | `hooks.cancel.bind` 报 undefined | `run()` 没返回 `cancel` / `done` |
 | `append` 报类型错 | 参数是 `(text, {channel})`，不是 `{data: Buffer}` |
 | job 读不到 | owner 不匹配；`list(caller)` / `read(id, caller)` 都按 owner 围栏 |
-| `run_code` 不存在 | native 模式；改 `tools.mode: ptc` |
+| `run_code` 不存在 | native 执行器；改挂 `dsh-tool-executor-ptc`（`tools.mode` 已在 0.2.2 移除） |
 
 ## 练习
 

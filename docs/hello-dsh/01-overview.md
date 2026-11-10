@@ -113,7 +113,7 @@ DeepSeek Harness（`dsh`）是 DeepSeek 开源的 **agent harness**——一个�
 详见 [05 篇](05-startup-and-cordis-runtime.md)、[03 篇](03-capability-seams-and-services.md)。
 
 > 📐 **这三个概念都能立刻上手跑**：本仓库的 [配套工程 dsh-lab](../../dsh-lab/README.md) 有 12 个方向模块（60 个可跑阶段），
-> 全部装在**真实发布的 `@deepseek-ai/*` npm 包**上（`0.2.1-rc.2`）——
+> 全部装在**真实发布的 `@deepseek-ai/*` npm 包**上（`0.2.2-rc.1`）——
 > profile/bundle 看 [`cordis.yml`](../../dsh-lab/cordis.yml) 与 [`cordis.patch.yml`](../../dsh-lab/cordis.patch.yml)，
 > seam 看 [M03 · 推理服务接入](../../dsh-lab/M03-inference-service-access/README.md) / [M07.3 · 沙箱模式](../../dsh-lab/M07-execution-backends/index.ts)，
 > 三类事件域看 [M04.1 · 观察 turn 边界](../../dsh-lab/M04-agent-loop-intervention/index.ts) / [M04.2 · 在 turn 结束前 steer](../../dsh-lab/M04-agent-loop-intervention/index.ts) / [M01.2 · 权限门](../../dsh-lab/M01-tool-pipeline/index.ts)。

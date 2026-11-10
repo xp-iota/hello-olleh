@@ -118,7 +118,7 @@ title: "cordis 源代码全面分析（中文）"
 
 ## 五、配套工程（dsh-lab）
 
-本仓库的 [`dsh-lab/`](../../dsh-lab/README.md) 是本仓库的配套工程：以 DSH 为主线，12 个能力模块里也包含直接验证 cordis 原语的最小程序。工程锁定 `@deepseek-ai/*@0.2.1-rc.2`（cordis 运行时为 `@deepseek-ai/cordis@4.0.5`）；因此它们验证的是 DSH 发布包所携带的 cordis 契约，与本文分析的 cordiverse 上游快照 `f8ea3cd5` 需按“双版本口径”对照阅读。
+本仓库的 [`dsh-lab/`](../../dsh-lab/README.md) 是本仓库的配套工程：以 DSH 为主线，12 个能力模块里也包含直接验证 cordis 原语的最小程序。工程锁定 `@deepseek-ai/*@0.2.2-rc.1`（cordis 运行时为 `@deepseek-ai/cordis@4.0.5`）；因此它们验证的是 DSH 发布包所携带的 cordis 契约，与本文分析的 cordiverse 上游快照 `f8ea3cd5` 需按“双版本口径”对照阅读。
 
 | Cordis 主题 | 配套工程里的入口 | 观察点 |
 |---|---|---|

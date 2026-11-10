@@ -2,7 +2,7 @@
  * runtimes.mjs —— 运行时解析器：把「node / bun」解析成具体可执行文件与版本。
  *
  * 与 dsh-example 的版本不同，dsh-lab 用**系统安装**，不下载私有副本：
- * dsh-lab 依赖 `@deepseek-ai/* 0.2.1-rc.2` 与官方 `boot()`，两套运行时的差异
+ * dsh-lab 依赖 `@deepseek-ai/* 0.2.2-rc.1` 与官方 `boot()`，两套运行时的差异
  * 只有一处（见 lib/bun-shim.mjs），没有需要锁死二进制的理由。所以这里做的是
  * 「解析 + 校验 + 说清楚差异」，而不是「下载 + 解压」。
  *

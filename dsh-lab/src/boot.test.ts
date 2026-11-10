@@ -8,7 +8,10 @@
  */
 import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
+import type { Context } from '@deepseek-ai/cordis'
+import { defineTool } from '@deepseek-ai/dsh-tools'
 import { bootLab, type Lab } from './boot.ts'
+import { callTool } from './lab/tools.ts'
 
 /** 本工程依赖的服务；少一个就说明装配清单出了问题。 */
 const REQUIRED_SERVICES = [
@@ -75,4 +78,57 @@ test('持久化 home 落在工程内', () => {
     lab.home.includes('.dsh-home') || process.env.DSH_LAB_HOME !== undefined,
     `home 应当在工程内，实际 ${lab.home}`,
   )
+})
+
+test('安全护栏在工具函数体执行前打印日志', async () => {
+  const writes: string[] = []
+  const originalWrite = process.stderr.write
+  process.stderr.write = ((chunk: string | Uint8Array) => {
+    writes.push(String(chunk))
+    return true
+  }) as typeof process.stderr.write
+
+  let observed = ''
+  let sawGuardrailBeforeBody = false
+  const probe = {
+    name: 'guardrail-probe',
+    inject: ['tools'],
+    apply(ctx: Context) {
+      ctx.tools.register(
+        defineTool({
+          name: 'guardrail_probe',
+          description: '仅用于验证安全护栏的 pre-execute 顺序。',
+          parameters: {
+            secret: { type: 'string', description: '用于验证默认脱敏规则' },
+          },
+          output: {
+            schema: {
+              type: 'object',
+              properties: { ok: { type: 'boolean', required: true } },
+              additionalProperties: false,
+            },
+            render: () => [{ type: 'text', text: 'probe ok' }],
+          },
+          async execute() {
+            // 关键断言点：工具函数体开始时，护栏日志必须已经写出来了。
+            observed = writes.join('')
+            sawGuardrailBeforeBody = observed.includes('tool=guardrail_probe')
+            return { ok: true }
+          },
+        }),
+      )
+    },
+  }
+
+  const fiber = await lab.ctx.plugin(probe)
+  try {
+    const result = await callTool(lab.ctx, 'guardrail_probe', { secret: 'sk-test' })
+    assert.equal(result.isError, false, result.content)
+  } finally {
+    await fiber.dispose()
+    process.stderr.write = originalWrite
+  }
+
+  assert.ok(sawGuardrailBeforeBody, `工具函数体执行时尚无护栏日志：${observed}`)
+  assert.match(observed, /\[safety-guardrail\] pre-execute tool=guardrail_probe agent=\(standalone\) args=\{"secret":"\[REDACTED\]"\}/)
 })

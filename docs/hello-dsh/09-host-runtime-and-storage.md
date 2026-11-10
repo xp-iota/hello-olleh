@@ -262,7 +262,7 @@ export const deliverablesDefinition: ConversationNodeDefinition<DeliverablesStat
 
 > 📐 **配套可跑示例**：[`M11.1 · 存储域：schema 校验的结构化记录`](../../dsh-lab/M11-config-data-durability/index.ts) 打开一个命名领域
 > （`lab_m11_demo` / 表 `notes`），并用 zod 校验写入——schema 不符即报错，不会静默存脏数据。
-> ⚠️ 配套工程**没有挂载 settings 服务**（`@deepseek-ai/dsh-settings` 不在 `cordis.patch.yml` 的 88 条行里），
+> ⚠️ 配套工程**没有挂载 settings 服务**（`@deepseek-ai/dsh-settings` 不在 `cordis.patch.yml` 的 89 条行里），
 > 所以"默认值 → `update` 合并 → 过期 `expectedRevision` 冲突 → `mutate` → `replace({})` 重置 → 重复注册抛错"
 > 这条 CAS 链在本工程里**没有可跑对照**——它以本快照的源码分析为准。
 

@@ -15,7 +15,7 @@ tags: [okf, dsh-lab]
   `src/llm/anthropic-compat/index.ts`；旧 `runtime/llm-minimax.test.ts` →
   `src/llm/anthropic-compat.test.ts`；旧 `M0X-*/impl|scenes/*.ts` → `M0X-*/index.ts`。
 - 概念 01 改写为「装配枢纽：cordis.patch.yml 装配清单」：dsh-lab **没有** `createHarness`，
-  装配由官方 `boot()` 加声明式 patch 层完成——`cordis.patch.yml` 88 条 `- id:` 行，
+  装配由官方 `boot()` 加声明式 patch 层完成——`cordis.patch.yml` 89 条 `- id:` 行，
   `src/lab/services.ts` 只是 24 个服务包的类型侧导入，运行时一行都不产生。
 - 概念 02 改写 provider 归属：dsh-lab 全工程只有一处自写 provider
   （`src/llm/anthropic-compat/`）；compaction 与 sandbox 后端改由官方包

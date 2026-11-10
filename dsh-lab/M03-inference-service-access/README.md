@@ -48,7 +48,7 @@ cp .env.example .env
 src/llm/anthropic-compat/index.ts     # 适配器插件（本章主角）
 ├─ Config                             # provider / baseURL / apiKeyEnv / model / vendor
 ├─ splitSystem()                      # 把 role:'system' 折进顶层 system 字段
-├─ toAnthropicMessages()              # 0.2.1 消息模型 → Anthropic messages
+├─ toAnthropicMessages()              # 0.2.x 消息模型 → Anthropic messages
 ├─ toAnthropicTool()                  # dsh 工具 schema → Anthropic tools
 ├─ tokenUsage()                       # Anthropic usage → dsh TokenUsage
 └─ class AnthropicCompatAdapter extends LlmAdapter
@@ -60,7 +60,7 @@ src/llm/anthropic-compat/index.ts     # 适配器插件（本章主角）
 
 ### 1. 工具结果不再是 user message 里的 block
 
-0.2.1 把工具结果改成了独立的 `role: 'tool'` 消息（带 `toolCallId`）。而 Anthropic Messages API 要求 `tool_result` 放在 **user** 消息的 content 里。
+0.2.x 把工具结果改成了独立的 `role: 'tool'` 消息（带 `toolCallId`）。而 Anthropic Messages API 要求 `tool_result` 放在 **user** 消息的 content 里。
 
 所以 `toAnthropicMessages()` 必须做一次折叠：把连续的 `role: 'tool'` 消息合并进一条 user 消息的 `tool_result` block 数组。这是协议差异，不是设计缺陷——两边的模型不同，最优表示形式就不同。
 

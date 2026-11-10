@@ -17,6 +17,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { defineModule, type StageContext } from '../src/lab/runner.ts'
+import { callTool } from '../src/lab/tools.ts'
 
 /** M07.1 —— 用沙箱化文件系统读写。 */
 async function writeAndRun(stage: StageContext) {
@@ -25,23 +26,14 @@ async function writeAndRun(stage: StageContext) {
   const agent = handle.agent
   try {
     // 工具执行要带 caller agent，沙箱策略才按该会话的模式判定。
-    const path = `${process.cwd()}/.dsh-home/m07-demo.txt`
-    const write = await ctx.tools.execute({
-      callId: `m07w-${Date.now()}` as never,
-      name: 'write',
-      arguments: { file_path: path, content: 'M07.1 写入于沙箱内\n' },
-      agent,
-      signal: new AbortController().signal,
-    })
+    // 文件名带时间戳：`fs-observation-policy` 要求覆盖已存在文件前先读过它，
+    // 固定文件名会让第二次运行变成"未读先写"，从而误报失败。
+    const path = `${process.cwd()}/.dsh-home/m07-demo-${Date.now().toString(36)}.txt`
+    const write = await callTool(ctx, 'write', { file_path: path, content: 'M07.1 写入于沙箱内\n' }, agent)
     stage.log(`write：isError=${write.isError} ${preview(write.content)}`)
+    stage.assert(!write.isError, '在沙箱内写新文件失败')
 
-    const read = await ctx.tools.execute({
-      callId: `m07r-${Date.now()}` as never,
-      name: 'read',
-      arguments: { file_path: path },
-      agent,
-      signal: new AbortController().signal,
-    })
+    const read = await callTool(ctx, 'read', { file_path: path }, agent)
     stage.log(`read：isError=${read.isError} ${preview(read.content)}`)
     stage.assert(!read.isError, '读回自己写的文件失败')
   } finally {
@@ -57,13 +49,12 @@ async function runShell(stage: StageContext) {
   try {
     const toolName = process.platform === 'win32' ? 'pwsh' : 'bash'
     const command = process.platform === 'win32' ? "'M07.2 ok' | Write-Output" : 'echo "M07.2 ok"'
-    const result = await ctx.tools.execute({
-      callId: `m07s-${Date.now()}` as never,
-      name: toolName,
-      arguments: { command, description: 'M07.2 演示一次性 shell 命令' },
+    const result = await callTool(
+      ctx,
+      toolName,
+      { command, description: 'M07.2 演示一次性 shell 命令' },
       agent,
-      signal: new AbortController().signal,
-    })
+    )
     stage.log(`${toolName}：isError=${result.isError} ${preview(result.content)}`)
     stage.assert(!result.isError, `${toolName} 执行失败`)
   } finally {
@@ -87,38 +78,30 @@ async function observationPolicy(stage: StageContext) {
   const handle = await ctx.agents.create({ sessionId: SessionId(stage.sessionId), meta: { cwd: process.cwd() } })
   const agent = handle.agent
   try {
-    const path = `${process.cwd()}/.dsh-home/m07-obs.txt`
+    const path = `${process.cwd()}/.dsh-home/m07-obs-${Date.now().toString(36)}.txt`
     // 关键：用 node 直接落盘，**不经过工具**。若用 write 工具建立文件，那次 write
     // 本身就登记了一次"观察"，后面的 edit 自然合法——那样就演示不出策略了。
     mkdirSync(dirname(path), { recursive: true })
     writeFileSync(path, 'original\n', 'utf8')
 
     // 该 agent 从未读过这个文件，却直接 edit：应当被观察策略拒绝。
-    const blind = await ctx.tools.execute({
-      callId: `m07o2-${Date.now()}` as never,
-      name: 'edit',
-      arguments: { file_path: path, old_string: 'original', new_string: 'changed' },
+    const blind = await callTool(
+      ctx,
+      'edit',
+      { file_path: path, old_string: 'original', new_string: 'changed' },
       agent,
-      signal: new AbortController().signal,
-    })
+    )
     stage.log(`未读先编辑：isError=${blind.isError} ${preview(blind.content)}`)
     stage.assert(blind.isError, '观察策略应当拒绝未读先编辑')
 
     // 读过之后再编辑：应当成功。
-    await ctx.tools.execute({
-      callId: `m07o3-${Date.now()}` as never,
-      name: 'read',
-      arguments: { file_path: path },
+    await callTool(ctx, 'read', { file_path: path }, agent)
+    const informed = await callTool(
+      ctx,
+      'edit',
+      { file_path: path, old_string: 'original', new_string: 'changed' },
       agent,
-      signal: new AbortController().signal,
-    })
-    const informed = await ctx.tools.execute({
-      callId: `m07o4-${Date.now()}` as never,
-      name: 'edit',
-      arguments: { file_path: path, old_string: 'original', new_string: 'changed' },
-      agent,
-      signal: new AbortController().signal,
-    })
+    )
     stage.log(`读过之后编辑：isError=${informed.isError} ${preview(informed.content)}`)
     stage.assert(!informed.isError, '读后编辑应当成功')
   } finally {

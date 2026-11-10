@@ -6,7 +6,7 @@
  *   存储     `ctx.storage`       schema 校验的领域记录（storage-domain over JSON backend）
  *   附件     `ctx.attachments`   图片/文件的不可变字节，日志里只存引用
  *   凭据     `ctx.credentials`   密钥的引用解析（永不进日志、永不进环境）
- *   引用     `ctx.sessionReferences` / `ctx.fileReferences`  跨会话与文件的快照引用
+ *   引用     `ctx.sessionReferenceResolver` / `ctx.fileReferences`  跨会话与文件的快照引用
  *
  * 这一章的关键是"引用而不是内容"：日志里出现的是 id，真实字节在各自的后端里，
  * 因此日志可以安全分享，而敏感内容仍然受授权保护。
@@ -79,7 +79,7 @@ async function credentials(stage: StageContext) {
 /** M11.4 —— 跨会话引用。 */
 async function sessionReference(stage: StageContext) {
   const { ctx } = stage
-  const refs = ctx.get('sessionReferences' as never)
+  const refs = ctx.get('sessionReferenceResolver' as never)
   stage.log(`session-reference：${refs === undefined ? '(未装配)' : '在位'}`)
   stage.log('把另一条会话的快照按预算放进当前上下文（recall 形态），而不是复制整条日志')
 }

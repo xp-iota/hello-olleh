@@ -50,7 +50,7 @@ M06-human-in-the-loop/index.ts
 src/cli/repl.ts                 # 把上面四个接到终端
 ```
 
-## M06.2：一个真实的 0.2.1 约束
+## M06.2：一个真实的 0.2.x 约束
 
 裸调 `ctx.approval.request()` 会失败：
 

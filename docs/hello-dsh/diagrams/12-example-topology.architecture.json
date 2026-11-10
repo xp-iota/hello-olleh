@@ -30,7 +30,7 @@
       "id": "patch-config",
       "type": "database",
       "label": "cordis.patch.yml",
-      "sublabel": "439 行 · 88 条 - id: 行",
+      "sublabel": "450 行 · 89 条 - id: 行",
       "tag": "唯一的装配清单",
       "pos": [
         60,
@@ -188,7 +188,7 @@
       "id": "patch-boot",
       "from": "patch-config",
       "to": "boot",
-      "label": "88 条行"
+      "label": "89 条行"
     },
     {
       "id": "boot-ctx",
@@ -268,7 +268,7 @@
       "title": "装配只有一份清单",
       "items": [
         "cordis.yml 是空表 []，11 行全是注释",
-        "cordis.patch.yml 439 行、88 条 - id: 行",
+        "cordis.patch.yml 450 行、89 条 - id: 行",
         "boot() 来自官方 @deepseek-ai/dsh-app-boot"
       ]
     },

@@ -8,7 +8,7 @@
  *   dsh-lab sessions          列出已落盘的会话
  *   dsh-lab traj [id]         查看某个会话的 trajectory
  *   dsh-lab run <M01..M12|all> 跑模块的教学阶段
- *   dsh-lab info              打印装配树概况（服务/工具/命令/路由）
+ *   dsh-lab info              打印装配树概况（服务/工具/命令/路由/护栏）
  *
  * 设计原则：**启动一次树，做完事，优雅释放**。`chat` 以外的子命令都只读或只跑一次，
  * 因此它们不创建 agent，也不要求 LLM_API_KEY——只有真正调模型的路径才会失败。
@@ -27,7 +27,7 @@ loadDotEnv()
 const program = new Command()
 program
   .name('dsh-lab')
-  .description('基于 @deepseek-ai/dsh 0.2.1-rc.2 的独立示例工程：12 个能力模块 + 交互式 CLI + trajectory')
+  .description('基于 @deepseek-ai/dsh 0.2.2-rc.1 的独立示例工程：12 个能力模块 + 交互式 CLI + trajectory')
   .version('0.1.0')
 
 program
@@ -122,6 +122,7 @@ program
       line(`  路由      ${providers.map((p: { id?: string; provider?: string }) => p.id ?? p.provider).join(', ') || '(未注册)'}`)
       line(`  工具      ${tools.length}`)
       line(`  命令      ${commands.map((c: { name: string }) => '/' + c.name).join(', ')}`)
+      line(`  护栏      pre-execute 日志（${process.env.DSH_GUARDRAIL === '0' ? '已关闭' : '开启'}）`)
       line()
     } finally {
       await lab.dispose()

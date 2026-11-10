@@ -93,7 +93,7 @@ async function ptcRuntime(stage: StageContext) {
   stage.log(`ptc-runtime：${runtime === undefined ? '(未装配)' : '在位'}`)
   const tools = ctx.tools.schemas().map((schema) => schema.name)
   stage.log(`run_code 工具已注册：${tools.includes('run_code')}`)
-  stage.log('默认 native 呈现模式不含 run_code；把 tools.mode 设为 ptc 才启用')
+  stage.log('native 执行器下不暴露 run_code；要启用 PTC 需另挂 @deepseek-ai/dsh-tool-executor-ptc（并保留 ptc-runtime）')
 }
 
 /** M09.5 —— 定时与提醒。 */
