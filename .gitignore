@@ -62,3 +62,4 @@ iota-example/.wheels/
 .acceptance/
 
 # dsh-workshop 的生成物规则由 dsh-workshop/.gitignore 自己拥有（见 dsh-workshop/AGENTS.md）
+.firecrawl/
