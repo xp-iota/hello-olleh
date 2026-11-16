@@ -17,8 +17,8 @@
 | [hermes-agent](https://github.com/nousresearch/hermes-agent.git) | v2026.9.24（包版本 0.21.5） | Python / FastAPI | Nous Research 的多模态 Agent 框架 |
 | [nanobot](https://github.com/HKUDS/nanobot.git) | v0.3.5 | Python / asyncio | HKUDS 轻量级个人助手框架：17 渠道 + MessageBus + 两层 Agent 循环 |
 | [openclaw](https://github.com/openclaw/openclaw) | v2026.10.2 | TypeScript + Rust | 开源个人 AI 助理网关：单 Gateway 控制面 + 20+ 消息通道，模型/harness/通道皆插件 |
-| [cordis](sources/cordis) | 4.0.0-rc.10 | TypeScript | Fiber + Service 元框架，可逆插件组合 |
-| [deepseek-harness](sources/deepseek-harness) | 0.1.5-rc.2 | TypeScript / React | 基于 Cordis 的插件化 Agent Harness |
+| [cordis](sources/cordis) | 4.0.0-rc.13 | TypeScript | Fiber + Service 元框架，可逆插件组合 |
+| [deepseek-harness](sources/deepseek-harness) | 0.2.2-rc.3 | TypeScript / React | 基于 Cordis 的插件化 Agent Harness |
 
 ![](docs/assets/hello-harness.png)
 

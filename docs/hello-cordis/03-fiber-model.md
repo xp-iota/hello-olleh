@@ -3,25 +3,27 @@ title: "Fiber 模型"
 ---
 # Fiber 模型
 
-> **本篇回答**：`C/fiber.ts`（496 行）——cordis 的心脏——同时承担的三件事：可逆效应的登记与回收、6 态生命周期状态机、以及用一个字符串实现的依赖追踪。
-> **路径缩写**：`C/` = `packages/core/src/`。行号对应快照 `f8ea3cd5`。
+> **本篇回答**：`C/fiber.ts`（557 行）——cordis 的心脏——同时承担的四件事：可逆效应的登记与回收、6 态生命周期状态机、用一个字符串实现的依赖追踪、以及依赖方卸载握手（provider 等 consumer）。
+> **路径缩写**：`C/` = `packages/core/src/`。行号对应快照 `bc9fae7`（v4.0.0-rc.13）。
 >
-> 🧭 **本篇导览**：3.1–3.3 Fiber 与 `effect()` 的返回形态 → 3.4 epoch 依赖追踪 → 3.5–3.6 6 态状态机与父子挂载 → 3.7–3.8 公开 API 与长堆栈。
+> 🧭 **本篇导览**：3.1–3.3 Fiber 与 `effect()` 的返回形态 → 3.4 epoch 依赖追踪与 `_replace` 原位替换 → 3.5 6 态状态机与依赖方卸载握手 → 3.6 父子挂载 → 3.7–3.8 公开 API 与长堆栈。
 >
 
 ## 3.1 Fiber 是什么
 
-**每一次 `ctx.plugin(p)` 都产生一个 Fiber**（`C/registry.ts:207`），它是"这个插件这一次运行"的全部状态。
+**每一次 `ctx.use(p)` 都产生一个 Fiber**（`C/registry.ts:246`；旧名 `ctx.plugin()` 已标 `@deprecated`，`registry.ts:122-123`），它是"这个插件这一次运行"的全部状态。
 
-![Plugin / Runtime / Fiber 三层概念](diagrams/03-three-layers.svg)
+![Component / Runtime / Fiber 三层概念](diagrams/03-three-layers.svg)
 
-**Plugin / Runtime / Fiber 三层概念** — [交互版](diagrams/03-three-layers.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-three-layers.architecture.json)
+**Component / Runtime / Fiber 三层概念** — [交互版](diagrams/03-three-layers.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-three-layers.architecture.json)
 
 - **三者的基数关系**：一份代码对应一个 Runtime · 一个 Runtime 对应任意多个 Fiber · Runtime 上的 fibers 列出全部实例
-- **Fiber 的身份与状态字段**：uid 是递增序号，为 null 表示已卸载 · state 是六态之一，由其它字段推导得出 · store 是本 Fiber 可见的服务快照，未激活时为空
-- **Fiber 的执行与回收字段**：inertia 持有在途的 reload 或 unload 任务，是串行化锁 · _disposables 是本 Fiber 登记的全部可逆效应 · _runner 持有 epoch 与 exec，字段定义见 fiber.ts:103-119
+- **Fiber 的身份与状态字段**：uid 是递增序号，为 null 表示已卸载 · state 是六态之一，由其它字段推导得出 · committed 是本次装载提交的依赖快照，未激活时为 undefined
+- **Fiber 的执行与回收字段**：inertia 持有在途的 reload 或 unload 任务，是串行化锁 · _disposables 是本 Fiber 登记的全部可逆效应 · _runner 持有 epoch 与 exec，字段定义见 fiber.ts:116-135
 
-💡 **`uid` 的双重身份**：既是"是否存活"的标志（`null` = 已卸载，`C/fiber.ts:224 assertActive` 就检查它），又是 **epoch 的构成材料**（§ 3.4）。`uid` 从 `parent.registry.counter` 取（`C/fiber.ts:134`），而 `counter` 是个 getter：`get counter() { return ++this._counter }`（`C/registry.ts:136`）——**每次读取都自增**，保证全局唯一且递增。
+⚠️ **术语与 rc.10 的差异**：核心类型 `Plugin` 已整体改名 **`Component`**（`registry.ts:63`，`Plugin.Runtime` → `Component.Runtime`，`registry.ts:94`）；Fiber 的旧公开字段 `store` 已被 **`committed: Readonly<Dict<Impl>> | undefined`** 取代（`fiber.ts:120`）——`_reload()` 开始时 `this.committed = { ...this._store }`（`:451`），`_unload()` 结束时置 `undefined`（`:509`），**未激活时是 `undefined` 而非"空对象"**。本系列 04 篇的"服务表 store"（`ReflectService.store`）是另一张表，勿混淆。
+
+💡 **`uid` 的双重身份**：既是"是否存活"的标志（`null` = 已卸载，`C/fiber.ts:231 assertActive` 就检查它），又是 Fiber 身份的序号。`uid` 从 `parent.registry.counter` 取（`C/fiber.ts:149`），而 `counter` 是个 getter：`get counter() { return ++this._counter }`（`C/registry.ts:139-141`）——**每次读取都自增**，保证全局唯一且递增。注意 epoch 的构成材料不是它，而是 **Impl 自己的 uid**（§ 3.4）。
 
 ## 3.2 `effect()`：唯一的副作用入口
 
@@ -39,7 +41,7 @@ title: "Fiber 模型"
 
 ### 返回值的双重身份
 
-`effect()` 返回的 wrapper 是 cordis 里最巧妙的 API 设计之一（`C/fiber.ts:322-337`）：
+`effect()` 返回的 wrapper 是 cordis 里最巧妙的 API 设计之一（`C/fiber.ts:339-354`）：
 
 ```ts
 const dispose = ctx.effect(() => {
@@ -55,8 +57,8 @@ const d = await dispose // ② 当 thenable 用：等 setup 完成，拿到 disp
 
 | 用法 | 代码位置 | 行为 |
 |---|---|---|
-| `dispose()` | `:322-326` | `if (!runner.epoch) return`（幂等）→ `runner.epoch = false` → `task ? task.then(dispose) : dispose()` |
-| `await dispose` | `:333-337` | `Promise.resolve(task).then(() => disposeAsync)` —— **返回的是 `disposeAsync` 函数本身**，不执行它 |
+| `dispose()` | `:339-343` | `if (!runner.epoch) return`（幂等）→ `runner.epoch = false` → `task ? task.then(dispose) : dispose()` |
+| `await dispose` | `:350-354` | `Promise.resolve(task).then(() => disposeAsync)` —— **返回的是 `disposeAsync` 函数本身**，不执行它 |
 
 💡 **为什么需要 thenable？** 因为 effect 的 setup 可能是异步的（返回 Promise 或 AsyncIterable）。同步调 `dispose()` 时框架内部会 `task.then(dispose)` 排队，但调用方无法知道 setup 是否已完成。`await dispose` 给出了"等 setup 稳定后再决定"的能力。
 
@@ -64,7 +66,7 @@ const d = await dispose // ② 当 thenable 用：等 setup 完成，拿到 disp
 
 ### `dispose()` 的逆序 + 异步链
 
-`C/fiber.ts:281-294`：
+`C/fiber.ts:298-311`：
 
 ```ts
 const dispose = () => {
@@ -91,38 +93,47 @@ const dispose = () => {
 
 | 层级 | 实现 | 顺序保证 |
 |---|---|---|
-| **单个 effect 内部** | 上面这段 `dispose()`（`C/fiber.ts:281-294`）：`splice(0).reverse()` 逆序 + `task.then(...)` 串链 | **严格逆序、严格串行** |
-| **Fiber 级卸载** | `_unload()`（`C/fiber.ts:439-460`）：`await Promise.all(this._disposables.clear().map(...))` | `clear()`（`C/utils.ts:26-30`）返回的数组确实逆序（`values.reverse()`），但 `Promise.all` 让它们**并发**执行——只有启动顺序，没有完成顺序 |
+| **单个 effect 内部** | 上面这段 `dispose()`（`C/fiber.ts:298-311`）：`splice(0).reverse()` 逆序 + `task.then(...)` 串链 | **严格逆序、严格串行** |
+| **Fiber 级卸载** | `_unload()`（`C/fiber.ts:481-518`）：`await Promise.all(this._disposables.clear().reverse().map(...))`（`:492`） | `clear()`（`C/utils.ts:38-43`）**按插入序**返回（`DisposableList` 重写为 head/tail 双 Map，迭代器在 `utils.ts:45-48`），逆序由 `fiber.ts:492` 的显式 `.reverse()` 完成；`Promise.all` 让它们**并发**执行——只有启动顺序，没有完成顺序 |
 
 所以：**跨 effect 的清理依赖不能指望注册顺序**。如果 B 的清理必须等 A 完成，就要把两者放进同一个 effect（生成器形态 yield 两个 disposer），而不是分成两次 `ctx.effect()`。后文所有提到「卸载时逆序执行全部 disposer」的地方，都应按这张表理解。
 
 ## 3.3 effect 支持的返回形态
 
-`Effect` 类型（`C/fiber.ts:54`）声明的是四种**有效**形态——函数 / Promise / Iterable / AsyncIterable；`_execute()`（`C/fiber.ts:229-272`）在此之上还处理两种边界（nullish 直接放行、其余一律抛 `TypeError`），所以下图共六条分支：
+`Effect` 类型（`C/fiber.ts:66-76`）声明的是四种**有效**形态——函数 / Promise / Iterable / AsyncIterable；`_execute()`（`C/fiber.ts:240-290`）在此之上还处理两种边界（nullish 直接放行、其余一律抛 `TypeError`），所以下图共六条分支：
 
 ![effect 执行体的五种合法返回形态](diagrams/03-effect-return-shapes.svg)
 
 **effect 执行体的五种合法返回形态** — [交互版](diagrams/03-effect-return-shapes.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-effect-return-shapes.architecture.json)
 
-- **四种有效形态加一种拒绝**：Effect 类型在 C/fiber.ts:54 声明 · 函数、nullish、Promise、Iterable、AsyncIterable 均合法 · 其余一律抛 TypeError，不做静默降级
+- **四种有效形态加一种拒绝**：Effect 类型在 C/fiber.ts:66-76 声明 · 函数、nullish、Promise、Iterable、AsyncIterable 均合法 · 其余一律抛 TypeError，不做静默降级
 - **生成器形态的堆栈修正**：Iterable 分支会 info.error = new Error() · 目的是重置堆栈锚点，让报错指向 yield 处 · 否则错误会归到遍历循环上
-- **异步生成器可被打断**：每轮 yield 后比对 runner.epoch 与开始时的值 · 不一致即中止遍历（:263） · 这让依赖变化能及时终止长流程
+- **异步生成器可被打断**：每轮 yield 前比对 runner.epoch 与开始时的值 · 不一致即中止遍历（:275） · 中止时 finally 里 iter.return?.() 关闭迭代器（:283），让生成器的 finally 块得以执行
 
-💡 **生成器形态（④⑤）是 cordis 的招牌用法**。典型例子是 `C/reflect.ts:241 mixin`：
+💡 **生成器形态（④⑤）是 cordis 的招牌用法**。典型例子是 `C/reflect.ts:282-308 mixin`：
 
 ```ts
-mixin(source, mixins) {
+mixin(source: any, mixins: string[] | Dict<string>) {
+  const self = this
   return this.ctx.fiber.effect(function* () {      // ← 生成器 effect
-    for (const [key, value] of entries) {
-      yield self.accessor(value, { get, set })     // ← 每个 accessor 是一个 disposer
+    const entries = Array.isArray(mixins) ? mixins.map(key => [key, key]) : Object.entries(mixins)
+    const getTarget = (ctx: Context, error: Error) => {
+      // TODO enhance error message
+      return ctx[source]
     }
-  }, `ctx.mixin(...)`)
+    for (const [key, value] of entries) {
+      yield self.accessor(value, {                 // ← 每个 accessor 是一个 disposer
+        get(receiver, error) { ... },
+        set(value, receiver, error) { ... },
+      })
+    }
+  }, `ctx.mixin(${JSON.stringify(source)})`)
 }
 ```
 
-一个 effect 登记 N 个 disposer，卸载时逆序全撤。比手写 `const ds = []; ...; return () => ds.forEach(d => d())` 干净。
+一个 effect 登记 N 个 disposer，卸载时逆序全撤。比手写 `const ds = []; ...; return () => ds.forEach(d => d())` 干净。注意 accessor 的签名比 rc.10 多了 `receiver` / `error` 参数（`reflect.ts:60-61`）。
 
-💡 **AsyncIterable 形态的 epoch 检查（`:263`）是防"过期任务"的关键**：如果 effect 还在异步初始化过程中 Fiber 就被 unload 了，epoch 已变，循环立即 return，不再 collect 新的 disposer。
+💡 **AsyncIterable 形态的 epoch 检查（`:275`）是防"过期任务"的关键**：如果 effect 还在异步初始化过程中 Fiber 就被 unload 了，epoch 已变，循环立即 return，不再 collect 新的 disposer；`finally` 里的 `iter.return?.()`（`:283`）还会关闭迭代器，让生成器自己的 `finally` 块执行。
 
 💡 **Service 的 `[Service.init]` 常写成 async generator**。cordis 生态里的惯例：
 
@@ -133,7 +144,7 @@ async* [Service.init]() {
 }
 ```
 
-`packages/hmr/src/index.ts:129` 与 `packages/include/src/index.ts:134` 都是这个模式。
+`packages/include/src/index.ts:305-323` 仍是这个模式（`yield () => this.stop()` 在 `:321`）。反例是 `packages/hmr/src/index.ts:245-259`：rc.13 的 Hmr `[Service.init]` 体内**没有 yield**——watcher 的清理交给 `ctx.inject(['fs'], ctx => this._watch(ctx))` 挂的子 Fiber（`:184`）与 `ctx.effect(() => () => clearTimeout(timer))`（`:203-204`）。"先登记清理再初始化"作为惯例仍成立，但例证要选对。
 
 ## 3.4 epoch：用字符串实现依赖追踪
 
@@ -143,37 +154,39 @@ async* [Service.init]() {
 
 **_refresh() 如何把依赖压成一个字符串** — [交互版](diagrams/03-epoch-refresh.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-epoch-refresh.architecture.json)
 
-- **举例：inject 为 db 与 cache**：db 的 Fiber uid 是 3，cache 的是 7 · 于是 epoch 等于 ':3:7' · 字符串本身就编码了全部依赖身份
-- **依赖换代的效果**：db 卸载重装拿到新 uid 9 · epoch 变成 ':9:7'，与 ':3:7' 不等 · 于是本插件自动 unload 再 reload
+- **举例：inject 为 db 与 cache**：db 的实现 Impl uid 是 3，cache 的是 7 · 于是 epoch 等于 '0:3:7'（开头的 0 是本 Fiber 的 _revision）· 字符串本身就编码了全部依赖身份
+- **依赖换代的效果**：db 卸载重装拿到新 Impl uid 9 · epoch 变成 '0:9:7'，与 '0:3:7' 不等 · 于是本插件自动 unload 再 reload
 - **依赖消失的效果**：cache 不见了，epoch 直接置为 INACTIVE · 触发 unload，状态回落到 PENDING · 没有依赖图、拓扑排序或引用计数
 
-`_refresh()` 全文（`C/fiber.ts:385-397`）：
+`_refresh()` 全文（`C/fiber.ts:418-430`）：
 
 ```ts
 _refresh() {
-  let epoch: string | boolean = false
-  epoch = ''
+  if (this.uid === null) return
+  let epoch = `${this._revision}`
   for (const name of Object.keys(this.inject)) {
     const impl = this._store[name]
     if (!impl) {
       epoch = INACTIVE
       break
     }
-    epoch += ':' + impl.fiber.uid
+    epoch += ':' + impl.uid
   }
   this._setEpoch(epoch)
 }
 ```
 
+💡 **epoch 由两个计数器拼成**。开头的 `${this._revision}` 是 **Fiber 自己的换代号**（`fiber.ts:131`，初始 0）：`restart()` 会 `fiber._revision++`（`:531`），`_replace()` 也 `++`（`:414`）——所以**同一插件换配置重启、或被原位替换，即使依赖集合一字不变，epoch 也变**（rc.10 里 epoch 只由依赖 uid 构成，`update()` 靠显式 restart）。冒号后的每位是依赖实现 **`Impl.uid`**（`reflect.ts:224` 的 `++this._implCounter`，计数器在 `:174`）——**Impl uid 与 Fiber uid 是两个独立序列**：前者由 `ReflectService._implCounter` 自增（同名服务每次重新 provide 都拿新号），后者由 `RegistryService.counter` 自增（`registry.ts:139-141`，见 § 3.1）。epoch 里出现的是前者。
+
 💡 **为什么用字符串而不是数组或对象？** 因为需要的只有一个操作：**判断"依赖集合的身份"是否变了**。字符串的 `===` 比较是 O(n) 但常数极小，且天然处理"顺序 + 身份"两个维度。用对象要写深比较，用数组要写逐元素比较——字符串把两者压成一次比较。
 
-💡 **`':'` 前缀不可省**。若写成 `epoch += impl.fiber.uid`，则 `[uid=1, uid=23]` 和 `[uid=12, uid=3]` 都产生 `'123'`——**歧义**。加分隔符后是 `':1:23'` vs `':12:3'`。
+💡 **`':'` 前缀不可省**。若写成 `epoch += impl.uid`，则 `[uid=1, uid=23]` 和 `[uid=12, uid=3]` 都产生 `'123'`——**歧义**。加分隔符后是 `'0:1:23'` vs `'0:12:3'`。
 
-💡 **无依赖的插件 epoch = `''`**（空字符串），而 `'' !== INACTIVE`，所以 `_getState()`（`:348`）判定它是 ACTIVE。这解释了为什么无依赖插件装上就立即运行。
+💡 **无依赖的插件 epoch = `'0'`**（`_revision` 初始 0 的字符串形式），而 `'0' !== INACTIVE`，所以 `_getState()`（`:365`）判定它是 ACTIVE。这解释了为什么无依赖插件装上就立即运行。根 Fiber 的 epoch 也是 `'0'`（`:213`；rc.10 是空字符串 `''`）。
 
 ### `_store` 从哪来
 
-`_checkImpl(name)`（`C/fiber.ts:371-383`）负责填充 `_store`：
+`_checkImpl(name)`（`C/fiber.ts:387-399`）负责填充 `_store`：
 
 ![_checkImpl() 如何填充 _store](diagrams/03-check-impl.svg)
 
@@ -181,25 +194,33 @@ _refresh() {
 
 - **strict 的含义**：只接受提供者 Fiber 处于 ACTIVE 的实现 · 半就绪的服务不会被写入 _store · 避免依赖方拿到尚未初始化完的实例
 - **check 是提供方的准入钩子**：返回 false 表示该实现对此消费者不可用 · 抛异常会被记进 error 日志后同样删除 · 让同名服务可以按消费者做差异化放行
-- **_store 是 epoch 的输入**：_checkImpl 只负责填或删 _store · epoch 完全由 _store 的内容推导 · 两者分离让依赖判定保持无状态
+- **_store 是 epoch 的输入**：_checkImpl 只负责填或删 _store · epoch 由 _revision 与 _store 的内容共同推导 · 两者分离让依赖判定保持无状态
 
-💡 **`impl.check` 是"服务自己说自己还不可用"的机制**。典型用途见 `L/index.ts:141 [Service.check]`：Loader 在还有未完成的加载任务时返回 `false`，让依赖 `loader` 的插件（如 HMR）等到加载完毕才启动。
+💡 **`impl.check` 是"服务自己说自己还不可用"的机制**。典型用途见 `L/index.ts:179-183 [Service.check]`：Loader 在还有未完成的加载任务时返回 `false`，让依赖 `loader` 的插件（如 HMR）等到加载完毕才启动。
+
+### `_replace`：原位替换，换代不换身份
+
+`_replace(runtime, inject)`（`C/fiber.ts:401-416`）是 rc.13 新增的**原位替换**入口：**同一个 Fiber 对象保留**，只换 runtime（从旧 Runtime 的 `fibers` 摘除、登记进新 Runtime，`:402-405`）、重算 `_store`（`:409-412`）、清 `_error`（`:413`）、`_revision++` 再 `_refresh()`（`:414-415`），并 emit 新事件 **`internal/replace`**（`:408`，`events.ts:214`）。config 与 Fiber 身份都不变。
+
+公开入口是 **`registry.replace(oldComponent, newComponent): Fiber[]`**（`C/registry.ts:187-211`）：它先沿 `_aliases` 别名链登记"旧组件 → 新组件"（`:194-201`，旧组件被 replace 后仍可被 `get`/`has` 解析到新组件，`registry.ts:155-163`），然后对旧 Runtime 里的每个 fiber 调 `fiber._replace(target, Inject.resolve(newComponent.inject))`（`:207-209`）。
+
+💡 这推翻了 rc.10"换代必然是新 Fiber 新 uid"的模型：HMR 的 Stage 2 现在靠它实现**引用不失效**——`ctx.use()` 返回的 fiber 引用在热替换后持续有效，级联重载由 `_revision` 变化驱动（见 08 篇）。
 
 ## 3.5 6 态状态机
 
-`FiberState`（`C/fiber.ts:78-85`）：
+`FiberState`（`C/fiber.ts:90-97`）：
 
 ![Fiber 的六态状态机](diagrams/03-fiber-states.svg)
 
 **Fiber 的六态状态机** — [交互版](diagrams/03-fiber-states.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-fiber-states.lifecycle.json)
 
 - **_getState() 的判定优先级**：① uid === null 则 DISPOSED · ② _error 存在则 FAILED · ③ epoch 不等于 INACTIVE 则 ACTIVE · ④ 否则 PENDING
-- **状态是算出来的，不是存的**：六个状态没有任何一个字段直接保存 · 全部由 uid / _error / epoch 三个量推导（fiber.ts:348） · dispose() 可从 PENDING / ACTIVE / FAILED 任一状态发生，都是置 uid = null
+- **状态是算出来的，不是存的**：六个状态没有任何一个字段直接保存 · 全部由 uid / _error / epoch 三个量推导（fiber.ts:365） · dispose() 可从 PENDING / ACTIVE / FAILED 任一状态发生，都是置 uid = null
 - **迁移触发条件与 UNLOADING 的两条出路**：LOADING → FAILED：_reload 抛异常，_error 被设置且 epoch 强制回 INACTIVE · ACTIVE → UNLOADING：epoch 变为新值或变回 INACTIVE，均触发 _unload() · 卸载完成时再查 epoch：是 INACTIVE 则回 PENDING，已换新值则直接进 LOADING · 后者让热重载可以连续发生，省掉一次回落
 
 ### `inertia`：状态机的串行化锁
 
-`_setEpoch()`（`C/fiber.ts:399-415`）的关键几行：
+`_setEpoch()`（`C/fiber.ts:432-448`）的关键几行：
 
 ```ts
 private _setEpoch(epoch: string) {
@@ -213,9 +234,9 @@ private _setEpoch(epoch: string) {
 }
 ```
 
-💡 **`if (this._error) return` 是失败 Fiber 的熔断**：一旦装载失败（`_error` 被设置、epoch 被强制回 INACTIVE），后续任何依赖变化都不再触发它的状态迁移——依赖抖动只会白白地把一个注定失败的插件反复装卸。唯一的恢复通道是 `update()`（`:478`），它显式清掉 `_error` 后再 restart。
+💡 **`if (this._error) return` 是失败 Fiber 的熔断**：一旦装载失败（`_error` 被设置、epoch 被强制回 INACTIVE），后续任何依赖变化都不再触发它的状态迁移——依赖抖动只会白白地把一个注定失败的插件反复装卸。唯一的恢复通道是 `update()`（`:536`，它显式清掉 `_error`，`:543`）与 `_replace()`（`:413`，见 § 3.4）。
 
-💡 **`if (this.inertia) return` 是整套并发控制的核心**。如果正在 reload/unload，新的 epoch 变化只是"记下来"，不启动新任务。等在途任务结束时，`_reload()`（`:417-437`）/ `_unload()`（`:439-460`）的收尾逻辑会**比较 epoch 是否又变了**，决定继续做还是停下：
+💡 **`if (this.inertia) return` 是整套并发控制的核心**。如果正在 reload/unload，新的 epoch 变化只是"记下来"，不启动新任务。等在途任务结束时，`_reload()`（`:450-479`）/ `_unload()`（`:481-518`）的收尾逻辑会**比较 epoch 是否又变了**，决定继续做还是停下：
 
 ![epoch 竞态：依赖在加载途中又变了](diagrams/03-epoch-race.svg)
 
@@ -229,58 +250,80 @@ private _setEpoch(epoch: string) {
 
 ### 状态变化的通知
 
-`_updateState()`（`C/fiber.ts:355-369`）在状态变化时：
+`_updateState()`（`C/fiber.ts:372-385`）在状态变化时：
 
-1. `context.emit('internal/status', this, oldState)`（`:360`）
-2. **仅当跨越 ACTIVE 边界时**（`:363`：`if (oldState !== ACTIVE && this.state !== ACTIVE) return`），遍历本 Fiber 提供的所有服务，逐个 `reflect.notify([impl.name])`
+1. `context.emit('internal/status', this, oldState)`（`:377`）
+2. **仅当跨越 ACTIVE 边界时**（`:380`：`if (oldState !== ACTIVE && this.state !== ACTIVE) return`），遍历本 Fiber 的 `provisions`（`:381`），跳过已从 store 注销的实现（`:382` 守卫 `if (this.ctx.reflect.store[impl.isolate] !== impl) continue`），对每个仍注册的实现按它自己的隔离符号精确通知：`this.ctx.isolate(impl.name, impl.isolate).reflect.notify([impl.name])`（`:383`）
 
 💡 **第 2 步是级联的起点**：本 Fiber 状态变了 → 通知它提供的服务 → `notify` 找到所有 inject 该服务的 Fiber → 它们 `_checkImpl` + `_refresh` → epoch 变化 → 它们也 reload……**依赖树的传播就是这样一层层展开的**，全程没有显式的图遍历。
 
+### 依赖方卸载握手：provider 等 consumer
+
+rc.13 把"谁先停机"从隐式时序落成了**显式协议**：**提供者的清理会等所有依赖者卸载完成**——consumer 先于 provider 停机。
+
+- Fiber 持有 `provisions: Set<Impl>`（`fiber.ts:121`）——本 Fiber 通过 `ctx.provide()` 提供的全部实现；`Impl` 反向持有 `dependents: Set<Fiber>`（`reflect.ts:69`）与 `release?: () => void`（`:70`）。
+- `_reload()` 开始时把本次装载的依赖快照提交为 `committed = { ...this._store }`（`:451`），并把自己注册进每个 committed 实现的 `dependents`（`:452-455`）。
+- `_unload()` 的第一步是等待（`:485-487`）：`while ([...this.provisions].some(impl => impl.dependents.size)) await new Promise(resolve => this._release = resolve)`——只要还有 Fiber 依赖着本 Fiber 提供的服务，本 Fiber 的 disposer 就不开始执行（源码注释 `:482-484` 解释：依赖者在自己的 teardown 里可能还要访问这些服务）。等全部依赖者卸载完，disposer 才**逆注册序、并发**执行（`:492`，见 § 3.2 的两级表）。
+- 卸载收尾时反过来放行上游：对 `committed` 里每个实现 `impl.dependents.delete(this)`，归零则调 `impl.release?.()` 与 `impl.ctx.fiber._release?.()`（`:504-508`），再清空 `committed`（`:509`）。
+- provide 侧对称：`ReflectService.provide()` 的 disposer 先删 store、按 isolate 精确 `notify`（`reflect.ts:234-235`），再 `await` 一个由 `impl.release` resolve 的 Promise（`:240-243`——**即使当下没有依赖者也 yield 一次微任务时机**，注释说明这是让子上下文的清理还能访问继承来的服务），最后才把实现从 `fiber.provisions` 摘除（`:246`，注释 `ensure self access before dependencies cleanup`）。
+
+💡 rc.10 里"先 notify、等依赖方卸载完、再删本地记录"只是 `_updateState` 的隐式时序；rc.13 把它实现为 provisions / dependents / release 三件套的握手协议，配套测试是 core 的 `service-dispose.spec.ts`（444 行）。05 篇的级联卸载叙述应按本协议对照阅读。
+
+![依赖方卸载握手（rc.13）](diagrams/03-unload-handshake.svg)
+
+**依赖方卸载握手（rc.13）** — [交互版](diagrams/03-unload-handshake.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-unload-handshake.architecture.json)
+
+- **协议三步**：依赖者卸载时清自己的 committed 条目 · 最后一个依赖者触发 impl.release() · provider 才执行自身 disposer
+- **为什么需要**：服务消失前依赖者要先走完最后的清理 · 避免 provider 先拆导致 consumer 访问悬空 · rc.10 只是隐式时序，rc.13 是显式 promise
+- **失败边界**：release 未 resolve 时 provider 一直等待 · abort 不影响已注册的 dependents · 跨 Fiber 并发仍由 Promise.all 驱动
+
 ## 3.6 构造函数：Fiber 如何挂到父 Fiber 上
 
-`C/fiber.ts:122-213` 是全文最密的一段。非根 Fiber（`runtime !== null`）的流程：
+`C/fiber.ts:137-220` 是全文最密的一段。非根 Fiber（`runtime !== null`）的流程：
 
 ![非根 Fiber 的构造七步](diagrams/03-fiber-construct.svg)
 
 **非根 Fiber 的构造七步** — [交互版](diagrams/03-fiber-construct.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/03-fiber-construct.architecture.json)
 
-- **第七步是全段的关键**：把「本 Fiber 存在」本身登记为父 Fiber 的一个 effect · 父 Fiber 卸载时会连带拆掉本 Fiber · 插件树的可逆性由此递归成立
-- **构造函数与普通函数的差异**：isConstructor 走 new callback(ctx, config) · 随后依次执行 symbols.initHooks 与 symbols.init · 普通函数只是 callback(ctx, config)
-- **这一段是全文最密的**：源码位置 C/fiber.ts:122-213 · 根 Fiber 走另一条分支（runtime 为 null） · 派生 Context 早于依赖解析，因此插件内可直接用 ctx
+- **第七步是全段的关键**：把「本 Fiber 存在」本身登记为父 Fiber 的一个 effect，label 是 'ctx.use()'（fiber.ts:206） · 父 Fiber 卸载时会连带拆掉本 Fiber · 插件树的可逆性由此递归成立
+- **构造函数与普通函数的差异**：isConstructor 走 new callback(ctx, config)，随后依次执行 symbols.initHooks 与 symbols.init（fiber.ts:161-163） · 普通函数只是 callback(ctx, config) · config 都要到执行期才经 internal/config waterfall 解析（:157，见 § 3.7）
+- **这一段是全文最密的**：源码位置 C/fiber.ts:137-220 · 根 Fiber 走另一条分支（runtime 为 null），epoch 为 '0'（:213） · 派生 Context 早于依赖解析，因此插件内可直接用 ctx
+
+⚠️ **与 rc.10 的关键差异**：构造函数**不再处理 intercept、也不再校验配置**——rc.10 把 inject 的配置写入 `ctx[Context.intercept]` 并在构造时 `resolveConfig`；rc.13 全部移除，配置解析推迟到执行期：`execute()` 里 `const config = this._resolve(this.config)`（`:157`），`_resolve` = `waterfall('internal/config', this, () => config)`（`:236-238`）。校验由 EventsService 内置监听器完成（`events.ts:81-83` 调 `resolveConfig(fiber.runtime!, next())`，`fiber.ts:46-58`），Loader 再叠加源位置溯源与插值（`L/index.ts:79-103`，见 07 篇）。上图第 ③ 步是 rc.10 及更早的流程。
 
 💡 **最后一步是全框架的结构性关键**：子 Fiber 不是被父 Fiber "持有"，而是**作为父 Fiber 的一个可逆效应存在**。所以父插件卸载时，它的 `_disposables` 会被全部执行，其中就包含"卸载子 Fiber"——**插件树的级联卸载是 effect 机制的自然结果，没有额外代码**。
 
-effect 内部（`:170-178`）做的事：
-1. `runtime.fibers.push(this)`（登记到 Runtime 的实例表，返回 remover）
-2. `this.config = resolveConfig(runtime, config)`（Standard Schema 校验）
-3. `this._refresh()`（算 epoch，可能立即启动）
-4. 出错则 `logger.error` + 记 `_error`
+effect 内部（`:178-186`）做的事：
+1. `runtime.fibers.push(this)`（登记到 Runtime 的实例表，取回的 remover 存为 `_remove`）
+2. `this._refresh()`（算 epoch，可能立即启动装载）
+3. 出错则 `logger.error` + 记 `_error`
 
-disposer 内部（`:179-197`）做的事：
+disposer 内部（`:186-205`）做的事：
 1. `uid = null`（标记已卸载）
 2. `emit('internal/plugin', this)`（loader 借此判断"自卸载"）
-3. 若 registry 里还有这个 callback：`remove()`；若 Runtime 再无 fiber，`registry.delete(callback)`
+3. `this._remove!()` 从 Runtime 摘除；若 Runtime 再无 fiber，`registry._unregister(runtime)`（`:192`；公开的 `registry.delete()` 已不存在，替代路径是 `registry.ts:183-185`，仅由 fiber 调用）
 4. `_setEpoch(INACTIVE)` 触发 unload
 5. `while (this.inertia) await this.inertia`（等状态机彻底停下）
+6. `this._updateState(() => {})` 重新推导 DISPOSED 状态（`:201-204`——`_setEpoch` 对未 ACTIVE 的 Fiber 提前返回、缓存状态不会刷新，这里在 `uid = null` 之后补一次推导）
 
-💡 **第 5 步的注释很坦诚**（`:189-193`）：`inertia` 本身理论上不会 reject（`_reload`/`_unload` 都自己 catch 并 log），如果真 reject 了只可能是 logger 自身失败，那时无法恢复——"让 rejection 传播，进程崩溃是诚实的结果"（let the rejection propagate; process-level crash is the honest outcome）。
+💡 **第 5 步的注释很坦诚**（`:195-197`）：`inertia` 本身理论上不会 reject（`_reload`/`_unload` 都自己 catch 并 log），如果真 reject 了只可能是 logger 自身失败，那时无法恢复——"让 rejection 传播，进程崩溃是诚实的结果"（so let it propagate）。
 
 ## 3.7 公开 API
 
 | 方法 | 位置 | 作用 |
 |---|---|---|
-| `effect(execute, label?)` | `:277` | 登记可逆效应（§ 3.2） |
-| `getEffects()` | `:342` | 返回 `EffectMeta[]`，用于调试可视化 |
-| `assertActive()` | `:224` | uid 为 null 则抛 `CordisError('INACTIVE_EFFECT')` |
-| `get name()` | `:215` | 沿 fiber 链向上找第一个有 `runtime.name` 的，否则 `'root'` |
-| `await()` | `:462` | 等 `inertia` 清空；有 `_error` 则抛出 |
-| `restart()` | `:470` | 强制 `_setEpoch(INACTIVE)` 再 `_refresh()`，然后 `await()` |
-| `update(config, noSave?)` | `:478` | 校验新配置 → 走 `internal/update` waterfall → 更新 config 并 restart |
-| `dispose` | 构造时赋值（`:170`） | 见 § 3.6 |
+| `effect(execute, label?)` | `:294` | 登记可逆效应（§ 3.2） |
+| `getEffects()` | `:359` | 返回 `EffectMeta[]`，用于调试可视化 |
+| `assertActive()` | `:231` | uid 为 null 则抛 `CordisError('INACTIVE_EFFECT')` |
+| `get name()` | `:222` | 沿 fiber 链向上找第一个有 `runtime.name` 的，否则 `'root'` |
+| `await()` | `:520` | 等 `inertia` 清空；有 `_error` 则抛出 |
+| `restart()` | `:528` | `_revision++` 再 `_refresh()`，然后 `await()`——即使依赖集合不变也生成新 epoch（§ 3.4） |
+| `update(config, noSave?)` | `:536-556` | 解析新配置（`internal/config` waterfall）→ `internal/commit` 持久化 → `internal/update` waterfall → restart |
+| `dispose` | 构造时赋值（`:178`） | 见 § 3.6 |
 
-💡 **`update()` 走 waterfall 而非直接赋值**（`:482`）。这给了 loader 插入钩子的机会——`L/index.ts:74-88` 注册了两个 `internal/update` 监听器，负责把新配置**写回 yml 文件**并打印 reload 日志。所以在代码里调 `fiber.update(...)` 会持久化到配置文件，除非传 `noSave = true`。
+💡 **`update()` 的链路分三段**（`:536-556`）：① 若已加载，先 `fiber._resolve(config)` 走 **`internal/config`** waterfall（`:540`；内建监听器 `events.ts:81-83` 做 Standard Schema 校验，loader 在 `L/index.ts:79-103` 做源位置溯源与插值）；② `noSave = false` 时 emit **`internal/commit`**（**原始** config，`:541`）——**写回 yml 由这个新事件承担**，loader 监听器在 `L/index.ts:105-112`；③ 再以**解析后**的 config 走 **`internal/update`** waterfall（签名 `(this: Fiber, resolvedConfig, next)`，`events.ts:217`——**`noSave` 不再是监听器参数**），监听器可否决重启（返回 `undefined` 时无任务可等，`:549`），未否决则 `restart()`。所以代码里调 `fiber.update(...)` 默认持久化到配置文件，传 `noSave = true` 跳过第 ② 段。打印 reload 日志的 global 监听器在 `L/index.ts:114-118`。
 
-💡 **`restart()` 和 `update()` 都用 `this.ctx.fiber` 而非 `this`**（`:471`、`:479`）。因为 `ctx` 是 Proxy，`ctx.fiber` 经过 traceable 包装后指向调用方视角的 fiber——在嵌套场景下二者可能不同。
+💡 **`restart()` 和 `update()` 都用 `this.ctx.fiber` 而非 `this`**（`:529`、`:537`）。因为 `ctx` 是 Proxy，`ctx.fiber` 经过 traceable 包装后指向调用方视角的 fiber——在嵌套场景下二者可能不同。
 
 ## 3.8 错误处理与长堆栈
 
@@ -292,16 +335,16 @@ disposer 内部（`:179-197`）做的事：
 - **为什么能跨 await**：异步栈天然断在 await 处 · 注册栈是提前捕获的，不受异步影响 · 两段拼起来才还原出完整因果链
 - **看到长堆栈不是巧合**：这是刻意设计，不是引擎行为 · 定位失败时保持原样，不掩盖真实错误 · offset 参数用于跳过框架自身的栈帧
 
-💡 **效果**：插件在异步初始化中出错时，堆栈不是止于 `at async Fiber._reload`，而是能一直追到 `ctx.plugin(xxx)` 的那一行。代价是**每次 `effect()` / `plugin()` 都要 `new Error()`**（构造堆栈有开销）。
+💡 **效果**：插件在异步初始化中出错时，堆栈不是止于 `at async Fiber._reload`，而是能一直追到 `ctx.use(xxx)` 的那一行。代价是**每次 `effect()` / `use()` 都要 `new Error()`**（构造堆栈有开销）。
 
-💡 **loader 进一步扩展了这个机制**：`L/config/entry.ts:136 getOuterStack` 返回的不是 JS 调用栈，而是**配置文件位置**：
+💡 **loader 进一步扩展了这个机制**：`L/config/entry.ts:282 getOuterStack`（`getOuterStack = () => this.parent.getOuterStack(this.options.id)`）返回的不是 JS 调用栈，而是**配置文件位置**，格式为 `    at ${id} (${filename}:${line}:${column})`（`L/config/group.ts:34-38` + `L/config/utils.ts:122-124` 的 `formatLocation`）：
 
 ```
-    at file:///path/cordis.yml#entryId
-    at file:///path/parent.yml#parentId
+    at entryId (cordis.yml:12:3)
+    at parentId (cordis.yml:4:5)
 ```
 
-这样配置错误能直接定位到 yml 的哪一行。
+这样配置错误能直接定位到 yml 的哪一行哪一列（rc.10 只能到 `file#entryId` 粒度）。
 
 ---
 

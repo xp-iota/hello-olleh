@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "registry.replace：原位热换（rc.13）",
+    "output": "05-registry-replace.html",
+    "viewBox": [
+      1360,
+      540
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "old",
+      "type": "external",
+      "label": "旧 Component",
+      "sublabel": "已注册的 Component.Runtime",
+      "tag": "保留在 _aliases 里",
+      "pos": [
+        40,
+        70
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "new",
+      "type": "external",
+      "label": "新 Component",
+      "sublabel": "重新 import 的模块导出",
+      "tag": "registry.replace(old, new)",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "reg",
+      "type": "frontend",
+      "label": "RegistryService",
+      "sublabel": "registry.ts:187 replace()",
+      "tag": "_aliases: WeakMap<旧, 新>",
+      "pos": [
+        460,
+        160
+      ],
+      "size": [
+        340,
+        130
+      ]
+    },
+    {
+      "id": "fiber",
+      "type": "backend",
+      "label": "既有 Fiber（身份不变）",
+      "sublabel": "fiber.ts:401 _replace(runtime, inject)",
+      "tag": "换 runtime/inject、清 _error",
+      "pos": [
+        900,
+        60
+      ],
+      "size": [
+        360,
+        120
+      ]
+    },
+    {
+      "id": "epoch",
+      "type": "backend",
+      "label": "epoch 换代",
+      "sublabel": "_revision++ → _refresh()",
+      "tag": "依赖者看到新 epoch 后级联重载",
+      "pos": [
+        900,
+        250
+      ],
+      "size": [
+        360,
+        120
+      ]
+    },
+    {
+      "id": "consumers",
+      "type": "external",
+      "label": "依赖该组件的 Fiber",
+      "sublabel": "committed 中的 impl uid 变化",
+      "tag": "重载而非新建 Fiber",
+      "pos": [
+        460,
+        380
+      ],
+      "size": [
+        360,
+        110
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "同一 Fiber 对象被复用，引用不失效",
+      "wraps": [
+        "old",
+        "new",
+        "reg",
+        "fiber",
+        "epoch",
+        "consumers"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "new-reg",
+      "from": "new",
+      "to": "reg",
+      "variant": "emphasis"
+    },
+    {
+      "id": "old-reg",
+      "from": "old",
+      "to": "reg"
+    },
+    {
+      "id": "reg-fiber",
+      "from": "reg",
+      "to": "fiber",
+      "variant": "emphasis"
+    },
+    {
+      "id": "fiber-epoch",
+      "from": "fiber",
+      "to": "epoch"
+    },
+    {
+      "id": "epoch-cons",
+      "from": "epoch",
+      "to": "consumers"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "四步",
+      "items": [
+        "校验新旧组件并登记别名",
+        "复用或创建目标 Runtime",
+        "对每个 fiber 调 _replace()",
+        "重算 epoch 并通知"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "与 HMR 的关系",
+      "items": [
+        "HMR 的 Stage 2 就调用 registry.replace()",
+        "不再\"先 delete 再注册\"",
+        "ctx.use() 的返回引用持续有效"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "与旧实现的差异",
+      "items": [
+        "rc.10 换代必然新 Fiber 新 uid",
+        "rc.13 靠 _revision 变化驱动重载",
+        "依赖者数量多时批量处理"
+      ]
+    }
+  ]
+}

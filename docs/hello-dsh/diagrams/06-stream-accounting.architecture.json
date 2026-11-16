@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "流式记账的两层结构（rc.3）",
+    "output": "06-stream-accounting.html",
+    "viewBox": [
+      1400,
+      520
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "llm",
+      "type": "external",
+      "label": "LLM 适配器",
+      "sublabel": "llm/stream 产出 StreamChunk",
+      "tag": "逐 chunk",
+      "pos": [
+        40,
+        80
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "live",
+      "type": "frontend",
+      "label": "agent/assistant-stream",
+      "sublabel": "实时 emit 的 frame",
+      "tag": "UI / 观测者即时可见",
+      "pos": [
+        420,
+        80
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "rec",
+      "type": "frontend",
+      "label": "AssistantStreamRecord[]",
+      "sublabel": "llm/assistant-stream.ts:79/112",
+      "tag": "内存聚合，不进日志",
+      "pos": [
+        420,
+        300
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "attempt",
+      "type": "backend",
+      "label": "assistant/attempt",
+      "sublabel": "S/types.ts:363，一条持久事件",
+      "tag": "step 结束 append（agent.ts:528-535）",
+      "pos": [
+        860,
+        300
+      ],
+      "size": [
+        380,
+        120
+      ]
+    },
+    {
+      "id": "surface",
+      "type": "backend",
+      "label": "assistant/message + deriveMessages",
+      "sublabel": "表面投影",
+      "tag": "回放可复原整段流",
+      "pos": [
+        860,
+        80
+      ],
+      "size": [
+        380,
+        120
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "0.1.5 的逐 chunk 落账已取消",
+      "wraps": [
+        "llm",
+        "live",
+        "rec",
+        "attempt",
+        "surface"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "llm-live",
+      "from": "llm",
+      "to": "live",
+      "variant": "emphasis"
+    },
+    {
+      "id": "live-rec",
+      "from": "live",
+      "to": "rec"
+    },
+    {
+      "id": "rec-attempt",
+      "from": "rec",
+      "to": "attempt",
+      "variant": "emphasis"
+    },
+    {
+      "id": "attempt-surface",
+      "from": "attempt",
+      "to": "surface"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "两层各管什么",
+      "items": [
+        "实时层：agent/assistant-stream，供 UI",
+        "持久层：assistant/attempt，供回放",
+        "聚合发生在内存，不产生 chunk 日志"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "为什么改",
+      "items": [
+        "逐 chunk append 让日志爆炸",
+        "一次落账保住\"Model-visible means logged\"",
+        "replayState 随流快照一起保存"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "兼容性提醒",
+      "items": [
+        "0.1.5 的 assistant/chunk 已删除",
+        "旧快照需经 v0→v4 迁移链",
+        "chunk-rows.ts 不再存在"
+      ]
+    }
+  ]
+}

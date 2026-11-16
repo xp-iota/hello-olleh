@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "依赖方卸载握手（rc.13）",
+    "output": "03-unload-handshake.html",
+    "viewBox": [
+      1360,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "a",
+      "type": "external",
+      "label": "Consumer Fiber A",
+      "sublabel": "committed 快照里持有 impl",
+      "tag": "卸载时调用 impl.release?.()",
+      "pos": [
+        40,
+        70
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "b",
+      "type": "external",
+      "label": "Consumer Fiber B",
+      "sublabel": "同一 impl 的另一个依赖者",
+      "tag": "各自独立卸载",
+      "pos": [
+        40,
+        250
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "impl",
+      "type": "frontend",
+      "label": "Impl（服务实现）",
+      "sublabel": "reflect.ts:65 uid / dependents / release",
+      "tag": "每个依赖者登记进 dependents",
+      "pos": [
+        460,
+        160
+      ],
+      "size": [
+        360,
+        130
+      ]
+    },
+    {
+      "id": "provider",
+      "type": "backend",
+      "label": "Provider Fiber",
+      "sublabel": "fiber.ts:121 provisions: Set<Impl>",
+      "tag": "dependents 清空后才跑自身 disposer",
+      "pos": [
+        940,
+        160
+      ],
+      "size": [
+        360,
+        130
+      ]
+    },
+    {
+      "id": "dispose",
+      "type": "backend",
+      "label": "disposer 阶段",
+      "sublabel": "fiber.ts:492 clear().reverse()",
+      "tag": "等待期间服务仍可访问",
+      "pos": [
+        460,
+        380
+      ],
+      "size": [
+        360,
+        110
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "provider 的清理等待 consumer 卸载完成",
+      "wraps": [
+        "a",
+        "b",
+        "impl",
+        "provider",
+        "dispose"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a-impl",
+      "from": "a",
+      "to": "impl",
+      "label": "注册依赖",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b-impl",
+      "from": "b",
+      "to": "impl",
+      "label": "注册依赖",
+      "variant": "emphasis"
+    },
+    {
+      "id": "impl-prov",
+      "from": "impl",
+      "to": "provider",
+      "variant": "emphasis"
+    },
+    {
+      "id": "prov-dis",
+      "from": "provider",
+      "to": "dispose",
+      "label": "随后逆序并发清理"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "协议三步",
+      "items": [
+        "依赖者卸载时清自己的 committed 条目",
+        "最后一个依赖者触发 impl.release()",
+        "provider 才执行自身 disposer"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "为什么需要",
+      "items": [
+        "服务消失前依赖者要先走完最后的清理",
+        "避免 provider 先拆导致 consumer 访问悬空",
+        "rc.10 只是隐式时序，rc.13 是显式 promise"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "失败边界",
+      "items": [
+        "release 未 resolve 时 provider 一直等待",
+        "abort 不影响已注册的 dependents",
+        "跨 Fiber 并发仍由 Promise.all 驱动"
+      ]
+    }
+  ]
+}

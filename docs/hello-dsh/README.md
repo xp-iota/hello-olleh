@@ -3,10 +3,10 @@ title: "DeepSeek Harness 源代码全面分析（中文）"
 ---
 # DeepSeek Harness 源代码全面分析（中文）
 
-本目录是对 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的系统性源码分析。正文形成于 `0.1.5-rc.2` 历史快照；当前 `sources/deepseek-harness/` 已同步到 `dsh-v0.1.5-rc.2`（`fb2c4b9e`），根包和四个发布 manifest 均声明 `0.1.5-rc.2`。
+本目录是对 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的系统性源码分析。**正文基线已升级到 `0.2.2-rc.3`**：当前 `sources/deepseek-harness/` 已同步到 `dsh-v0.2.2-rc.3`（`38a6a5c9`），根包与全部 `@deepseek-ai/*` workspace 包统一声明 `0.2.2-rc.3`。全部 13 篇正文（README + 01–12）均已按该基线复核：规模数字、包清单、事件面与行号统一为 `0.2.2-rc.3`（`38a6a5c9`）。配套工程 `dsh-lab/` 仍跑 `0.2.2-rc.1` 发布包，二者差距已收窄到 rc 级。
 
-> **Source baseline:** DeepSeek Harness `dsh-v0.1.5-rc.2` (`fb2c4b9e`)。**文中的行号、API 形状与符号索引都以这份源码快照为准**。
-> 配套工程 [`dsh-lab/`](../../dsh-lab/README.md) 跑在更新的 **`0.2.2-rc.1`** 发布线上——它与正文基线不是同一版本，差异集中列在 [§ 五 配套工程](#五配套工程-dsh-lab) 一节。
+> **Source baseline:** DeepSeek Harness `dsh-v0.2.2-rc.3` (`38a6a5c9`)。**文中的行号、API 形状与符号索引都以这份源码快照为准**（03–12 篇暂除外，见上）。
+> 配套工程 [`dsh-lab/`](../../dsh-lab/README.md) 跑在 **`0.2.2-rc.1`** 发布线上——它与正文基线不是同一版本，差异集中列在 [§ 五 配套工程](#五配套工程-dsh-lab) 一节；**正文基线 0.2.2-rc.3 与配套工程 0.2.2-rc.1 的差距已收窄到 rc 级**。
 
 ## 零基础先跑：15 分钟建立直觉
 
@@ -78,28 +78,28 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 
 | 当前项 | 值 |
 |---|---|
-| 当前 tag | `dsh-v0.1.5-rc.2` |
-| 当前 commit | `fb2c4b9e698e30edb738bca4cf0618587db7d203` |
-| 当前源码版本 | `0.1.5-rc.2` |
+| 当前 tag | `dsh-v0.2.2-rc.3` |
+| 当前 commit | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced` |
+| 当前源码版本 | `0.2.2-rc.3` |
 | 配套工程 npm 版本 | `0.2.2-rc.1`（`dsh-lab/` 锁定的发布线） |
-| 配套工程 cordis | `4.0.5`（快照内 vendored 的是 `4.0.2`） |
+| 配套工程 cordis | `4.0.5`（快照内 vendored 的是 `4.1.0`） |
 
 ### 当前仓库事实
 
-- 当前 commit：`fb2c4b9e698e30edb738bca4cf0618587db7d203`
-- 工作区共有 290 个 package manifests；272 个发布包声明 `0.1.5-rc.2`，其余工具和 vendored 包使用各自版本。
-- Node.js 要求：`^22.19.0 || >=24.0.0`
-- Package manager：`pnpm@11.7.0`
-- Vendored Cordis：`4.0.2`
-- 配套 `dsh-lab/` 锁定的是**更新的 `0.2.2-rc.1` 发布线**（cordis `4.0.5`）。**它与上面的源码快照不是同一版本**：正文讲的是 `0.1.5-rc.2` 的代码，配套工程跑的是 `0.2.2-rc.1` 的发布包，两者的契约差异集中列在 [§ 五](#五配套工程-dsh-lab)。
+- 当前 commit：`38a6a5c965aa99ab525161efb7cc5cf1fe62fced`（release 合并提交，2026-11-13）
+- 工作区共有 **414 个 package manifests**；其中 workspace 包 **379 个**（`packages/*/*` 374 + `apps/*` 5），**380 个 manifest 声明 `0.2.2-rc.3`**，其余工具和 vendored 包使用各自版本。
+- Node.js 要求：`>=24.9.0`
+- Package manager：`pnpm@11.28.5`
+- Vendored Cordis：`4.1.0`（fork 自上游 `cordis@4.0.0-rc.11`，见 `vendor/README.md` 清单表）
+- 配套 `dsh-lab/` 锁定的是 `0.2.2-rc.1` 发布线（cordis `4.0.5`）。**它与上面的源码快照不是同一版本**：正文讲的是 `0.2.2-rc.3` 的代码，配套工程跑的是 `0.2.2-rc.1` 的发布包，两者的契约差异集中列在 [§ 五](#五配套工程-dsh-lab)。
 
 ⚠️ **README 首屏的声明**：
 
 > DeepSeek Harness is currently in _developer preview_ and is iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
 
-`AGENTS.md` 更进一步（[10 § 10.9](10-testing-and-engineering.md)）：**后端拒绝旧的磁盘格式，`SESSION_FORMAT_VERSION` 保持 `0` 且无兼容承诺**。
+`AGENTS.md` 把版本纪律写成了明文（[10 § 10.9](10-testing-and-engineering.md)）：**公共 API 处于 pre-stable，相邻迁移（adjacent migration）只能新增版本命名的后继，不得移动、覆盖或删除已提交的代际**。会话格式已进入版本化迁移时代：`SESSION_FORMAT_VERSION = 4`（`P/core/session/src/types.ts:90`），逐版本迁移的事实源在 `docs/upgrade-guide/`（286 篇 md，覆盖 v0.1.7-rc.2 起的每个版本）。
 
-> 规模统计（56 万行代码、测试占 45%、49 个包组的逐组行数）见 [01 § 1.3](01-overview.md)；
+> 规模统计（146 万行代码、测试占 51%、53 个包组的逐组行数）见 [01 § 1.3](01-overview.md)；
 > 五分钟看懂一次对话的流转见 [01 § 1.4](01-overview.md)；
 > vendored cordis 分叉的量化见 [01 § 1.6](01-overview.md) 与 [05 § 5.14](05-startup-and-cordis-runtime.md)。
 > 本索引不重复这三处。
@@ -109,7 +109,31 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 | 事实 | 含义 |
 |---|---|
 | 官方标记为 developer preview | API 与磁盘格式仍会发生破坏性变化 |
-| `SESSION_FORMAT_VERSION` 仍为 `0` | 后端不承诺兼容旧的会话格式 |
+| `SESSION_FORMAT_VERSION = 4` | 已进入版本化迁移时代：相邻迁移可新增版本后继，已提交的会话代际不迁移、不覆盖、不删除 |
+
+### Monorepo 化：rc.3 的顶层分工
+
+![rc.3 的 monorepo 顶层分工](diagrams/02-monorepo-division.svg)
+
+**rc.3 的 monorepo 顶层分工** — [交互版](diagrams/02-monorepo-division.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/02-monorepo-division.architecture.json)
+
+- **读源码的入口顺序**：apps/cli 是产品入口（dsh bin） · packages 按 53 组找 seam · vendor 是框架而非产品代码
+- **三条独立发布线**：@deepseek-ai/* 主版本线 · native/system 独立 release · website 随文档站发布
+- **两类固定数据**：snapshots 是回放测试的输入 · benchmarks 是可复现的性能语料 · patches 只改第三方依赖
+
+0.1.5 时代仓库基本只有 `packages/`；rc.3 已长成完整 monorepo（顶层实测 11 个目录）：
+
+| 顶层 | 角色 | 实测要点 |
+|---|---|---|
+| `apps/` | 产品装配层（5 个） | `cli` = 发布包 `@deepseek-ai/dsh`（拥有 `dsh` bin）；`web` = `@deepseek-ai/dsh-web-frontend`（发布）；`desktop` / `desktop-host` = Electron 桌面端（private，`electron-updater`）；`plugin-market-generator`（private）生成插件市场目录 |
+| `packages/` | 能力包层 | 53 组 / 374 包，二级结构；见 [02 § 2.2](02-codebase-map.md) |
+| `vendor/` | vendored 框架 | 9 个源码内嵌包，全部挂 `@deepseek-ai` 域（cordis 4.1.0 等）；见 [01 § 1.6](01-overview.md) |
+| `native/system` | Node 原生层 | `@deepseek-ai/node-addon-system-workspace` 0.1.2（BSD-3-Clause）：`landlock-run` 与 `flock` 双入口 + darwin/linux 四平台预编译包，独立发布序列 |
+| `python/` | Python SDK | `python/sdk`（经 stdio JSON-RPC 驱动 `dsh --profile sdk`）+ `python/sdk-runtime`（单文件 exe 部署清单根）；45 个 `.py` / 8780 行 |
+| `benchmarks/` | 性能语料 | 8 个基准场景（agent-continuation、conversation-fold、session-open、terminal-io、long-session-browser 等）+ `support/`；入口 `BENCHMARK.md`（3 行） |
+| `website/` | 文档站 | `@deepseek-ai/website`，VitePress ^1.6.4；根命令 `website:build` 映射 `pnpm run docs:build` |
+| `snapshots/` | 回放固定数据 | 录制式会话回放测试的固定数据，分 `acp/ sdk/ session/ web/` 四类、1936 个文件 |
+| `patches/` | 第三方补丁 | 12 个 pnpm `patchedDependencies`（oar、pi-ai、node-pty、exceljs、lexical、app-builder-lib 等），与 dsh-lab 的 `cordis.patch.yml` 机制无关 |
 
 
 ## 二、术语约定
@@ -162,7 +186,7 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 | **在排查线上问题** | [11 § 11.10](11-call-chain-reference.md) 症状路由表 |
 | **关心"上下文怎么管的"** | [06 § 6.12](06-agent-loop-and-session-log.md) → [07 § 7.18](07-request-pipeline-llm-tools-and-prompts.md) → [08 § 8.32](08-execution-services.md) → [09 § 9.28](09-host-runtime-and-storage.md) |
 | **关心安全边界** | [08 § 8.17](08-execution-services.md) → [08 § 8.11](08-execution-services.md) → [08 § 8.4](08-execution-services.md) |
-| **想接自己的模型 / 沙箱 / 文件系统** | [07 § 7.2](07-request-pipeline-llm-tools-and-prompts.md)（1 个方法）/ [08 § 8.18](08-execution-services.md)（1 个）/ [08 § 8.2](08-execution-services.md)（13 个），各配一个可跑示例 |
+| **想接自己的模型 / 沙箱 / 文件系统** | [07 § 7.2](07-request-pipeline-llm-tools-and-prompts.md)（1 个方法）/ [08 § 8.18](08-execution-services.md)（1 个）/ [08 § 8.2](08-execution-services.md)（15 个），各配一个可跑示例 |
 | **做前端集成** | [09 § 9.1](09-host-runtime-and-storage.md) 起读整篇 |
 | **用程序驱动 dsh** | [04 § 4.18](04-extensions-and-ecosystem.md)（Python SDK）或 [04 § 4.13](04-extensions-and-ecosystem.md)（ACP） |
 | **只想看工程实践** | [10](10-testing-and-engineering.md)（100% 覆盖率门禁、agent 笔记） |
@@ -175,7 +199,8 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 `src/boot.ts` 调官方 `@deepseek-ai/dsh-app-boot` 的 `boot()`，把 `cordis.yml`（**空根表**）+ `cordis.patch.yml`（**唯一装配清单**，89 条行）组合成真实服务树（含真实 `dsh-agent-loop` 主循环），
 "模型"那一处是本工程**唯一自写的 provider**——`AnthropicCompatAdapter`，打真实推理服务（需 `LLM_API_KEY`）。
 
-> ⚠️ **配套工程与正文基线不是同一版本**：正文分析的是 `0.1.5-rc.2` 源码快照（`fb2c4b9e`），配套工程跑的是 `0.2.2-rc.1` 发布包。
+> ⚠️ **配套工程与正文基线不是同一版本**：正文分析的是 `0.2.2-rc.3` 源码快照（`38a6a5c9`），配套工程跑的是 `0.2.2-rc.1` 发布包。
+> **正文基线 0.2.2-rc.3 与配套工程 0.2.2-rc.1 的差距已收窄到 rc 级**；跨版本迁移以官方 `docs/upgrade-guide/` 为事实源。
 > 跨版本契约差异记在配套工程的代码注释里——例如 `src/llm/anthropic-compat/index.ts` 开头逐条列了 0.1.5 → 0.2.1 的四处 `LlmAdapter` 变化（工具结果成为独立 `role: 'tool'` 消息、必须带 `attributionHeaders()`、`providerInfo()`/`listModels()`/`resolveModel()`、`purpose` 标记）。
 > 配套工程**不手写装配**：`cordis.patch.yml` 里 89 条行中 87 条是官方包、2 条是自写插件（`anthropic-compat`、`safety-guardrail`）；压缩、沙箱、溢写都走官方包，**不再有"刻意留空再由示例补上"的缝**。
 
@@ -195,7 +220,7 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 | [08 § 8.27](08-execution-services.md) 子代理驱动 · [§ 8.33](08-execution-services.md) · [§ 8.34](08-execution-services.md) 压缩 | M08.1 · M08.2 · M02.3 · M02.5 |
 | [09 § 9.17](09-host-runtime-and-storage.md) settings · [§ 9.20](09-host-runtime-and-storage.md) Jobs · [§ 9.23](09-host-runtime-and-storage.md) Goal | M11.1 · M09.1 · M09.2 |
 
-💡 写这套配套工程的过程本身是一次**保真度审计**：真实发布包与快照 `fb2c4b9e` 之间的若干 API 差异
+💡 写这套配套工程的过程本身是一次**保真度审计**：真实发布包与当时的 `0.1.5-rc.2` 快照（`fb2c4b9e`）之间的若干 API 差异
 （`{{name}}` 占位语法、`approval.request()` 的轮内约束、`ctx.tools.execute` 取代 `call`、
 `SubagentRun` 是句柄而非结果、`assistant/message` 必须带 model 来源……）
 都记在配套工程的适配层注释与 [`dsh-lab/README.md`](../../dsh-lab/README.md) 里。
@@ -230,7 +255,7 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 | 约定 | 说明 |
 |---|---|
 | **路径缩写** | `P/` = `packages/`；各篇篇首声明自己用到的专用缩写（`AL/`=`P/core/agent-loop/src/`、`AG/`=`P/core/agent/src/`、`S/`=`P/core/session/src/`、`T/`=`P/core/tools/src/`、`SP/`=`P/core/system-prompt/src/`、`SC/`=`P/core/scope/src/`、`AB/`=`P/boot/app-boot/src/`、`L/`=`P/llm/llm/src/`、`V/`=`vendor/cordis/src/`…） |
-| **行号** | 对应快照 `fb2c4b9e`，**已逐条比对源码核实**（267 处 `文件:行号` 引用全部复核，个别区间端点可能 ±1）。上游迭代极快，建议以符号名检索；统一符号行号索引见 [11 § 11.6](11-call-chain-reference.md) |
+| **行号** | 全部 13 篇对应快照 `38a6a5c9`（`dsh-v0.2.2-rc.3`），行号已按新快照逐条复核（个别泛化段落以符号名代替行号）。上游迭代极快，建议以符号名检索；统一符号行号索引见 [11 § 11.6](11-call-chain-reference.md) |
 | **章节编号** | `N.M`，N 为篇号 |
 | **💡 提示块** | 反直觉事实、设计取舍、常见踩坑 |
 | **📐 配套示例块** | 该节对应的可跑示例（`dsh-lab/`），含关键代码片段与实测输出。**读的时候注意口径**：配套工程与正文基线不是同一版本，且它只覆盖了一部分断言——凡是块里写着"**以本快照的源码分析为准**"的，说明那条断言在配套工程里**没有可跑对照**（原因通常是该阶段在 `0.2.1` 已改写、或对应服务未挂载） |
@@ -240,23 +265,24 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 
 ## 九、文档集定位
 
-DSH **自带极完整的一手文档**：`docs/` 下 215 篇 md（含 105 篇 `.zh.md` 中文版）、`AGENTS.md` = `CLAUDE.md`（149 行）、`.agents/notes/` 1372 篇设计笔记。**完整清单与优先阅读顺序见 [01 § 1.8](01-overview.md)。**
+DSH **自带极完整的一手文档**：`docs/` 下 709 篇 md（含 352 篇 `.zh.md` 中文版）、`AGENTS.md` = `CLAUDE.md`（符号链接，189 行）、`.agents/notes/` 2724 篇设计笔记（implemented 754 / archived 1855 / rejected 16 / proposed 96）。**完整清单与优先阅读顺序见 [01 § 1.8](01-overview.md)。**
 
 ![官方文档、本文档集与配套工程的分工](diagrams/00-docs-division.svg)
 
 **官方文档、本文档集与配套工程的分工** — [交互版](diagrams/00-docs-division.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/00-docs-division.architecture.json)
 
 - **三者的选择**：想知道怎么用与怎么扩展就读官方 · 想知道怎么实现与代码在哪就读这里 · 想立刻跑一个就看配套工程
-- **官方文档已很完整**：subsystems 有 92 篇，user 26 篇 · cookbook 与 cordis-tutorial 各 16 篇 · 并且一半有中文版
+- **官方文档已很完整**：subsystems 138 篇（69 主题 × en/zh）· cookbook 26 篇、cordis-tutorial 16 篇 · `docs/upgrade-guide/` 286 篇逐版本迁移 · 过半有中文版
+- **一手材料不止 docs/**：根目录还有 `SAFETY.md`、`BRAND_GUIDELINES.md`、`BENCHMARK.md`（3 行）与 `Makefile`
 - **示例装的是真实包**：依赖发布到 npm 的 deepseek-ai 系列包 · 不是 vendored 快照 · 因此能验证真实的扩展契约
 
 ## 十、这套文档不做什么
 
-- **不替代官方文档**。`docs/architecture.md`（129 行）与 `AGENTS.md`（149 行）是必读的一手材料，本文档集多处直接引用并标注来源。
-- **不逐个覆盖这 221 个包**。`client` 一个组就 137889 行；11 篇给的是**架构骨架 + 关键类定位**，不是 API 手册。
-- **不做性能分析**。文中的量级判断来自代码结构与注释，不是实测。
-- **不追踪上游变化**。**DSH 迭代极快**（快照附近有多个 release commit）。这是快照式分析，后续变化应以 § 一的 commit 为基线做增量复核。
-- **未深入的部分**：`client` 组内部的 React 实现细节、`host/apiproxy`（8571 行）的逐模块拆解、`typert/generator`（6245 行）的生成算法、`sandbox-windows-acl`（2530 行）的 ACL 细节。这些篇目给了定位与设计意图，没有逐行拆解。
+- **不替代官方文档**。`docs/architecture.md`（171 行）与 `AGENTS.md`（189 行）是必读的一手材料，本文档集多处直接引用并标注来源。
+- **不逐个覆盖这 379 个 workspace 包**。`client` 一个组就 396936 行，`experimental` 试验层 255143 行（63 包）；11 篇给的是**架构骨架 + 关键类定位**，不是 API 手册。
+- **不做性能分析**。文中的量级判断来自代码结构与注释，不是实测——上游自 0.2.x 起已自带 `benchmarks/`（8 个场景），但本文档集没有跑过它们。
+- **不追踪上游变化**。**DSH 迭代极快**（发布是 `release-publish.yml` 从 `dsh-v*` tag 出发的手动 workflow_dispatch）。这是快照式分析，后续变化应以 § 一的 commit 为基线做增量复核。
+- **未深入的部分**：`client` 组内部的 React 实现细节、`apps/desktop`（Electron 桌面端，48496 行）的逐模块拆解、`typert/generator`（src 7598 行）的生成算法、`sandbox-windows-acl`（src 2194 行）的 ACL 细节。这些篇目给了定位与设计意图，没有逐行拆解。
 
 ---
 

@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "rc.3 的 monorepo 顶层分工",
+    "output": "02-monorepo-division.html",
+    "viewBox": [
+      1400,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "apps",
+      "type": "external",
+      "label": "apps/",
+      "sublabel": "cli / web / desktop / desktop-host / plugin-market-generator",
+      "tag": "5 个应用与入口",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "packages",
+      "type": "frontend",
+      "label": "packages/",
+      "sublabel": "53 组、374 个 workspace 包",
+      "tag": "产品能力的全部 seam 与 provider",
+      "pos": [
+        500,
+        60
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "vendor",
+      "type": "frontend",
+      "label": "vendor/",
+      "sublabel": "9 个源码内嵌包",
+      "tag": "cordis 4.1.0 等框架 fork",
+      "pos": [
+        960,
+        60
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "native",
+      "type": "backend",
+      "label": "native/system",
+      "sublabel": "node-addon-system 0.1.2",
+      "tag": "landlock-run + flock",
+      "pos": [
+        40,
+        250
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "python",
+      "type": "backend",
+      "label": "python/",
+      "sublabel": "SDK + sdk-runtime",
+      "tag": "stdio JSON-RPC 驱动 dsh",
+      "pos": [
+        500,
+        250
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "benchmarks",
+      "type": "backend",
+      "label": "benchmarks/",
+      "sublabel": "12 个场景",
+      "tag": "agent-continuation / session-open 等",
+      "pos": [
+        960,
+        250
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "snapshots",
+      "type": "database",
+      "label": "snapshots/",
+      "sublabel": "acp / sdk / session / web",
+      "tag": "回放固定数据（1936 文件）",
+      "pos": [
+        40,
+        440
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "website",
+      "type": "external",
+      "label": "website/",
+      "sublabel": "VitePress 文档站",
+      "tag": "docs:build 的来源",
+      "pos": [
+        500,
+        440
+      ],
+      "size": [
+        380,
+        110
+      ]
+    },
+    {
+      "id": "patches",
+      "type": "database",
+      "label": "patches/",
+      "sublabel": "12 个 pnpm 补丁",
+      "tag": "第三方依赖修补",
+      "pos": [
+        960,
+        440
+      ],
+      "size": [
+        380,
+        110
+      ]
+    }
+  ],
+  "boundaries": [],
+  "connections": [
+    {
+      "id": "a-p",
+      "from": "apps",
+      "to": "packages",
+      "variant": "emphasis"
+    },
+    {
+      "id": "p-v",
+      "from": "packages",
+      "to": "vendor",
+      "variant": "emphasis"
+    },
+    {
+      "id": "n-a",
+      "from": "native",
+      "to": "apps"
+    },
+    {
+      "id": "y-a",
+      "from": "python",
+      "to": "apps"
+    },
+    {
+      "id": "b-p",
+      "from": "benchmarks",
+      "to": "packages"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "读源码的入口顺序",
+      "items": [
+        "apps/cli 是产品入口（dsh bin）",
+        "packages 按 53 组找 seam",
+        "vendor 是框架而非产品代码"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "三条独立发布线",
+      "items": [
+        "@deepseek-ai/* 主版本线",
+        "native/system 独立 release",
+        "website 随文档站发布"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "两类固定数据",
+      "items": [
+        "snapshots 是回放测试的输入",
+        "benchmarks 是可复现的性能语料",
+        "patches 只改第三方依赖"
+      ]
+    }
+  ]
+}

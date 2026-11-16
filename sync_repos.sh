@@ -16,9 +16,9 @@ nousresearch/hermes-agent.git v2026.9.24
 # https://github.com/HKUDS/nanobot/tree/v0.3.5
 HKUDS/nanobot.git v0.3.5
 # git clone --branch v4.0.0-rc.10 https://github.com/cordiverse/cordis.git
-cordiverse/cordis.git v4.0.0-rc.10
+cordiverse/cordis.git v4.0.0-rc.13
 # git clone --branch dsh-v0.1.5-rc.2 https://github.com/deepseek-ai/deepseek-harness.git
-deepseek-ai/deepseek-harness.git dsh-v0.1.5-rc.2
+deepseek-ai/deepseek-harness.git dsh-v0.2.2-rc.3
 # https://github.com/earendil-works/pi/tree/v1.1.0
 earendil-works/pi.git v1.1.0
 # https://github.com/openclaw/openclaw/tree/v2026.10.2

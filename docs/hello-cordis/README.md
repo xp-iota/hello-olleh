@@ -5,16 +5,16 @@ title: "cordis 源代码全面分析（中文）"
 
 本目录是对 [cordiverse/cordis](https://github.com/cordiverse/cordis) 的系统性源码分析。所有结论均基于源码实读，文中引用的路径均相对于源码根目录。
 
-> **版本基线：** 全部 9 篇正文与本文索引均撰写并校验于 `4.0.0-rc.10` 快照（commit `f8ea3cd5`，详见下节）。
+> **版本基线：** 全部 9 篇正文与本文索引于 2026-11 升级并校验至 `4.0.0-rc.13` 快照（commit `bc9fae7`，详见下节）。
 
-> **先读这里再决定要不要往下**：cordis 是一个**元框架**，实现只有 **4991 行**（核心包 1874 行）。它本身不提供任何业务能力，只提供"如何组装能力、并且能安全拆掉"的机制。
+> **先读这里再决定要不要往下**：cordis 是一个**元框架**，实现只有 **11470 行**（核心包 2057 行）。它本身不提供任何业务能力，只提供"如何组装能力、并且能安全拆掉"的机制。
 >
 > 它最重要的下游是 **[DeepSeek Harness](../hello-dsh/README.md)**（`dsh`，52912 stars）——DSH 的"Everything is a Plugin"架构完全建立在 cordis 之上。**想读懂 DSH，必须先读懂 cordis 的 Fiber 与 Service 模型。**
 >
 
 ## 一、当前同步快照与分析基线
 
-> **Source baseline:** Cordis `v4.0.0-rc.10` (`f8ea3cd5`): `cordis@4.0.0-rc.10`, loader `1.0.0-rc.7`, and HMR `1.1.0`.
+> **Source baseline:** Cordis `v4.0.0-rc.13` (`bc9fae7`, tag `v4.0.0-rc.13`): `cordis@4.0.0-rc.13`, loader `1.0.0-rc.10`, and HMR `2.0.0-rc.0`.
 
 ### 快照基线
 
@@ -24,25 +24,26 @@ title: "cordis 源代码全面分析（中文）"
 |---|---|
 | 仓库 | `https://github.com/cordiverse/cordis` |
 | 分支 | `main` |
-| **快照 Commit（完整）** | `f8ea3cd5ab69e2d0476d126baaf2acb24e6a6ab4` |
-| **快照 Commit（短）** | `f8ea3cd5` |
-| 快照提交时间 | `2026-08-13T13:48:18Z` |
-| 快照提交标题 | `chore: update readme (#45)` |
-| Commit 链接 | https://github.com/cordiverse/cordis/commit/f8ea3cd5ab69e2d0476d126baaf2acb24e6a6ab4 |
-| 核心包版本 | **`cordis@4.0.0-rc.10`** |
-| 仓库 tag | **无**（版本管理靠 package.json） |
+| **快照 Commit（完整）** | `bc9fae7a92de7f74417e54eaf3decdecf71f937a` |
+| **快照 Commit（短）** | `bc9fae7` |
+| 快照提交时间 | `2026-11-13 01:09:23 +0800` |
+| 快照提交标题 | `chore: bump versions (#322)` |
+| Commit 链接 | https://github.com/cordiverse/cordis/commit/bc9fae7a92de7f74417e54eaf3decdecf71f937a |
+| 核心包版本 | **`cordis@4.0.0-rc.13`**（`packages/core/package.json:4`） |
+| 仓库 tag | **有**：`v4.0.0-rc.8` ~ `v4.0.0-rc.13`；HEAD 即 tag `v4.0.0-rc.13` |
 | 语言 / 许可证 | TypeScript / MIT |
 | 创建时间 | 2022-05-17（已迭代 4 年） |
 | Stars / Forks / Open Issues | 1818 / 82 / 22 |
 | 作者 | Shigma `<shigma10826@gmail.com>` |
-| 配套论文 | [cordiverse/paper](https://github.com/cordiverse/paper)《A Programming Paradigm for Spatiotemporal Composability》 |
+| 配套论文 | [cordiverse/paper](https://github.com/cordiverse/paper)《A Programming Paradigm for Spatiotemporal Composability》（[arXiv:2608.25512](https://arxiv.org/abs/2608.25512)，见上游 `README.md:9`） |
 | 官方文档 | [cordis-primer](https://deepseek-harness.github.io/deepseek-harness/reference/cordis-primer)（托管在 DSH 文档站） |
-| 运行时依赖 | 仅 2 个：`@standard-schema/spec`、`cosmokit` |
+| 运行时依赖 | 核心包本体仅 2 个：`@standard-schema/spec`、`cosmokit`（`packages/core/package.json:54-55`；另有 4 个**可选** peerDependency，见 [02 § 2.2](02-code-structure-and-package-boundaries.md)） |
 | 包管理 / 构建 | yarn 4.14.1 + [yakumo](https://github.com/shigma/yakumo) 3.2.1 |
+| 发布流程 | **`release.yml`**（111 行）：带 `release` 标签、标题 `chore: release v<version>` 的 PR 触发校验，合并后自动 `gh release create` |
 
-💡 上表中的 Stars / Forks / Open Issues（以及上文 DSH 的 stars）是快照采集时（2026-08）的网络数据，**无法从源码快照复核**，引用时请注意时效；其余各项均可在 `sources/cordis` 快照内自行验证。
+💡 上表中的 Stars / Forks / Open Issues（以及上文 DSH 的 stars）是 2026-08 采集的网络数据，**无法从源码快照复核**，也未随 2026-11 基线刷新，引用时请注意时效；其余各项均可在 `sources/cordis` 快照内自行验证。
 
-**下载方式**：环境策略拦截 `git clone`，源码通过 `api.github.com/repos/cordiverse/cordis/tarball/<sha>` 归档下载（59 KB）。URL 里锁定了完整 SHA，快照精确。
+**下载方式**：快照为 git 检出（remote `cordiverse/cordis`），HEAD 精确停在 `bc9fae7`，且该 commit 即 tag `v4.0.0-rc.13`——版本既有 package.json 又有 tag 与 GitHub Release 可对照。
 
 ⚠️ **README 首屏的警告**：
 
@@ -52,10 +53,10 @@ title: "cordis 源代码全面分析（中文）"
 
 | 指标 | 数值 |
 |---|---|
-| TS 文件 / 总行数 | 80 / **11498**（含仓库根 `vitest.config.ts` 10 行；`packages/` 内为 79 / 11488） |
-| **实现**（`*/src/*`） | 30 文件 / **4991 行** |
-| **测试**（`*/tests/*`） | 49 文件 / **6497 行** |
-| 测试 / 实现比 | **1.30**（测试多于实现） |
+| TS 文件 / 总行数 | 144 / **28283**（含仓库根 `vitest.config.ts` 10 行；`packages/` 内为 143 / 28273） |
+| **实现**（`*/src/*`） | 63 文件 / **11470 行** |
+| **测试**（`*/tests/*`） | 80 文件 / **16803 行** |
+| 测试 / 实现比 | **1.47**（测试多于实现） |
 
 各包实现行数见 [01 § 1.2](01-overview-and-design-philosophy.md)；核心包 9 个文件的逐文件行数与对应篇目见 [02 § 2.3](02-code-structure-and-package-boundaries.md)。本索引不重复这两张表。
 
@@ -63,13 +64,13 @@ title: "cordis 源代码全面分析（中文）"
 
 | 事实 | 含义 |
 |---|---|
-| 核心包 `4.0.0-rc.10` | 第 4 个大版本仍在 rc 阶段 |
-| `loader@1.0.0-rc.7` | 关键外围包同样是 rc |
-| **仓库无任何 git tag** | 版本靠 package.json，无发布快照可对照 |
+| 核心包 `4.0.0-rc.13` | 第 4 个大版本仍在 rc 阶段 |
+| `loader@1.0.0-rc.10`、`hmr/include@2.0.0-rc.0` | 关键外围包同样是 rc；hmr/include 已随重写升到 2.0 线 |
+| **rc.8 ~ rc.13 均有 git tag**，HEAD 即 `v4.0.0-rc.13` | 版本有 tag 与 GitHub Release 可对照（CI 走 release.yml 的 release PR 门槛） |
 | README 明示 API 不稳定 | 会不通知即变更 |
 | 22 个 open issue | 活跃但未收敛 |
 | 4 年迭代（2022-05 起） | 不是新玩具，但也未定型 |
-| 源码里有 `FIXME internal/fiber-info` | `fiber.ts:359` —— `internal/status` 事件形态待改 |
+| 源码里有 `FIXME internal/fiber-info` | `fiber.ts:376` —— `internal/status` 事件形态待改 |
 
 ⚠️ **一个重要观察**：DSH 的 `dsh-base` bundle 里引用的是 **`@deepseek-ai/cordis-plugin-timer`** 与 **`@deepseek-ai/cordis-plugin-hmr`** —— **`@deepseek-ai/` 作用域**，说明 DSH **fork 了 cordis 的插件包**。读 DSH 时要留意两者可能已有分叉（见 [DSH 05 篇](../hello-dsh/05-startup-and-cordis-runtime.md)）。本文档集分析的是 **cordiverse 上游版本**。
 
@@ -78,7 +79,7 @@ title: "cordis 源代码全面分析（中文）"
 | 术语 | 一句话解释 | 展开 |
 |---|---|---|
 | **db** | 本系列统一的**示例服务名**（虚构的数据库服务），用于讲解 service / inject / isolate 等机制；cordis 源码中并不存在名为 `db` 的服务（其测试里用的是 `foo` / `bar` / `logger` / `counter` 等占位名）。凡文中出现 `ctx.db`、`inject: ['db']`、`id: db` 均属举例，可替换为任意服务名 | [01 § 1.3](01-overview-and-design-philosophy.md)、[04 § 4.1](04-context-and-reflect-proxy.md) |
-| **HMR** | Hot Module Replacement（模块热替换）：文件变化时只替换受影响的插件、进程尽量不退出；在 cordis 里由 `@cordisjs/plugin-hmr` 实现，依赖框架的可逆生命周期 | [08 HMR 热重载](08-hmr.md) |
+| **HMR** | Hot Module Replacement（模块热替换）：文件变化时只替换受影响的组件、进程尽量不退出；在 cordis 里由 `@cordisjs/hmr`（2.0.0-rc.0）实现，依赖框架的可逆生命周期 | [08 HMR 热重载](08-hmr.md) |
 | **trap** | JavaScript `Proxy` handler 上拦截 `get` / `set` / `has` 等操作的方法，中文常译「代理陷阱」；本系列统一写作 `get` / `set` / `has` trap，与 bug 无关 | [04 § 4.1](04-context-and-reflect-proxy.md) |
 
 ## 三、篇目表
@@ -86,13 +87,13 @@ title: "cordis 源代码全面分析（中文）"
 | # | 篇目 | 行数 | 关键内容 |
 |---|---|---|---|
 | 01 | [项目概览与设计哲学](01-overview-and-design-philosophy.md) | 155 | 元框架定位、时空可组合性、四个核心抽象、与其它插件系统的对比、读源码前必知的六件事 |
-| 02 | [代码结构与包边界](02-code-structure-and-package-boundaries.md) | 157 | 9 个包的依赖方向、core 的 9 文件、四服务自举顺序、三种"树"的关系、为什么只要 1874 行 |
+| 02 | [代码结构与包边界](02-code-structure-and-package-boundaries.md) | 157 | 16 个包的依赖方向、core 的 9 文件、四服务自举顺序、三种"树"的关系、为什么只要 2057 行 |
 | 03 | [Fiber 模型](03-fiber-model.md) ⭐ | 308 | `effect()` 的双重身份、四种有效返回形态 + 两种边界、**epoch 字符串**、6 态机与 `inertia` 锁、子 Fiber 是父的 effect、长堆栈 |
 | 04 | [Context 与 Reflect 代理](04-context-and-reflect-proxy.md) ⭐ | 292 | Proxy 的 `get` / `set` / `has` trap、`then` 保留字、三种派生、沿 fiber 链查找的三种失败、Symbol 作键的隔离、**traceable 与 shadow**、mixin |
-| 05 | [服务注册与依赖解析](05-service-registration-and-dependency-resolution.md) | 223 | 四种插件形态、`@Inject()` 双目标装饰器、`provide` 的 setup/teardown 顺序、**`notify()` 级联引擎**、Service 七符号 |
-| 06 | [事件系统与 Waterfall](06-event-system-and-waterfall.md) | 288 | 5 种派发模式、`isBailed` 的坑、**waterfall 原理全解（§ 6.3：契约 / 逐行解剖 / 执行语义 / 轨迹 / Koa 与责任链对照）**、`internal/listener` 劫持、8 个 internal 事件 |
+| 05 | [服务注册与依赖解析](05-service-registration-and-dependency-resolution.md) | 223 | 四种组件形态、`@Inject()` 双目标装饰器、`provide` 的 setup/teardown 顺序、**`notify()` 级联引擎**、Service 八符号 |
+| 06 | [事件系统与 Waterfall](06-event-system-and-waterfall.md) | 288 | 5 种派发模式、`isBailed` 的坑、**waterfall 原理全解（§ 6.3：契约 / 逐行解剖 / 执行语义 / 轨迹 / Koa 与责任链对照）**、`internal/listener` 劫持、11 个 internal 事件 |
 | 07 | [Loader 与配置树](07-loader-and-configuration-tree.md) | 323 | `EntryOptions` 全字段、`update()` 决策树、**`applyPatches` 三条语义**、原子写、**isolate realm 7 步算法**、7 case 自卸载判定 |
-| 08 | [HMR 热重载](08-hmr.md) | 184 | HMR 定义、三条变更路径、**accepted/declined 传播**、四阶段 partialReload、**Node 22/24 缓存差异**、回滚边界 |
+| 08 | [HMR 热重载](08-hmr.md) | 184 | HMR 定义、**`reconcile()` 事务模型**、组件原位替换（`registry.replace`）、**Node 22+ 缓存差异**、回滚边界 |
 | 09 | [关键调用链速查](09-call-chain-reference.md) | 432 | 五条核心链、symbols 全表、逐文件符号表、**错误消息对照表**、配置速查、症状路由、spec 映射 |
 
 ## 四、阅读路线
@@ -101,8 +102,8 @@ title: "cordis 源代码全面分析（中文）"
 
 **cordis 系列阅读路线** — [交互版](diagrams/00-reading-path.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/00-reading-path.architecture.json)
 
-- **03 与 04 互相依赖**：建议 03 先粗读，读完 04 再回头精读 03 · Fiber 的 effect 依赖 Context 的派生语义 · Context 的动态解析又依赖 Fiber 的 store
-- **两篇重点占全书一半难度**：03 Fiber 模型是 496 行的心脏 · 04 Context 与 Reflect 是 Proxy 元编程的集中区 · 其余各篇都建立在这两篇之上
+- **03 与 04 互相依赖**：建议 03 先粗读，读完 04 再回头精读 03 · Fiber 的 effect 依赖 Context 的派生语义 · Context 的动态解析又依赖 Fiber 的 committed 快照
+- **两篇重点占全书一半难度**：03 Fiber 模型是 557 行的心脏 · 04 Context 与 Reflect 是 Proxy 元编程的集中区 · 其余各篇都建立在这两篇之上
 - **09 是索引不是正文**：按调用链组织，便于回查 · 附错误信息到成因的对照表 · 读完任一篇都可以随时跳回
 
 ### 按身份选路
@@ -118,7 +119,7 @@ title: "cordis 源代码全面分析（中文）"
 
 ## 五、配套工程（dsh-lab）
 
-本仓库的 [`dsh-lab/`](../../dsh-lab/README.md) 是本仓库的配套工程：以 DSH 为主线，12 个能力模块里也包含直接验证 cordis 原语的最小程序。工程锁定 `@deepseek-ai/*@0.2.2-rc.1`（cordis 运行时为 `@deepseek-ai/cordis@4.0.5`）；因此它们验证的是 DSH 发布包所携带的 cordis 契约，与本文分析的 cordiverse 上游快照 `f8ea3cd5` 需按“双版本口径”对照阅读。
+本仓库的 [`dsh-lab/`](../../dsh-lab/README.md) 是本仓库的配套工程：以 DSH 为主线，12 个能力模块里也包含直接验证 cordis 原语的最小程序。工程锁定 `@deepseek-ai/*@0.2.2-rc.1`（cordis 运行时为 `@deepseek-ai/cordis@4.0.5`）；因此它们验证的是 DSH 发布包所携带的 cordis 契约，与本文分析的 cordiverse 上游快照 `bc9fae7`（v4.0.0-rc.13）需按“双版本口径”对照阅读。注意上游自 rc.11 起 Fiber 的 epoch/卸载语义有变（`_revision` 自换代、dependents/release 卸载握手），与 DSH 所携带的旧契约差异会更大（见 [03](03-fiber-model.md)）。
 
 | Cordis 主题 | 配套工程里的入口 | 观察点 |
 |---|---|---|
@@ -147,13 +148,13 @@ title: "cordis 源代码全面分析（中文）"
 
 | 颜色 | 语义 | 在 cordis 里指 |
 |---|---|---|
-| 🔵 蓝 `#E3F2FD` | 入口 / 用户面 | `ctx`、`ctx.plugin()`、公开 API |
-| 🩵 青 `#E0F7FA` | 执行 | `_execute()`、插件代码运行 |
+| 🔵 蓝 `#E3F2FD` | 入口 / 用户面 | `ctx`、`ctx.use()`（旧名 `ctx.plugin()` 已标 `@deprecated`）、公开 API |
+| 🩵 青 `#E0F7FA` | 执行 | `_execute()`、组件代码运行 |
 | 🟠 橙 `#FFF3E0` | 调度 / 事件 | EventsService、waterfall、EntryGroup |
-| 🟢 绿 `#E8F5E9` | 状态 / 服务表 | `store`、`_disposables`、traceable |
+| 🟢 绿 `#E8F5E9` | 状态 / 服务表 | `committed`（Fiber 提交快照）、ReflectService 的 `store`、`_disposables`、traceable |
 | 🔴 红 `#FFEBEE` | 核心风险点 | Fiber 状态机、epoch、抛错路径 |
-| ⚪ 灰蓝 `#ECEFF1` | 数据结构 | `EntryOptions`、`Plugin.Runtime`、Symbol 表 |
-| 🌸 粉 `#FCE4EC` | 基础设施 | loader / include / hmr 三个外围包 |
+| ⚪ 灰蓝 `#ECEFF1` | 数据结构 | `EntryOptions`、`Component.Runtime`、Symbol 表 |
+| 🌸 粉 `#FCE4EC` | 基础设施 | loader / include / hmr / fs / env / http / cli 等外围包 |
 | 💛 米黄 `#FFFDE7` | 提示 / 判断 | 决策节点、注释框、💡 说明 |
 
 ## 八、阅读约定
@@ -161,7 +162,7 @@ title: "cordis 源代码全面分析（中文）"
 | 约定 | 说明 |
 |---|---|
 | **路径缩写** | `C/` = `packages/core/src/`，`L/` = `packages/loader/src/`，`I/` = `packages/include/src/`，`H/` = `packages/hmr/src/` |
-| **行号** | `文件:行号` 对应快照 `f8ea3cd5`，**已逐条比对源码核实**（个别边界如函数结束行可能 ±1）。上游演进后会整体偏移，建议以符号名检索；统一行号索引见 [09 § 9.3](09-call-chain-reference.md) |
+| **行号** | `文件:行号` 对应快照 `bc9fae7`（v4.0.0-rc.13），**已逐条比对源码核实**（个别边界如函数结束行可能 ±1）。上游演进后会整体偏移，建议以符号名检索；统一行号索引见 [09 § 9.3](09-call-chain-reference.md) |
 | **章节编号** | `N.M`，N 为篇号（如 § 3.4 在第 03 篇） |
 | **💡 提示块** | 点出反直觉事实、设计取舍、常见踩坑 |
 | **📐 配套示例块** | 该节对应的可跑示例（`dsh-lab/`），用于对照发布包的实际契约 |
@@ -184,7 +185,8 @@ title: "cordis 源代码全面分析（中文）"
 ## 十、这套文档不做什么
 
 - **不替代官方 primer**。[cordis-primer](https://deepseek-harness.github.io/deepseek-harness/reference/cordis-primer) 讲"怎么用"；本系列讲"怎么实现的、为什么这样实现、代码在哪一行"。
-- **不覆盖 `create` 与 `logger-console`**。前者是脚手架（314 行），后者是日志导出器（137 行），都不涉及核心机制。`logger.ts` 的 246 行也只在 [02](02-code-structure-and-package-boundaries.md) 略提。
+- **不覆盖 `create` 与 `logger-console`**。前者是脚手架（402 行，`create-cordis@0.3.2`），后者是日志导出器（137 行），都不涉及核心机制。`logger.ts` 的 233 行也只在 [02](02-code-structure-and-package-boundaries.md) 略提。
+- **不逐行分析 8 个新外围包**（fs / fs-node / env / http / http-socks / cli / cli-cordis / package-manager）。rc.11–rc.13 新增的这批包只在 [02](02-code-structure-and-package-boundaries.md) 做规模与职责速览，机制分析仍以 core / loader / include / hmr 为主线。上游已删除的 `@cordisjs/utils`（42 行）不再出现。
 - **不做性能基准**。文中提到的复杂度（如 `notify` 的 O(总 Fiber 数)）来自代码结构分析，不是实测。
 - **不追踪上游每日变化**。快照式分析，靠 § 一 的 commit 做增量复核。
 

@@ -10,8 +10,8 @@
 - OpenCode: v2.0.27
 - Hermes Agent: v2026.9.24 (package version 0.21.5)
 - Nanobot: v0.3.5
-- Cordis: 4.0.0-rc.10
-- DeepSeek Harness: 0.1.5-rc.2
+- Cordis: 4.0.0-rc.13
+- DeepSeek Harness: 0.2.2-rc.3
 - Pi: v1.1.0
 - OpenClaw: v2026.10.2
 
@@ -27,7 +27,7 @@ Bun 1.4.4 differs from Node on two seams dsh depends on, both fixed under `dsh-l
 
 The DSH analysis set was consolidated from 26 chapters into 12 files (11 topic chapters `01`–`11` plus the cross-framework comparison `12`); section numbers were renumbered consecutively and every merged file records its original sources in a 📎 note. The consolidation helpers are migration scripts rather than daily generators: `scripts/merge_dsh_docs.py` and `scripts/rewrite_dsh_refs.py` detect the final 11-chapter layout and exit safely, while `scripts/link_examples_into_docs.py` is now **retired** (it targeted the first-edition Chinese filenames and would re-insert `dsh-example/` links; it exits without touching anything). Validate cross-references with `python3 scripts/check_doc_links.py .`.
 
-⚠️ **The DSH doc set and the companion project are on different version lines.** The prose analyses the `0.1.5-rc.2` source snapshot (`sources/deepseek-harness/`), while `dsh-lab/` runs the published `0.2.2-rc.1` packages. `dsh-lab` also has a different shape than the deleted `dsh-example`: one `index.ts` per module (no `impl/` + `scenes/` split), assembly in `cordis.yml` + `cordis.patch.yml` (89 rows) through the official `boot()` instead of a hand-written `createHarness()`, exactly one self-written provider (M03 `anthropic-compat`) plus one self-written policy plugin (`safety-guardrail`) instead of the old "blank seam, example fills it" design. Wherever a 📐 block says "以本快照的源码分析为准", that assertion has **no runnable counterpart** in `dsh-lab` — do not present it as measured there.
+⚠️ **The DSH doc set and the companion project are on adjacent rc versions of the same line.** The prose analyses the `0.2.2-rc.3` source snapshot (`sources/deepseek-harness/`, tag `dsh-v0.2.2-rc.3`, 2026-11-13), while `dsh-lab/` runs the published `0.2.2-rc.1` packages (npm `latest` dist-tag; `0.2.2-rc.3` sits on the `next` channel). The rc.1→rc.3 delta is patch-level for most subsystems (snapshots/website dominate the diff); known seams to re-verify before upgrading `dsh-lab`: the `deepseek-account-platform`→`deepseek-account` row id in the base patch, the `ptc-runtime-node` evaluator signatures behind the Bun shim, and the `web-deepseek-api` row no longer reading `DEEPSEEK_API_KEY`. `dsh-lab` also has a different shape than the deleted `dsh-example`: one `index.ts` per module (no `impl/` + `scenes/` split), assembly in `cordis.yml` + `cordis.patch.yml` (89 rows) through the official `boot()` instead of a hand-written `createHarness()`, exactly one self-written provider (M03 `anthropic-compat`) plus one self-written policy plugin (`safety-guardrail`) instead of the old "blank seam, example fills it" design. Wherever a 📐 block says "以本快照的源码分析为准", that assertion has **no runnable counterpart** in `dsh-lab` — do not present it as measured there.
 
 ## Build, Test, and Development Commands
 There is no single monorepo build. Use the command that matches the area you changed.

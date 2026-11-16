@@ -3,10 +3,10 @@ title: "事件系统与 Waterfall"
 ---
 # 事件系统与 Waterfall
 
-> **本篇回答**：188 行的 `C/events.ts` 里，五种派发模式的语义差异、waterfall 中间件链的完整原理（§ 6.3，本仓库只在此处展开）、监听器如何被 isolate 过滤、8 个 internal 事件各自的用途。
-> **路径缩写**：`C/` = `packages/core/src/`。行号对应快照 `f8ea3cd5`。
+> **本篇回答**：224 行的 `C/events.ts` 里，五种派发模式的语义差异、waterfall 中间件链的完整原理（§ 6.3，本仓库只在此处展开）、监听器如何被 isolate 过滤、11 个 internal 事件各自的用途。
+> **路径缩写**：`C/` = `packages/core/src/`。行号对应快照 `bc9fae7`（v4.0.0-rc.13）。
 >
-> 🧭 **本篇导览**：6.1–6.2 五种派发模式与 `_resolve()` → 6.3 waterfall 原理（两侧契约 / 逐行解剖 / 执行语义 / 轨迹 / Koa 与责任链对照） → 6.4–6.5 `on()` 与 `EventOptions` → 6.6–6.7 8 个 internal 事件与监听器的 traceable 包装。
+> 🧭 **本篇导览**：6.1–6.2 五种派发模式与 `_resolve()` → 6.3 waterfall 原理（两侧契约 / 逐行解剖 / 执行语义 / 轨迹 / Koa 与责任链对照） → 6.4–6.5 `on()` 与 `EventOptions` → 6.6–6.7 11 个 internal 事件与监听器的 traceable 包装。
 >
 
 ## 6.1 五种派发模式
@@ -25,6 +25,8 @@ title: "事件系统与 Waterfall"
 
 💡 **`isBailed` 只排除 `null` / `false` / `undefined`**（`C/events.ts:6-8`）。返回 `0`、`''`、`NaN` 都会中断 bail/serial 链。这是个容易踩的坑——如果监听器意外返回了 `0`，后续监听器就不会执行。
 
+💡 **`parallel` 失败时抛带消息的 `AggregateError`**（`C/events.ts:115-118`）：`one or more listeners of event "x" failed`（symbol 命名的事件用 `String(name)`，:117）——§ 6.1 表里"收集全部错误"这一行现在有了明确的错误消息与事件名，不再是一个无信息的裸 `AggregateError`。
+
 | 模式 | 同步/异步 | 中断条件 | 返回值 | 典型用途 |
 |---|---|---|---|---|
 | `emit` | 同步 | 不中断 | `void` | 状态变化通知 |
@@ -35,14 +37,14 @@ title: "事件系统与 Waterfall"
 
 ## 6.2 `_resolve()`：统一解析调用参数与监听器
 
-`emit`、`parallel`、`serial`、`bail`、`waterfall`（以及已标记为 deprecated 的 `dispatch`）都会先调用 `_resolve(type, args)`。它不执行目标事件的监听器，只负责参数解析、必要时触发 `internal/dispatch`，以及筛选目标回调；实际派发由各方法自己完成（`C/events.ts:72-81`）。
+`emit`、`parallel`、`serial`、`bail`、`waterfall`（以及已标记为 deprecated 的 `dispatch`，它现在会检查 `hook.removed` 后再转发，`C/events.ts:98-108`）都会先调用 `_resolve(type, args)`。它不执行目标事件的监听器，只负责参数解析、必要时触发 `internal/dispatch`，以及筛选目标回调；实际派发由各方法自己完成（`C/events.ts:86-96`——rc.13 起返回三元组 `[thisArg, hooks, name]`，多出的 `name` 供 `parallel` 拼 AggregateError 消息用，:95）。
 
 ![_resolve 的四步预处理](diagrams/06-resolve-pipeline.svg)
 
 **_resolve 的四步预处理** — [交互版](diagrams/06-resolve-pipeline.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/06-resolve-pipeline.architecture.json)
 
 - **thisArg 是可选首参**：调用方可以传一个 Context 作为派发上下文 · 不传则为空，监听器的 this 保持默认 · filter 的判定就依赖这个 thisArg
-- **internal/dispatch 是审计入口**：除 internal 事件本身外的所有派发都会通知它 · 没有监听器时直接跳过，零开销 · 可视化与埋点靠它拿到全量事件流
+- **internal/dispatch 是审计入口**：非 `internal/` 开头的字符串事件全部上报，symbol 命名的事件也会上报 · 没有监听器时直接跳过，零开销 · 可视化与埋点靠它拿到全量事件流
 - **筛选决定可见范围**：global 事件对所有监听器可见 · 否则用 Context.filter 逐个判定 · 这是 isolate realm 在事件系统里的对应机制
 
 ### 6.2.1 参数重载与可变参数数组
@@ -54,46 +56,48 @@ ctx.emit('event', value)
 ctx.emit(thisArg, 'event', value)
 ```
 
-`_resolve()` 会直接修改传入的 `args` 数组：先移除可选的 `thisArg`，再移除事件名；返回后，数组中只剩传给监听器的业务参数（`C/events.ts:72-74`）。因此 `emit` 和 `parallel` 会把同一组剩余参数传给每个监听器，`serial` 与 `bail` 也在每次循环中复用它们。
+`_resolve()` 会直接修改传入的 `args` 数组：先移除可选的 `thisArg`，再移除事件名；返回后，数组中只剩传给监听器的业务参数（`C/events.ts:87-88`）。因此 `emit` 和 `parallel` 会把同一组剩余参数传给每个监听器，`serial` 与 `bail` 也在每次循环中复用它们。
 
 ### 6.2.2 `internal/dispatch` 的观测事件
 
-当事件名不是 `internal/` 开头，且当前存在 `internal/dispatch` 监听器时，`_resolve()` 会额外发出一次：
+判定条件是 `typeof name !== 'string' || !name.startsWith('internal/')`（`C/events.ts:89`）——即**非 `internal/` 开头的字符串事件**，以及 **symbol 命名的事件**（`on()` 的事件名类型也是 `string | symbol`，:187），且当前存在 `internal/dispatch` 监听器时，`_resolve()` 会额外发出一次：
 
 ```ts
 this.emit('internal/dispatch', type, name, args, thisArg)
 ```
 
-因此观测监听器收到的四个参数依次是 **派发类型、事件名、参数数组、thisArg**。内部事件不会触发这一步，避免 `internal/dispatch` 递归通知自身（`C/events.ts:75-77`）。当前实现中，`parallel()` 调用 `_resolve('emit', args)`，所以它在 `internal/dispatch` 中报告的类型也是 `emit`；`serial`、`bail`、`waterfall` 则分别报告自身名称（`C/events.ts:101-102`、`:109-110`、`:117-118`）。
+因此观测监听器收到的四个参数依次是 **派发类型、事件名、参数数组、thisArg**。`internal/` 开头的字符串事件不会触发这一步，避免 `internal/dispatch` 递归通知自身（`C/events.ts:89-91`）。rc.13 中，`parallel()` 调用 `_resolve('parallel', args)`，所以它在 `internal/dispatch` 中报告的就是 `parallel`；`emit`、`serial`、`bail`、`waterfall` 也分别报告自身名称（`C/events.ts:121`、`:128`、`:137`、`:146`）。
 
 ### 6.2.3 `Context.filter` 与 `global`
 
-`thisArg?.[Context.filter]` 提供可选的事件可见性过滤器（`C/events.ts:78`）。如果没有过滤器，所有监听器都进入候选列表；如果有过滤器，则只有 `hook.global` 为真，或 `filter.call(thisArg, hook.ctx)` 返回真时，监听器才会保留（`C/events.ts:79-80`）。
+`thisArg?.[Context.filter]` 提供可选的事件可见性过滤器（`C/events.ts:92`）。如果没有过滤器，所有监听器都进入候选列表；如果有过滤器，则只有 `hook.global` 为真，或 `filter.call(thisArg, hook.ctx)` 返回真时，监听器才会保留（`C/events.ts:93-94`）。
 
 Cordis 用这一机制把上下文隔离延伸到事件派发：
 
-- `Service` 的过滤器比较服务所属上下文与监听器上下文的 isolate 键（`C/service.ts:37-39`）。
-- `reflect.notify()` 会为 `internal/service` 事件临时构造带过滤器的 `thisArg`（`C/reflect.ts:221-225`）。
+- `Service` 的过滤器比较服务所属上下文与监听器上下文的 isolate 键（`C/service.ts:39-41`）。
+- `reflect.notify()` 会为 `internal/service` 事件临时构造带过滤器的 `thisArg`（`C/reflect.ts:265-269`）。
 - 在 `_resolve` 的过滤步骤中，`global: true` 表示该监听器不受当前 `Context.filter` 限制；它仍然是同一个事件名下的普通 Hook。
 
 ## 6.3 waterfall：中间件链
 
-`C/events.ts:117-132` 是全文最巧妙的一段：
+`C/events.ts:146-163` 是全文最巧妙的一段（rc.13 改为**索引推进 + removed 跳过**，替代 rc.10 的 `callbacks.shift()`）：
 
 ```ts
 waterfall(...args: any[]) {
-  const [thisArg, callbacks] = this._resolve('waterfall', args)
+  const [thisArg, hooks] = this._resolve('waterfall', args)
   const inner = args.pop()          // ← 最后一个参数是「兜底函数」
+  let index = 0
   const dispatch = () => {
-    const callback = callbacks.shift()
-    if (!callback) return inner()   // ← 链全部让行，以无参形式执行默认实现
+    while (hooks[index]?.removed) index++   // ← 跳过派发过程中被注销的监听器
+    const hook = hooks[index++]
+    if (!hook) return inner()       // ← 链全部让行，以无参形式执行默认实现
     let called = false
     const next = () => {
       if (called) throw new Error('next() called multiple times')   // ← 重复调用防护
       called = true
       return dispatch()
     }
-    return Reflect.apply(callback, thisArg, [...args, next])   // ← 每个监听器拿到新的参数数组
+    return Reflect.apply(hook.callback, thisArg, [...args, next])   // ← 每个监听器拿到新的参数数组
   }
   return dispatch()
 }
@@ -122,7 +126,7 @@ waterfall(...args: any[]) {
 waterfall<K extends keyof Events>(name: K, ...args: Parameters<Events[K]>): ReturnType<Events[K]>
 ```
 
-`Events[K]` 的签名里**末位就是 `next`**（如 `internal/update(this: Fiber, config, noSave, next)`，`C/events.ts:183`）。所以调用方的兜底函数恰好落在 `next` 的类型槽位上——一份签名同时约束两侧，链的返回类型也就是签名的返回类型。
+`Events[K]` 的签名里**末位就是 `next`**（如 `internal/update(this: Fiber, resolvedConfig, next)`，`C/events.ts:217`——rc.13 起监听器收到的是**已解析**的配置，`noSave` 参数被移除，持久化改走 `internal/commit`，见 § 6.6）。所以调用方的兜底函数恰好落在 `next` 的类型槽位上——一份签名同时约束两侧，链的返回类型也就是签名的返回类型。
 
 ### 6.3.2 逐行解剖
 
@@ -130,8 +134,8 @@ waterfall<K extends keyof Events>(name: K, ...args: Parameters<Events[K]>): Retu
 |---|---|---|
 | `_resolve('waterfall', args)` | shift 掉可选 thisArg 与事件名；按 `Context.filter` 过滤监听器（§ 6.2） | 此后 args 只剩业务参数 + inner；isolate 可见性在此已生效 |
 | `inner = args.pop()` | 取出末位兜底函数 | inner 不进派发给监听器的参数列；链全部让行时**无参执行**，默认实现不能依赖业务参数 |
-| `callbacks.shift()` | 每次 `dispatch()` 消费一个监听器 | `callbacks` 是 `filter().map()` 产出的**新数组**：破坏性 shift 不碰 `_hooks`；本次链是派发时刻的快照，派发期间的注册/注销不影响它 |
-| `Reflect.apply(callback, thisArg, [...args, next])` | 每个监听器收到 `args` 的**浅拷贝**再接上 `next` | 监听器签名 `(...args, next)`；对副本元素重新赋值不影响后续监听器（浅拷贝内的对象元素仍共享） |
+| `while (hooks[index]?.removed) index++` + `hooks[index++]` | 每次 `dispatch()` 用**索引前进**消费一个监听器，先跳过已移除的 | `hooks` 是 `_resolve` 过滤产出的**新数组**：索引推进不碰 `_hooks`，本次链是派发时刻的快照，派发期间的注册不影响它；派发期间**注销**的监听器经 `removed` 标志被跳过（`Hook.removed`，:43；unregister 打标于 :175-180），不再像 rc.10 的 `shift()` 那样因数组元素错位而吃掉错误的监听器 |
+| `Reflect.apply(hook.callback, thisArg, [...args, next])` | 每个监听器收到 `args` 的**浅拷贝**再接上 `next` | 监听器签名 `(...args, next)`；对副本元素重新赋值不影响后续监听器（浅拷贝内的对象元素仍共享） |
 | `return dispatch()` | 启动链并返回结果 | waterfall 自己不 `await`；每次调用新建闭包，嵌套派发互不影响 |
 
 ### 6.3.3 执行语义的六条性质
@@ -140,7 +144,7 @@ waterfall<K extends keyof Events>(name: K, ...args: Parameters<Events[K]>): Retu
 2. **`next()` 无参**：想改写下游看到的东西，只能改自己收到的参数元素——`[...args, next]` 是浅拷贝，重新赋值元素不会传导给后续监听器，但修改对象元素的内容仍然可见（浅拷贝只复制一层）。
 3. **同步/异步由监听器决定**：本体没有 async/await，返回类型由事件签名给出。DSH 的 `llm/stream` 签名返回 `AsyncIterable`，监听器因此能逐 chunk 包装流而不必等流结束（见 [DSH 07 § 7.3](../hello-dsh/07-request-pipeline-llm-tools-and-prompts.md)）。
 4. **异常不聚合**：监听器抛错直接穿透给调用方——对照 `parallel` 的 `AggregateError`，链式结构没有并发分支可聚合。
-5. **重复调 `next()` 直接抛错**（`:125`）：同一监听器调两次会抛 `'next() called multiple times'`——与 Koa 的防护一致。`next` 仍是裸闭包，不是 Promise。
+5. **重复调 `next()` 直接抛错**（`:156`）：同一监听器调两次会抛 `'next() called multiple times'`——与 Koa 的防护一致。`next` 仍是裸闭包，不是 Promise。
 6. **可见性与顺序**：链成员经 `_resolve` 的 filter 现算（isolate 感知，§ 6.2.3）；注册顺序即包裹顺序，`prepend: true` = 更外层（§ 6.5）。
 
 ### 6.3.4 一条最小执行轨迹
@@ -173,11 +177,11 @@ ctx.waterfall('demo/wrap', '原始文本', () => '【base】')   // 兜底函数
 | | Koa | cordis waterfall |
 |---|---|---|
 | `next()` | 返回 Promise，强制异步 | 裸闭包，同步友好 |
-| 重复调 `next()` | 抛错 | 同样抛错（`:125`） |
+| 重复调 `next()` | 抛错 | 同样抛错（`:156`） |
 | 兜底默认值 | 不存在，链条尽头就结束 | 调用方末位实参 `inner` 兜底，无参执行 |
 | 链的组成 | 全局 `app.use` 静态列表 | 每次派发经 `Context.filter` 现算；注册即 fiber effect，插件卸载自动摘除（§ 6.4） |
 
-💡 **为什么 cordis 的防护很轻**：重复调 `next()` 的防护只是每个监听器闭包里的一个布尔（`:123-127`）；链成员资格由运行时上下文动态决定、随插件生命周期自动回收（§ 6.4 的 `fiber.effect()`），不需要 Koa 那种进程级的中间件状态——"链"本来就是每次派发临时算出来的。
+💡 **为什么 cordis 的防护很轻**：重复调 `next()` 的防护只是每个监听器闭包里的一个布尔（`:154-158`）；链成员资格由运行时上下文动态决定、随组件生命周期自动回收（§ 6.4 的 `fiber.effect()`），不需要 Koa 那种进程级的中间件状态——"链"本来就是每次派发临时算出来的。
 
 ### 6.3.6 与责任链模式的分界
 
@@ -195,41 +199,52 @@ waterfall 常被误认为责任链（Chain of Responsibility）。其实 cordis 
 
 💡 **DSH 的 `tools/pre-execute` 是“以责任链方式使用 waterfall”的实例**（[`M01.2 · pre-execute 权限门`](../../dsh-lab/M01-tool-pipeline/index.ts)）：权限门命中黑名单就返回 `{ kind: 'deny' }` 截链（=接盘），否则 `return next()`（=转发）。但底层是 waterfall，下游决定在返回途中仍可被外层加工，所以 pre-execute 的拒绝可以被后续监听者推翻；这正是 DSH 另设单调 `ctx.tools.guard()` 的原因——guard 只能返回拒绝理由，没有“放行”这个返回值，因此监听器顺序无法把拒绝改回放行（[`M01 · 工具管线`](../../dsh-lab/M01-tool-pipeline/README.md) 的 M01.5）。
 
-💡 **cordis 内部大量用 waterfall**：`internal/get`、`internal/set`、`internal/update` 三个 internal 事件都是 waterfall（见 § 6.6）。DSH 更是把它当作核心扩展机制——`tools/pre-execute`、`tools/execute`、`tools/post-execute`、`agent/pre-step`、`agent/request-error`、`llm/stream` 全是 waterfall（见 [DSH 07 篇](../hello-dsh/07-request-pipeline-llm-tools-and-prompts.md)）。**本节（§ 6.3）是本仓库唯一展开 waterfall 原理的位置，其余文档一律引用此处。**
+💡 **cordis 内部大量用 waterfall**：`internal/get`、`internal/set`、`internal/update`、`internal/config` 四个 internal 事件都是 waterfall（rc.13 新增了 `internal/config`，其内建监听器在事件层挂接 Standard Schema 校验，`C/events.ts:81-83`；见 § 6.6）。DSH 更是把它当作核心扩展机制——`tools/pre-execute`、`tools/execute`、`tools/post-execute`、`agent/pre-step`、`agent/request-error`、`llm/stream` 全是 waterfall（见 [DSH 07 篇](../hello-dsh/07-request-pipeline-llm-tools-and-prompts.md)）。**本节（§ 6.3）是本仓库唯一展开 waterfall 原理的位置，其余文档一律引用此处。**
 
 ## 6.4 `on()`：注册监听器
 
-`C/events.ts:154-167`：
+`C/events.ts:187-200`（rc.13 新增：`options` 可传布尔作为 `prepend` 简写，:188-190）：
 
 ![on() 注册监听器的六步](diagrams/06-on-register.svg)
 
 **on() 注册监听器的六步** — [交互版](diagrams/06-on-register.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/06-on-register.architecture.json)
 
 - **为什么要 bind 一层**：监听器内的 this 与参数都要经过 traceable · 这样它登记的副作用才归属正确的调用方 · 代价是监听器拿到的不是原始对象
-- **internal/listener 是注册劫持点**：用 bail 派发，任一监听器返回非空即接管 · 可用于把事件转发到别的进程或做去重 · 返回空则走默认注册流程
-- **注册本身可逆**：register 包在 fiber.effect 里 · setup 按 prepend 决定 push 还是 unshift · 插件卸载时自动 unregister，不留悬挂监听
+- **internal/listener 是注册劫持点**：用 bail 派发（thisArg 为 `this.ctx`，:195），任一监听器返回非空即接管 · 可用于把事件转发到别的进程或做去重 · 返回空则走默认注册流程
+- **注册本身可逆**：register 包在 fiber.effect 里 · setup 按 prepend 决定 push 还是 unshift · 组件卸载时自动 unregister，不留悬挂监听
 
-💡 **`register()` 走 `fiber.effect()`**（`C/events.ts:136`），所以**监听器随插件卸载自动移除**。这是 cordis 里"一切皆可逆"的又一处体现——你永远不需要手动 `off()`。
+💡 **`register()` 走 `fiber.effect()`**（`C/events.ts:165-173`），所以**监听器随组件卸载自动移除**。这是 cordis 里"一切皆可逆"的又一处体现——你永远不需要手动 `off()`。
 
-💡 **`internal/listener` 的劫持能力**很关键。`EventsService` 构造函数自己就用了它（`C/events.ts:54-60`）：
+💡 **`internal/listener` 的劫持能力**很关键。`EventsService` 构造函数自己就用了它（`C/events.ts:55-70`）：
 
 ```ts
 this.on('internal/listener', function (this: Context, name, listener, options: EventOptions) {
   if (name === 'internal/update' && !options.global) {
     const hooks = this.fiber._hooks['internal/update'] ??= new DisposableList()
     const method = options.prepend ? 'unshift' : 'push'
-    return hooks[method](listener)
+    return this.fiber.effect(() => {
+      let removed = false
+      const dispose = hooks[method](function (this: Fiber, config: any, next: () => any) {
+        return removed ? next() : listener.call(this, config, next)
+      })
+      return () => {
+        removed = true
+        return dispose()
+      }
+    }, 'ctx.on("internal/update")')
   }
 })
 ```
 
-即：非 global 的 `internal/update` 监听器**不进全局 hooks 表，而是挂到当前 Fiber 的 `_hooks` 上**。这让每个插件能拦截"自己的"配置更新，而不是所有插件的。
+即：非 global 的 `internal/update` 监听器**不进全局 hooks 表，而是经 `fiber.effect()` 挂到当前 Fiber 的 `_hooks` 上**（effect 标签 `ctx.on("internal/update")`）。这让每个组件能拦截"自己的"配置更新，而不是所有组件的；rc.13 的变化是这一步现在真的注册成 fiber effect——组件卸载时闭包里的 `removed` 置真，后续链中该监听器直接透传 `next()`（配合 § 6.3 的 removed 跳过，卸载中的组件不会再拦配置）。
 
-💡 **配套的第二个钩子**（`C/events.ts:62-69`）：注册了一个 `global: true, prepend: true` 的 `internal/update` 监听器，它把 Fiber 级 `_hooks` 里的监听器串成链再委托给 `next`。**两段配合实现了"per-fiber 的 waterfall"**。
+💡 **配套的第二个钩子**（`C/events.ts:72-79`）：注册了一个 `global: true, prepend: true` 的 `internal/update` 监听器，它把 Fiber 级 `_hooks` 里的监听器串成链再委托给 `next`。**两段配合实现了"per-fiber 的 waterfall"**。
+
+💡 **rc.13 新增第三个内建钩子 `internal/config`**（`C/events.ts:81-83`）：`resolveConfig(fiber.runtime!, next())`——Standard Schema 配置校验被挂进事件层，`internal/config` waterfall 的 `next()` 返回的原始配置先过 `Config` schema 再交给后续监听器。`EventsService` 构造函数的自注册钩子从 2 个变成 3 个。
 
 ### `once()`
 
-`C/events.ts:169-175`：包一层，在监听器执行前先调 `dispose()`。注意 **返回的是同一个 `dispose`**，所以手动取消也可以。
+`C/events.ts:202-208`：包一层，在监听器执行前先调 `dispose()`。注意 **返回的是同一个 `dispose`**，所以手动取消也可以。
 
 ## 6.5 `EventOptions`
 
@@ -240,31 +255,47 @@ this.on('internal/listener', function (this: Context, name, listener, options: E
 | `prepend?: boolean` | `unshift` 而非 `push`，插到链首 |
 | `global?: boolean` | **绕过 filter 过滤**（§ 6.2），且不被 `internal/listener` 劫持逻辑处理 |
 
-`Hook` 接口（`C/events.ts:40-43`）在此基础上加 `ctx` 与 `callback`。
+`Hook` 接口（`C/events.ts:40-44`）在此基础上加 `ctx`、`callback` 与 **`removed?: boolean`**（rc.13 新增）。
+
+💡 **`removed` 解决"分发过程中注销导致索引错位"**：`unregister()` 改为按 hook 对象删除并打标（`C/events.ts:175-180`），五种派发都会跳过已移除的监听器（emit :124、parallel :113、serial :131、bail :140、waterfall :151）。rc.10 的 waterfall 用 `shift()` 消费数组，注销发生在派发中途时会错位吃掉错误的监听器；rc.13 改成索引推进 + 打标跳过后，派发中的注销只会让对应监听器被跳过。
 
 💡 **`prepend` 在 waterfall 里意味着"更外层"**：链首的监听器最先拿到控制权，能包住后面所有人。
 
-## 6.6 8 个 internal 事件
+## 6.6 11 个 internal 事件
 
-`interface Events`（`C/events.ts:178-188`）：
+`interface Events`（`C/events.ts:211-224`）——rc.10 是 8 个，rc.13 新增 `internal/replace`、`internal/commit`、`internal/config`，共 11 个：
+
+| 事件 | 签名 | 派发模式 | 行号 | 用途 |
+|---|---|---|---|---|
+| `internal/plugin` | `(fiber)` | emit | :213 | Fiber 装载/卸载时通知（loader 借此绑定 Entry） |
+| `internal/replace` | `(fiber)` | emit | :214 | **rc.13 新增**：`fiber._replace()` 热换 runtime 时通知 |
+| `internal/status` | `(fiber, oldValue)` | emit | :215 | Fiber 状态跨越 ACTIVE 边界时通知 |
+| `internal/service` | `(this: Context, name, value)` | emit | :216 | 服务注册/注销（`reflect.notify` 末尾构造带 filter 的 thisArg） |
+| `internal/update` | `(this: Fiber, resolvedConfig, next)` | waterfall | :217 | 拦截**已解析**的配置更新、可否决重启；`noSave` 已移除 |
+| `internal/commit` | `(fiber, originalConfig)` | emit | :218 | **rc.13 新增**：把**原始**配置持久化写回（loader 在 `L/index.ts:105-112` 落地） |
+| `internal/config` | `(fiber, next)` | waterfall | :219 | **rc.13 新增**：配置校验（Standard Schema，events.ts:81-83）与插值的挂接点 |
+| `internal/get` | `(ctx, name, error, next)` | waterfall | :220 | 服务查找失败前的介入点（懒加载/远程代理/mock） |
+| `internal/set` | `(ctx, name, value, error, next)` | waterfall | :221 | 服务写入的拦截点 |
+| `internal/listener` | `(this: Context, name, listener, prepend)` | bail | :222 | 注册劫持点（§ 6.4） |
+| `internal/dispatch` | `(mode, name, args, thisArg)` | emit | :223 | 全量事件流的观测入口（§ 6.2.2） |
 
 ![内建事件的三类用途](diagrams/06-internal-events.svg)
 
 **内建事件的三类用途** — [交互版](diagrams/06-internal-events.html)（明暗主题 / 缩放 / 关系追踪 / 导出） · [IR 源](diagrams/06-internal-events.architecture.json)
 
-- **三类的派发模式不同**：生命周期类与服务类是通知，用 emit · 可拦截类全部是 waterfall，带 next · 因此只有后者能改写框架行为
-- **loader 依赖两个事件落地**：internal/plugin 用来绑定 Entry 与 Fiber · internal/update 用来把配置变更写回 yml · 这是配置树与运行时之间的唯一接缝
-- **internal 事件不递归上报**：internal/dispatch 只通知非 internal 事件 · 否则会形成无限自我通知 · 定义见 interface Events（events.ts:178-188）
+- **三类的派发模式不同**：通知类（plugin/replace/status/service/commit）用 emit · 可拦截类（update/config/get/set）全部是 waterfall，带 next · 注册劫持（listener）用 bail，观测（dispatch）用 emit——只有 waterfall 那组能改写框架行为
+- **loader 依赖两个事件落地**：internal/plugin 用来绑定 Entry 与 Fiber · 配置写回 yml 现由 internal/commit 承担（internal/update 只拦截已解析的配置）· 这是配置树与运行时之间的唯一接缝
+- **internal 事件不递归上报**：internal/dispatch 只通知非 `internal/` 开头的字符串事件（symbol 命名的事件也上报）· 否则会形成无限自我通知 · 定义见 interface Events（events.ts:211-224）
 
-💡 **`internal/get` 是极强的扩展点**。它让插件能在"服务查找失败之前"介入——比如实现懒加载、远程代理、或者 mock。DSH 没有直接用它，但 cordis 的 loader 用 `internal/update` 做了配置持久化。
+💡 **`internal/get` 是极强的扩展点**。它让组件能在"服务查找失败之前"介入——比如实现懒加载、远程代理、或者 mock。DSH 没有直接用它，但 cordis 的 loader 用 `internal/commit` 做了配置持久化。
 
-💡 **注意 `internal/status` 的注释**（`C/fiber.ts:359`）：`// FIXME internal/fiber-info`——上游认为这个事件名/形态还需要改。**读到 FIXME 就知道这块 API 不稳定。**
+💡 **注意 `internal/status` 的注释**（`C/fiber.ts:376`）：`// FIXME internal/fiber-info`——上游认为这个事件名/形态还需要改。**读到 FIXME 就知道这块 API 不稳定。**
 
-💡 **`internal/listener` 的类型声明落后于实现**。`interface Events`（`C/events.ts:186`）把第三个参数写成 `prepend: boolean`，但 `on()` 实际传的是整个 `EventOptions` 对象（`C/events.ts:162`），构造函数里的自注册钩子也是按 `options.global` / `options.prepend` 读的（`:55`、`:57`）。**按类型签名写成布尔会拿不到 `global` 字段**——以实现为准。
+💡 **`internal/listener` 的类型声明落后于实现**。`interface Events`（`C/events.ts:222`）把第三个参数写成 `prepend: boolean`，但 `on()` 实际传的是整个 `EventOptions` 对象（`C/events.ts:195`），构造函数里的自注册钩子也是按 `options.global` / `options.prepend` 读的（`:56`、`:58`）。**按类型签名写成布尔会拿不到 `global` 字段**——以实现为准。
 
 ## 6.7 `ctx.reflect.bind()`：监听器的 traceable 包装
 
-`C/reflect.ts:273-282`：
+`C/reflect.ts:314-323`：
 
 ```ts
 bind<T extends Function>(callback: T) {

@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "PTC 双执行器与共享 waterfall（rc.3）",
+    "output": "07-ptc-executors.html",
+    "viewBox": [
+      1480,
+      560
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "agent",
+      "type": "external",
+      "label": "Agent / 模型",
+      "sublabel": "tool_call 或 run_code",
+      "tag": "两种调用形态",
+      "pos": [
+        40,
+        110
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "svc",
+      "type": "frontend",
+      "label": "ToolsService.execute()",
+      "sublabel": "T/index.ts:375",
+      "tag": "selectExecutor(agent)",
+      "pos": [
+        400,
+        110
+      ],
+      "size": [
+        340,
+        120
+      ]
+    },
+    {
+      "id": "native",
+      "type": "backend",
+      "label": "tool-executor-native",
+      "sublabel": "35 行，直接调工具",
+      "tag": "parallel-safe / exclusive",
+      "pos": [
+        820,
+        60
+      ],
+      "size": [
+        360,
+        120
+      ]
+    },
+    {
+      "id": "ptc",
+      "type": "backend",
+      "label": "tool-executor-ptc",
+      "sublabel": "2338 行，程序化调用",
+      "tag": "生成 TS/Python SDK",
+      "pos": [
+        820,
+        240
+      ],
+      "size": [
+        360,
+        120
+      ]
+    },
+    {
+      "id": "runtime",
+      "type": "backend",
+      "label": "ctx.ptcRuntime",
+      "sublabel": "ptc-runtime（独立 seam）",
+      "tag": "Node / Python 后端",
+      "pos": [
+        1250,
+        240
+      ],
+      "size": [
+        180,
+        120
+      ]
+    },
+    {
+      "id": "wf",
+      "type": "frontend",
+      "label": "tools/* 三段 waterfall",
+      "sublabel": "T/events.ts:18 / 29 / 41",
+      "tag": "守卫、审批、计量完全一致",
+      "pos": [
+        400,
+        380
+      ],
+      "size": [
+        380,
+        120
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "同一套契约，两种执行模型",
+      "wraps": [
+        "agent",
+        "svc",
+        "native",
+        "ptc",
+        "runtime",
+        "wf"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "a-s",
+      "from": "agent",
+      "to": "svc",
+      "variant": "emphasis"
+    },
+    {
+      "id": "s-n",
+      "from": "svc",
+      "to": "native",
+      "variant": "emphasis"
+    },
+    {
+      "id": "s-p",
+      "from": "svc",
+      "to": "ptc",
+      "variant": "emphasis"
+    },
+    {
+      "id": "p-r",
+      "from": "ptc",
+      "to": "runtime"
+    },
+    {
+      "id": "s-w",
+      "from": "svc",
+      "to": "wf",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "top"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "执行器是显式 seam",
+      "items": [
+        "native 与 ptc 各自成包",
+        "T/executor.ts 按 agent 选择",
+        "tools 包不再包含执行逻辑"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "PTC 的独立运行时",
+      "items": [
+        "ctx.ptcRuntime 是 Service Definition",
+        "Node 后端 2698 行",
+        "DSH_TOOLS_MODE 已删除"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "不变的契约",
+      "items": [
+        "三段 waterfall 位置不变",
+        "deferContext / concludeTurn 语义不变",
+        "ToolExecutionToken 仍贯穿父子调用"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SSH 执行世界（rc.3，接替 e2b）",
+    "output": "08-ssh-world.html",
+    "viewBox": [
+      1400,
+      600
+    ],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "fs",
+      "type": "backend",
+      "label": "fs-ssh",
+      "sublabel": "126 行 → ctx.fs provider",
+      "tag": "远端文件系统",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "sp",
+      "type": "backend",
+      "label": "subprocess-ssh",
+      "sublabel": "345 行 → ctx.subprocess provider",
+      "tag": "远端进程与 PTY",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        320,
+        110
+      ]
+    },
+    {
+      "id": "sb",
+      "type": "backend",
+      "label": "sandbox-ssh",
+      "sublabel": "33 行 → ctx.sandbox provider",
+      "tag": "远端约束",
+      "pos": [
+        40,
+        440
+      ],
+      "size": [
+        320,
+        90
+      ]
+    },
+    {
+      "id": "ssh",
+      "type": "frontend",
+      "label": "ssh 服务（1509 行）",
+      "sublabel": "OpenSSH 别名 + 连接管理",
+      "tag": "ssh-helper-runtime 39 行",
+      "pos": [
+        480,
+        180
+      ],
+      "size": [
+        360,
+        140
+      ]
+    },
+    {
+      "id": "helper",
+      "type": "external",
+      "label": "ssh-helper（单文件 exe）",
+      "sublabel": "远端 POSIX helper",
+      "tag": "build-exe-for-ssh-helper",
+      "pos": [
+        900,
+        380
+      ],
+      "size": [
+        360,
+        100
+      ]
+    },
+    {
+      "id": "tools",
+      "type": "external",
+      "label": "Bash / PTY / LSP / 文件工具",
+      "sublabel": "上层零改动",
+      "tag": "换两个 provider 即整体切换",
+      "pos": [
+        900,
+        120
+      ],
+      "size": [
+        380,
+        130
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "把远端主机当成第四个执行世界",
+      "wraps": [
+        "fs",
+        "sp",
+        "sb",
+        "ssh",
+        "helper",
+        "tools"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "f-s",
+      "from": "fs",
+      "to": "ssh",
+      "variant": "emphasis"
+    },
+    {
+      "id": "p-s",
+      "from": "sp",
+      "to": "ssh",
+      "variant": "emphasis"
+    },
+    {
+      "id": "b-s",
+      "from": "sb",
+      "to": "ssh"
+    },
+    {
+      "id": "s-h",
+      "from": "ssh",
+      "to": "helper"
+    },
+    {
+      "id": "t-f",
+      "from": "tools",
+      "to": "fs"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "为什么能整体切换",
+      "items": [
+        "上层只依赖 fs / subprocess 两个接口",
+        "LSP 经 subprocess 自动跟随",
+        "工具代码一行不改"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "与 e2b 的分工差异",
+      "items": [
+        "e2b 是容器 API，rc.3 整组删除",
+        "ssh 是世界：复用宿主 OpenSSH",
+        "helper 负责远端 POSIX 语义"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "运维面",
+      "items": [
+        "publish-ssh-helper.yml 发布单文件 exe",
+        "verify-ssh-helper-* 系列校验脚本",
+        "sandbox-ssh 只有 33 行，约束交给远端"
+      ]
+    }
+  ]
+}
