@@ -8,7 +8,7 @@
 
 会话日志（见 [dsh-session-demo](../dsh-session-demo/README.md)）是 append-only 事件流，但人想看的是 **trajectory**：每个 turn 干了什么、调了几次工具、花了多少 token、模型最终看到了什么。这层折叠渲染有一个测试困境：
 
-**turn 大纲、工具行、token 用量这些代码路径，只有会话里真的跑过 turn 之后才有内容。** 播种空会话只能照出"不崩"，照不出折叠逻辑的 bug——旧教材就曾在空会话上漏掉"消息体有两种形状"的缺陷，所有 user 行渲染成空行都看不出来。
+**turn 大纲、工具行、token 用量这些代码路径，只有会话里真的跑过 turn 之后才有内容。** 播种空会话只能照出"不崩"，照不出折叠逻辑的 bug——旧版示例就曾在空会话上漏掉"消息体有两种形状"的缺陷，所有 user 行渲染成空行都看不出来。
 
 探针的答案：脚本化 LlmAdapter（见 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md)）离线播种**两个真实 turn**，然后用同一套折叠/渲染代码处理它们，并对每个数字做断言对账。
 
@@ -155,7 +155,7 @@ TRAJ_PROBE_OK
 
 `npm run start:bun`（Bun 1.4.4，同样清空 `.dsh-home` 后首跑）：除首行 runtime 标识与会话 id（每次运行随机）外**逐行一致**，同样以 `TRAJ_PROBE_OK` 结束。`npm run typecheck`：退出码 0。
 
-三个值得盯住的事实：
+三个值得注意的事实：
 
 - **25 条事件 → 大纲 2 行 → 表面 7 条**：同一份日志的三种投影，各自服务不同读者（运维看明细、人看大纲、模型看表面）；
 - **seq 有空洞**（明细里 1→3→5→9…）：被跳过的是 request/header、assistant/attempt 等记账事件，默认不展开但 seq 连续——渲染过滤不等于日志缺失；
@@ -169,7 +169,7 @@ TRAJ_PROBE_OK
 
 ### 5.2 折叠是纯函数，渲染是薄壳
 
-`foldTurns(events)` 是纯函数：输入事件序列，输出 turn 列表，不碰 ctx、不做 I/O——可以单独断言（S2 就是这么做的）。`renderTrajectory()` 只是把折叠结果与逐事件摘要排版成文本。旧教材的 traj CLI 还带 ANSI 颜色与耗时列；本示例刻意用纯文本、去掉时间列，让双运行时输出逐行可比（时间戳每次运行都不同，会污染对比）。
+`foldTurns(events)` 是纯函数：输入事件序列，输出 turn 列表，不碰 ctx、不做 I/O——可以单独断言（S2 就是这么做的）。`renderTrajectory()` 只是把折叠结果与逐事件摘要排版成文本。旧版示例的 traj CLI 还带 ANSI 颜色与耗时列；本示例刻意用纯文本、去掉时间列，让双运行时输出逐行可比（时间戳每次运行都不同，会污染对比）。
 
 ### 5.3 探针与真实 provider 验证的分工
 
@@ -216,11 +216,13 @@ npm run typecheck    # 退出码 0
 
 ## 8. 小结
 
-- [x] 探针用脚本化适配器播种真实 turn，把折叠/渲染逻辑钉在真实事件序列上；
-- [x] foldTurns 是纯函数：turn 数、步数、工具数、token 全部可断言对账（4200/60 精确）；
-- [x] 消息体双形状、人类消息过滤、tool-call 摘要——三个真实 turn 才照得出的坑全部固化；
-- [x] 同一份日志三种投影：明细（运维）、大纲（人）、表面（模型）；
-- [x] 渲染只走 sessionQuery：flush 过的会话 dispose 后从盘上照常渲染；
-- [x] Node 与 Bun 双运行时逐行一致。
+这个示例验证了六件事：
+
+- 探针用脚本化适配器播种真实 turn，把折叠/渲染逻辑钉在真实事件序列上；
+- foldTurns 是纯函数：turn 数、步数、工具数、token 全部可断言对账（4200/60 精确）；
+- 消息体双形状、人类消息过滤、tool-call 摘要——三个真实 turn 才照得出的坑全部固化；
+- 同一份日志三种投影：明细（运维）、大纲（人）、表面（模型）；
+- 渲染只走 sessionQuery：flush 过的会话 dispose 后从盘上照常渲染；
+- Node 与 Bun 双运行时逐行一致。
 
 上一篇：[dsh-session-demo](../dsh-session-demo/README.md)；下一篇：dsh-hitl-demo——审批与人在回路。

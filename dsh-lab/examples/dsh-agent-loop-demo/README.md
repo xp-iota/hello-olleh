@@ -141,7 +141,7 @@ AGENT_LOOP_OK
 
 `npm run start:bun`（Bun 1.4.4）：除首行 runtime 标识外**逐行一致**，同样以 `AGENT_LOOP_OK` 结束。`npm run typecheck`：退出码 0。
 
-三个值得盯住的事实：
+三个值得注意的事实：
 
 - **S1 的边界序列**是 driver 真实写进会话日志的事件，不是模拟打印——工具步与回答步各一对 step/start/end；
 - **S2 的 3 个 step**：steer 不是"打断"，而是在 turn-stopping 检查点往 next-step 塞消息，循环发现 inbox 非空就继续；
@@ -155,7 +155,7 @@ AGENT_LOOP_OK
 
 ### 5.2 turn 的形状：step 循环 + 两个 inbox 检查点
 
-driver 的一个 turn 内（agent-loop/src/agent.ts:360-407）：每个 step 写 `step/start` → 执行模型请求与工具批 → 写 `step/end`；step 结束后若 `turnEnds && inbox.nextStep.length === 0`，先 serial 分发 `agent/turn-stopping`，**再检查一次** nextStep——steer 就是钻这个检查点的空子让 turn 续跑。turn 收尾必写 `turn/end`（含 reason：completed / max-tokens / aborted / error），然后若 inbox 还有 next-turn 待办，开下一个 turn。
+driver 的一个 turn 内（agent-loop/src/agent.ts:360-407）：每个 step 写 `step/start` → 执行模型请求与工具批 → 写 `step/end`；step 结束后若 `turnEnds && inbox.nextStep.length === 0`，先 serial 分发 `agent/turn-stopping`，**再检查一次** nextStep——steer 就是利用这个检查点让 turn 续跑。turn 收尾必写 `turn/end`（含 reason：completed / max-tokens / aborted / error），然后若 inbox 还有 next-turn 待办，开下一个 turn。
 
 ### 5.3 三条通道是同一 send 的三种包装
 
@@ -217,11 +217,13 @@ npm run typecheck    # 退出码 0
 
 ## 8. 小结
 
-- [x] 脚本化 LlmAdapter 让真实 turn 离线可跑：provider 缝替换模型来源不碰循环；
-- [x] turn/step 边界是会话日志里的真实事件，steer 在 turn-stopping 检查点续跑；
-- [x] followup / steer / inject 是同一 send 的三种包装，wakeup=false 只入队不唤醒；
-- [x] cancel 空闲幂等、默认清 inbox、keepInbox 保留排队、在途真实中止（aborted 收尾）；
-- [x] agent 事件 payload 的 agent 字段由融合分发器注入，subject 与 scope 不分叉；
-- [x] Node 与 Bun 双运行时逐行一致。
+这个示例验证了六件事：
+
+- 脚本化 LlmAdapter 让真实 turn 离线可跑：provider 缝替换模型来源不碰循环；
+- turn/step 边界是会话日志里的真实事件，steer 在 turn-stopping 检查点续跑；
+- followup / steer / inject 是同一 send 的三种包装，wakeup=false 只入队不唤醒；
+- cancel 空闲幂等、默认清 inbox、keepInbox 保留排队、在途真实中止（aborted 收尾）；
+- agent 事件 payload 的 agent 字段由融合分发器注入，subject 与 scope 不分叉；
+- Node 与 Bun 双运行时逐行一致。
 
 上一篇：[dsh-context-demo](../dsh-context-demo/README.md)；下一篇：dsh-session-demo——会话日志的结构、落盘、恢复与读取面。

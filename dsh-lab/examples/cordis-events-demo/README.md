@@ -1,20 +1,20 @@
 # Cordis 的事件示例：五种派发模式与一条中间件链
 
-这是一篇可以照抄的实战笔记。seam 示例讲「谁提供、谁消费」，fiber 示例讲「一个插件的一生」，这一篇讲「插件之间怎么说话」：cordis 的事件系统不是 EventEmitter 的换皮，它把五种派发语义做成了同一套监听器注册机制上的五个动词——`emit` / `parallel` / `serial` / `bail` / `waterfall`。我们用五个场景把它们摆在一起看，外加两条纪律：监听器本身就是 effect（随 fiber 回收），以及 `internal/dispatch` 这个全量观测入口。示例基于 cordis 4.0.0-rc.13（当前 latest），在 Node 26.12.1 与 Bun 1.4.4 上实测通过；代码就在本目录，`npm install && npm start` 即可运行。
+seam 示例讲「谁提供、谁消费」，fiber 示例讲插件的生命周期，这一篇讲插件之间怎么通信。cordis 的事件系统不是 EventEmitter 的换皮：同一套监听器注册机制上，有五个派发方法，对应五种不同的控制流——`emit` / `parallel` / `serial` / `bail` / `waterfall`。示例用五个场景逐个演示，另外说明两件事：监听器本身也是 effect（插件卸载时自动摘除），以及 `internal/dispatch` 这个能看到全部事件的观测入口。
 
-读完你会得到三样东西：一张按用途选模式的对照表、一条「返回即认领、`next()` 才转发」的 waterfall 语义纪律，以及「为什么插件卸载后它的事件监听不会残留」的答案。
+示例基于 cordis 4.0.0-rc.13，在 Node 26.12.1 和 Bun 1.4.4 上都跑过，输出一致。代码在本目录，`npm install && npm start` 即可运行。看完你会有一张按用途选方法的对照表，知道 waterfall 里「返回即认领、调 `next()` 才转发」的规则，也能解释为什么插件卸载后它的监听不会残留。
 
-## 先看清问题：手写事件总线的三笔账
+## 自己写事件总线，迟早会碰到这三个问题
 
-不用框架管理事件时，三件事迟早出错：
+不用框架管理事件时，有三件事很容易出错：
 
 - **语义靠约定**：「通知所有人」「问谁能处理」「让中间件改写默认行为」是三种完全不同的控制流，手写总线往往只有一个 `emit`，语义靠文档和自觉维持。
 - **错误处理不一致**：一个监听器抛错，是中断整条链、还是收集起来继续？每个调用点各自 try/catch，行为不可预测。
-- **监听器泄漏**：插件卸载了，它注册的监听器还在总线上——回调打到已销毁的状态上，和 fiber 示例里「忘记清理的定时器」是同一笔账。
+- **监听器泄漏**：插件卸载了，它注册的监听器还在总线上——回调打到已销毁的状态上，和 fiber 示例里「忘记清理的定时器」是同一类问题。
 
-cordis 的主张：把控制流语义做进派发动词，把监听器生命周期绑进 fiber。注册走 `ctx.on()`（内部是 `ctx.fiber.effect()`），派发按语义选动词，两笔账一起消掉。
+cordis 的做法：把控制流语义做进派发方法，把监听器生命周期绑进 fiber。注册走 `ctx.on()`（内部是 `ctx.fiber.effect()`），派发按语义选方法，两个问题一起解决。
 
-## 五种派发模式：一张表选动词
+## 五种派发模式：一张表选方法
 
 ![五种事件派发模式](diagrams/dispatch-modes.svg)
 
@@ -34,7 +34,7 @@ cordis 的主张：把控制流语义做进派发动词，把监听器生命周�
 | `serial` | 异步 | 首个 `isBailed` | `Promise<该值>` | events.ts:128 |
 | `waterfall` | 取决于监听器 | 由 `next()` 控制 | 链的返回值 | events.ts:146 |
 
-## 场景 ①：emit 与 parallel 的错误账
+## 场景 ①：emit 与 parallel 的错误处理差异
 
 emit 是同步广播：逐个 `Reflect.apply`，**不接异常**——监听器抛错直接穿透给调用方。parallel 是并发上报：`Promise.allSettled` 等所有监听器 settle，失败的收集成带事件名的 `AggregateError`：
 
@@ -46,7 +46,7 @@ await ctx.parallel('lab/report', 'metrics')
 // 但上报 A 仍然完成了——allSettled 不因单个失败取消其余
 ```
 
-实测里 A 的完成日志先于 AggregateError 出现：B 在 10ms 就失败了，parallel 仍等到 20ms A 完成才抛错。这就是「收集全部错误」的字面意思。而 emit 的对照实验里，监听器抛的 `监听器抛错` 原样穿透到调用方的 catch——两种通知动词，两种错误账，选动词就是选错误语义。
+实测里 A 的完成日志先于 AggregateError 出现：B 在 10ms 就失败了，parallel 仍等到 20ms A 完成才抛错。这就是「收集全部错误」的字面意思。而 emit 的对照实验里，监听器抛的 `监听器抛错` 原样穿透到调用方的 catch——两种通知方法，两种错误处理方式，选方法就是选错误语义。
 
 ## 场景 ②：bail / serial 与 isBailed 的陷阱
 
@@ -86,7 +86,7 @@ ctx.waterfall('lab/wrap', '原始文本', () => '【base】')  // → 【A】【
 
 ## 场景 ④：监听器即 effect
 
-`ctx.on()` 的注册走 `ctx.fiber.effect()`（events.ts:165-173）：返回值是注销函数，fiber 卸载时监听器自动摘除。示例把四种注册形态摆在一起：root 上手动 `on`（拿 off 函数手动摘）、插件内普通 `on`、`{ prepend: true }` 的 `on`（unshift 到链首）、`once`（响一次自摘）。两次 emit 加一次卸载后的 emit，实测命中顺序：
+`ctx.on()` 的注册走 `ctx.fiber.effect()`（events.ts:165-173）：返回值是注销函数，fiber 卸载时监听器自动摘除。示例对比了四种注册方式：root 上手动 `on`（拿 off 函数手动摘）、插件内普通 `on`、`{ prepend: true }` 的 `on`（unshift 到链首）、`once`（响一次自摘）。两次 emit 加一次卸载后的 emit，实测命中顺序：
 
 ```text
 prepend → 手动 → 普通 → once → prepend → 手动 → 普通
@@ -135,7 +135,7 @@ emit:lab/quiet waterfall:lab/wrap serial:lab/claim-async bail:lab/claim
 演示结束
 ```
 
-## 边界与容易踩的坑
+## 容易踩的坑
 
 ### isBailed 不是 truthy
 
@@ -219,7 +219,7 @@ cordis-events-demo/
 ```ts
 /**
  * 事件系统的五种派发模式：emit / parallel / serial / bail / waterfall。
- * 外加两条纪律：监听器即 effect（随 fiber 回收）、internal/dispatch 是全量观测入口。
+ * 外加两条规则：监听器即 effect（随 fiber 回收）、internal/dispatch 是全量观测入口。
  *
  * 运行：node src/index.ts / bun src/index.ts（无需构建）
  */
@@ -374,4 +374,4 @@ npm run typecheck  # tsc --noEmit，exit 0
 
 ## 小结
 
-事件系统的五个动词是五种控制流语义：emit 广播、parallel 并发收错、bail/serial 询问认领、waterfall 委托改写。选动词就是选错误账与中断条件；`isBailed` 的三值排除和 inner 的无参契约是最容易写错的两处。监听器注册即 fiber effect，卸载自动摘除——「插件之间怎么说话」和「插件的一生」在 effect 这一层合流。下一篇 isolate 示例讲「哪些监听器看得见这次派发」：`Context.filter` 与 realm 隔离。
+事件系统的五个方法是五种控制流：emit 广播、parallel 并发收错、bail/serial 询问认领、waterfall 委托改写。选方法就是选错误处理方式与中断条件；`isBailed` 的三值排除和 inner 的无参契约是最容易写错的两处。监听器注册即 fiber effect，卸载自动摘除——事件通信和生命周期管理在 effect 这一层用的是同一套机制。下一篇 isolate 示例讲「哪些监听器看得见这次派发」：`Context.filter` 与 realm 隔离。

@@ -1,6 +1,6 @@
 /**
  * 事件系统的五种派发模式：emit / parallel / serial / bail / waterfall。
- * 外加两条纪律：监听器即 effect（随 fiber 回收）、internal/dispatch 是全量观测入口。
+ * 外加两条规则：监听器即 effect（随 fiber 回收）、internal/dispatch 是全量观测入口。
  *
  * 运行：node src/index.ts / bun src/index.ts（无需构建）
  */

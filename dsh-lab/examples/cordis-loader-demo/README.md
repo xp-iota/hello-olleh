@@ -6,11 +6,9 @@
 
 seam 示例里装配是手写的：`ctx.use(plugin)` 一行一个插件。loader 把这件事变成**声明式**：一份配置树（yml 或内存数组），每行一个 Entry，每个 Entry 背后一层或两层 Fiber。group、disabled、inject、isolate 全部可以写在配置行上，运行时还能 `update()` 打补丁——只改 config 时 Fiber 不重建。
 
-本示例用五个场景把这条链路走通：配置树长什么样、patch 与重载的边界、配置层 inject 的等待语义、配置层 isolate 的 realm、disabled 开关的卸载重装。
+示例用五个场景演示这条链路：配置树长什么样、patch 与重载的边界、配置层 inject 的等待语义、配置层 isolate 的 realm、disabled 开关的卸载重装。
 
-## 先看清问题：谁把「一行配置」变成运行中的插件
-
-手写 `ctx.use()` 有三个做不到：
+## 手写 ctx.use() 做不到的三件事
 
 1. **依赖缺席时等待**。插件读 `ctx.greeter`，但 greeter 还没上线——手写装配只能自己排序或自己监听事件。
 2. **不重启进程改配置**。改一个 tag 就要 dispose 再 use，副作用全重来。
@@ -93,11 +91,11 @@ Node v26.12.1（`npm start`）；Bun 1.4.4（`npm run start:bun`）逐行相同�
 演示结束
 ```
 
-## 边界与容易踩的坑
+## 容易踩的坑
 
 ### include 子树 commit 写回文件，root 树纯内存
 
-最容易踩的一个：以为所有 `loader.create/update` 都不碰文件。错——**只有 root 树**的 commit 是空实现；include 子树的 commit 会记 journal、写临时文件再 rename 回 yml（`I/index.ts:357-360`、`:551-554`）。若把运行时装配挂到 include 子树下，演示跑一遍 `cordis.yml` 就被改写。本示例的纪律：yml 只读展示，运行时 create/patch/disabled 全走 root 内存树；跑完核对 yml 无变化。
+最容易踩的一个：以为所有 `loader.create/update` 都不碰文件。错——**只有 root 树**的 commit 是空实现；include 子树的 commit 会记 journal、写临时文件再 rename 回 yml（`I/index.ts:357-360`、`:551-554`）。若把运行时装配挂到 include 子树下，演示跑一遍 `cordis.yml` 就被改写。本示例的做法：yml 只读展示，运行时 create/patch/disabled 全走 root 内存树；跑完核对 yml 无变化。
 
 ### create 签名 Omit id，但运行时接受显式 id
 
@@ -358,4 +356,4 @@ npm run typecheck    # tsc 7.0.2，0 错误
 
 ## 小结
 
-loader 把装配从命令变成数据：配置行 → Entry → Fiber，group/disabled/inject/isolate 全是声明。运行时 `update()` 用 diff 区分「就地 patch」（uid 不变）与「重载」（name/inject 变化），disabled 沿父链短路。两棵树的 commit 语义划出持久化边界：root 内存树随便改，include 子树改一次写一次文件。配合 [seam](../cordis-seam-demo/README.md) 的服务装配、[fiber](../cordis-fiber-demo/README.md) 的状态机、[isolate](../cordis-isolate-demo/README.md) 的 realm 键，cordis 的「配置即运行时」闭环就齐了；下一篇 [hmr](../cordis-hmr-demo/README.md) 再看文件变化如何触发这条链路重跑。
+loader 把装配从命令变成数据：配置行 → Entry → Fiber，group/disabled/inject/isolate 全是声明。运行时 `update()` 用 diff 区分「就地 patch」（uid 不变）与「重载」（name/inject 变化），disabled 沿父链短路。两棵树的 commit 语义划出持久化边界：root 内存树随便改，include 子树改一次写一次文件。到这里，[seam](../cordis-seam-demo/README.md) 的服务装配、[fiber](../cordis-fiber-demo/README.md) 的状态机、[isolate](../cordis-isolate-demo/README.md) 的 realm 键都能写进配置了；下一篇 [hmr](../cordis-hmr-demo/README.md) 看文件变化如何触发这条链路重跑。

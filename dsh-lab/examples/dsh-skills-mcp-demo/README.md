@@ -130,7 +130,7 @@
 
 执行器用 **native**（不是 PTC）：本示例不跑 `run_code`，也就不需要 jobs 示例那五条 Bun 缝。
 MCP server 由 `@modelcontextprotocol/client` 的 `StdioClientTransport` 自己 spawn（cross-spawn），
-同样不走 `dsh-subprocess-local`——所以 **Node 与 Bun 都是裸跑 `src/index.ts`，没有任何 runtime 补丁层**。
+同样不走 `dsh-subprocess-local`——所以 **Node 与 Bun 都直接运行 `src/index.ts`，没有任何 runtime 补丁层**。
 
 ## 3. 实测输出
 
@@ -189,7 +189,7 @@ rawName `echo`。boot 返回前已完成连接 + 初始工具同步，所以 S3 
 自带的 `mcp-echo-server.mjs` 是 53 行纯 JS：newline-delimited JSON-RPC，只实现
 initialize / ping / tools/list / tools/call 四个方法。
 
-**S4 web：准入门控。** 这是本示例最深的机制。`web_fetch`/`web_search` 注册时带
+**S4 web：准入门控。** 这是本示例的关键机制。`web_fetch`/`web_search` 注册时带
 `when: ({modelSelection}) => ctx.web.fetchReady/searchReady(modelSelection.provider)`。
 注册表的 `executable()`（`core/tools/src/index.ts`）规定：**没有 step 准入（toolSet）的
 调用，带 `when` 的工具一律返回 undefined → UNKNOWN_TOOL**。所以：
@@ -236,7 +236,7 @@ fetch 的边界与网络无关：只容 http/https（`unsupported URL scheme`）
     改为 pre-step/inbox 驱动（旧「assemble().sections 查指令段落」的做法过时）；
     web fetch 可达本机；mcp-client 每实例一 server。
 12. **Bun 无需任何缝**：不挂 ptc/subprocess，MCP 由 SDK 自己 spawn——jobs 示例的五条
-    Bun 缝在这里一条都不触发，`bun src/index.ts` 直跑即绿。
+    Bun 缝在这里一条都不触发，`bun src/index.ts` 直接跑通。
 
 ## 6. 从零复现
 

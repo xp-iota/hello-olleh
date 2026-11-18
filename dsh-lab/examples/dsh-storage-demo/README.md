@@ -201,7 +201,7 @@ STORAGE_DEMO_OK
 `npm run start:bun`（Bun 1.4.4）除首行 `runtime = bun 1.4.4` 外**逐行一致**（24 行，
 `Compare-Object` 验证；attachmentId 是内容寻址 sha256，天然确定）。输出留档在
 [runtime-out-node.txt](runtime-out-node.txt) 与 [runtime-out-bun.txt](runtime-out-bun.txt)。
-**Bun 裸跑即绿，无需任何补丁**：不挂 ptc-runtime/subprocess，SQLite `openAt: never`。
+**Bun 直接跑通，无需任何补丁**：不挂 ptc-runtime/subprocess，SQLite `openAt: never`。
 
 ## 4. 逐场景机制
 
@@ -215,7 +215,7 @@ STORAGE_DEMO_OK
 rc.3 的真实边界与直觉相反：**`put` 不做运行时 zod 校验**——类型系统挡住正常调用，
 绕过类型的脏数据（示例里 `as never`）能进介质。校验发生在 **`open()` 加载存量记录时**：
 `parseRecord` 失败抛 `DomainError`，`code='invalid-record'`，`detail` 带 `{table, key}`
-精确定位。所以纪律是「脏数据进得了介质，但进不了下一次打开的领域」。
+精确定位。也就是说，脏数据进得了介质，但进不了下一次打开的领域。
 
 对可丢弃的派生数据有第二条策略 `invalidRecords: 'backup-and-skip'`：坏记录挪走、记日志、
 照常打开。但它**需要 `layout: 'per-record'`**（每条记录一份文档才有东西可挪）；
@@ -232,7 +232,7 @@ rc.3 的真实边界与直觉相反：**`put` 不做运行时 zod 校验**——
 ### S3 凭据：解析而不暴露
 
 `credentials.resolve(credentialRef(name))` 返回 **`{value, source} | undefined`**
-（rc.1 是裸字符串，rc.3 加了来源层）。示例演示四条纪律：
+（rc.1 是裸字符串，rc.3 加了来源层）。示例演示四条规则：
 
 - **分层**：`source='file'`（`DSH_HOME/.credentials.yaml`）与 `source='env'`（进程环境）；
 - **托管存储优先**：同名引用文件层赢——用户显式保存的不被环境顶掉；
@@ -240,14 +240,14 @@ rc.3 的真实边界与直觉相反：**`put` 不做运行时 zod 校验**——
 - **热轮换**：外部改写 yaml，watch（默认开，debounce 100ms）热发布，下一次 `resolve`
   拿到新值，**进程不重启**。
 
-日志纪律：只打印 `source` 与值长度，值本身永不落日志。
+日志要求：只打印 `source` 与值长度，值本身永不落日志。
 
 ### S4 文件引用：@ 提及的发现缝
 
 `fileReferences.list(agent, query, signal)` 是 @ 语法背后的发现服务，返回
 `{path, kind: 'file'|'directory'}[]`。配套的提示段 `context:file-reference` 是
 **条件渲染**：`read` 工具在位才给模型 @ 语法指引——所以 patch 里挂了 `tool-fs`
-（只开 read/read_image）。能力与指引同生共死，模型不会拿到一个用不了的语法。
+（只开 read/read_image）。能力与指引同进同出，模型不会拿到一个用不了的语法。
 
 ### S5 跨会话引用：快照按预算进上下文
 
@@ -281,7 +281,7 @@ rc.3 的真实边界与直觉相反：**`put` 不做运行时 zod 校验**——
 10. **`assert()` 不做 TS 类型收窄**： narrowing 用 `if (!x) throw`，别指望自定义
     assert 之后 `x` 自动非空。
 11. **koffi 安装脚本被拦无碍**：npm allowScripts 拦下 koffi@3.1.1 的 install script，
-    但本示例不触发它的加载路径（SQLite `openAt: never`），双运行时照常全绿。
+    但本示例不触发它的加载路径（SQLite `openAt: never`），双运行时照常全部通过。
 12. **Windows 跳过凭据文件 mode 检查**：credentials-local 的 POSIX 权限检查在 win32
     直接 return，别在 Windows 上期待 0600 断言。
 

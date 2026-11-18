@@ -7,6 +7,15 @@
 配套分析文章在 [`docs/hello-cordis/`](../docs/hello-cordis/README.md) 与
 [`docs/hello-dsh/`](../docs/hello-dsh/README.md)；示例是文章的「可运行 counterpart」。
 
+## 三层同心结构
+
+自内而外：**cordis**（运行时内核 + built-in 插件系）→ **dsh**（官方能力包，每个都是
+cordis 插件）→ **dsh-lab**（21 个独立示例 + 自写插件）。插件分布的读法：官方包与自写件
+（`anthropic-compat`、`safety-guardrail`、`word_count` 等）在 cordis 眼里没有区别，
+都经各示例的装配清单挂成插件，卸载时 effect 自动回收。
+
+![三层同心结构：cordis → dsh → dsh-lab 及其插件分布](diagrams/stack-rings.svg)
+
 ## 示例索引
 
 ### Cordis 运行时（6）
@@ -61,14 +70,19 @@ npm start          # Node；npm run start:bun 走 Bun
 npm run typecheck
 ```
 
-每个示例的脚本面统一：`start` / `start:bun` / `typecheck`，按需另有
-`test` / `test:bun` 与主题子命令（如 chat-demo 的 `info` / `sessions` / `traj`）。
+每个示例的脚本面统一：`start` / `start:bun` / `typecheck`，按需另有：
+
+- `test` / `test:bun`：`dsh-chat-demo`（22 条）、`dsh-llm-adapter-demo`（12 条）、`dsh-guardrail-demo`（4 条）；
+- `mechanism` / `mechanism:bun`：`dsh-llm-adapter-demo` 的无 key 脚本化适配器路径；
+- `start:yml` / `start:yml:bun`：`cordis-seam-demo` 的 YAML 装配变体；
+- `info` / `sessions` / `traj`（各带 `:bun`）：`dsh-chat-demo` 的装配探针、会话列表与轨迹回看。
 
 ## 双运行时
 
 - **Node ≥ 22.18**（原生 TypeScript 剥离，实测 v26.12.1）与 **Bun ≥ 1.4.4** 全部验证等价。
 - Bun 与 dsh 的两条缝（`node:module.stripTypeScriptTypes` 缺失、subprocess runner
-  的 `--` 分隔符被吞）由需要它们的示例**自带迷你 runtime 层**在加载期修补，
+  的 `--` 分隔符被吞）由需要它们的三个示例（`dsh-chat-demo`、`dsh-jobs-demo`、
+  `dsh-sandbox-demo`）**自带迷你 runtime 层**在加载期修补，
   不改 `node_modules`；根 `runtime/` 保留同一套 shim 与契约校验作为参照。
 - `npm run runtime:status` 报告两套运行时解析到哪、版本是否达标；
   `npm run check:shim` 校验 Bun shim 仍满足上游 `slice(35, -2)` 位置契约。
@@ -85,11 +99,23 @@ RUNTIMES_VERIFY_OK runtimes=2 checks=63
 缺 key 时 🔑 示例的 start 按「明确失败」计入报告（△ 行，设计行为）而非静默跳过；
 配好 `.env` 后重跑应转为真实通过。任何非 key 失败都会以 `RUNTIMES_VERIFY_FAILED` 非零退出。
 
+最近一次全量实测（2026-11-17，旧模块体系退役后）：**63 项全 ✓**，含两个 🔑 示例的
+真实模型调用（fuyao 网关，Node 与 Bun 均完成带正文的 turn）；`check:shim` 3 例全过。
+
 ## 版本面
 
-- `@deepseek-ai/*` **0.2.2-rc.3**（npm `next` 通道，与 `sources/deepseek-harness/` 快照同版；
-  例外 `dsh-invariants` 0.2.0-rc.2，上游未发 rc.3）。
-- `@deepseek-ai/cordis` **4.1.0**、cordis 插件系（timer/loader/include/group）同线最新版。
+自下而上：Node.js / Bun → cordis（双版本线）→ dsh 官方能力包 → dsh-lab 示例；
+层间箭头标出每层向上提供的语义，右侧卡片是 Bun 两条缝与版本口径的速览。
+
+![版本栈：Node.js / Bun → cordis → dsh → dsh-lab](diagrams/version-stack.svg)
+
+- **cordis 示例（6 个）**：cordiverse 上游 `cordis` **4.0.0-rc.13**（与 `sources/cordis/` 快照同版），
+  插件系按需：`@cordisjs/loader` 1.0.0-rc.10、`include`/`fs`/`hmr` 2.0.0-rc.0、`group` 1.0.1、
+  `timer` 1.1.5、`fs-node` 0.1.0。
+- **dsh 示例（15 个）**：`@deepseek-ai/*` **0.2.2-rc.3**（npm `next` 通道，与 `sources/deepseek-harness/` 快照同版；
+  例外 `dsh-invariants` 0.2.0-rc.2，上游未发 rc.3），cordis 运行时为 DSH 自携 fork
+  `@deepseek-ai/cordis` **4.1.0**（基于上游 rc.11，与上游 rc.13 的 Fiber 语义差异见
+  [`docs/hello-cordis/README.md` § 五](../docs/hello-cordis/README.md)）。
 - 根层**零依赖**：`runtime/` 全部是零依赖 `.mjs`；业务依赖都在各示例自己的 `package.json`。
 
 ## 目录形状
@@ -97,11 +123,15 @@ RUNTIMES_VERIFY_OK runtimes=2 checks=63
 ```text
 dsh-lab/
 ├── examples/<name>/        # 21 个独立示例（README.md 即主题文章）
-│   ├── package.json        # 只声明本主题用到的依赖
-│   ├── cordis.patch.yml    # dsh 系：声明式装配清单
+│   ├── package.json        # 只声明本主题用到的依赖，精确锁定
+│   ├── tsconfig.json       # noEmit 类型检查
+│   ├── cordis.yml          # 需要 YAML 装配的示例：空根表
+│   ├── cordis.patch.yml    # 需要 YAML 装配的示例：声明式装配清单
 │   ├── src/                # 示例源码（含自写插件与测试）
-│   ├── runtime/            # 需要 Bun 修补的示例自带迷你调度层
-│   └── .env.example        # 需要 key 的示例自带变量模板
+│   ├── diagrams/           # cordis 系 6 示例：archify SVG/HTML/IR
+│   ├── runtime/            # 仅 chat/jobs/sandbox 三示例：Bun 修补迷你调度层
+│   ├── .env.example        # 仅两个 🔑 示例：变量模板（.env 已 gitignore）
+│   └── .dsh-home/          # dsh 系运行时自管 home（已 gitignore）
 ├── runtime/                # 根层运行时工具：run/status/verify/install-all/check-bun-shim + shim
-└── package.json            # example:<name> 代跑脚本 + verify 等仓库级命令
+└── package.json            # example:<name>[:bun] 代跑脚本 + verify 等仓库级命令
 ```

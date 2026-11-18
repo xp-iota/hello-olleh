@@ -375,10 +375,10 @@ npm run typecheck
 
 ## 7. 小结
 
-长期运行的教学点浓缩成三句：**状态要落盘**（jobs 输出环、goal 会话日志、
+长期运行可以概括成三句话：**状态要落盘**（jobs 输出环、goal 会话日志、
 schedule 存储域——没有一样只活在 Promise 里）；**传输面与能力面分层**
 （run_code 是执行器拥有的顶层入口，其他工具从程序内 `tools.*` 绑定调）；
-**续跑是武装出来的**（armed/disarmed 决定 round-driver 是否接管，离线演示
+**续跑由 armed 开关控制**（armed/disarmed 决定 round-driver 是否接管，离线演示
 必须 disarm）。Bun 侧的五条缝（runner 分隔符、node:module 导出、worker env
 白名单、fd 控制通道、data URL 误判）全部由本工程自带的 runtime/ 迷你层在
 加载期修补，未动 node_modules，双运行时输出逐行一致。

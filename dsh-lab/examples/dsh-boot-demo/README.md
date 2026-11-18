@@ -4,7 +4,7 @@
 > 版本面：`@deepseek-ai/dsh-app-boot` **0.2.2-rc.3**（npm `next` 通道，与 `sources/deepseek-harness` 快照同版）、`@deepseek-ai/cordis` **4.1.0**。
 > 本文所有运行输出均为实测粘贴（Node v26.12.1 / Bun 1.4.4，Windows）。
 
-## 1. 问题：一个 Harness 应用是怎么"长出来"的
+## 1. 问题：一个 Harness 应用是怎么启动的
 
 dsh 的 CLI、Web 服务、headless runner 共用同一套启动胶水 `@deepseek-ai/dsh-app-boot`。它回答四个问题：
 
@@ -13,7 +13,7 @@ dsh 的 CLI、Web 服务、headless runner 共用同一套启动胶水 `@deepsee
 3. **坏了怎么办**——fail-loud：required 行没激活就抛 `StartupError` 拒绝启动，而不是带病运行；
 4. **没坏但没齐怎么办**——缺服务的行停在 PENDING，服务何时可用何时激活，启动审计只 warn 不拦。
 
-本示例用一棵**五行最小树**把这四件事全部跑一遍，不碰模型、不碰网络、不需要 key。
+本示例用一棵**五行最小树**把这四件事都跑一遍，不碰模型、不碰网络、不需要 key。
 
 ## 2. 契约：boot() 的签名与启动时序
 
@@ -98,7 +98,7 @@ export function apply(ctx: Context, config: { tag?: string } = {}): void {
 
 ### 4.2 三个 YAML 层
 
-`cordis.yml`（根配置刻意留空——装配全部来自 patch 层，这正是 dsh 的哲学：根文件是项目自己的清单，patch 层是发行版/宿主的清单）：
+`cordis.yml`（根配置刻意留空——装配全部来自 patch 层，这正是 dsh 的设计：根文件是项目自己的清单，patch 层是发行版/宿主的清单）：
 
 ```yaml
 []
@@ -253,7 +253,7 @@ BOOT_DEMO_OK
 
 `npm run typecheck`：退出码 0。
 
-四个值得盯住的细节：
+四个值得注意的细节：
 
 - **S3 里 hello 先 ACTIVE 又立刻 dispose**——boot 失败路径会回收已经挂载的兄弟行，且 effect 按逆序（#2 先于 #1）撤销；
 - **S4 的 warning 来自 boot 内部审计**——hello 不在 required 清单，PENDING 不拦启动；`provide` 之后无需重启，Loader 自动把它激活；
@@ -402,12 +402,14 @@ npm run typecheck    # 退出码 0
 
 ## 9. 小结
 
-- [x] `boot()` 五参签名与内部时序：Loader → prepare → 配置树 → settle → 审计；
-- [x] patch 层语义：insert 追加、非 insert 按 key 整体替换、后写胜出；
-- [x] fail-loud 的真实边界：required 清单"缺席忽略、挂了必须活"，非 required 只 warn；
-- [x] `StartupError` 三份证据：entries / composition / startup；
-- [x] 服务可用性驱动激活：PENDING 不是错误，是等待；运行时 provide 即激活；
-- [x] dispose 逆序回收 effect，boot 失败路径同样回收已挂载的兄弟行；
-- [x] Node 与 Bun 双运行时逐行一致，不碰 ptc/subprocess 就无需补丁。
+这个示例验证了七件事：
+
+- `boot()` 五参签名与内部时序：Loader → prepare → 配置树 → settle → 审计；
+- patch 层语义：insert 追加、非 insert 按 key 整体替换、后写胜出；
+- fail-loud 的真实边界：required 清单"缺席忽略、挂了必须活"，非 required 只 warn；
+- `StartupError` 三份证据：entries / composition / startup；
+- 服务可用性驱动激活：PENDING 不是错误，是等待；运行时 provide 即激活；
+- dispose 逆序回收 effect，boot 失败路径同样回收已挂载的兄弟行；
+- Node 与 Bun 双运行时逐行一致，不碰 ptc/subprocess 就无需补丁。
 
 下一篇：[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md)——在这棵树的 `tools` 服务上走完注册→可见性→waterfall→执行→回收的全管线。

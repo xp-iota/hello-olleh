@@ -158,7 +158,7 @@ GUARDRAIL_DEMO_OK
 
 `npm run start:bun`（Bun 1.4.4）除首行 `runtime = bun 1.4.4` 外**逐行一致**（30 行，
 `Compare-Object` 验证）。输出留档在 [runtime-out-node.txt](runtime-out-node.txt) 与
-[runtime-out-bun.txt](runtime-out-bun.txt)。**Bun 裸跑即绿，无需任何补丁**。
+[runtime-out-bun.txt](runtime-out-bun.txt)。**Bun 直接跑通，无需任何补丁**。
 
 纯函数单测（脱敏 / 预览 / 策略优先级）双运行时也各跑一遍：
 
@@ -173,7 +173,7 @@ npm run test:bun  # bun test：4 pass / 0 fail
 
 allow 的调用打印一行预览：`pre-execute tool=<名> agent=<id 或 (standalone)> args=<一行 JSON>`。
 证据链由探针工具产生：每个工具函数体开始时检查「护栏日志是否已写出」
-（`bodySawGuardrail`），并把执行事实记进 `bodyOrder`。脱敏两条纪律：
+（`bodySawGuardrail`），并把执行事实记进 `bodyOrder`。脱敏有两条规则：
 
 - `redactValue()` 递归脱敏（深度上限 8），只替换命中键的**值**为 `[REDACTED]`，
   键名保留——看得出「这里本来有密钥」。键名规范化（转小写、去非字母数字）后
@@ -202,7 +202,7 @@ allow 的调用打印一行预览：`pre-execute tool=<名> agent=<id 或 (stand
 
 关键约束：**审批必须在 open turn 内**。`approval.request()` 检查 approvalState 投影的
 `turnOpen`，turn 外直接抛错——审计对（approval/asked + approval/decided）必须被 turn
-包住，否则重载时是崩溃尾巴垃圾。真实部署里 turn 由 agent-loop 打开；本示例直接驱动
+包住，否则崩溃重载时会留下不完整的垃圾记录。真实部署里 turn 由 agent-loop 打开；本示例直接驱动
 管线，所以手动 `session.append('turn/start', { turn: 1 })` 把门打开（收尾 append turn/end）。
 
 ### S4 cancel：规范取消，不呈现策略拒绝
@@ -284,7 +284,7 @@ npm run test:bun    # 4 pass（Bun）
 
 - 护栏是装配清单里的**一行本地插件**：观察与策略都挂在 `tools/pre-execute`
   waterfall 上，策略全部来自 config，改规则不改代码，摘插件不改管线。
-- 四种决定各有归宿：allow 留脱敏预览、deny 留拒绝理由、ask 交审批缝（必须在
+- 四种决定各有处理方式：allow 留脱敏预览、deny 留拒绝理由、ask 交审批缝（必须在
   open turn 内）、cancel 走规范取消；官方 guard 是它们之后的单调兜底。
 - 兄弟示例：[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md)（管线五段
   机制本身）、[dsh-hitl-demo](../dsh-hitl-demo/README.md)（审批缝的完整词汇表与

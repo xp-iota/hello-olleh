@@ -1,7 +1,7 @@
 # dsh-llm-adapter-demo —— 模型接入层：自写适配器与 llm/stream 接缝
 
 一个**完全独立**的可运行工程：把整个目录拷到任何位置，`npm install` 之后即可运行，
-不依赖 dsh-lab 根工程、其他示例或任何共享 runtime 层。Node 与 Bun 双运行时裸跑即绿，
+不依赖 dsh-lab 根工程、其他示例或任何共享 runtime 层。Node 与 Bun 上都能直接跑通，
 无需补丁（本示例不触碰 ptc-runtime 与 subprocess runner 这两条 Bun 缝）。
 
 两条路径分明：
@@ -122,7 +122,7 @@ LLM_ADAPTER_OK
 ```
 
 输出留档在 [runtime-out-node.txt](runtime-out-node.txt) 与
-[runtime-out-bun.txt](runtime-out-bun.txt)。**Bun 裸跑即绿，无需任何补丁**。
+[runtime-out-bun.txt](runtime-out-bun.txt)。**Bun 直接跑通，无需任何补丁**。
 
 S4 真实调用（fuyao 网关，`LLM_MODEL=fuyao-coding`）双运行时也都通过，
 但模型回答与用量**非确定**，只留档不纳入逐行对比
@@ -154,7 +154,7 @@ LLM_ADAPTER_OK
 ### S2 llm/stream waterfall——环绕每次模型调用
 
 事件签名是 `(options, next: () => AsyncIterable<StreamChunk>) => AsyncIterable<StreamChunk>`。
-两种姿势：**调 `next()` 再包一层**是观察/改写（本场景计数 chunk）；
+两种做法：**调 `next()` 再包一层**是观察/改写（本场景计数 chunk）；
 **不调 `next()` 直接返回自己的流**是拦截。场景里临时注册脚本化适配器
 `lab-scripted`（5 个固定 chunk），监听器命中 1 次、经手 5 个 chunk，
 `releaseScripted()` 与 `off()` 各自归还注册——两条缝都是可逆的。
@@ -261,5 +261,5 @@ npm run start:bun        # Bun：同上
 
 兄弟示例：[dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md)（stream 的消费端：
 循环怎样把 chunk 变成会话事件）、[dsh-boot-demo](../dsh-boot-demo/README.md)
-（boot() + 声明式 patch 的装配哲学）、[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md)
+（boot() + 声明式 patch 的装配方式）、[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md)
 （模型输出之后的工具管线五段）。

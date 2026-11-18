@@ -112,7 +112,7 @@ CONTEXT_DEMO_OK
 
 `npm run start:bun`（Bun 1.4.4）：除首行 runtime 标识、会话 id 与溢写临时目录名（每次运行随机）外**逐行一致**，同样以 `CONTEXT_DEMO_OK` 结束。`npm run typecheck`：退出码 0。
 
-三个值得盯住的数字：
+三个值得注意的数字：
 
 - **S4：25889 → 5159 字符**——head 4096 + tail 1024 + 省略通知，正是 config 的三个数；
 - **S5：148889 → 49932 字符**——spill 不是数量级压缩，而是"内联预算内的头尾保留 + 超出部分落盘"（99189 字节进了文件）；
@@ -126,11 +126,11 @@ CONTEXT_DEMO_OK
 
 ### 5.2 插值失败是硬错误
 
-`renderPrompt` 遇到未注册变量直接抛 `unknown prompt variable "{{demo_missing}}" in section "demo:broken"`，而不是把 `{{x}}` 原样送给模型。上下文里的每个占位符都必须有出处——这和 boot 的 fail-loud 是同一种哲学。
+`renderPrompt` 遇到未注册变量直接抛 `unknown prompt variable "{{demo_missing}}" in section "demo:broken"`，而不是把 `{{x}}` 原样送给模型。上下文里的每个占位符都必须有出处——这和 boot 的 fail-loud 是同一个思路。
 
 ### 5.3 pruner 是会话表面服务，不是 post-execute 监听
 
-这是本示例最重要的纠正（旧教材曾把它描述成执行后拦截）。`ToolResultPruner`（compaction-tool-result-pruner/src/index.ts:44）提供 `pruneSession(session)`：
+这是本示例最重要的纠正（很容易误以为它是执行后拦截）。`ToolResultPruner`（compaction-tool-result-pruner/src/index.ts:44）提供 `pruneSession(session)`：
 
 1. 遍历 session 当前表面的 `tool/result` 节点；
 2. 超过 thresholdChars 的，按 head/tail 预算确定性裁剪；
@@ -225,12 +225,14 @@ npm run typecheck    # 退出码 0
 
 ## 8. 小结
 
-- [x] System Prompt 是有序 section + 变量的可逆贡献，插值失败是硬错误；
-- [x] token 计量有纯函数估算器（`/estimate` 子路径），真实计量发生在每次请求后；
-- [x] pruner 裁剪的是**会话表面**：影子计价 + replace 事件，重放可恢复；
-- [x] spill 以 prepend + next 与下游组合，需要会话 owner，头尾保留 + 超出落盘；
-- [x] 配置层 `disabled: true` 是观察组合机制的正确手段；
-- [x] 模型表面是历史的投影，内存 SQLite 即可演示；
-- [x] Node 与 Bun 双运行时逐行一致。
+这个示例验证了七件事：
+
+- System Prompt 是有序 section + 变量的可逆贡献，插值失败是硬错误；
+- token 计量有纯函数估算器（`/estimate` 子路径），真实计量发生在每次请求后；
+- pruner 裁剪的是**会话表面**：影子计价 + replace 事件，重放可恢复；
+- spill 以 prepend + next 与下游组合，需要会话 owner，头尾保留 + 超出落盘；
+- 配置层 `disabled: true` 是观察组合机制的正确手段；
+- 模型表面是历史的投影，内存 SQLite 即可演示；
+- Node 与 Bun 双运行时逐行一致。
 
 上一篇：[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md)；下一篇：dsh-agent-loop-demo——turn/step 事件与脚本化适配器驱动的循环。

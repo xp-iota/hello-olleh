@@ -1,8 +1,8 @@
 # Cordis 的 seam 示例
 
-这是一篇可以照抄的实战笔记。我们用一条 `greeter` 接缝，把 cordis 里四种角色摆在一起：Service Definition、Service Provider、服务型 Consumer、事件型 Consumer，看清「谁提供、谁消费、谁只是旁观」，以及 provider 的动作如何以事件被更合适的实体消费。示例基于 cordis 4.0.0-rc.13（当前 latest），在 Node 26.12.1 与 Bun 1.4.4 上实测通过；代码就在本目录，`npm install && npm start` 即可运行。
+这个示例用一条 `greeter` 接缝，演示 cordis 里四种角色怎么配合：定义服务的人、提供服务的人、用服务干活的人、只在旁边记录事件的人。跑一遍就能看到：谁提供、谁消费、谁只是旁观，以及为什么「记日志」这种事不该写在 provider 里。
 
-读完你会得到三样东西：一条可替换的服务接缝、两类消费者的写法，以及「什么时候用服务注入、什么时候用事件订阅」的判断规则。
+示例基于 cordis 4.0.0-rc.13，在 Node 26.12.1 和 Bun 1.4.4 上都跑过，输出一致。代码就在本目录，`npm install && npm start` 即可运行。看完这篇，你会写一条可替换的服务接缝，也知道什么时候该用服务注入、什么时候该用事件订阅。
 
 - **插件**是实现 [**Service**](https://deepseek-harness.github.io/deepseek-harness/reference/cordis-api/service) 的对象。它可以是一个带有可选 `inject` 和 `apply(ctx)` 字段的函数，也可以是一个 `Service` 子类，其生命周期由 Cordis 挂载到当前上下文中。
 
@@ -14,17 +14,17 @@
 
 - [**注册**](https://deepseek-harness.github.io/deepseek-harness/reference/cordis-api/registry)是可逆的副作用。提示词片段、工具 schema、适配器、提供方和监听器通过 `ctx.effect()` 或 `ctx.on()` 安装，reload 和 teardown 时会按预期撤销。
 
-## 先看清问题：插件直连的三笔账
+## 为什么插件之间不该直接 import
 
-两个插件如果直接 import 彼此，表面上少写了几行胶水，实际却把三件事焊死在一起。
+两个插件如果直接 import 彼此，表面上少写了几行胶水，实际有三个麻烦：
 
 - **换不了实现**：调用方 import 的是具体类，想把它换成「英文问候」之外的实现，就得改调用方。
 
-- **启动顺序写死**：谁先被 new 出来、谁后初始化，靠人肉调度；顺序一错就是 undefined。
+- **启动顺序写死**：谁先被 new 出来、谁后初始化，全靠手工安排；顺序一错就是 undefined。
 
 - **卸载顺序靠自觉**：服务先销毁、使用方还在跑，是最难查的一类空指针。
 
-seam 的主张很朴素：把「提供能力」和「消费能力」拆开，两侧都只认识一份只含词汇、不含实现的定义。provider 实现它，consumer 声明需要它，谁在什么时机被激活、被卸载，交给框架调度。这条缝在 Harness 里被称为 capability seam——文件系统、凭据、附件都各自有这样一条接缝——但它本身没有任何框架魔法，四个角色、两个 API 就够。
+seam 的思路很简单：把「提供能力」和「消费能力」拆开，两侧都只认识一份只含词汇、不含实现的定义。provider 实现它，consumer 声明需要它，谁在什么时机被激活、被卸载，交给框架调度。这条缝在 Harness 里被称为 capability seam——文件系统、凭据、附件都各自有这样一条接缝——但它本身没有任何框架魔法，四个角色、两个 API 就够。
 
 ![seam 的四个角色](diagrams/seam-roles.svg)
 
@@ -72,7 +72,7 @@ declare module 'cordis' {
 }
 ```
 
-三个细节值得单独说：
+有三个细节值得单独说：
 
 - **服务名是契约的一部分**。`super(ctx, 'greeter')` 与 consumer 的 `inject: ['greeter']` 必须逐字一致，名字改了就是破坏性变更。
 
@@ -116,7 +116,7 @@ export function apply(ctx: Context) {
 
 ## 两个消费者：一个问能力，一个只记事实
 
-「消费」不只有一种姿势。需要拿服务干活的是强依赖，用 `inject` 声明；只想记录「发生过什么」的是弱依赖，用 `ctx.on` 订阅。
+「消费」有两种情况。需要拿服务干活的，是强依赖，用 `inject` 声明；只想记录「发生过什么」的，是弱依赖，用 `ctx.on` 订阅。
 
 ```ts
 import type { Context } from 'cordis'
@@ -291,7 +291,7 @@ YAML 路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordi
 
 实践里最常见的错误，是把「通知别人」写成同步调用链：provider 里依次调用日志、统计、埋点。这些需求彼此无关，却被迫塞进 provider，还要跟着 provider 一起失败。改成 emit 一个事件之后，provider 只负责「发生了什么」，每个监听者各自决定要不要响应、失败了怎么处理。
 
-## 边界与容易踩的坑
+## 容易踩的坑
 
 ### 同名服务只能有一个提供者
 
@@ -307,7 +307,7 @@ YAML 路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordi
 
 ### API 仍在演进
 
-示例跑在 cordis 4.0.0-rc.13 上。这个版本里挂插件的主 API 是 `ctx.use()`（旧版本叫 `ctx.plugin()`，仍保留为 deprecated 别名），升级时以实际类型声明为准，不要照抄旧文章里的调用。
+示例跑在 cordis 4.0.0-rc.13 上。这个版本里挂插件的主 API 是 `ctx.use()`（旧版本叫 `ctx.plugin()`，仍保留为 deprecated 别名），升级时以实际类型声明为准，别直接沿用旧文章里的调用。
 
 ## 从零复现：完整文件与四条运行路径
 
@@ -338,7 +338,7 @@ cordis-seam-demo/
   "name": "cordis-seam-demo",
   "private": true,
   "type": "module",
-  "description": "一条 greeter 接缝摆齐 cordis 四种角色：Service Definition / Provider / 服务型 Consumer / 事件型 Consumer。Node 与 Bun 双运行时。",
+  "description": "一条 greeter 接缝演示 cordis 四种角色：Service Definition / Provider / 服务型 Consumer / 事件型 Consumer。Node 与 Bun 双运行时。",
   "scripts": {
     "start": "node src/index.ts",
     "start:bun": "bun src/index.ts",
@@ -454,7 +454,9 @@ console.log('演示结束')
 
 若 `node src/index.ts` 报“未知扩展名 .ts”，说明 Node 低于 22.18：升级 Node，或改用 `npm run start:bun`。示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 
-## 小结：一条 seam 的落地清单
+## 小结
+
+写一条 seam 就是四步：
 
 1. **写定义**：一个 `abstract class X extends Service`，构造函数里钉住服务名；用模块增强导出 `ctx.x` 的类型；把要广播的事件写进 `Events` 接口。
 
@@ -464,4 +466,4 @@ console.log('演示结束')
 
 4. **验证四件事**：先挂 consumer 时是否 pending、服务出现后是否自动激活、provider 卸载时是否先卸 consumer、换实现后 consumer 是否原地复活。
 
-四个角色、两份声明、一条事件，就构成了这次示例的全部。代码就在本目录，`npm start` 与 `npm run start:bun` 可以直接看到上面的输出，`npm run typecheck` 验证类型契约。
+以上就是这条接缝的全部。代码在本目录，`npm start` 和 `npm run start:bun` 能直接看到上面的输出，`npm run typecheck` 验证类型契约。

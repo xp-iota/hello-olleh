@@ -59,7 +59,7 @@
 
 依赖链：`boot()` → loader 读 patch → 89 行插件按 inject 拓扑激活 →
 `llm`（两条路由）/ `sessions` / `tools`（27 个）/ `agentLoop` / `approval` / `jobs` /
-`invariants` 等 19 个必检服务在场。装配哲学与逐行读法见
+`invariants` 等 19 个必检服务在场。装配方式与逐行读法见
 [dsh-boot-demo](../dsh-boot-demo/README.md)。
 
 ## 3. 实测输出（Node v26.12.1 / Bun 1.4.4，Windows）
@@ -265,4 +265,4 @@ npm run traj            # 最近会话的 trajectory（--surface / --no-events �
 [dsh-guardrail-demo](../dsh-guardrail-demo/README.md)（护栏本体）、
 [dsh-trajectory-probe-demo](../dsh-trajectory-probe-demo/README.md)（trajectory 机制）、
 [dsh-session-demo](../dsh-session-demo/README.md)（会话落盘）、
-[dsh-boot-demo](../dsh-boot-demo/README.md)（装配哲学）。
+[dsh-boot-demo](../dsh-boot-demo/README.md)（装配方式）。

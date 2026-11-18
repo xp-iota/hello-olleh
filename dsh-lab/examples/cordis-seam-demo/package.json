@@ -2,7 +2,7 @@
   "name": "cordis-seam-demo",
   "private": true,
   "type": "module",
-  "description": "一条 greeter 接缝摆齐 cordis 四种角色：Service Definition / Provider / 服务型 Consumer / 事件型 Consumer。Node 与 Bun 双运行时。",
+  "description": "一条 greeter 接缝演示 cordis 四种角色：Service Definition / Provider / 服务型 Consumer / 事件型 Consumer。Node 与 Bun 双运行时。",
   "scripts": {
     "start": "node src/index.ts",
     "start:bun": "bun src/index.ts",

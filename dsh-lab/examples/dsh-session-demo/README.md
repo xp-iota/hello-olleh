@@ -98,7 +98,7 @@ SESSION_DEMO_OK
 
 `npm run start:bun`（Bun 1.4.4，同样清空 `.dsh-home` 后首跑）：除首行 runtime 标识与会话 id（每次运行随机）外**逐行一致**，同样以 `SESSION_DEMO_OK` 结束。`npm run typecheck`：退出码 0。
 
-四个值得盯住的数字：
+四个值得注意的数字：
 
 - **17 条事件 / 18 行文件**：首行是 `session` 头记录，其后每事件一行——JSONL 名副其实；
 - **表面 5 条**：17 条日志事件折叠成 5 条模型可见消息。`turn/start`、`step/*`、`tool/call`、`request/*` 全是运行时记账，**不进模型表面**；`tool/result` 进（模型要看到工具结果）；
@@ -198,11 +198,13 @@ npm run typecheck    # 退出码 0
 
 ## 8. 小结
 
-- [x] 会话日志是唯一事实来源：append-only、seq 从 0 连续、surfaceOp 声明表面操作；
-- [x] flush 是唯一耐久性检查点；JSONL 按项目 slug / 会话 id 组织，首行头记录；
-- [x] live 与 persisted 是两个独立标志，列表 live-preferred；
-- [x] 标题与模型表面都是日志的投影：17 条事件折叠成 5 条模型可见消息；
-- [x] resume 在原身份上重建 agent 并追加锚点——日志只增不减；
-- [x] Node 与 Bun 双运行时逐行一致。
+这个示例验证了六件事：
+
+- 会话日志是唯一事实来源：append-only、seq 从 0 连续、surfaceOp 声明表面操作；
+- flush 是唯一耐久性检查点；JSONL 按项目 slug / 会话 id 组织，首行头记录；
+- live 与 persisted 是两个独立标志，列表 live-preferred；
+- 标题与模型表面都是日志的投影：17 条事件折叠成 5 条模型可见消息；
+- resume 在原身份上重建 agent 并追加锚点——日志只增不减；
+- Node 与 Bun 双运行时逐行一致。
 
 上一篇：[dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md)；下一篇：dsh-trajectory-probe-demo——把事件流渲染成可读的 trajectory。

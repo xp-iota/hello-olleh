@@ -274,10 +274,10 @@ npm run typecheck
 
 ## 7. 小结
 
-边界栈的教学点浓缩成三句：**能力与权限分层**（工具注册 ≠ 放行，判决在策略缝）；
+边界栈可以概括成三句话：**能力与权限分层**（工具注册 ≠ 放行，判决在策略缝）；
 **策略随会话走**（resolve 按会话 cwd 与 mode 事件解析，/permission 一条命令联动
 沙箱与审批）；**边界有平台成本**（Windows 的 ACL/完整性标签要求真实权限，
-Bun 的 runner 协议缝需要加载期补丁——两者都已在本工程内闭环）。
+Bun 的 runner 协议缝需要加载期补丁——两者都已在本工程内处理好）。
 
 兄弟示例：[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md)（工具管线本体）、
 [dsh-hitl-demo](../dsh-hitl-demo/README.md)（审批判决链，与 permission-presets 的

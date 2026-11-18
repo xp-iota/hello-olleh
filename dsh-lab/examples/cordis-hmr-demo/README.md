@@ -4,17 +4,17 @@
 > 双运行时实测：Node v26.12.1（`--expose-internals`）走完整 hmr 事务；Bun 1.4.4 走 core `registry.replace()` 同一条缝。`tsc`（typescript 7.0.2）0 错误。
 > 源码行号：`H/` = `sources/cordis/packages/hmr/src/`，`C/` = `packages/core/src/`。
 
-改一行插件代码，进程不重启、Fiber 不拆建、配置不丢、无关插件不受影响——这是 rc.13 的 HMR 承诺。旧版「先 `registry.delete` 再注册新 Fiber」的模型已经删除：新版是**缓存级事务 + `registry.replace()` 原位替换**，同一个 Fiber 对象只换 runtime 与 inject，`ctx.use()` 拿到的引用持续有效。
+改一行插件代码，进程不重启、Fiber 不拆建、配置不丢、无关插件不受影响——这是 rc.13 的 HMR 做到的事。旧版「先 `registry.delete` 再注册新 Fiber」的模型已经删除：新版是**缓存级事务 + `registry.replace()` 原位替换**，同一个 Fiber 对象只换 runtime 与 inject，`ctx.use()` 拿到的引用持续有效。
 
-本示例五个场景：基线、改文件原位替换 + 依赖者级联、导出损坏 aborted 回滚、修好重试、host module skipped。Node 与 Bun 各跑一条路径，演示的是同一条核心缝。
+示例五个场景：基线、改文件原位替换 + 依赖者级联、导出损坏 aborted 回滚、修好重试、host module skipped。Node 与 Bun 各跑一条路径，演示的是同一条核心缝。
 
-## 先看清问题：改代码的三笔账
+## 改代码时，三种做法各有代价
 
 1. **重启进程**：状态全丢，连接全断，最贵。
 2. **拆了重建 Fiber**：新 uid 意味着依赖方 epoch 全变、配置写回判定容易写坏文件（旧版 loader case 4 就是为此打的补丁）。
-3. **全量重载**：无关插件陪跑，副作用重来。
+3. **全量重载**：无关插件也跟着重新初始化，副作用重来。
 
-rc.13 的答案把三笔账分别消掉：事务只驱逐**改动模块及其 importer**（反向 BFS）；替换复用旧 Fiber（uid 不变）；级联只波及 inject 了该服务的 Fiber（epoch 机制免费赠送）。
+rc.13 把这三个代价分别消掉：事务只驱逐**改动模块及其 importer**（反向 BFS）；替换复用旧 Fiber（uid 不变）；级联只波及 inject 了该服务的 Fiber（epoch 机制自带）。
 
 ## 机制：缓存级事务 + 原位替换
 
@@ -42,7 +42,7 @@ rc.13 的答案把三笔账分别消掉：事务只驱逐**改动模块及其 im
 
 ## 场景 ②：改文件 → reconcile，原位替换 + 级联
 
-把 greeter.ts 的 `tag` 从 v1 写成 v2，`reconcile(() => [greeterFile])`。Node 路径：`settled = 1` 且该 Fiber uid 与基线相同——原位替换实锤；consumer 的 apply 计数 #2 且看到 v2——epoch 级联实锤；clock 保持 #1——精确级联实锤。Bun 路径：写一个新路径的修订文件重导入（见坑节），`registry.replace` 返回的 fibers uid 同样不变。
+把 greeter.ts 的 `tag` 从 v1 写成 v2，`reconcile(() => [greeterFile])`。Node 路径：`settled = 1` 且该 Fiber uid 与基线相同——确认是原位替换；consumer 的 apply 计数 #2 且看到 v2——确认发生了 epoch 级联；clock 保持 #1——确认级联只波及依赖者。Bun 路径：写一个新路径的修订文件重导入（见坑节），`registry.replace` 返回的 fibers uid 同样不变。
 
 ## 场景 ③：导出损坏 → aborted，旧组件继续运行
 
@@ -106,7 +106,7 @@ Bun 1.4.4，`npm run start:bun`：
 
 两条路径的插件日志序列一致（greeter v1→v2→v4、consumer #1→#2→#3、clock 恒 #1）；差异只在事务报告字段（Node 有 Result，Bun 手工校验）。演示结束 greeter.ts 恢复 v1、Bun 修订临时文件删除，仓库不留痕。
 
-## 边界与容易踩的坑
+## 容易踩的坑
 
 ### hmr 在 Bun 上起不来，且没有降级路径
 
@@ -359,4 +359,4 @@ npm run typecheck    # tsc 7.0.2，0 错误
 
 ## 小结
 
-HMR 的可靠性不在「换得快」，而在「换之前先校验、换的时候不动身份、换错了能按 unit 回滚」。rc.13 把这三件事分别压在 Stage 1 的导出校验、`registry.replace` 的原位语义、`ModuleBackup.restore` 的选择性恢复上；级联重载则完全交给 Fiber 的 epoch 机制，HMR 本体一行依赖者代码都没有。Node 与 Bun 两条路径殊途同归：前者多了一层 Node 模块缓存事务，后者直接站在 core 缝上。配合 [loader](../cordis-loader-demo/README.md) 的配置树与 [fiber](../cordis-fiber-demo/README.md) 的状态机，cordis 六个示例闭环；阶段 C 起进入 dsh 侧。
+HMR 的可靠性不在「换得快」，而在「换之前先校验、换的时候不动身份、换错了能按 unit 回滚」。rc.13 把这三件事分别压在 Stage 1 的导出校验、`registry.replace` 的原位语义、`ModuleBackup.restore` 的选择性恢复上；级联重载则完全交给 Fiber 的 epoch 机制，HMR 本体一行依赖者代码都没有。Node 与 Bun 两条路径最终落到同一条缝上：前者多了一层 Node 模块缓存事务，后者直接用 core 的 `registry.replace()`。到这里 cordis 的六个示例就都跑完了；接下来是 dsh 侧的示例。

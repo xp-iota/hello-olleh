@@ -175,11 +175,11 @@ TOOL_PIPELINE_OK
 
 `npm run start:bun`（Bun 1.4.4）：除首行 `runtime = bun 1.4.4` 外**逐行一致**，同样以 `TOOL_PIPELINE_OK` 结束。`npm run typecheck`：退出码 0。
 
-注意 S1 的"注册前工具数：0"——这棵最小树没有挂任何自带工具的插件（fs/shell/web 都不在），注册表是干净的，正好观察单个工具的完整生命周期。完整 dsh 装配的基础工具是 26 个（见 dsh-chat-demo）。
+注意 S1 的"注册前工具数：0"——这棵最小树没有挂任何自带工具的插件（fs/shell/web 都不在），注册表是干净的，正好观察单个工具的完整生命周期。完整 dsh 装配的基础工具是 27 个（rc.3，见 dsh-chat-demo）。
 
 ## 5. 机制解释
 
-### 5.1 注册是 effect，热重载是免费推论
+### 5.1 注册是 effect，卸载时工具自动回收
 
 `ctx.tools.register()`（core/tools/src/index.ts:128）把注册挂进调用方 fiber 的 effect 链。`ctx.plugin()` 返回 fiber，`fiber.dispose()` 之后工具自动从注册表消失——不需要任何"反注册"代码。热重载不是额外功能，是 cordis effect 的自然结果（对照 cordis-hmr-demo 的插件替换）。
 
@@ -212,7 +212,7 @@ restriction would mask every agent — deny the tool for the intended agent inst
 2. **`agents.create()` 需要 agent-loop 注册 factory**（实测踩过）：只挂 `agent` 行会抛 `no agent factory registered (load an agent-loop plugin)`。agent-loop 是 required 行，inject 六个服务，最小树必须补齐 llm 行。
 3. **`tools.restrict()` 在全局 ctx 上直接抛错**——必须在 `setup(agentCtx)` 这类 scoped context 里调用。
 4. **批接口的 `arguments` 是 JSON 字符串**，不是对象。传对象会在 schema 校验阶段失败；`ToolCallId` 是品牌类型，用 `ToolCallId(...)` 构造。
-5. **`defineTool` 的 schema 纪律**：object 类型必须显式写 `additionalProperties`，必填字段写在各 property 的 `required: true` 上。
+5. **`defineTool` 的 schema 要求**：object 类型必须显式写 `additionalProperties`，必填字段写在各 property 的 `required: true` 上。
 6. **`cannot get property "tools" without inject`**：插件没写 `inject: ['tools']`。cordis 的反射代理强制访问控制，这不是可选优化。
 7. **本示例不挂 ptc/subprocess**，Bun 无需补丁；`start:bun` 直接 `bun src/index.ts`。
 
@@ -294,13 +294,15 @@ npm run typecheck    # 退出码 0
 
 ## 8. 小结
 
-- [x] 四个控制面分离：注册 / 可见性 / 执行前 / 执行后，权限不写死在工具实现里；
-- [x] 规范值与渲染内容分界：execute 返回规范值，render 产出模型可见内容；
-- [x] 注册是 effect：fiber.dispose() 即反注册，热重载是免费推论；
-- [x] pre/post-execute 都是 waterfall：返回决定即认领，next() 交棒；
-- [x] restrict 单向收紧、必须 scoped、不外溢全局；
-- [x] guard 单调：只能拒绝不能放行，监听顺序不承担安全责任；
-- [x] 两个实测坑：根 ctx 监听器泄漏、agents.create 需要 agent-loop factory；
-- [x] Node 与 Bun 双运行时逐行一致。
+这个示例验证了八件事：
+
+- 四个控制面分离：注册 / 可见性 / 执行前 / 执行后，权限不写死在工具实现里；
+- 规范值与渲染内容分界：execute 返回规范值，render 产出模型可见内容；
+- 注册是 effect：fiber.dispose() 即反注册，热重载不需要额外代码；
+- pre/post-execute 都是 waterfall：返回决定即认领，next() 交给下一个；
+- restrict 单向收紧、必须 scoped、不外溢全局；
+- guard 单调：只能拒绝不能放行，监听顺序不承担安全责任；
+- 两个实测坑：根 ctx 监听器泄漏、agents.create 需要 agent-loop factory；
+- Node 与 Bun 双运行时逐行一致。
 
 上一篇：[dsh-boot-demo](../dsh-boot-demo/README.md)；下一篇：[dsh-context-demo](../dsh-context-demo/README.md)——system prompt 的 section 装配与 token 经济学。

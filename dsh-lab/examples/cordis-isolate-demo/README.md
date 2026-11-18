@@ -1,18 +1,18 @@
 # Cordis 的 isolate 示例：同名服务，两个世界
 
-这是一篇可以照抄的实战笔记。seam 示例讲「谁提供、谁消费」，fiber 示例讲「插件的一生」，events 示例讲「插件之间怎么说话」，这一篇讲「哪些插件活在同一个世界」：`ctx.isolate(name)` 不改任何插件代码，单方面把某个服务名划进一个新的 realm——同名服务在不同 realm 是不同实体，可以同时存活、独立卸载。我们用四个场景看存储键怎么变、隔离为什么按名字生效、事件可见性怎么跟着 realm 走、以及共享 label 的语义。示例基于 cordis 4.0.0-rc.13（当前 latest），在 Node 26.12.1 与 Bun 1.4.4 上实测通过；代码就在本目录，`npm install && npm start` 即可运行。
+前面几篇讲了谁提供谁消费、插件的生命周期、插件之间怎么通信，这一篇讲哪些插件能看见彼此的服务。`ctx.isolate(name)` 不改任何插件代码，单方面把某个服务名划进一个新的 realm：同名服务在不同 realm 里是不同实体，可以同时存活、独立卸载。示例用四个场景演示：存储键怎么变、隔离为什么按名字生效、事件可见性怎么跟着 realm 走、以及传同一个 label 时两个上下文共享一个 realm。
 
-读完你会得到三样东西：一张「isolate 只改一个存储键」的机制图、一条「隔离是调用方的决定，不是插件的义务」的设计纪律，以及测试里「给插件换一套假服务」的标准做法。
+示例基于 cordis 4.0.0-rc.13，在 Node 26.12.1 和 Bun 1.4.4 上都跑过，输出一致。代码在本目录，`npm install && npm start` 即可运行。看完你会明白 isolate 其实只改了一个存储键，隔离是调用方的决定而不是插件的义务，以及测试里怎么给插件换一套假服务。
 
-## 先看清问题：全局单例服务的三笔账
+## 全局只能有一份服务时，会碰到这三个问题
 
-服务注册表若是全局单例（一个名字只能有一份实现），三件事迟早出错：
+服务注册表若是全局单例（一个名字只能有一份实现），有三件事很容易出错：
 
 - **测试污染**：集成测试想给插件换假数据库，只能改全局注册表——并行跑的测试互相踩。
-- **多租户串味**：两个租户各要一份「自己的」配置服务，全局名字放不下第二份。
+- **多租户互相干扰**：两个租户各要一份「自己的」配置服务，全局名字放不下第二份。
 - **替换即全局事故**：换一次 provider，所有消费者一起重启，哪怕只想影响其中一个子系统。
 
-cordis 的主张：服务名到实现的映射不是全局字典，而是**每个上下文一张 isolate 表**，表里存的是 symbol 键；store 以 symbol 键存实现。`ctx.isolate(name)` 就是给这张表加一个 own 属性、指向新 symbol——于是同一个名字在不同上下文解析到不同实现，互不知情。
+cordis 的做法：服务名到实现的映射不是全局字典，而是**每个上下文一张 isolate 表**，表里存的是 symbol 键；store 以 symbol 键存实现。`ctx.isolate(name)` 就是给这张表加一个 own 属性、指向新 symbol——于是同一个名字在不同上下文解析到不同实现，互不知情。
 
 ## 机制：isolate 只改一个键
 
@@ -56,7 +56,7 @@ realm 只 shadow 了 `greeter`。root 上 `ctx.provide('clock', ...)` 之后，r
 
 ## 场景 ③：事件可见性跟着 realm 走
 
-events 示例留了一个伏笔：`_resolve()` 按 `thisArg[Context.filter]` 筛监听器。Service 基类实现了这个 filter（service.ts:39-41）：比较监听器上下文与**服务所属上下文**的 isolate 键。所以以服务实例为 thisArg 派发的事件，只有同 realm 的监听器看得见：
+events 示例里提过：`_resolve()` 按 `thisArg[Context.filter]` 筛监听器。Service 基类实现了这个 filter（service.ts:39-41）：比较监听器上下文与**服务所属上下文**的 isolate 键。所以以服务实例为 thisArg 派发的事件，只有同 realm 的监听器看得见：
 
 ```ts
 class Ticker extends Service {
@@ -100,7 +100,7 @@ new Ticker(tickRealm).tick()                   // 只有 realm 监听器响
 演示结束
 ```
 
-## 边界与容易踩的坑
+## 容易踩的坑
 
 ### isolate 返回新上下文，原上下文不变
 
@@ -309,4 +309,4 @@ npm run typecheck  # tsc --noEmit，exit 0
 
 ## 小结
 
-isolate 的本质是「服务名 → symbol 键」这张表的原型链 shadow：改一个 own 属性，就划出一个新世界；store 以键存实现，所以同名服务可以多份并存、独立卸载。隔离是调用方单方面的决定，插件无需配合——这正是 seam（时间可组合）之外的空间可组合性。下一篇 loader 示例把这套机制交给配置树：`cordis.yml` 里的每一行 entry 如何变成 fiber，`isolate:` 字段如何变成命名 realm。
+isolate 的本质是「服务名 → symbol 键」这张表的原型链 shadow：改一个 own 属性，就划出一个新世界；store 以键存实现，所以同名服务可以多份并存、独立卸载。隔离是调用方单方面的决定，插件无需配合。下一篇 loader 示例把这套机制交给配置树：`cordis.yml` 里的每一行 entry 如何变成 fiber，`isolate:` 字段如何变成命名 realm。

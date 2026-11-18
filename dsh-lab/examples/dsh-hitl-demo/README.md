@@ -121,7 +121,7 @@ HITL_OK
 ### S2 turn 约束与 never 覆盖
 
 - turn 外裸调 `approval.request()` 直接抛 `outside an open turn`：审计对必须被
-  turn 包络，否则重载时就是崩溃尾巴垃圾（`index.ts:244-250`）。
+  turn 包络，否则崩溃重载时会留下不完整的垃圾记录（`index.ts:244-250`）。
 - `setApprovalPolicy(session, 'never')` 落一条 `approval/policy` 事件作为持久覆盖；
   之后即使有回答器想批准，结果仍是 `rejected`——**never 在服务自己的请求路径上、
   先于任何 waterfall 分发判决**（`index.ts:296-301`）。源码注释明说：`prepend: true`
