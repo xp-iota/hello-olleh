@@ -34,7 +34,7 @@
 | `subagent-fork` | `@deepseek-ai/dsh-subagent-fork-in-process` | `providerName: fork` |
 | `tool-subagent` ×2 | `@deepseek-ai/dsh-tool-subagent` | 同一个包装配两次：`subagent`（spawn）与 `subagent_fork`（fork） |
 
-再加两行自写插件（word-count / scripted-adapter，与 agent-loop 示例逐字相同），共二十一行。依赖链：`subagent` 注入 `workingDirectory + sessionProjections`；spawn/fork provider 注入 `subagents`；`tool-subagent` 注入 `tools + subagents + systemPrompt + sessionProjections`。
+再加两行自写插件（word-count / scripted-adapter，与 agent-loop 示例逐字相同），共二十一行。依赖链：`subagent` 注入 `workingDirectory + sessionProjections`；spawn/fork provider 注入 `subagents`；`tool-subagent` 注入 `tools + subagents + systemPrompt + sessionProjections`。两条硬约束：不挂 fs-local（或别的 fs 后端），working-directory 缺 fs，subagent 服务永远 pending；continuable 子 agent 要求会话持久化，只挂委派栈不挂持久化后端，`subagent` 工具直接报 `continuable subagents require session persistence`——补 `session-persistence-jsonl` 一行即可，但它的编解码链（session-log-deepseek + deepseek-llm-api-extensions）也要在位。
 
 ## 3 五个场景
 
@@ -71,7 +71,7 @@ await callTool(ctx, 'subagent', { description, prompt }, child)   // exceeds max
 
 ### spawn：身份落在会话头
 
-rc.3 里 `agents.create()` 没有 `parentAgent` 字段——子 agent 身份是**会话头元数据**：`meta: { origin: 'subagent', delegationDepth: 1 }`。父会话没有 origin，子是 `subagent`；深度记录在会话头，可回放、可审计。
+rc.3 里 `agents.create()` 没有 `parentAgent` 字段，也没有 `roots()` 枚举 API——子 agent 身份是**会话头元数据**：`meta: { origin: 'subagent', delegationDepth: 1 }`。父会话没有 origin，子是 `subagent`；深度记录在会话头，可回放、可审计。
 
 ### fork：seed 前缀
 
@@ -201,7 +201,7 @@ rc.3 里 `agents.create()` 没有 `parentAgent` 字段——子 agent 身份是*
       name: ./src/plugins/scripted-adapter.ts
 ```
 
-`npm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，工具与适配器随装配就位：
+`npm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，工具与适配器随装配就位。类型增补靠导入：`ctx.subagents` 来自 `import type {} from '@deepseek-ai/dsh-subagent'`，`ctx.sessionQuery` 来自 session-query-sqlite，都不能省：
 
 ```ts
 const ctx = await boot(
@@ -226,7 +226,7 @@ npm run start:bun       # Bun：不挂 ptc/subprocess，无需任何补丁，输
 npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
 
-下面是 `npm start` 的实测输出（Node 26.12.1；Bun 1.4.4 除首行 `runtime = bun 1.4.4` 外逐行一致）：
+下面是 `npm start` 的实测输出（Node 26.12.1；Bun 1.4.4 除首行 `runtime = bun 1.4.4` 外逐行一致）。一个确定化细节：工具枚举顺序跨运行时不一致（Bun 的 Map 迭代序与 Node 不同），打印工具列表前先 `.sort()`，否则双运行时输出无法逐行对比：
 
 ```text
 runtime = node v26.12.1
@@ -262,17 +262,7 @@ SUBAGENT_OK
 - **S4 的 activation**：委派工具不等子跑完，立即返回子的名字；子继承父的模型路由，在后台跑完自己的 turn，父子的会话完全独立；
 - **S5 的拒绝发生在 provider**：深度预算不是工具层的建议，是每次委派都过的检查，超限直接变成模型可见的工具错误。
 
-## 6 边界与坑
-
-1. **continuable 子 agent 要求会话持久化**。只挂委派栈不挂持久化后端，`subagent` 工具直接报 `continuable subagents require session persistence`。补 `session-persistence-jsonl` 一行即可，但它的编解码链（`session-log-deepseek` + `deepseek-llm-api-extensions`）也要在位。
-2. **rc.3 没有 `roots()`，`CreateAgentOptions` 没有 `parentAgent`**（旧版 API）。归属用会话头 `origin/delegationDepth` 判定；`rootOf()` 只认 manager 管理的激活，对 registry 直建的子调用会抛 `agent has no active runtime owner`。
-3. **isSeeded 必须配显式 seed**，否则会话构造失败。
-4. **working-directory 注入 fs**：不挂 fs-local（或别的 fs 后端），subagent 服务永远 pending。
-5. **工具枚举顺序跨运行时不一致**（Bun 的 Map 迭代序与 Node 不同）：打印工具列表前 `.sort()`，否则双运行时输出无法逐行对比。
-6. **类型增补靠导入**：`ctx.subagents` 来自 `import type {} from '@deepseek-ai/dsh-subagent'`，`ctx.sessionQuery` 来自 session-query-sqlite，都不能省。
-7. **本示例不挂 ptc/subprocess**，Bun 无需补丁；会话日志落在本目录 `.dsh-home/`（gitignored）。
-
-## 7 从零复现：完整文件与运行路径
+## 6 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -341,7 +331,7 @@ dsh-subagent-demo/
 }
 ```
 
-tsconfig.json 与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md) 逐字相同；`tools.ts` 直接复制 [dsh-hitl-demo](../dsh-hitl-demo/README.md) 同名文件（该 README 第 8 节有全文镜像）；`word-count.ts` 与 `scripted-adapter.ts` 复制 agent-loop 示例同名文件。也可以从 [dsh-session-demo](../dsh-session-demo/README.md) 复制脚手架（它已带持久化 + 读取面），再按第 2 节补齐委派栈。
+tsconfig.json 与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md) 逐字相同；`tools.ts` 直接复制 [dsh-hitl-demo](../dsh-hitl-demo/README.md) 同名文件（该 README 第 7 节有全文镜像）；`word-count.ts` 与 `scripted-adapter.ts` 复制 agent-loop 示例同名文件。也可以从 [dsh-session-demo](../dsh-session-demo/README.md) 复制脚手架（它已带持久化 + 读取面），再按第 2 节补齐委派栈。
 
 ### src/index.ts（完整版）
 
@@ -532,7 +522,7 @@ console.log('\nSUBAGENT_OK')
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 
-## 8 小结
+## 7 小结
 
 这个示例验证了五件事：
 

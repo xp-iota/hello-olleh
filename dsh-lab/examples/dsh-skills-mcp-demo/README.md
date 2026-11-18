@@ -89,21 +89,31 @@ spawn（cross-spawn），同样不走 `dsh-subprocess-local`——所以 Node �
 **S1 skill：目录即能力。** `ctx.skills.list({cwd})` 的发现只读 frontmatter
 （name/description/调用策略），正文不读；`skill` 工具被调用时才把正文渲染成
 `<skill_content name=...>` 块进上下文——`GREETER-BODY-42` 这个标记只在加载那一步出现。
-`disable-model-invocation: true` 的 skill 对模型拒绝加载（`not available for model invocation`），
-只能走用户 `/手势`。现场往 `skills/` 写一个新目录，下一次 `list` 就能发现——
-装配不需要重启，因为能力本来就是数据。
+frontmatter 的调用策略键是 kebab-case（`disable-model-invocation`/`user-invocable`），
+name + description 是必需字段。`disable-model-invocation: true` 的 skill 对模型拒绝加载
+（`not available for model invocation`），只能走用户 `/手势`。现场往 `skills/` 写一个
+新目录，下一次 `list` 就能发现——装配不需要重启，因为能力本来就是数据；
+chokidar watch 不一定立刻触发，示例用 40×100ms 轮询 `list` 直到数量达标。
+现场写的 `skills/runtime-note/` 会留到下一次运行，把「初始发现 2 个」污染成
+3 个，boot 前用 `rmSync` 清掉。
 
 **S2 工作区指令文件。** rc.3 的 agent-instructions 是 **pre-step/inbox 驱动**（不再是
 systemPrompt section）。示例直调包导出的 `loadBaselineInstructions(options)`——与插件
 pre-step 同一条 discover → readBounded → render 路径。候选链含 AGENTS.md/CLAUDE.md 及
 `.local` 变体；`maxBytes` 是必填预算，超了**按链截断并报告 `truncated`，不报错**——
-部分指令通常仍有用。64 字节的小预算实测截断 1 个文件。
+部分指令通常仍有用。64 字节的小预算实测截断 1 个文件。候选链有两处要隔离：
+项目根由 `projectRootMarkers` 判定，默认 `['.git']` 会一路找到外层仓库根，
+把外层的 AGENTS.md 也混进基线，换成自建标记目录 `.dsh-project`（运行时
+mkdir）把边界锁在本工程；用户全局指令读 `DSH_HOME`/`DSH_AGENTS_HOME`，
+两个 env 都指到本工程 `.dsh-home/`，否则 `~/.agents` 里的 AGENTS.md 会混进来。
 
 **S3 MCP 命名空间。** rc.3 的 mcp-client **一个插件实例 = 一个 server**：patch 里
 `serverName: echo` 一行就决定了命名空间。公开工具名是 `mcp__echo__echo`，wire 上只发
 rawName `echo`。boot 返回前已完成连接 + 初始工具同步，所以 S3 开头 `schemas()` 直接可见。
 自带的 `mcp-echo-server.mjs` 是 53 行纯 JS：newline-delimited JSON-RPC，只实现
-initialize / ping / tools/list / tools/call 四个方法。
+initialize / ping / tools/list / tools/call 四个方法。stdio server 的 stdout 只能
+走协议：任何日志走 stdout 都会污染 JSON-RPC 流；initialize 回显客户端请求的
+`protocolVersion` 最稳（SDK 校验版本协商）。
 
 **S4 web：准入门控。** 这是本示例的关键机制。`web_fetch`/`web_search` 注册时带
 `when: ({modelSelection}) => ctx.web.fetchReady/searchReady(modelSelection.provider)`。
@@ -114,12 +124,15 @@ initialize / ping / tools/list / tools/call 四个方法。
 2. `ctx.tools.resolve({agent, modelSelection, signal})` 模拟一次模型步准入，逐个求值
    `when`，产出 `ResolvedToolSet`；
 3. 带着 toolSet 调 `web_fetch` → 真实抓取本机 HTTP 服务成功；
-4. 缺 `DEEPSEEK_API_KEY` 时 `searchReady()` 为 false——`web_search` **在准入阶段就不被放行**，
-   比「发请求前 fail-loud」更早一层。
+4. 缺 `DEEPSEEK_API_KEY` 时 `searchReady()` 为 false——deepseek search 的 `ready()` 只查
+   凭据**存在性**（不读值、不发请求），`web_search` **在准入阶段就不被放行**，
+   比「发请求前 fail-loud」更早一层。删 key 必须在 **boot 前**：无 credentials 服务时
+   key 从 launchEnvironment 快照读，环境里若已有 key，search 会真的发请求，
+   离线确定性就破了。
 
 fetch 的边界与网络无关：只容 http/https（`unsupported URL scheme`）、URL 不许带凭据
-（`credentials in URLs`）。rc.3 的 http provider **明确可达本机/内网**——旧版「仅公网」
-的说法已过时，这正是离线也能演示真实 fetch 的原因。
+（`credentials in URLs`）。rc.3 的 http provider **明确可达本机/内网**——这正是
+离线也能演示真实 fetch 的原因。
 
 ## 4 运行 skills-mcp 示例
 
@@ -309,41 +322,9 @@ SKILLS_MCP_OK
   spawn——jobs 示例的五条 Bun 缝在这里一条都不触发。
 
 留档：[runtime-out-node.txt](runtime-out-node.txt) ·
-[runtime-out-bun.txt](runtime-out-bun.txt)（含 npm notice 行的完整输出）。## 5 边界与坑（全部实测）
+[runtime-out-bun.txt](runtime-out-bun.txt)（含 npm notice 行的完整输出）。
 
-1. **`unknown tool "web_fetch"` 但 schemas 里有它**：不是装配问题。`schemas()` 只列注册，
-   可执行性走 `executable()`——带 `when` 门控的工具在没有 `toolSet` 的调用里一律
-   UNKNOWN_TOOL。修法：`ctx.tools.resolve()` 产出准入集，execute 时传 `toolSet`。
-   排查时曾独立 boot 同一份 patch 看到工具齐全，矛盾正在于 probe 只查 schemas 不执行。
-2. **缺 key 的 search 不是「调用时报错」而是「不被准入」**：`searchReady()` 问 provider 的
-   `ready()`，deepseek search 的 `ready()` 只查凭据**存在性**（不读值、不发请求）。
-   旧 M10「缺 key 在发请求前抛错」的描述只对直接调 `ctx.web.search()` 成立；
-   走工具管线时门控更早。
-3. **skill 发现要隔离**：默认根含项目 `.dsh/skills`、`.agents/skills`、用户 home、bundled——
-   本机装着 100+ skill 时输出完全不确定。配方：`includeDefaultRoots: false` +
-   `customSkillDirs: [!!js "process.cwd() + '/skills'"]`。
-4. **`projectRootMarkers` 默认 `['.git']` 会找到外层仓库根**：本仓库根有 AGENTS.md，
-   不隔离就会混进基线。换成自建标记目录 `.dsh-project`（运行时 mkdir）把边界锁在本工程。
-5. **用户全局指令链读 `DSH_HOME` / `DSH_AGENTS_HOME`**：两个 env 都指到本工程 `.dsh-home/`，
-   否则 `~/.agents` 里的 AGENTS.md 会混进来。
-6. **`delete process.env.DEEPSEEK_API_KEY` 要在 boot 前**：无 credentials 服务时 key 从
-   launchEnvironment 快照读；环境里若已有 key，search 会真的发请求，离线确定性就破了。
-7. **frontmatter 调用策略键是 kebab-case**：`disable-model-invocation` / `user-invocable`；
-   旧驼峰键会被拒。name + description 是必需字段。
-8. **活发现要轮询等稳定**：现场写入 skill 后 chokidar watch 不一定立刻触发，
-   示例用 40×100ms 轮询 `list` 直到数量达标。
-9. **运行残留要清理**：S1 现场写的 `skills/runtime-note/` 会留到下一次运行，
-   把「初始发现 2 个」污染成 3 个——boot 前 `rmSync` 掉（首跑实测踩到）。
-10. **MCP stdio server 的 stdout 只能走协议**：任何日志走 stdout 都会污染 JSON-RPC 流；
-    initialize 回显客户端请求的 `protocolVersion` 最稳（SDK 校验版本协商）。
-11. **rc.1→rc.3 的三处变化**（都已在本示例反映）：instructions 从 systemPrompt section
-    改为 pre-step/inbox 驱动（旧「assemble().sections 查指令段落」的做法过时）；
-    web fetch 可达本机；mcp-client 每实例一 server。
-12. **Bun 无需任何缝**：不挂 ptc/subprocess，MCP 由 SDK 自己 spawn——jobs 示例的五条
-    Bun 缝在这里一条都不触发，`bun src/index.ts` 直接跑通。`.dsh-home/`、
-    `.dsh-project/`、`AGENTS.md`、`skills/runtime-note/` 都是运行期产物，已 gitignore。
-
-## 6 从零复现：完整文件与运行路径
+## 5 从零复现：完整文件与运行路径
 
 前置条件：Node ≥ 22.18（实测 v26.12.1，原生 TypeScript 类型剥离）；跑 Bun 侧
 需要 Bun ≥ 1.4.4（实测 1.4.4）。不需要 API key、不需要 `.env`、不需要 runtime
@@ -827,7 +808,7 @@ npm start
 自己指向工程内的 `.dsh-home`，`DEEPSEEK_API_KEY` 在 boot 前被刻意删除以保证
 缺 key 失败确定；S4 的 HTTP 靶子是本机现起现关的，端口随机。
 
-## 7 小结
+## 6 小结
 
 这个示例验证了 4 件事：
 

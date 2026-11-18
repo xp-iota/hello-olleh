@@ -40,7 +40,7 @@ cordis 的做法：注册走 `ctx.on()`（内部是 `ctx.fiber.effect()`），�
 
 ## 3 emit 与 parallel：两种错误语义
 
-emit 是同步广播：逐个 `Reflect.apply`，**不接异常**——监听器抛错直接穿透给调用方。parallel 是并发上报：`Promise.allSettled` 等所有监听器 settle，失败的收集成带事件名的 `AggregateError`：
+emit 是同步广播：逐个 `Reflect.apply`，**不接异常**——一个监听器抛错，后面的监听器不再执行，异常直接穿透落在 emit 的调用点。parallel 是并发上报：`Promise.allSettled` 等所有监听器 settle，失败的收集成带事件名的 `AggregateError`：
 
 ```ts
 ctx.on('lab/report', async (msg) => { await sleep(20); console.log('[上报 A] 完成', msg) })
@@ -88,6 +88,8 @@ ctx.waterfall('lab/wrap', '原始文本', () => '【base】')  // → 【A】【
 
 两条容易写错的契约：**inner 以无参形式执行**（`return inner()`，events.ts:153），拿不到业务参数，只能自带默认值；**纯观察也必须 `return next()`**，否则等于否决整条链——waterfall 里没有「旁路监听」这个选项。
 
+还有两条派发时刻的语义。其一，**链是派发时刻的快照**：`_resolve` 过滤产出新数组，索引推进不碰 `_hooks`——派发期间新注册的监听器不影响本次链，派发期间注销的经 `removed` 标志跳过；别指望在监听器里注册下一个监听器来「动态接链」。其二，**浅拷贝只复制一层**：监听器收到 `[...args, next]`，重新赋值参数元素不会传导给下游，但修改对象元素的内容仍然共享可见——想改写下游看到的东西，改对象内容或靠返回值加工，不要靠重新赋值参数。
+
 ## 6 监听器即 effect
 
 `ctx.on()` 的注册走 `ctx.fiber.effect()`（events.ts:165-173）：返回值是注销函数，fiber 卸载时监听器自动摘除。示例对比了四种注册方式：root 上手动 `on`（拿 off 函数手动摘）、插件内普通 `on`、`{ prepend: true }` 的 `on`（unshift 到链首）、`once`（响一次自摘）。
@@ -113,7 +115,7 @@ export function apply(ctx: Context) {
 prepend → 手动 → 普通 → once → prepend → 手动 → 普通
 ```
 
-第一次四个全响（once 响完自摘），第二次剩三个，fiber dispose 后第三次 emit 什么也不发生。prepend 决定包裹顺序这件事在 waterfall 里尤其重要：`prepend: true` = 更外层 = 更高拦截优先级。
+第一次四个全响（once 响完自摘），第二次剩三个，fiber dispose 后第三次 emit 什么也不发生。prepend 决定包裹顺序这件事在 waterfall 里尤其重要：`prepend: true` = 更外层 = 更高拦截优先级。once 的自摘发生在回调之前：包装先调 dispose 再执行监听器（events.ts:202-208），监听器内部再 emit 同一事件时，自己已经不在链上——不会递归触发自身。
 
 runner 与 listener 是两个插件，命中记录放在共享模块 `src/state.ts` 里（`export const hits: string[] = []`）——跨插件传状态用共享模块，不用全局变量。
 
@@ -208,29 +210,7 @@ npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过
 
 装配路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordisjs/include`、`@cordisjs/fs`、`@cordisjs/fs-node`，已写进 `package.json`。
 
-## 9 容易踩的坑
-
-### isBailed 不是 truthy
-
-返回 `0`、`''`、`NaN` 都会截断 bail/serial 链。监听器里写 `return count` 而 count 恰好为 0 时，后续监听器静默不执行——不报错、不告警。表达「让行」只用 `null` / `false` / 无返回。
-
-### emit 的异常穿透调用方
-
-emit 没有 try/catch。一个监听器抛错，后面的监听器不再执行，异常落在 emit 的调用点。要「一个失败不影响其余」的并发语义，用 parallel 并接住 AggregateError。
-
-### waterfall 的链是派发时刻的快照
-
-`_resolve` 过滤产出新数组，索引推进不碰 `_hooks`：派发期间新注册的监听器不影响本次链；派发期间注销的经 `removed` 标志跳过。别指望在监听器里注册下一个监听器来「动态接链」。
-
-### 浅拷贝只复制一层
-
-监听器收到 `[...args, next]`：重新赋值参数元素不会传导给下游，但修改对象元素的内容仍然共享可见。想改写下游看到的东西，改对象内容或靠返回值加工，不要靠重新赋值参数。
-
-### once 的自摘发生在回调之前
-
-`once` 的包装先调 dispose 再执行监听器（events.ts:202-208）。监听器内部再 emit 同一事件时，自己已经不在链上——不会递归触发自身。
-
-## 10 从零复现：完整文件与运行路径
+## 9 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -473,6 +453,6 @@ async function run(ctx: Context) {
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。Node 需 22.18 以上（原生类型擦除），低于此版本改用 `npm run start:bun`。
 
-## 11 小结
+## 10 小结
 
 事件系统的五个方法是五种控制流：emit 广播、parallel 并发收错、bail/serial 询问认领、waterfall 委托改写。选方法就是选错误处理方式与中断条件；`isBailed` 的三值排除和 inner 的无参契约是最容易写错的两处。监听器注册即 fiber effect，卸载自动摘除——事件通信和生命周期管理在 effect 这一层用的是同一套机制。下一篇 isolate 示例讲「哪些监听器看得见这次派发」：`Context.filter` 与 realm 隔离。

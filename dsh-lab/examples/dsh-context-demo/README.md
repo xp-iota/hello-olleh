@@ -65,7 +65,7 @@ const surface = await ctx.sessionQuery.readSurface(handle.agent.session.id)
 
 ### section 与 variable 都是可逆贡献
 
-`ctx.systemPrompt.section()` / `.variable()` 返回精确的解除函数，注册挂在调用方 fiber 的 effect 链上。装配结果 `assemble()` 是 `{ sections, tools }`：section 按 order 排序合并，工具 schema 来自当前装配范围。S1 的「工具 schema 数：1」正是 patch 里声明的 big_text——全局视角下这棵树只有这一个工具；带 agent 的装配见 dsh-tool-pipeline-demo S4。
+`ctx.systemPrompt.section()` / `.variable()` 返回精确的解除函数，注册挂在调用方 fiber 的 effect 链上。装配结果 `assemble()` 是 `{ sections, tools }`：section 按 order 排序合并，工具 schema 来自当前装配范围。S1 的「工具 schema 数：1」正是 patch 里声明的 big_text——全局视角下这棵树只有这一个工具；带 agent 的装配见 dsh-tool-pipeline-demo S4。返回的 section 对象不带可枚举的 order：输出里的 `order=?` 不是 bug，排序信息在装配内部；想看顺序直接看 sections 数组的排列。
 
 ### 插值失败是硬错误
 
@@ -79,17 +79,17 @@ const surface = await ctx.sessionQuery.readSurface(handle.agent.session.id)
 2. 超过 thresholdChars 的，按 head/tail 预算确定性裁剪；
 3. **影子计价协议**：先追加一条 `compaction/prune` 事件（用 tokenMeter 给被影子节点计价），再紧挨着追加替换的 `tool/result`，`surfaceOp: { op: 'replace', startSeq, endSeq }` 引用被替换节点。
 
-替换保留完整事件数据、只改 content，且引用原节点——**重放可以恢复替换输入**。调用方是 compaction-basic：每次请求前 `ctx.get('toolResultPruner')?.pruneSession(agent.session)`。所以裁剪发生在「历史进入下一次请求」的路上，不是工具执行的那一刻。
+替换保留完整事件数据、只改 content，且引用原节点——**重放可以恢复替换输入**。调用方是 compaction-basic：每次请求前 `ctx.get('toolResultPruner')?.pruneSession(agent.session)`。所以裁剪发生在「历史进入下一次请求」的路上，不是工具执行的那一刻。想手动触发裁剪，要往会话表面追加 `tool/result` 再调 `pruneSession`——`tool/result` 是 surface-eligible 事件，`session.append` 缺第三个参数 `{ surfaceOp: 'append' }` 会直接抛 `requires a surfaceOp marker`。
 
 ### spill 以 prepend 挂链；pruner 在位与否不影响它
 
-`spill-policy` 的监听器带 `{ prepend: true }`（spill-policy/src/index.ts:151），且第一句是 `await next()`——它先拿到下游整条链的决定，再对结果计价。旧版本笔记说「pruner 在下游先把超大文本截小，spill 永远到不了阈值，必须禁用 pruner」——**这在 rc.3 不成立**：pruner 根本不在 post-execute 链上。探针实测：只挂 patch（pruner 在位）直接调 huge，同样溢写（148889 → 49932 字符，通知在场）。第二棵树保留 `cordis.noprune.yml` 是为了演示「同一份 patch + 不同 overlay = 不同机制组合」的配置层开关，不是触发 spill 的必要条件。
+`spill-policy` 的监听器带 `{ prepend: true }`（spill-policy/src/index.ts:151），且第一句是 `await next()`——它先拿到下游整条链的决定，再对结果计价。pruner 不在 post-execute 链上，所以它在位与否不影响 spill：只挂 patch（pruner 在位）直接调 huge，同样溢写（148889 → 49932 字符，通知在场）。第二棵树保留 `cordis.noprune.yml` 是为了演示「同一份 patch + 不同 overlay = 不同机制组合」的配置层开关，不是触发 spill 的必要条件。
 
-spill 自身还有两条硬约束：结果估算超过 maxInlineTokens 才动手；**必须有会话 owner**（`exec.agent?.session.header.id`），否则 warn 一声保留内联内容。落盘走 `spillStore.saveText()`，文件在系统临时目录的 `dsh-spill-*` 私有根下按会话分目录；模型看到的替换内容是「头 + 尾 + 溢写通知（含精确字节数与文件路径）」，并提示用 read offset/limit 或 grep 取回全文。
+spill 自身还有两条硬约束：结果估算超过 maxInlineTokens 才动手；**必须有会话 owner**（`exec.agent?.session.header.id`），否则 warn 一声保留内联内容。落盘走 `spillStore.saveText()`，文件在系统临时目录的 `dsh-spill-*` 私有根下按会话分目录；模型看到的替换内容是「头 + 尾 + 溢写通知（含精确字节数与文件路径）」，并提示用 read offset/limit 或 grep 取回全文。一个细节：溢写通知里的路径后面紧跟句号——用正则提取路径要把句末 `.` 一起剥掉，否则 `existsSync` 差一个字符判 false。
 
 ### 模型表面是历史的投影
 
-`sessionQuery.readSurface(sessionId)` 返回会话历史折叠后的模型可见事件序列。SQLite 索引配 `:memory:` + `openAt: never` 时完全在内存里，进程退出即消失——机制演示不需要落盘索引。
+`sessionQuery.readSurface(sessionId)` 返回会话历史折叠后的模型可见事件序列。SQLite 索引配 `:memory:` + `openAt: never` 时完全在内存里，进程退出即消失——机制演示不需要落盘索引。node:sqlite 在 Node 26 与 Bun 1.4.4 上都可用，这一行不需要任何运行时补丁。
 
 ## 5 运行上下文装配示例
 
@@ -256,19 +256,7 @@ CONTEXT_DEMO_OK
 - **S5：148889 → 49932 字符**——spill 不是数量级压缩，而是「内联预算内的头尾保留 + 超出部分落盘」（99189 字节进了文件）；
 - **S6：0 条**——新建会话还没有任何事件，模型表面是空的；真实 turn 的事件流见 dsh-session-demo 与 dsh-trajectory-probe-demo。
 
-## 6 边界与坑
-
-1. **pruner 不挂 post-execute**：直接调用工具看不到任何裁剪。必须往会话表面追加 `tool/result` 再 `pruneSession`。
-2. **`session.append` 要求 surfaceOp 标记**：`tool/result` 是 surface-eligible 事件，缺第三个参数 `{ surfaceOp: 'append' }` 直接抛 `requires a surfaceOp marker`。
-3. **spill 需要 agent owner**：`callTool` 不传 agent 时 spill 静默保留内联内容（只有一条 logger.warn）。症状是「大输出怎么没溢写」。
-4. **spill 的压缩比不是数量级**：内联预算内的头尾仍保留。断言「压到十分之一以下」会误判失败——正确的判据是「变短了 + 通知里有路径 + 文件存在」。
-5. **溢写通知里的路径后面紧跟句号**：用正则提取路径要把句末 `.` 一起剥掉，否则 `existsSync` 差一个字符判 false。
-6. **assemble 返回的 section 对象不带可枚举的 order**：打印 `order=?` 不是 bug，排序信息在装配内部；想看顺序直接看 sections 数组的排列。
-7. **估算要用互不相同的词**：`'x'.repeat(10000)` 这类重复文本会被估算器压得很低，测不出真实 token 压力。
-8. **「必须禁用 pruner 才能看到 spill」是旧版笔记**：rc.3 的 pruner 不在 post-execute 链上，探针实测 pruner 在位时 huge 同样溢写；noprune overlay 只是配置层开关的演示。
-9. 本示例不挂 ptc/subprocess，Bun 无需补丁；node:sqlite 在 Node 26 与 Bun 1.4.4 上都可用（实测）；运行时状态落在本目录 `.dsh-home/`（gitignored），溢写文件在系统临时目录。
-
-## 7 从零复现：完整文件与运行路径
+## 6 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -562,7 +550,7 @@ npm run start:bun       # Bun：随机 id/临时目录名除外逐行一致
 
 示例不依赖任何环境变量、端口或外部服务。运行时状态落在工程内 `.dsh-home/`（已 gitignore），溢写文件落在系统临时目录的 `dsh-spill-*` 私有根下。
 
-## 8 小结
+## 7 小结
 
 这个示例验证了七件事：
 

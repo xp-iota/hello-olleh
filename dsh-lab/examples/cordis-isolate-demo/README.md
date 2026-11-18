@@ -40,7 +40,7 @@ isolate(name: string, label?: symbol) {
 
 三个细节决定全部行为：新表以旧表为原型（没被 isolate 的名字沿原型链回落到 root 的键）；不传 label 时每次调用都是新 Symbol（完全私有）；返回的是派生上下文，原上下文一个字节都没改。服务解析 `locate()` 沿 fiber 链向上走时，用「当前表到 fiber 上下文表之间是否 own 了这个名字」判定隔离边界（reflect.ts:93-96）——realm 里的消费者看不到 realm 外的同名 provider，反之亦然。
 
-loader 把这个能力包装成配置字段：`isolate: { greeter: true }` 给这一行一个完全私有的 realm；`isolate: { greeter: 'realm-1' }` 用字符串 label 划出命名 realm——**label 相同的行共享同一个 realm**。本示例全部用后者，四组场景就是四组 label。
+loader 把这个能力包装成配置字段：`isolate: { greeter: true }` 给这一行一个完全私有的 realm；`isolate: { greeter: 'realm-1' }` 用字符串 label 划出命名 realm——**label 相同的行共享同一个 realm**。本示例全部用后者，四组场景就是四组 label。realm 跟着挂载入口走，不跟着插件走：API 层面 `ctx.isolate('db')` 之后若继续用原 `ctx` 挂插件，插件仍活在 root realm，必须改用返回的派生上下文；漏写 isolate 字段或忘换挂载入口，是「隔离没生效」的第一原因。
 
 ## 3 同名两份实现同时 ACTIVE
 
@@ -71,13 +71,13 @@ await row(ctx, 'provider-inner').update({ disabled: false })   // realm 侧：in
 await ctx.loader.await()
 ```
 
-实测两个消费者分别拿到 `outer` 与 `inner`，且**同时 ACTIVE**。没有 isolate 时第二次 provide 会抛 `service "greeter" has been registered at <...>`（reflect.ts:226）——store 以 symbol 键查重，isolate 换了键，查重自然通过。这就是「测试换假服务」的标准做法：被测插件一行不改，配置里给它写个 isolate 字段即可。
+实测两个消费者分别拿到 `outer` 与 `inner`，且**同时 ACTIVE**。没有 isolate 时第二次 provide 会抛 `service "greeter" has been registered at <...>`（reflect.ts:226）——store 以 symbol 键查重，isolate 换了键，查重自然通过。这就是「测试换假服务」的标准做法：被测插件一行不改，配置里给它写个 isolate 字段即可。isolate 本身永不报错——报错发生在 provide 发现 store 里同键已有实现时；排查 `service "x" has been registered` 先看两个 provider 是否落在同一个 isolate 键上，通常就是漏了 isolate 或 label 传重了。
 
 注意 consumer 与 provider 用的是**同一个插件文件**（`greeter-consumer.ts` / `greeter-provider.ts`），差别全在配置行的 `isolate:` 与 `config:`——插件不知道自己活在哪个 realm。
 
 ## 4 隔离按名字生效
 
-realm-1 只 shadow 了 `greeter`。root 上启用 clock-provider 之后，realm 里 `inject: ['clock']` 的 realm-clock 行照常激活，拿到 root 的实现——因为 realm 的 isolate 表里 `clock` 不是 own 属性，沿原型链回到 root 的键。隔离是**逐名字**的声明，不是「这个上下文从此与世隔绝」：想隔离几个名字就在 `isolate:` 下写几个键，其余服务照常共享。
+realm-1 只 shadow 了 `greeter`。root 上启用 clock-provider 之后，realm 里 `inject: ['clock']` 的 realm-clock 行照常激活，拿到 root 的实现——因为 realm 的 isolate 表里 `clock` 不是 own 属性，沿原型链回到 root 的键。隔离是**逐名字**的声明，不是「这个上下文从此与世隔绝」：想隔离几个名字就在 `isolate:` 下写几个键，其余服务照常共享。反面同样成立：在 realm 里 provide 一个没被 isolate 的名字，写的是 root 的键，会影响 root 的所有消费者——想完全私有就逐名字 isolate（或配置里写 `true`）。
 
 ## 5 事件可见性跟着 realm 走
 
@@ -109,7 +109,7 @@ row(ctx, 'ticker-realm').innerFiber!.ctx.get('ticker')!.tick()
 
 这里用 `innerFiber.ctx.get()` 而不是 `entry.ctx.ticker`：行句柄的 ctx 直接读服务会做 inject 校验，runner 没声明 inject ticker，走 fiber 内部的 ctx 取。
 
-实测两次 tick 共 2 次命中（`root 听到 → realm 听到`）；若无隔离应为 4 次。注意这里必须 isolate `ticker` 而不是复用场景 ① 的 greeter realm：isolate 表只 own 被 isolate 的名字，realm-1 里 `ticker` 的键仍继承 root——在那里 provide ticker 会和 root 的撞键。**想隔离哪个服务的行为，就 isolate 哪个名字**，事件可见性用的也是服务名的键，不是事件名。
+实测两次 tick 共 2 次命中（`root 听到 → realm 听到`）；若无隔离应为 4 次。注意这里必须 isolate `ticker` 而不是复用场景 ① 的 greeter realm：isolate 表只 own 被 isolate 的名字，realm-1 里 `ticker` 的键仍继承 root——在那里 provide ticker 会和 root 的撞键。**想隔离哪个服务的行为，就 isolate 哪个名字**，事件可见性用的也是服务名的键，不是事件名。普通 `ctx.emit('evt')`（无 thisArg）没有 filter，所有 realm 的监听器都看得见；想要 realm 级事件总线，要么以服务为 thisArg 派发，要么每个 realm 用独立事件名。
 
 ## 6 同 label 即同 realm
 
@@ -242,29 +242,7 @@ npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过
 
 装配路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordisjs/include`、`@cordisjs/fs`、`@cordisjs/fs-node`，已写进 `package.json`。
 
-## 8 容易踩的坑
-
-### realm 跟着挂载入口走，不跟着插件走
-
-API 层面 `const realm = ctx.isolate('db')` 之后继续用 `ctx` 挂插件，插件活在 root realm；配置层面 realm 由**这一行**的 `isolate:` 字段决定，同一个插件文件挂两行可以活在两个 realm。忘记换挂载入口（或漏写 isolate 字段）是「隔离没生效」的第一原因。
-
-### 没被 isolate 的名字全部共享
-
-isolate 表是原型链 shadow，不是拷贝。realm 里 provide 一个没被 isolate 的名字，写的是 root 的键——会影响 root 的所有消费者。想完全私有就逐名字 isolate（或配置里写 `true`），或理解「realm 是选择性隔离」这个默认。
-
-### 事件隔离的键是服务名，不是事件名
-
-Service 的 filter 比较的是 `isolate[this.name]`。以服务为 thisArg 派发时，隔离粒度跟着**服务**走；普通 `ctx.emit('evt')`（无 thisArg）没有 filter，所有 realm 的监听器都看得见。想要 realm 级事件总线，要么以服务为 thisArg，要么每个 realm 用独立事件名。
-
-### 撞键报错发生在 provide，不在 isolate
-
-isolate 本身永不报错；报错在 `provide` 发现 store 里同键已有实现时。排查 `service "x" has been registered` 先看两个 provider 是否落在同一个 isolate 键上——通常就是漏了 isolate 或 label 传重了。
-
-### 行句柄读服务要过 inject 校验
-
-`entry.ctx.xxx` 直接读服务时，cordis 会检查该行是否声明了 inject；没声明就抛错。runner 想取某行注册的服务，走 `entry.innerFiber!.ctx.get('xxx')`——fiber 内部的 ctx 不做这层校验（场景 ③ 的用法）。
-
-## 9 从零复现：完整文件与运行路径
+## 8 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -531,6 +509,6 @@ export function apply(ctx: Context) {
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 
-## 10 小结
+## 9 小结
 
 isolate 的本质是「服务名 → symbol 键」这张表的原型链 shadow：改一个 own 属性，就划出一个新世界；store 以键存实现，所以同名服务可以多份并存、独立卸载。隔离是调用方单方面的决定，插件无需配合——配置层的 `isolate:` 字段把这个决定也变成了声明：`true` 是私有 realm，字符串 label 相同即共享。下一篇 loader 示例展开配置树本身：`cordis.yml` 里的每一行 entry 如何变成 fiber，include 与 patch 如何组合出整棵装配树。

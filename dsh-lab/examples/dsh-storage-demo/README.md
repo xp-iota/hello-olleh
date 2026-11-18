@@ -17,7 +17,7 @@
 | 凭据 | 敏感值 | `credentials.resolve(credentialRef(...))` | `{value,source}` 分层、文件优先环境、fail closed、**热轮换不重启** |
 | 引用 | 指向别处的指针 | `fileReferences.list` / `sessionReferenceResolver` | @ 发现缝、条件提示段、跨会话快照进上下文、自引用拒绝 |
 
-旧 M11 模块的三处描述在 rc.3 已过时，本示例全部以实测纠正：
+三条与直觉相反的边界，本示例全部实测验证：
 
 - **put 不做运行时 zod 校验**——校验发生在 `open()` 加载存量记录时；
 - **local provider 是服务基类的子类**——只挂 local 一行，再挂基类行会报重复注册；
@@ -46,11 +46,12 @@
 | `session-reference` | `@deepseek-ai/dsh-session-reference` | `maxReferenceBytes: 65536` 显式字节预算 |
 | `scripted-adapter` | `./src/plugins/scripted-adapter.ts` | 自写插件也走声明式，S5 播种用 |
 
-三个值得注意的装配决定：
+四个值得注意的装配决定：
 
 - **storage 三层分工**：`storage` 只管路由，`storage-json` 是介质，`storage-domain` 是领域语义（schema/版本/表）。`backend: json` 必填——rc.3 明确拒绝「默认后端」的想法，没有 universally correct 的介质，部署必须显式选择。
 - **local 一行即服务**：三个 local provider 都 `extends` 各自的服务基类并自己注册服务，patch 里**没有** `dsh-attachment` / `dsh-credentials` / `dsh-file-reference` 基类行——它们只作为类型与 `credentialRef` 等工具函数的来源存在于 package.json。
 - **会话读取面复用 dsh-session-demo 配方**：五行缺一不可；`session-query-sqlite` 用 `openAt: never` 不落索引文件，`node:sqlite` 根本不会被打开——这也是本示例在 Bun 下无需任何补丁的原因之一。
+- **session-reference 的运行时依赖比 patch 面宽**：`dsh-compaction` / `dsh-output-retention` / `dsh-typert-protocol` 是硬依赖（非 optional peer），package.json 必须带上，否则 import 即失败。
 
 ## 3 五个场景
 
@@ -70,12 +71,12 @@ rc.3 的真实边界与直觉相反：**`put` 不做运行时 zod 校验**——
 
 `credentials.resolve(credentialRef(name))` 返回 **`{value, source} | undefined`**（rc.1 是裸字符串，rc.3 加了来源层）。示例演示四条规则：
 
-- **分层**：`source='file'`（`DSH_HOME/.credentials.yaml`）与 `source='env'`（进程环境）；
+- **分层**：`source='file'`（`DSH_HOME/.credentials.yaml`，必须 `version: 1` + `refs:` 嵌套，扁平布局被明确拒绝）与 `source='env'`（进程环境）；
 - **托管存储优先**：同名引用文件层赢——用户显式保存的不被环境顶掉；
 - **fail closed**：不存在的引用返回 `undefined`，不抛错也不猜值；
-- **热轮换**：外部改写 yaml，watch（默认开，debounce 100ms）热发布，下一次 `resolve` 拿到新值，**进程不重启**。
+- **热轮换**：外部改写 yaml，watch（默认开，debounce 100ms）热发布，下一次 `resolve` 拿到新值，**进程不重启**。首读不靠 watch：凭据文档要在 boot 前就位，provider 启动时读取。
 
-日志纪律：只打印 `source` 与值长度，值本身永不落日志。
+日志纪律：只打印 `source` 与值长度，值本身永不落日志。另注意平台差异：credentials-local 的 POSIX 权限检查在 win32 直接 return，别在 Windows 上期待 0600 断言。
 
 ### S4 文件引用：@ 提及的发现缝
 
@@ -83,7 +84,7 @@ rc.3 的真实边界与直觉相反：**`put` 不做运行时 zod 校验**——
 
 ### S5 跨会话引用：快照按预算进上下文
 
-先用脚本化适配器给源会话播种一条真实 turn（人类消息带 `STORAGE-REF-MARKER-13`），`whenIdle` + `sessions.flush` 落盘。然后另一条会话做引用方：
+先用脚本化适配器给源会话播种一条真实 turn（人类消息带 `STORAGE-REF-MARKER-13`），`whenIdle` + `sessions.flush` 落盘。候选数受残留污染：index.ts 启动时自动 `rmSync` 清掉 `DSH_HOME/sessions` 与 `storages`，否则上次运行的会话会进候选列表、落盘清单会多出旧文件。然后另一条会话做引用方：
 
 - `sessionReferenceResolver.listCandidates(viewer)` 列出候选（**排除自己**，按 cwd 亲和排序）；
 - `prepare(viewer, content, [{sessionId}], route)` 把源会话快照渲染成 `additionalContext`（一条 UserMessage，按**不可信内容**对待），显式 `maxReferenceBytes: 65536` 预算让它不依赖模型路由的 context window 估算；
@@ -220,7 +221,7 @@ rc.3 的真实边界与直觉相反：**`put` 不做运行时 zod 校验**——
       name: ./src/plugins/scripted-adapter.ts
 ```
 
-`npm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，脚本化适配器随装配就位：
+`npm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，脚本化适配器随装配就位。一个类型层面的细节：示例的 `assert()` 不做 TS 类型收窄，narrowing 用 `if (!x) throw`，别指望自定义 assert 之后 `x` 自动非空：
 
 ```ts
 const ctx = await boot(
@@ -244,6 +245,8 @@ npm run start:bun       # Bun：不挂 ptc/subprocess，无需任何补丁，输
 #
 npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
+
+npm allowScripts 拦下 koffi@3.1.1 的 install script 无碍：本示例不触发它的加载路径（SQLite `openAt: never`），双运行时照常全部通过。
 
 下面是 `npm start` 的实测输出（Node 26.12.1；Bun 1.4.4 除首行 `runtime = bun 1.4.4` 外逐行一致，归一化比对验证）：
 
@@ -288,23 +291,7 @@ STORAGE_DEMO_OK
 - **值长度 13 / 12 / 13**：日志里只有 source 与长度，凭据值本身永不出现；热轮换前后长度都是 13（`file-secret-1` → `file-secret-2`），进程没重启；
 - **候选 2 条**：源会话 + S4 建的文件引用会话，引用方自己不在候选里。
 
-## 5 边界与坑
-
-1. **基类 + local 双挂 = 重复注册**。首跑报 `service "attachments" has been registered`：local provider 是基类子类、自己注册服务。patch 只挂 local 一行。
-2. **「脏数据进不去」是过时描述**。rc.3 `put` 不做运行时校验，断言 `put` 抛错会拿到 `code=undefined`；正确的演示是脏记录 close 后**重开**触发 `invalid-record`。
-3. **backup-and-skip 在 single 布局下静默回退到拒绝**。必须 `layout: 'per-record'`。
-4. **`.credentials.yaml` 必须 `version: 1` + `refs:` 嵌套**。旧扁平布局被明确拒绝。
-5. **`resolve` 返回 `{value, source}` 不是字符串**（rc.1→rc.3 变化），直接当字符串用会拿到 `[object Object]`。
-6. **凭据文档要在 boot 前就位**：provider 启动时读取；热轮换靠 watch，首读不靠。
-7. **提示段条件渲染**：不挂 tool-fs（read 不在位）时 `context:file-reference` 段没有文本，「系统提示含 @ 指引」断言会失败——这不是 bug，是设计。
-8. **S5 候选数受残留污染**：boot 前 `rmSync` 清掉 `DSH_HOME/sessions` 与 `storages`（index.ts 启动时自动做），否则上次运行的会话会进候选列表、落盘清单会多出旧文件。
-9. **session-reference 的运行时依赖比 patch 面宽**：`dsh-compaction` / `dsh-output-retention` / `dsh-typert-protocol` 是硬依赖（非 optional peer），package.json 必须带上，否则 import 即失败。
-10. **`assert()` 不做 TS 类型收窄**：narrowing 用 `if (!x) throw`，别指望自定义 assert 之后 `x` 自动非空。
-11. **koffi 安装脚本被拦无碍**：npm allowScripts 拦下 koffi@3.1.1 的 install script，但本示例不触发它的加载路径（SQLite `openAt: never`），双运行时照常全部通过。
-12. **Windows 跳过凭据文件 mode 检查**：credentials-local 的 POSIX 权限检查在 win32 直接 return，别在 Windows 上期待 0600 断言。
-13. 本示例不挂 ptc/subprocess，Bun 无需补丁；会话日志与存储落在本目录 `.dsh-home/`（gitignored），每次启动自动清理会话与存储残留。
-
-## 6 从零复现：完整文件与运行路径
+## 5 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -732,7 +719,7 @@ npm run start:bun       # Bun：除首行 runtime 标识外逐行一致
 
 示例不依赖任何环境变量、端口或外部服务：S3 用到的 `DEMO_*` 环境变量由 index.ts 自己在进程内设置，凭据文档也在 boot 前自动写好。运行时状态全部落在工程内 `.dsh-home/`（已 gitignore），每次启动自动清理会话与存储残留。
 
-## 7 小结
+## 6 小结
 
 这个示例验证了五件事：
 

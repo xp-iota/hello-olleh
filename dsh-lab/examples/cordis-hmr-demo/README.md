@@ -32,17 +32,21 @@ rc.13 把这三个代价分别消掉：事务只驱逐**改动模块及其 impor
 - **原位替换而非拆建**：registry.replace 复用旧 runtime 的 fiber 列表；_replace 只换 runtime 与 inject，_revision++；Fiber 身份、config、entry 全部不变。
 - **级联是免费的**：epoch 以 _revision 起始，_refresh 必产新 epoch；只有 inject 了该服务的 Fiber 会重载；HMR 代码里没有一行处理依赖者。
 
-**hostModules 划出「重启才生效」的边界**：`closure()` 从 `process.argv[1]` 沿静态依赖边遍历（:43-56、:245-259），主入口静态可达的模块全是 host——改了只记 `skipped`（reason `host-module`），是否重启交给宿主。cordis CLI 的主入口是 bin.js，插件由 loader 动态 import，天然不在 host 集合里；若自己写主入口并静态 import 插件，reconcile 它只会得到 skipped。
+**hostModules 划出「重启才生效」的边界**：`closure()` 从 `process.argv[1]` 沿静态依赖边遍历（:43-56、:245-259），主入口静态可达的模块全是 host——改了只记 `skipped`（reason `host-module`），是否重启交给宿主。cordis CLI 的主入口是 bin.js，插件由 loader 动态 import，天然不在 host 集合里；若自己写主入口并静态 import 插件，reconcile 它只会得到 skipped。动态 `await import()` 不进静态依赖边，才是可热替换的组件入口。
 
-**运行时边界**：hmr 要摸 Node 内部模块加载器，`--expose-internals` 或 `node-addon-require-builtin` 二选一，且 Node ≥ 22；拿不到构造函数直接抛错，**没有降级路径**（:166-168）。Bun 没有这套内部接口，故本示例 Bun 分支不启用 hmr 行，改演示 hmr 自己用的那条 core 缝：新模块身份重导入 + 导出校验 + `registry.replace()`。两条路径的 Fiber 语义完全相同。
+**运行时边界**：hmr 要摸 Node 内部模块加载器，`--expose-internals` 或 `node-addon-require-builtin` 二选一，且 Node ≥ 22；构造函数拿不到 internals 直接抛 `loader internals are unavailable...`（hmr 包 index.ts:166-168），`ModuleLoader.fromInternal()` 要求 Node ≥ 22（runtime/internal.ts:161），**没有降级路径**。Bun 没有这套内部接口，故本示例 Bun 分支不启用 hmr 行，改演示 hmr 自己用的那条 core 缝：新模块身份重导入 + 导出校验 + `registry.replace()`。两条路径的 Fiber 语义完全相同。「双运行时」不等于「双运行时都装 hmr」：把 hmr 行声明为 `disabled: true`、只在 Node 分支启用，就是把这个边界写进了装配清单。
 
 ## 3 基线
 
-greeter / consumer / clock 三行在 cordis.yml 里声明，loader 动态 import 挂载：greeter（provide greeter）、consumer（`export const inject = ['greeter']`）、clock（无依赖）。模块 namespace 整体就是组件——`apply` 与 `inject` 都是导出，`_discover` 的 `unwrapExports` 与 `registry.replace` 认这种形态。runner 再 `await import()` 同一个 URL 拿到同一个 namespace（Node 与 Bun 的模块缓存都按 URL 键控），并记录 greeter 行 innerFiber 的 uid 供后续比对。
+greeter / consumer / clock 三行在 cordis.yml 里声明，loader 动态 import 挂载：greeter（provide greeter）、consumer（`export const inject = ['greeter']`）、clock（无依赖）。模块 namespace 整体就是组件——`apply` 与 `inject` 都是导出（namespace 是冻结对象，不能事后挂属性，依赖清单只能随导出携带），`_discover` 的 `unwrapExports`（:128-135）与 `registry.replace` 认这种形态。runner 再 `await import()` 同一个 URL 拿到同一个 namespace（Node 与 Bun 的模块缓存都按 URL 键控），并记录 greeter 行 innerFiber 的 uid 供后续比对。
 
 ## 4 改文件 → reconcile：原位替换 + 级联
 
-把 greeter.ts 的 `tag` 从 v1 写成 v2，`reconcile(() => [greeterFile])`。Node 路径：`settled = 1` 且该 Fiber uid 与基线相同——确认是原位替换；consumer 的 apply 计数 #2 且看到 v2——确认发生了 epoch 级联；clock 保持 #1——确认级联只波及依赖者。Bun 路径：写一个新路径的修订文件重导入（见坑节），`registry.replace` 返回的 fibers uid 同样不变。
+把 greeter.ts 的 `tag` 从 v1 写成 v2，`reconcile(() => [greeterFile])`。Node 路径：`settled = 1` 且该 Fiber uid 与基线相同——确认是原位替换；consumer 的 apply 计数 #2 且看到 v2——确认发生了 epoch 级联；clock 保持 #1——确认级联只波及依赖者。Bun 路径：写一个新路径的修订文件重导入（缓存原因见下），`registry.replace` 返回的 fibers uid 同样不变。
+
+Bun 分支有个缓存细节：**Bun 的模块缓存不吃 query 后缀**——改文件后 `import(url + '?v=2')` 仍返回旧模块（实测探针 `QUERY_BUST v1 v1`）；Node ESM 按完整 URL（含 query）键控缓存则天然失效。故 Bun 分支每修订写一个**新路径**（`.greeter-rN.ts`）再 import——等价于 Node 缓存驱逐后产生的新模块身份，结束统一 `rm` 清理。
+
+事务还有两条调度约束：`reconcile` 排队执行（`_queue`），事务体内再开事务直接 reject（:288-290）；watch 批与批也串行，aborted unit 的文件 retained 到下一批（:226-229），否则修复它的改动会被漏掉。
 
 ## 5 导出损坏 → aborted：旧组件继续运行
 
@@ -50,7 +54,7 @@ greeter / consumer / clock 三行在 cordis.yml 里声明，loader 动态 import
 
 ## 6 修好 → 重试成功
 
-写 v4 再 reconcile：`settled = 1`，tag = v4，consumer #3。aborted 不是终态：watch 路径会把相关文件 retained 到下一批（:226-229），程序路径下一次 reconcile 自然重试。
+写 v4 再 reconcile：`settled = 1`，tag = v4，consumer #3。aborted 不是终态：watch 路径会把相关文件 retained 到下一批（:226-229），程序路径下一次 reconcile 自然重试。另一个刻意选择：**Stage 3（换 Fiber 阶段）失败不回滚**——组件保持 FAILED，与冷启动失败表现一致，保留注册、父级与 config，下次文件变化重试（:744-748 注释）。可靠性边界全压在 Stage 1 的「先校验后动手」上；回滚到一个已知有问题的旧实例没有意义。
 
 ## 7 host module → skipped
 
@@ -167,33 +171,7 @@ npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过
 
 装配路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordisjs/include`、`@cordisjs/fs`、`@cordisjs/fs-node`，加上 `@cordisjs/hmr`，都已写进 `package.json`。
 
-## 9 容易踩的坑
-
-### hmr 在 Bun 上起不来，且没有降级路径
-
-构造函数拿不到 Node internals 直接抛 `loader internals are unavailable...`（hmr 包 index.ts:166-168），`ModuleLoader.fromInternal()` 要求 Node ≥ 22（runtime/internal.ts:161）。所以「双运行时」不等于「双运行时都装 hmr」：Bun 分支演示 core 缝是诚实的做法，假装 hmr 跨运行时才是坑。本示例把 hmr 行声明为 `disabled: true`，只在 Node 分支启用，就是把这个边界写进了装配清单。
-
-### Bun 的模块缓存不吃 query 后缀
-
-实测探针：改文件后 `import(url + '?v=2')` 在 Bun 仍返回旧模块（`QUERY_BUST v1 v1`）；Node ESM 按完整 URL（含 query）键控缓存则天然失效。故 Bun 分支每修订写一个**新路径**（`.greeter-rN.ts`）再 import——等价于 Node 缓存驱逐后产生的新模块身份。结束统一 `rm` 清理。
-
-### hostModules 是主入口的静态闭包
-
-cordis CLI 下主入口是 bin.js，loader 动态 import 的插件都不在 host 集合，天然可热替换。若自己写主入口并把插件静态 import 进去，reconcile 它只会得到 `skipped: host-module`。动态 `await import()` 不进静态依赖边，才是可热替换的组件入口。
-
-### namespace 作为组件：apply 与 inject 都是导出
-
-loader 挂载与 `registry.replace` 认的组件都是模块 namespace 对象：`apply` 导出让它成为合法组件，`export const inject = [...]` 让依赖清单随 namespace 携带（namespace 是冻结对象，不能事后挂属性）。runner 里 `await import()` 与 loader 用的是同一个 URL，拿到的就是同一个组件身份——`_discover` 的 `unwrapExports`（:128-135）与 `registry.replace` 都认这种形态。
-
-### Stage 3 失败不回滚是刻意选择
-
-换 Fiber 阶段失败 → 组件保持 FAILED，与冷启动失败表现一致，保留注册、父级与 config，下次文件变化重试（:744-748 注释）。可靠性边界全压在 Stage 1 的「先校验后动手」上；回滚到一个已知有问题的旧实例没有意义。
-
-### 事务串行且拒绝嵌套
-
-`reconcile` 排队执行（`_queue`），事务体内再开事务直接 reject（:288-290）。watch 批与批也串行；aborted unit 的文件 retained 到下一批（:226-229），否则修复它的改动会被漏掉。
-
-## 10 从零复现：完整文件与运行路径
+## 9 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证，start 脚本已带 `--expose-internals`）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -449,6 +427,6 @@ async function run(ctx: Context) {
 
 示例不依赖任何环境变量、端口或外部服务。Node 路径要求未带 `--preserve-symlinks`（模块 URL 须为 realpath）。
 
-## 11 小结
+## 10 小结
 
 HMR 的可靠性不在「换得快」，而在「换之前先校验、换的时候不动身份、换错了能按 unit 回滚」。rc.13 把这三件事分别压在 Stage 1 的导出校验、`registry.replace` 的原位语义、`ModuleBackup.restore` 的选择性恢复上；级联重载则完全交给 Fiber 的 epoch 机制，HMR 本体一行依赖者代码都没有。Node 与 Bun 两条路径最终落到同一条缝上：前者多了一层 Node 模块缓存事务，后者直接用 core 的 `registry.replace()`。到这里 cordis 的六个示例就都跑完了；接下来是 dsh 侧的示例。

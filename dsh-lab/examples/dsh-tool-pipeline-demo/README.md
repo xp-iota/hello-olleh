@@ -37,7 +37,7 @@
 | `agent-loop` | `@deepseek-ai/dsh-agent-loop` | **注册 AgentFactory**。`AgentLoop.static inject = ['agents','sessions','llm','tools','systemPrompt','sessionProjections']`（core/agent-loop/src/index.ts:291） |
 | `word-count` | `./src/plugins/word-count.ts` | 自写工具插件，`disabled: true`，五个场景由运行时开关驱动 |
 
-倒数第二行是实测踩出来的：只挂 `agent` 不挂 `agent-loop`，`agents.create()` 直接抛 `no agent factory registered (load an agent-loop plugin)`。注册表（agent）与工厂（agent-loop）分离，和 tools 与 tool-executor-native 的分离是同一个设计手法。最后一行是本示例的装配原则：**自写插件也走声明式**，挂载与回收都交给 loader，场景代码只做开关。
+倒数第二行是硬约束：只挂 `agent` 不挂 `agent-loop`，`agents.create()` 直接抛 `no agent factory registered (load an agent-loop plugin)`。注册表（agent）与工厂（agent-loop）分离，和 tools 与 tool-executor-native 的分离是同一个设计手法。最后一行是本示例的装配原则：**自写插件也走声明式**，挂载与回收都交给 loader，场景代码只做开关。
 
 ## 3 工具插件与单次调用封装
 
@@ -90,11 +90,11 @@ export function apply(ctx: Context): void {
 }
 ```
 
-`defineTool` 三段式里藏着一条重要分界：**规范值与渲染内容是两回事**。`execute` 返回 `{words: 3, chars: 31}`（规范值），`render` 把它变成 `"3 词 / 31 字符"`（模型可见内容）。审计、压缩、重放依赖前者，模型只看见后者。
+`defineTool` 三段式里藏着一条重要分界：**规范值与渲染内容是两回事**。`execute` 返回 `{words: 3, chars: 31}`（规范值），`render` 把它变成 `"3 词 / 31 字符"`（模型可见内容）。审计、压缩、重放依赖前者，模型只看见后者。schema 还有两条硬要求：object 类型必须显式写 `additionalProperties`，必填字段写在各 property 的 `required: true` 上。插件的 `inject: ['tools']` 也不是可选优化：cordis 的反射代理强制访问控制，没写 inject 访问 `ctx.tools` 会报 `cannot get property "tools" without inject`。
 
 ### 单次调用封装 src/tools.ts
 
-0.2.2 起 `ctx.tools.execute()` 的输入是**一整批模型原始调用**（`ToolBatchInput`），`calls` 里是 `ToolCallBlock`，`arguments` 是**模型产出的 JSON 字符串**——这是真实协议形状，不是适配层权宜之计：
+0.2.2 起 `ctx.tools.execute()` 的输入是**一整批模型原始调用**（`ToolBatchInput`），`calls` 里是 `ToolCallBlock`，`arguments` 是**模型产出的 JSON 字符串**——这是真实协议形状，不是适配层权宜之计；直接传对象会在 schema 校验阶段失败，`ToolCallId` 是品牌类型，用 `ToolCallId(...)` 构造：
 
 ```ts
 const batch = await ctx.tools.execute({
@@ -110,7 +110,7 @@ const batch = await ctx.tools.execute({
 return batch.results[0].result
 ```
 
-完整封装（`executeTool` / `callTool` / `blocksToText` / `preview`）见第 8 节的 `src/tools.ts` 镜像。
+完整封装（`executeTool` / `callTool` / `blocksToText` / `preview`）见第 7 节的 `src/tools.ts` 镜像。
 
 ## 4 五个场景
 
@@ -174,11 +174,11 @@ removeGuard()   // 移除后恢复
 
 ### 注册是 effect，禁用行即回收
 
-`ctx.tools.register()`（core/tools/src/index.ts:128）把注册挂进调用方 fiber 的 effect 链。行句柄 `update({ disabled: true })` 销毁该行 fiber，工具自动从注册表消失——不需要任何「反注册」代码。热重载不是额外功能，是 cordis effect 的自然结果（对照 cordis-hmr-demo 的插件替换）。
+`ctx.tools.register()`（core/tools/src/index.ts:128）把注册挂进调用方 fiber 的 effect 链。行句柄 `update({ disabled: true })` 销毁该行 fiber，工具自动从注册表消失——不需要任何「反注册」代码。热重载不是额外功能，是 cordis effect 的自然结果（对照 cordis-hmr-demo 的插件替换）。行寻址有个细节：`ctx.loader.resolve(id)` 只查根树，patch 行挂在子树里会报 cannot resolve entry——用 `[...ctx.loader.entries()]` 递归遍历、按 `options.id` 找；需要运行时寻址的行必须写显式 `id:`。
 
 ### pre-execute 是 waterfall，四种决定
 
-监听要么给出决定（`allow` / `deny` / `ask` / `cancel`），要么 `next()` 交给下一个监听。返回 `deny` 就「认领」了这次调用，后面的监听不再运行。`deny` 的 `reason` 是**给模型看的**——模型需要知道为什么被拒，才能换个做法。`ask` 走人类审批（见 dsh-hitl-demo），`cancel` 直接中止。
+监听要么给出决定（`allow` / `deny` / `ask` / `cancel`），要么 `next()` 交给下一个监听。返回 `deny` 就「认领」了这次调用，后面的监听不再运行。`deny` 的 `reason` 是**给模型看的**——模型需要知道为什么被拒，才能换个做法。`ask` 走人类审批（见 dsh-hitl-demo），`cancel` 直接中止。注意挂在根 ctx 上的监听器不随插件 fiber 销毁：每个 `ctx.on` 都要拿 off 句柄手动解除，否则 S2 的 deny 会泄漏到 S3（症状是 S3 的「补充说明」追加在一条拒绝错误后面）；要么手动 off，要么把监听挂进插件 apply 随 fiber 回收。
 
 ### post-execute 改的是「模型可见内容」，不是规范值
 
@@ -311,18 +311,7 @@ TOOL_PIPELINE_OK
 
 注意 S1 的「启用前工具数：0」——这棵最小树没有挂任何自带工具的插件（fs/shell/web 都不在），注册表是干净的，正好观察单个工具的完整生命周期。完整 dsh 装配的基础工具是 27 个（rc.3，见 dsh-chat-demo）。
 
-## 7 边界与坑
-
-1. **根 ctx 上的监听器不随插件 fiber 销毁**（本示例实测踩过）：S2 的 deny 监听若不拿 `ctx.on()` 返回的 off 句柄手动解除，会泄漏到 S3——实测症状是 S3 的「补充说明」追加在一条拒绝错误后面。要么手动 off，要么把监听挂进插件 apply（随 fiber 回收）。
-2. **`agents.create()` 需要 agent-loop 注册 factory**（实测踩过）：只挂 `agent` 行会抛 `no agent factory registered (load an agent-loop plugin)`。agent-loop 是 required 行，inject 六个服务，最小树必须补齐 llm 行。
-3. **`tools.restrict()` 在全局 ctx 上直接抛错**——必须在 `setup(agentCtx)` 这类 scoped context 里调用。
-4. **批接口的 `arguments` 是 JSON 字符串**，不是对象。传对象会在 schema 校验阶段失败；`ToolCallId` 是品牌类型，用 `ToolCallId(...)` 构造。
-5. **`defineTool` 的 schema 要求**：object 类型必须显式写 `additionalProperties`，必填字段写在各 property 的 `required: true` 上。
-6. **`cannot get property "tools" without inject`**：插件没写 `inject: ['tools']`。cordis 的反射代理强制访问控制，这不是可选优化。
-7. **行句柄要按 `options.id` 找**：`ctx.loader.resolve(id)` 只查根树，patch 行挂在子树里会报 cannot resolve entry；用 `[...ctx.loader.entries()]` 递归遍历。需要运行时寻址的行必须写显式 `id:`。
-8. **本示例不挂 ptc/subprocess**，Bun 无需补丁；`start:bun` 直接 `bun src/index.ts`。
-
-## 8 从零复现：完整文件与运行路径
+## 7 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -645,7 +634,7 @@ console.log('\nTOOL_PIPELINE_OK')
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 
-## 9 小结
+## 8 小结
 
 这个示例验证了八件事：
 

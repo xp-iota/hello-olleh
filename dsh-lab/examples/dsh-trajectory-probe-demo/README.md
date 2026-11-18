@@ -10,11 +10,11 @@
 
 > turn 大纲、工具行、token 用量这些代码路径，只有会话里真的跑过 turn 之后才有内容。
 
-播种空会话只能照出「不崩」，照不出折叠逻辑的 bug——旧版示例就曾在空会话上漏掉「消息体有两种形状」的缺陷，所有 user 行渲染成空行都看不出来。探针的答案：脚本化 LlmAdapter（见 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md)）离线播种**两个真实 turn**，然后用同一套折叠/渲染代码处理它们，并对每个数字做断言对账。
+播种空会话只能照出「不崩」，照不出折叠逻辑的 bug——比如「消息体有两种形状」的缺陷，所有 user 行渲染成空行都看不出来。探针的答案：脚本化 LlmAdapter（见 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md)）离线播种**两个真实 turn**，然后用同一套折叠/渲染代码处理它们，并对每个数字做断言对账。
 
 ## 2 最小树：十六行，与 session-demo 相同
 
-行清单与 [dsh-session-demo](../dsh-session-demo/README.md) 逐行相同（仅头注释不同）：九行底座 + 五行会话设施 + 两行自写插件。渲染需要 `sessionQuery` 的精确读/标题/表面，「从盘上渲染」需要 JSONL 落盘。模型侧同样不挂真实 provider：scripted-adapter 插件的 apply 里一句 `ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())` 把剧本路由挂上，`registerAdapter()` 内部走 `ctx.effect`，fiber 销毁时路由自动回收。
+行清单与 [dsh-session-demo](../dsh-session-demo/README.md) 逐行相同（仅头注释不同）：九行底座 + 五行会话设施 + 两行自写插件。渲染需要 `sessionQuery` 的精确读/标题/表面，「从盘上渲染」需要 JSONL 落盘。模型侧同样不挂真实 provider：scripted-adapter 插件的 apply 里一句 `ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())` 把剧本路由挂上，`registerAdapter()` 内部走 `ctx.effect`，fiber 销毁时路由自动回收。一个类型层面的细节：`ctx.sessionQuery` 的类型增补（`import type {} from '@deepseek-ai/dsh-session-query-sqlite'`）必须出现在渲染器文件里（trajectory.ts 顶部），否则 typecheck 报 TS2339。
 
 ## 3 折叠器 foldTurns
 
@@ -33,10 +33,10 @@ for (const event of events) {
 }
 ```
 
-三个只有真实 turn 才照得出的坑，全部固化在代码里：
+三个只有真实 turn 才照得出的边界，全部固化在代码里：
 
 - **消息体两种形状**：`user/message` / `assistant/message` 的负载在 `data` 本身；`tool/result` 的负载在 `data.message`（它记录的是「一条 tool 消息」）。`messageOf()` 两种都认；
-- **user/message 不全是人话**：runtime-context 等注入块也是 user/message，按 `source.kind === 'user'`（或缺席）过滤，否则大纲提示词会被注入块污染；
+- **user/message 不全是人话**：runtime-context 等注入块也是 user/message，按 `source.kind === 'user'`（或缺席）过滤，否则大纲提示词会被注入块污染。提示词只取 turn 内第一条人类消息：steer 插话、注入块都不该盖掉开头那句，`current.prompt === ''` 守卫 + `isHumanMessage` 过滤缺一不可；
 - **纯 tool-call 的 assistant 消息**：只取 text 会渲染成空行，`describeAssistantContent()` 把工具名标成 `→ word_count`。
 
 ## 4 五个场景
@@ -61,17 +61,17 @@ await handle.dispose()
 await renderTrajectory(ctx, String(sessionId), { events: false })
 ```
 
-token 对账的预算来自脚本本身：step1 usage 1200/24、step2 1500/18、step3 1500/18，合计 **4200 in / 60 out**——渲染出的数字必须与适配器产出的分毫不差。
+token 对账的预算来自脚本本身：step1 usage 1200/24、step2 1500/18、step3 1500/18，合计 **4200 in / 60 out**——渲染出的数字必须与适配器产出的分毫不差。注意 step 计数跨 turn 续接：同一个 model 路由的第二个 turn 从 step3 开始——脚本按 step 数决定行为时要把这一点算进去（本例 turn2 恰好落在「给文本」分支）。
 
 ## 5 机制解释
 
 ### 读取面是唯一数据来源
 
-渲染器不解析 JSONL 文件，只走 `ctx.sessionQuery.readSession()`——它做一次完整 replay 校验，读出来的序列就是被信任的那一份。`readTitle` / `readSurface` 同理。这意味着渲染器对 live 会话与盘上会话一视同仁：S5 dispose 之后 `readSession` 自动回落持久化语料（live-preferred，见 session-demo 第 5 节），渲染一行不改。
+渲染器不解析 JSONL 文件，只走 `ctx.sessionQuery.readSession()`——它做一次完整 replay 校验，读出来的序列就是被信任的那一份。`readTitle` / `readSurface` 同理。这意味着渲染器对 live 会话与盘上会话一视同仁：S5 dispose 之后 `readSession` 自动回落持久化语料（live-preferred，见 session-demo 第 5 节），渲染一行不改。但从盘上渲染前必须 flush：dispose 不自动保证落盘完整，S5 先 `sessions.flush` 再 dispose。
 
 ### 折叠是纯函数，渲染是薄壳
 
-`foldTurns(events)` 是纯函数：输入事件序列，输出 turn 列表，不碰 ctx、不做 I/O——可以单独断言（S2 就是这么做的）。`renderTrajectory()` 只是把折叠结果与逐事件摘要排版成文本。旧版示例的 traj CLI 还带 ANSI 颜色与耗时列；本示例刻意用纯文本、去掉时间列，让双运行时输出逐行可比（时间戳每次运行都不同，会污染对比）。
+`foldTurns(events)` 是纯函数：输入事件序列，输出 turn 列表，不碰 ctx、不做 I/O——可以单独断言（S2 就是这么做的）。`renderTrajectory()` 只是把折叠结果与逐事件摘要排版成文本。两个事件形状容易读错：turn/end 的 reason 是对象 `{ kind: 'completed' }`，直接 `String(reason)` 会印出 `[object Object]`，`reasonOf()` 取 kind；usage 挂在 assistant/message 事件上（不是独立的 usage 事件），折叠器从 `data.usage` 累加，脚本的 usage chunk 是它的唯一来源。渲染刻意用纯文本、不带 ANSI 颜色与耗时列，让双运行时输出逐行可比（时间戳每次运行都不同，会污染对比）。
 
 ### 探针与真实 provider 验证的分工
 
@@ -282,18 +282,7 @@ TRAJ_PROBE_OK
 - **seq 有空洞**（明细里 1→3→5→9…）：被跳过的是 request/header、assistant/attempt 等记账事件，默认不展开但 seq 连续——渲染过滤不等于日志缺失；
 - **token 4200/60 精确对账**：usage 从适配器的 chunk 一路流到 assistant/message 事件再到折叠器，任何一环丢失都会被断言抓住。
 
-## 7 边界与坑
-
-1. **空会话照不出折叠 bug**：消息体双形状、人类消息过滤、tool-call 摘要这三个缺陷都只在真实 turn 上显形。探针存在的理由就是这个。
-2. **turn/end 的 reason 是对象**：`{ kind: 'completed' }`，直接 `String(reason)` 会印出 `[object Object]`；`reasonOf()` 取 kind。
-3. **提示词只取 turn 内第一条人类消息**：steer 插话、注入块都不该盖掉开头那句；`current.prompt === ''` 守卫 + `isHumanMessage` 过滤缺一不可。
-4. **usage 挂在 assistant/message 事件上**：不是独立的 usage 事件；折叠器从 `data.usage` 累加，脚本的 usage chunk 是它的唯一来源。
-5. **step 计数跨 turn 续接**：同一个 model 路由的第二个 turn 从 step3 开始——脚本按 step 数决定行为时要把这一点算进去（本例 turn2 恰好落在「给文本」分支）。
-6. **从盘上渲染前必须 flush**：dispose 不自动保证落盘完整；S5 先 `sessions.flush` 再 dispose。
-7. **`ctx.sessionQuery` 的类型增补**：`import type {} from '@deepseek-ai/dsh-session-query-sqlite'` 必须出现在渲染器文件里（trajectory.ts 顶部），否则 typecheck 报 TS2339。
-8. **本示例不挂 ptc/subprocess**，Bun 无需补丁；会话日志落在本目录 `.dsh-home/`（gitignored）。
-
-## 8 从零复现：完整文件与运行路径
+## 7 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -699,15 +688,15 @@ console.log('\nTRAJ_PROBE_OK')
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 
-## 9 小结
+## 8 小结
 
 这个示例验证了六件事：
 
 - 探针用脚本化适配器播种真实 turn，把折叠/渲染逻辑钉在真实事件序列上；
 - foldTurns 是纯函数：turn 数、步数、工具数、token 全部可断言对账（4200/60 精确）；
-- 消息体双形状、人类消息过滤、tool-call 摘要——三个真实 turn 才照得出的坑全部固化；
+- 消息体双形状、人类消息过滤、tool-call 摘要——三个真实 turn 才照得出的边界全部固化；
 - 同一份日志三种投影：明细（运维）、大纲（人）、表面（模型）；
 - 渲染只走 sessionQuery：flush 过的会话 dispose 后从盘上照常渲染；
 - 自写插件走 patch 清单声明，Node 与 Bun 双运行时逐行一致。
 
-上一篇：[dsh-session-demo](../dsh-session-demo/README.md)；下一篇：[dsh-hitl-demo](../dsh-hitl-demo/README.md)——审批与人在回路。
+上一篇：[dsh-session-demo](../dsh-session-demo/README.md)；下一篇：[dsh-hitl-demo](../dsh-hitl-demo/README.md)——审批与人机协作。

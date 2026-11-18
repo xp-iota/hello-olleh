@@ -78,7 +78,7 @@ declare module 'cordis' {
 
 - **类型靠模块增强共享**。`declare module 'cordis'` 同时给 `ctx.greeter` 和 `ctx.on('greeter/greet')` 提供类型，两侧拿到的词汇完全一致，写错属性名编译期就报错。
 
-- **事件也是契约**。事件名带 `greeter/` 命名空间避免撞名，载荷结构由 `GreetEvent` 固定；改载荷等于改 API，和改方法签名一样需要评估。
+- **事件也是契约**。事件名带 `greeter/` 命名空间避免撞名，载荷结构由 `GreetEvent` 固定；改载荷等于改 API，和改方法签名一样需要评估。改载荷字段名时，所有监听者会静默收到 `undefined`；类型检查能挡住大部分，跨包、跨仓库时要靠版本号与变更记录兜底。
 
 ## 3 Provider：构造即注册，动作即广播
 
@@ -108,7 +108,7 @@ export function apply(ctx: Context) {
 }
 ```
 
-最关键的一行是 `new EnglishGreeter(ctx)`：`Service` 的构造函数会调用 `ctx.provide('greeter', this)`，而 `ctx.provide` 又把这个服务挂到当前插件的 fiber 上。于是「provider 被卸载」与「服务消失」是同一件事，不需要任何手写的注销代码。
+最关键的一行是 `new EnglishGreeter(ctx)`：`Service` 的构造函数会调用 `ctx.provide('greeter', this)`，而 `ctx.provide` 又把这个服务挂到当前插件的 fiber 上。于是「provider 被卸载」与「服务消失」是同一件事，不需要任何手写的注销代码。同一隔离域里同名服务只能有一个提供者：第二个 provider 激活时直接抛 `service "greeter" has been registered at <provider-en>`。要让两套实现共存（多语言实例、多租户），用 `ctx.isolate('greeter')` 划出互相隔离的命名空间，见 [isolate 示例](../cordis-isolate-demo/README.md)。
 
 第二关键的是 `this.ctx.emit`：动作发生的那一刻同步派发事件。此时 provider 既没有等待返回值，也不检查有没有监听者——没人听，事件就安静地过去，这是事件模型该有的样子。
 
@@ -155,7 +155,7 @@ export function apply(ctx: Context) {
 
 ## 5 运行seam示例
 
-装配全部写在 `cordis.yml` 里，代码里没有一处 `ctx.use()`：
+装配全部写在 `cordis.yml` 里，代码里没有一处 `ctx.use()`。挂插件的底层 API 就是 `ctx.use()`（旧版本叫 `ctx.plugin()`，仍保留为 deprecated 别名）；本示例不直接调它，插件一律由清单声明、loader 挂载，升级时以实际类型声明为准。
 
 ```yaml
 # 插件与装配分离：换实现只改这个文件，src 里的代码不用动
@@ -278,27 +278,9 @@ npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过
 - 事件的语义：没人监听 = 事件照发，什么也不发生；监听者随时可挂可走，不随 provider 重启；适合「这件事发生了，我要知道」。
 - 最常见的错误：把「通知别人」写成 provider 里的同步调用链，日志、统计、埋点被迫跟着 provider 一起失败；改成 emit，每个监听者各自决定响应与失败处理。
 
-实践里最常见的错误，是把「通知别人」写成同步调用链：provider 里依次调用日志、统计、埋点。这些需求彼此无关，却被迫塞进 provider，还要跟着 provider 一起失败。改成 emit 一个事件之后，provider 只负责「发生了什么」，每个监听者各自决定要不要响应、失败了怎么处理。
+实践里最常见的错误，是把「通知别人」写成同步调用链：provider 里依次调用日志、统计、埋点。这些需求彼此无关，却被迫塞进 provider，还要跟着 provider 一起失败。改成 emit 一个事件之后，provider 只负责「发生了什么」，每个监听者各自决定要不要响应、失败了怎么处理。反过来也要守住一条边界：事件不保证有人听，关键业务动作不能「发个事件就算完成」——如果某个下游必须执行，它应该是服务调用而不是事件广播。
 
-## 7 容易踩的坑
-
-### 同名服务只能有一个提供者
-
-同一隔离域里第二个 provider 激活时会直接抛错：`service "greeter" has been registered at <provider-en>`。要让两套实现共存（比如多语言实例、多租户），用 `ctx.isolate('greeter')` 划出互相隔离的命名空间，每个 isolate 内各有一份 provider 与 consumer。
-
-### 事件不保证有人听
-
-这是特性也是风险：关键业务动作不能「发个事件就算完成」。如果某个下游必须执行，它应该是服务调用而不是事件广播；事件适合「发生了，顺便通知」，不适合「必须做完才能继续」。
-
-### 契约变更要当成 API 变更
-
-服务名、方法签名、事件名、载荷字段，四者都是契约。改事件载荷字段名，所有监听者都会静默收到 `undefined`；类型检查能挡住大部分，但跨包、跨仓库时要靠版本号与变更记录兜底。
-
-### API 仍在演进
-
-示例跑在 cordis 4.0.0-rc.13 上。这个版本里挂插件的底层 API 是 `ctx.use()`（旧版本叫 `ctx.plugin()`，仍保留为 deprecated 别名）；本示例不直接调它，插件一律由 cordis.yml 声明、loader 挂载。升级时以实际类型声明为准，别直接沿用旧文章里的调用。
-
-## 8 从零复现：完整文件与运行路径
+## 7 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -451,7 +433,7 @@ async function run(ctx: Context) {
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。Node 需 22.18 以上（原生类型擦除），低于此版本改用 `npm run start:bun`。
 
-## 9 小结
+## 8 小结
 
 写一条 seam 就是四步：
 

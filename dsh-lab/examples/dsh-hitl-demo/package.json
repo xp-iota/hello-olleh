@@ -2,7 +2,7 @@
   "name": "dsh-hitl-demo",
   "private": true,
   "type": "module",
-  "description": "人在回路：审批 waterfall 词汇表与 fail-closed、turn 约束与会话级策略覆盖、pre-execute ask 的真实工具审批、结构化提问、自定义斜杠命令、todo 工具。Node 与 Bun 双运行时。",
+  "description": "人机协作（HITL = Human-in-the-Loop）：审批 waterfall 词汇表与 fail-closed、turn 约束与会话级策略覆盖、pre-execute ask 的真实工具审批、结构化提问、自定义斜杠命令、todo 工具。Node 与 Bun 双运行时。",
   "scripts": {
     "start": "node src/index.ts",
     "start:bun": "bun src/index.ts",

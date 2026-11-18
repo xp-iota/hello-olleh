@@ -1,5 +1,6 @@
 /**
- * dsh-hitl-demo —— 人在回路（Human-in-the-loop），全部离线（脚本化 LlmAdapter，不需要 key）：
+ * dsh-hitl-demo —— 人机协作（HITL = Human-in-the-Loop，上游称 packages/interaction/），
+ * 全部离线（脚本化 LlmAdapter，不需要 key）：
  *   S1 审批 waterfall 的四个结果词汇 + fail-closed + 取消竞态，审计对落会话日志；
  *   S2 approval.request 的 turn 约束 + setApprovalPolicy 会话级覆盖（never 先于回答器判决）；
  *   S3 真实工具审批：pre-execute 返回 ask → 管线自动走 approval 缝（批准/拒绝/无 agent 降级）；
@@ -75,7 +76,7 @@ async function insideTurn<T>(agent: Agent, fn: () => Promise<T>): Promise<T> {
       failure = error
     }
   })
-  agent.followup(userMsg('跑一个 turn，供人在回路演示'))
+  agent.followup(userMsg('跑一个 turn，供人机协作演示'))
   await agent.whenIdle()
   if (failure !== undefined) throw failure
   if (result === undefined) throw new Error('turn-stopping 未触发，fn 没有执行')

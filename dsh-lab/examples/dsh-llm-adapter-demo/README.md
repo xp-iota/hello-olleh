@@ -17,7 +17,7 @@
 | S3 合成 SSE 端到端 | Anthropic SSE → chunk 的翻译层对不对？ | stub `globalThis.fetch` 喂真实适配器一段合成 SSE | 否 |
 | S4 真实调用 | 真网关上整条链路通不通？ | 真实请求 fuyao/MiniMax 兼容网关 | **是** |
 
-自写适配器 `anthropic-compat`（607 行）不是玩具：它处理 system 分离、tool_result 折叠、thinking 签名回放（minimax 严格 / fuyao 宽容两档 vendor 策略）、SSE 事件状态机、用量累计与缓存扣减，并带 12 个单测覆盖 5 个导出纯函数。官方只发布了 DeepSeek 原生路由与 pi-ai 多路由转发，没有任何直接讲 Anthropic Messages + SSE 协议的适配器——亲手写一遍才能真正理解这条接缝。
+自写适配器 `anthropic-compat`（607 行）不是玩具：它处理 system 分离、tool_result 折叠、thinking 签名回放（minimax 严格 / fuyao 宽容两档 vendor 策略）、SSE 事件状态机、用量累计与缓存扣减，并带 12 个单测覆盖 5 个导出纯函数。官方只发布了 DeepSeek 原生路由与 pi-ai 多路由转发，没有任何直接讲 Anthropic Messages + SSE 协议的适配器——亲手写一遍才能真正理解这条接缝。错误翻译按 rc.3 的 `BuiltinLlmFailureCode` 码表：协议/格式类 → `MALFORMED_RESPONSE`，不支持的输入/响应 → `INVALID_RESPONSE`，reasoningEffort 无档位 → `MODEL_UNSUPPORTED`，HTTP 错误 → 模板字符串 `` `HTTP_${status}` ``（401/403 仍是 `AUTH`）。
 
 ## 2 最小树：九行底座 + 凭据 + 两个自写适配器
 
@@ -32,7 +32,7 @@
 依赖链的关键两点：
 
 1. **适配器注入 `llm`**：`apply()` 里 `ctx.llm.registerAdapter([provider], adapter)`，内部走 `ctx.effect`——路由的注册/注销跟着服务树走，fiber dispose 自动回收。
-2. **凭据是机会主义消费**：`resolveApiKey()` 先 `ctx.get('credentials')`，有服务就用 `credentials.resolve(credentialRef(ref))`（rc.3 的 CredentialRef 是品牌化字符串，不是对象），没有就回退 `process.env[apiKeyEnv]`。所以 `credentials-local` 这一行可拆可留，机制路径两者都不需要。凭据缺失不在启动期抛错——真正调用模型时才报 `MISSING_CREDENTIAL`，否则连纯本地读都会失败。
+2. **凭据是机会主义消费**：`resolveApiKey()` 先 `ctx.get('credentials')`，有服务就用 `credentials.resolve(credentialRef(ref))`（rc.3 的 CredentialRef 是品牌化字符串，用 `credentialRef(name)` 构造，不是对象；`resolve()` 返回 `{value, source} | undefined`），没有就回退 `process.env[apiKeyEnv]`。所以 `credentials-local` 这一行可拆可留，机制路径两者都不需要。凭据缺失不在启动期抛错——真正调用模型时才报 `MISSING_CREDENTIAL`，否则连纯本地读都会失败。
 
 ## 3 四个场景
 
@@ -61,11 +61,11 @@ async function setScripted(ctx: Context, enabled: boolean): Promise<void> {
 
 ### S3 合成 SSE 端到端——翻译层的离线验证
 
-stub `globalThis.fetch` 返回一段手工构造的合法 Anthropic Messages SSE（message_start → text block → delta×2 → block_stop → message_delta(end_turn) → message_stop），让**真实适配器**走完整条翻译链路：请求构造（system 分离、归属头、x-api-key）→ SSE 解析（`parseSseData` 跨 chunk 拼行）→ 事件状态机 → chunk 序列。断言四件事：端点是 `/v1/messages`、文本拼接为「你好，护栏。」、finish=stop、用量 12 in / 7 out 从事件累计。这条路径证明翻译层正确性不需要任何网络与 key——S4 失败时它是第一排查现场。
+stub `globalThis.fetch` 返回一段手工构造的合法 Anthropic Messages SSE（message_start → text block → delta×2 → block_stop → message_delta(end_turn) → message_stop），让**真实适配器**走完整条翻译链路：请求构造（system 分离、归属头、x-api-key）→ SSE 解析（`parseSseData` 跨 chunk 拼行）→ 事件状态机 → chunk 序列。断言四件事：端点是 `/v1/messages`、文本拼接为「你好，护栏。」、finish=stop、用量 12 in / 7 out 从事件累计。这条路径证明翻译层正确性不需要任何网络与 key——S4 失败时它是第一排查现场。归属头的 user-agent 是 rc.3 的硬约定：每个 provider 请求必带，S3 专门断言它在场。
 
 ### S4 真实调用——fail loud
 
-缺 `LLM_API_KEY` 时抛出带指引的错误（复制 `.env.example` 为 `.env`，或改跑 `npm run mechanism`），绝不降级成假成功。有 key 时走 `ctx.llm.stream({provider, model, messages, maxTokens: 8192})`，收集 text-delta / reasoning-delta / usage 并断言文本非空。
+缺 `LLM_API_KEY` 时抛出带指引的错误（复制 `.env.example` 为 `.env`，或改跑 `npm run mechanism`），绝不降级成假成功。有 key 时走 `ctx.llm.stream({provider, model, messages, maxTokens: 8192})`，收集 text-delta / reasoning-delta / usage 并断言文本非空。8192 不是随手给的：fuyao 网关的 thinking 预算很顽固，实测 1024 仍然全部花在推理上（330 个 reasoning-delta、finish=max-tokens、零文本），给到 8192 才有正文——这是 provider 特性，两个运行时表现一致，不是适配器 bug，S4 因此固定 8192（与 defaultMaxTokens 一致）。`.env` 由 `src/env.ts` 的手写 24 行加载器读入（不依赖 dotenv 包）：显式导出的进程变量优先于文件，与常见 dotenv 语义一致。
 
 ## 4 运行模型接入示例
 
@@ -203,7 +203,7 @@ npm start               # Node：S1–S4，S4 真实调用
 npm run start:bun       # Bun：同上
 ```
 
-S4 真实调用（fuyao 网关，`LLM_MODEL=fuyao-coding`）双运行时也都通过，但模型回答与用量**非确定**，只留档不纳入逐行对比（[runtime-out-real-node.txt](runtime-out-real-node.txt) / [runtime-out-real-bun.txt](runtime-out-real-bun.txt)）。一次实测摘录（Node）：
+S4 真实调用（fuyao 网关，`LLM_MODEL=fuyao-coding`）双运行时也都通过，但模型回答与用量**非确定**，只留档不纳入逐行对比（[runtime-out-real-node.txt](runtime-out-real-node.txt) / [runtime-out-real-bun.txt](runtime-out-real-bun.txt)）。另一处非确定：网关不保证回报输入用量——同一次实测 Node 拿到 `43 in`、Bun 拿到 `0 in`，取决于 message_start 事件里有没有 input_tokens；适配器如实翻译，不做假账（S3 合成路径则验证了「有输入用量时累计正确」）。一次实测摘录（Node）：
 
 ```text
 === S4 真实调用 ===
@@ -214,19 +214,7 @@ S4 真实调用（fuyao 网关，`LLM_MODEL=fuyao-coding`）双运行时也都�
 LLM_ADAPTER_OK
 ```
 
-## 5 边界与坑
-
-1. **rc.3 的 LlmError 码表重构了**。旧码 `PROTOCOL` / `UNSUPPORTED` / `PROVIDER` / `HTTP` 全部不在 `BuiltinLlmFailureCode` 里，迁移时 typecheck 一次报 11 个错。本工程的映射：协议/格式类 → `MALFORMED_RESPONSE`，不支持的输入/响应 → `INVALID_RESPONSE`，reasoningEffort 无档位 → `MODEL_UNSUPPORTED`，HTTP 错误 → 模板字符串 `` `HTTP_${status}` ``（401/403 仍是 `AUTH`）。
-2. **`resolveModel` 形状变化**：rc.3 返回 `{provider, id, name, defaultMaxTokens}`，没有 `capabilities`；`listModels(provider)` 带 provider 参数。
-3. **CredentialRef 是品牌化字符串**：`credentialRef(name)` 构造，不是旧版的 `{kind:'env', name}` 对象；`credentials.resolve()` 返回 `{value, source} | undefined`。
-4. **fuyao 网关的 thinking 预算问题比旧记录更顽固**：旧 M03.3 用 `maxTokens:200` 空回答；本工程实测 **1024 仍然全部花在推理上**（330 个 reasoning-delta、finish=max-tokens、零文本），给到 **8192** 才有正文。这是 provider 特性，两个运行时表现一致，不是适配器 bug。S4 因此固定 8192（与 defaultMaxTokens 一致）。
-5. **fuyao 网关的输入用量不保证回报**：同一次实测 Node 拿到 `43 in`、Bun 拿到 `0 in`——取决于 message_start 事件里有没有 input_tokens。适配器如实翻译，不做假账；S3 合成路径则验证了「有输入用量时累计正确」。
-6. **S3 的端点跟随 `LLM_BASE_URL`**：环境变量覆盖在 apply() 生效，所以带 `.env`（fuyao）与不带（MiniMax 默认）时 S3 打印的线协议端点不同。本文留档的机制输出是**带 `.env` 的形态**，想要默认形态请先移走 `.env`。
-7. **`.env` 加载不覆盖进程环境**：`src/env.ts` 是手写的 24 行加载器（不依赖 dotenv 包），显式导出的变量优先于文件——与常见 dotenv 语义一致。
-8. **每个 provider 请求必带归属头**：`attributionHeaders()` 的 user-agent 是 rc.3 的硬约定，S3 专门断言它在场。
-9. 本示例不挂 ptc/subprocess，Bun 无需补丁；运行时状态落在本目录 `.dsh-home/`（gitignored），`.env` 同样 gitignored。
-
-## 6 从零复现：完整文件与运行路径
+## 5 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -619,7 +607,7 @@ npm run test:bun        # bun test：12 pass / 0 fail
 
 机制路径不依赖任何环境变量、端口或外部服务。真实调用路径才需要 `.env`（复制 `.env.example` 填 key）；S3 的线协议端点跟随 `LLM_BASE_URL`，留档输出因此随 `.env` 形态变化。
 
-## 7 小结
+## 6 小结
 
 这个示例验证了四件事：
 

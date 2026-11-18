@@ -1,19 +1,31 @@
-# dsh 的人在回路示例
+# dsh 的人机协作示例（HITL）
 
-本示例演示人在回路的四个面：审批 waterfall 的判决链、结构化提问、自定义斜杠命令、todo 清单。word-count 工具与脚本化适配器都在 cordis.patch.yml 里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。
+> **HITL = Human-in-the-Loop**，字面译作「人在回路」——人的判断嵌进 agent 的运行过程，而不是事后看结果。本目录名 `dsh-hitl-demo`、包名 `dsh-hitl-demo`、末行成功标记 `HITL_OK` 里的 `HITL` 就是这个缩写。上游 dsh 自己不用这个词，它把这族能力叫「人机协作」（`packages/interaction/`），本篇按上游的说法走。
+
+本示例演示人机协作的四个面：审批 waterfall 的判决链、结构化提问、自定义斜杠命令、todo 清单。word-count 工具与脚本化适配器都在 cordis.patch.yml 里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。
 
 agent 循环不能是黑箱：模型要执行敏感操作时，人在哪里介入？介入的判决如何被记录、被回放、被审计？全部场景离线、不需要 key；版本面 `@deepseek-ai/*` 0.2.2-rc.3、`@deepseek-ai/cordis` 4.1.0，Node 26.12.1 与 Bun 1.4.4 输出逐行一致（首行 runtime 标识除外）。
 
-## 1 四个互不替代的面
+## 1 为什么是这四件事
 
-dsh 把「人在回路」拆成四个面：
+先答这个问题，因为它决定这个示例的边界。上游 dsh 自己把「人和 agent 打交道」的能力归成一个包家族 `packages/interaction/`，官方名称是**人机协作平面**，家族说明写的是「斜杠命令、一次性审批、权限预设，以及让运行中的 agent 暂停等待人类决定的问答 seam」。本示例取其中三个——`commands`、`user-approval`、`user-questions`；家族里另外两个成员 `permission-presets` 与 `tool-ask-user` 分别落在 [dsh-sandbox-demo](../dsh-sandbox-demo/README.md)（`/permission` 预设切换）与 [dsh-chat-demo](../dsh-chat-demo/README.md)（`ask_user_question` 工具）——再加一个 `tool-todo`。
 
-| 面 | 服务/工具 | 回答的问题 |
-|:---|:---------|:-----------|
-| 审批 | `ctx.approval`（user-approval） | 这个操作**允许吗**？ |
-| 提问 | `ctx.userQuestions`（user-questions） | 这个决策**选哪个**？ |
-| 命令 | `ctx.commands`（commands） | 用户直接**下达指令**（不经模型） |
-| 清单 | `todo_write`（tool-todo） | 模型**自报进度**给人看 |
+| 面 | 上游包 | 服务/工具 | 方向 | 回答的问题 |
+|:---|:---|:---|:---|:---|
+| 审批 | `interaction/user-approval` | `ctx.approval` | 人 → 模型 | 这个操作**允许吗**？ |
+| 提问 | `interaction/user-questions` | `ctx.userQuestions` | 人 → 模型 | 这个决策**选哪个**？ |
+| 命令 | `interaction/commands` | `ctx.commands` | 人 → 模型 | 用户直接**下达指令**（不经模型） |
+| 清单 | `todo/tool-todo` | `todo_write`（经 `ctx.tools`） | 模型 → 人 | 模型**自报进度**给人看 |
+
+四者并置有三条理由，前两条出自上游分类，第三条是本示例的编排依据：
+
+1. **前三个是上游认定的同一族。** 上游 capability-seams 文档把 `ctx.approval` 与 `ctx.userQuestions` 标为 **seam**（可替换的能力缝，宿主提供回答器），把 `ctx.commands` 标为 **core** 服务——三者同在人机协作平面内，可替换性却不同。
+2. **第四个是反方向的那一半。** `tool-todo` 不在 interaction 家族里（上游 `packages/todo/`），它是模型自报进度、人来读；前三个都是人向模型说话。放在一起才是完整的一轮人机交换：人能批准、能回答、能下令，模型能报进度。
+3. **四者共用同一条宿主接缝。** 都以 agent 会话为归属，都没有归属就明确拒绝：审批必须在 open turn 内发起，提问要求精确活实例且拒绝委派调用方，命令必须指定 agent，清单必须有 owning agent session。
+
+不过这四条**并不齐整**——差异正是本示例要讲的东西：
+
+- **落日志的方式不一样。** 审批落 `approval/asked` + `approval/decided` 一对审计事件，命令落 `command/run` + `command/done` 一对生命周期事件，清单落一次 `todo/write` 快照；而**提问这一面在本示例里不落自己的事件**——回答器直接在 waterfall 上应答即止。（上游的真实客户端路径另说：迟到的回答会以 `user-question-reply` 用户消息回到会话，由 `userQuestions` 投影关闭问题。）
 
 > 审批不是「弹个框」——它是 turn 内的审计事件对 + 封闭结果词汇 + fail-closed 兜底。
 
@@ -49,7 +61,7 @@ async function insideTurn<T>(agent: Agent, fn: () => Promise<T>): Promise<T> {
       failure = error
     }
   })
-  agent.followup(userMsg('跑一个 turn，供人在回路演示'))
+  agent.followup(userMsg('跑一个 turn，供人机协作演示'))
   await agent.whenIdle()
   if (failure !== undefined) throw failure
   if (result === undefined) throw new Error('turn-stopping 未触发，fn 没有执行')
@@ -57,7 +69,7 @@ async function insideTurn<T>(agent: Agent, fn: () => Promise<T>): Promise<T> {
 }
 ```
 
-scripted-adapter 插件的 apply 里一句 `ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())` 把剧本路由挂上；`registerAdapter()` 内部走 `ctx.effect`，fiber 销毁时路由自动回收。每个场景用不同的 model id（`s1`…`s6`、`s3a`/`s3b`），step 计数互不串扰。
+scripted-adapter 插件的 apply 里一句 `ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())` 把剧本路由挂上；`registerAdapter()` 内部走 `ctx.effect`，fiber 销毁时路由自动回收。每个场景用不同的 model id（`s1`…`s6`、`s3a`/`s3b`），step 计数互不串扰。注意挂在根 ctx 上的 waterfall 监听器不随插件 fiber 销毁：每个 `ctx.on` 都要拿 `off` 句柄手动解除（insideTurn 用完即解除），否则 S1 的回答器会泄漏到 S3；插件 apply 里的注册（工具、适配器路由）则随 fiber 自动回收，两者处置不同。
 
 ## 4 六个场景
 
@@ -122,7 +134,7 @@ await callTool(ctx, 'todo_write', { todos }, agent)
 
 清单是「每 agent 会话」的状态：工具把整份清单落成 `todo/write` 事件，返回 `counts` 汇总；`todos` 投影在下一个 `turn/start` 清零（turn/end 保留完成的清单可见）。没有归属 agent 的调用被明确拒绝（`todo_write requires an owning agent session`），而不是静默 no-op。
 
-## 6 运行人在回路示例
+## 6 运行人机协作示例
 
 根配置留空，装配全部来自 patch 清单：
 
@@ -132,7 +144,7 @@ await callTool(ctx, 'todo_write', { todos }, agent)
 ```
 
 ```yaml
-# 人在回路的最小树：九行 base（与 dsh-agent-loop-demo 相同）+ 四行交互面。
+# 人机协作的最小树：九行 base（与 dsh-agent-loop-demo 相同）+ 四行交互面。
 # 模型侧不挂任何真实 provider：脚本化 LlmAdapter 与 word-count 工具
 # 都是自写插件，声明在末尾两行，全程在位。
 # 依赖链：user-approval / user-questions / tool-todo 都注入 sessionProjections（base 已有）；
@@ -168,7 +180,7 @@ await callTool(ctx, 'todo_write', { todos }, agent)
       config:
         agents: []
 
-    # ── 人在回路四行 ──────────────────────────────────────────────────────
+    # ── 人机协作四行 ──────────────────────────────────────────────────────
     # 审批服务：policy ask = 交给 approval/request waterfall 的回答器组合，
     # 无回答器时 fail-closed（unavailable）；会话内可用 setApprovalPolicy 覆盖。
     - id: user-approval
@@ -198,7 +210,7 @@ await callTool(ctx, 'todo_write', { todos }, agent)
       name: ./src/plugins/scripted-adapter.ts
 ```
 
-`npm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，工具与适配器随装配就位：
+`npm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，工具与适配器随装配就位。一个类型层面的细节：`ctx.approval` / `ctx.userQuestions` / `ctx.commands` 的 Context 增补分别来自三个包，`import type {} from '…'` 不能省：
 
 ```ts
 const ctx = await boot(
@@ -263,17 +275,7 @@ HITL_OK
 - **S3 的 callId**：管线把真实工具调用 id 带进 `approval/asked`，审计事件能和 `tool/call` 精确对账——自己裸调 `request()` 没有这个字段；
 - **S3 的拒绝路径 turn 照常收尾**：拒绝不是崩溃，模型收到 `Error: the user rejected tool "word_count"` 作为工具结果，继续走回答步。
 
-## 7 边界与坑
-
-1. **审批必须 turn 内发起**。turn 外裸调抛错，不是返回 unavailable——想演示审批，先有一个真实 turn（本示例用 `agent/turn-stopping` 挂点，见 `insideTurn()`）。
-2. **never 先于回答器**。别想用 `prepend` 监听器在 never 策略下「抢救」批准；判决发生在服务的请求路径上，早于 waterfall 分发。
-3. **回答器抛错 ≠ 调用失败**。缝把异常包容成 `unavailable`（fail-closed），调用方拿到的是封闭词汇里的值，不是异常。
-4. **waterfall 监听挂在根 ctx 上不随插件 fiber 销毁**——每个 `ctx.on` 都要拿 `off` 句柄手动解除，否则 S1 的回答器会泄漏到 S3。插件 apply 里的注册（工具、适配器路由）则随 fiber 自动回收，两者处置不同。
-5. **tool-todo 的 `allowParallelInProgress` 是 required**，patch 里必须显式给。
-6. **类型增补靠导入**：`ctx.approval` / `ctx.userQuestions` / `ctx.commands` 的 Context 增补分别来自三个包，`import type {} from '…'` 不能省。
-7. **本示例不挂 ptc/subprocess**，Bun 无需补丁；会话日志落在本目录 `.dsh-home/`（gitignored）。
-
-## 8 从零复现：完整文件与运行路径
+## 7 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -301,7 +303,7 @@ dsh-hitl-demo/
   "name": "dsh-hitl-demo",
   "private": true,
   "type": "module",
-  "description": "人在回路：审批 waterfall 词汇表与 fail-closed、turn 约束与会话级策略覆盖、pre-execute ask 的真实工具审批、结构化提问、自定义斜杠命令、todo 工具。Node 与 Bun 双运行时。",
+  "description": "人机协作（HITL = Human-in-the-Loop）：审批 waterfall 词汇表与 fail-closed、turn 约束与会话级策略覆盖、pre-execute ask 的真实工具审批、结构化提问、自定义斜杠命令、todo 工具。Node 与 Bun 双运行时。",
   "scripts": {
     "start": "node src/index.ts",
     "start:bun": "bun src/index.ts",
@@ -425,7 +427,8 @@ export function preview(text: string, limit = 120): string {
 
 ```ts
 /**
- * dsh-hitl-demo —— 人在回路（Human-in-the-loop），全部离线（脚本化 LlmAdapter，不需要 key）：
+ * dsh-hitl-demo —— 人机协作（HITL = Human-in-the-Loop，上游称 packages/interaction/），
+ * 全部离线（脚本化 LlmAdapter，不需要 key）：
  *   S1 审批 waterfall 的四个结果词汇 + fail-closed + 取消竞态，审计对落会话日志；
  *   S2 approval.request 的 turn 约束 + setApprovalPolicy 会话级覆盖（never 先于回答器判决）；
  *   S3 真实工具审批：pre-execute 返回 ask → 管线自动走 approval 缝（批准/拒绝/无 agent 降级）；
@@ -501,7 +504,7 @@ async function insideTurn<T>(agent: Agent, fn: () => Promise<T>): Promise<T> {
       failure = error
     }
   })
-  agent.followup(userMsg('跑一个 turn，供人在回路演示'))
+  agent.followup(userMsg('跑一个 turn，供人机协作演示'))
   await agent.whenIdle()
   if (failure !== undefined) throw failure
   if (result === undefined) throw new Error('turn-stopping 未触发，fn 没有执行')
@@ -741,14 +744,14 @@ console.log('\nHITL_OK')
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 
-## 9 小结
+## 8 小结
 
 这个示例验证了六件事：
 
 - 审批 = turn 内审计事件对（`approval/asked` + `approval/decided`）+ 封闭结果词汇 + fail-closed 判决链；`unavailable` 是正常结果，不是异常；
 - never 策略在服务请求路径上先于任何回答器判决，prepend 监听器也拦不住；
 - 权限门正路是 pre-execute 返回 `{ kind: 'ask' }`，管线自动带 `callId` 走审批缝，并把拒绝原因翻译成模型可见的工具结果；
-- 提问、命令、todo 是另外三个独立面：结构化回答、不经模型的指令、每会话进度清单；
+- 提问、命令、todo 是另外三个独立面：结构化回答（本地回答器直接在 waterfall 上应答，不落自己的审计事件）、不经模型的指令、每会话进度清单；
 - 无 agent 的调用一律明确拒绝（审批降级 deny、todo 报错），不静默 no-op；
 - 自写插件走 patch 清单声明，Node 与 Bun 双运行时逐行一致。
 

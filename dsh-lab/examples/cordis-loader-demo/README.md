@@ -20,7 +20,7 @@ loader 的答案是三层对象：**配置行（EntryOptions）→ Entry（树�
 
 **两棵树的 commit 语义不同。** `Loader extends EntryTree`，root 树的 `commit` 是空实现——纯内存，不写任何文件（loader 包 index.ts:175-177）。`Include` 也 `extends EntryTree`，自建子树：`EntryTree` 构造时把 `entry.subtree = this`（config/tree.ts:79-84），于是 include 那行 Entry 挂着一棵子树；子树的 `commit` 会记 journal 并写回 yml 文件（include 包 index.ts:357-360、:551-554）。`tree.entries()` 生成器递归子树（tree.ts:90-96），`resolve('file:watcher')` 按 `:` 分段经 `store[part].subtree` 下降（tree.ts:121-132）。
 
-**运行时 patch 走 `internal/commit`。** 插件侧 config 变化先改 `entry.options.config` 再调 `tree.commit`（loader 包 index.ts:105-112）——root 树上这一步是 no-op，所以内存装配不污染文件。
+**运行时 patch 走 `internal/commit`。** 插件侧 config 变化先改 `entry.options.config` 再调 `tree.commit`（loader 包 index.ts:105-112）——root 树上这一步是 no-op，所以内存装配不污染文件。注意「不碰文件」只对 root 树成立：若把运行时装配挂到 include 子树下，演示跑一遍 `cordis.yml` 就被改写。本示例的做法：yml 只读展示，运行时 create/patch/disabled 全走 root 内存树。
 
 **Entry.update 的决策分支**决定动还是不动 Fiber：
 
@@ -53,7 +53,7 @@ greeter-a 是 runner 在 root 内存树上 create 的一行（tag=A）。对它 
 
 ## 5 inject 写在配置里：outer/inner 两层 Fiber
 
-运行时 create 一行 `late`（watcher 插件），配置层 `inject: ['clock', 'greeter']`。此刻 clock 缺席：**outer = PENDING，inner =（无）**——outer Fiber 挂在依赖等待上，inner 还不存在。随后 create 一行 clock-provider，`await()` 后 late 双 ACTIVE，watcher late 的 apply 才第一次跑。依赖等待是 outer 层的职责，插件代码完全无感。
+运行时 create 一行 `late`（watcher 插件），配置层 `inject: ['clock', 'greeter']`。此刻 clock 缺席：**outer = PENDING，inner =（无）**——outer Fiber 挂在依赖等待上，inner 还不存在。随后 create 一行 clock-provider，`await()` 后 late 双 ACTIVE，watcher late 的 apply 才第一次跑。依赖等待是 outer 层的职责，插件代码完全无感。但配置层 inject 不是「额外等待项」，而是 inner 层的服务可见性清单：watcher 读 `ctx.greeter`，若配置行只写 `inject: ['clock']`，clock 上线后 inner 直接 FAILED——读未声明 inject 的服务会抛「cannot get property without inject」。插件读什么就要声明什么。
 
 ## 6 isolate 写在配置里：命名 realm
 
@@ -113,6 +113,8 @@ async function run(ctx: Context) {
 }
 ```
 
+两个类型与运行细节值得单独说。其一，`create()` 的签名是 `Omit<EntryOptions, 'id'>`（tree.ts:141），字面量传 `id` 会 TS2353；但 `ensureId` 只在缺 id 时补随机哈希（tree.ts:112-119），显式 id 完全合法且必要——不显式给行 id，`resolve` 没法按名字写。绕法就是上面的 helper：接收 `EntryOptions` 变量再转交，避开字面量 excess check。其二，cordis CLI 默认开文件 watch 保持进程存活（直接嵌 include 时 watch 是 opt-in），所以 runner 演示完要 `process.exit(0)` 主动退出，否则进程挂住。
+
 在本机复现只需要四条命令：
 
 ```bash
@@ -161,37 +163,7 @@ npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过
 
 装配路径依赖 cordis 的可选 peer 包：`@cordisjs/loader`、`@cordisjs/include`、`@cordisjs/fs`、`@cordisjs/fs-node`，加上场景 ① 用的 `@cordisjs/group`，都已写进 `package.json`。跑完核对 `cordis.yml` 无变化——运行时改动全在 root 内存树。
 
-## 9 容易踩的坑
-
-### include 子树 commit 写回文件，root 树纯内存
-
-最容易踩的一个：以为所有 `loader.create/update` 都不碰文件。错——**只有 root 树**的 commit 是空实现；include 子树的 commit 会记 journal、写临时文件再 rename 回 yml（include 包 index.ts:357-360、:551-554）。若把运行时装配挂到 include 子树下，演示跑一遍 `cordis.yml` 就被改写。本示例的做法：yml 只读展示，运行时 create/patch/disabled 全走 root 内存树。
-
-### create 签名 Omit id，但运行时接受显式 id
-
-`create(options: Omit<EntryOptions, 'id'>)`（tree.ts:141）字面量传 `id` 会 TS2353；但 `ensureId` 只在缺 id 时补随机哈希（tree.ts:112-119），显式 id 完全合法且必要——不显式给行 id，`resolve` 没法按名字写。绕法：helper 接收 `EntryOptions` 变量再转交，避开字面量 excess check：
-
-```ts
-const createEntry = (options: EntryOptions) => ctx.loader.create(options)
-```
-
-### 配置层 inject 必须覆盖插件所读的全部服务
-
-watcher 读 `ctx.greeter`。若配置行只写 `inject: ['clock']`，clock 上线后 inner 直接 **FAILED**：cordis 读未声明 inject 的服务会抛「cannot get property without inject」。配置层 inject 不是「额外等待项」，而是 inner 层的服务可见性清单——插件读什么就要声明什么。
-
-### disabled 沿父链检查，禁用行不创建 Fiber
-
-`sleeper` 的 fiber 是「无」而不是 DISPOSED：disabled 在创建前就短路。已运行的 Entry 被禁用才走 dispose → DISPOSED（场景 ⑤）。getter 沿父链向上（entry.ts:114-127），所以 group 行 disabled 会整组生效。
-
-### tsgo 下 augmentation 必须同文件写
-
-typescript 7.0.2（tsgo native）下，独立 `env.d.ts` 里的 `declare module 'cordis'` 会**屏蔽库自身的 augmentation**——`ctx.provide`、`ctx.loader` 全部从类型上消失。安全模式是每个插件文件内同文件 `declare module`（本示例三插件皆如此），index.ts 不加 augmentation。另需 `"types": ["node"]` 才认 `process` 全局；`verbatimModuleSyntax` 下仅类型用途必须 `import type`。
-
-### FiberState 是 const enum，CLI 靠 watch 保持存活
-
-`fiber.state` 是数字，const enum 编译后不留名字表。示例按源码顺序自建 `STATE = ['PENDING','LOADING','ACTIVE','FAILED','DISPOSED','UNLOADING']` 映射。另：cordis CLI 默认开文件 watch 保持进程存活（直接嵌 include 时 watch 是 opt-in），所以 runner 演示完要 `process.exit(0)` 主动退出，否则进程挂住。
-
-## 10 从零复现：完整文件与运行路径
+## 9 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -258,6 +230,8 @@ cordis-loader-demo/
   "include": ["src"]
 }
 ```
+
+augmentation 的写法有一个版本相关的约束：typescript 7.0.2（tsgo native）下，独立 `env.d.ts` 里的 `declare module 'cordis'` 会**屏蔽库自身的 augmentation**——`ctx.provide`、`ctx.loader` 全部从类型上消失。安全模式是每个插件文件内同文件 `declare module`（下面三个插件镜像皆如此），index.ts 不加 augmentation。另需 `"types": ["node"]` 才认 `process` 全局；`verbatimModuleSyntax` 下仅类型用途必须 `import type`。
 
 ### src/plugins/greeter.ts
 
@@ -412,6 +386,6 @@ async function run(ctx: Context) {
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 
-## 11 小结
+## 10 小结
 
 loader 把装配从命令变成数据：配置行 → Entry → Fiber，group/disabled/inject/isolate 全是声明。运行时 `update()` 用 diff 区分「就地 patch」（uid 不变）与「重载」（name/inject 变化），disabled 沿父链短路。两棵树的 commit 语义划出持久化边界：root 内存树随便改，include 子树改一次写一次文件。到这里，[seam](../cordis-seam-demo/README.md) 的服务装配、[fiber](../cordis-fiber-demo/README.md) 的状态机、[isolate](../cordis-isolate-demo/README.md) 的 realm 键都能写进配置了；下一篇 [hmr](../cordis-hmr-demo/README.md) 看文件变化如何触发这条链路重跑。

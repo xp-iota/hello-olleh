@@ -23,7 +23,7 @@
 | M03 推理接入 | [DSH](../../dsh-lab/examples/dsh-llm-adapter-demo/README.md) | `M03-inference-service-access` | DSH 换 LLM Adapter；iota 换整个 KernelAdapter |
 | M04 循环干预 | [DSH](../../dsh-lab/examples/dsh-agent-loop-demo/README.md) | `M04-agent-loop-intervention` | 事件和节点 hook 等价；mid-turn 状态归内核 |
 | M05 会话面 | [DSH](../../dsh-lab/examples/dsh-session-demo/README.md) | `M05-session-surface` | 存储语义可对位；日志投影不变量不同 |
-| M06 人在环路 | [DSH](../../dsh-lab/examples/dsh-hitl-demo/README.md) | `M06-human-in-the-loop` | permission fail-closed 等价；计划模式归宿主 |
+| M06 人机协作 | [DSH](../../dsh-lab/examples/dsh-hitl-demo/README.md) | `M06-human-in-the-loop` | permission fail-closed 等价；计划模式归宿主 |
 | M07 执行后端 | [DSH](../../dsh-lab/examples/dsh-sandbox-demo/README.md) | `M07-execution-backends` | DSH 在 harness 提供 seam；iota 将执行栈留给内核 |
 | M08 委派 | [DSH](../../dsh-lab/examples/dsh-subagent-demo/README.md) | `M08-delegation-presets` | SubagentProvider 与 GraphSpec DAG 语义对位 |
 | M09 长任务 | [DSH](../../dsh-lab/examples/dsh-jobs-demo/README.md) | `M09-long-running-orchestration` | iota 另有租约队列、checkpoint 与恢复语义 |

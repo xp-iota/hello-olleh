@@ -34,7 +34,7 @@ dsh 的 agent 循环由 `dsh-agent-loop` 独占驱动：宿主只往 inbox 里�
 
 ## 3 脚本化适配器
 
-`LlmAdapter` 是抽象类，唯一必须实现的方法是 `stream()`（llm/src/index.ts:317）；`providerInfo` / `resolveModel` / `prepareCall` 都有可用默认。协议是原始 StreamChunk 序列：`block-start → delta → block-end → usage → finish`。`src/plugins/scripted-adapter.ts` 全文：
+`LlmAdapter` 是抽象类，唯一必须实现的方法是 `stream()`（llm/src/index.ts:317）；`providerInfo` / `resolveModel` / `prepareCall` 都有可用默认。协议是原始 StreamChunk 序列：`block-start → delta → block-end → usage → finish`；finish 的 `reason` 是对象不是字符串——`{ kind: 'tool-calls' }` / `{ kind: 'stop' }`（types.ts:163-172，merge-extensible）。`src/plugins/scripted-adapter.ts` 全文：
 
 ```ts
 /**
@@ -112,7 +112,7 @@ export function apply(ctx: Context): void {
 }
 ```
 
-每个场景用不同的 model id（`s1`…`s5`、`hang`），step 计数互不串扰。agent 创建时路由走 `agentOptions`：
+每个场景用不同的 model id（`s1`…`s5`、`hang`），step 计数互不串扰。agent 创建时路由走 `agentOptions`，不在 meta：root 会话的 header 只接受 `{ cwd }`，provider/model 填进 meta 会被 validateSessionHeader 拒掉（`origin` 是子 agent 专用）：
 
 ```ts
 ctx.agents.create({
@@ -158,7 +158,7 @@ await hangAgent.whenIdle()       // turn/end reason = aborted
 
 ### turn 的形状：step 循环 + 两个 inbox 检查点
 
-driver 的一个 turn 内（agent-loop/src/agent.ts:360-407）：每个 step 写 `step/start` → 执行模型请求与工具批 → 写 `step/end`；step 结束后若 `turnEnds && inbox.nextStep.length === 0`，先 serial 分发 `agent/turn-stopping`，**再检查一次** nextStep——steer 就是利用这个检查点让 turn 续跑。turn 收尾必写 `turn/end`（含 reason：completed / max-tokens / aborted / error），然后若 inbox 还有 next-turn 待办，开下一个 turn。
+driver 的一个 turn 内（agent-loop/src/agent.ts:360-407）：每个 step 写 `step/start` → 执行模型请求与工具批 → 写 `step/end`；step 结束后若 `turnEnds && inbox.nextStep.length === 0`，先 serial 分发 `agent/turn-stopping`，**再检查一次** nextStep——steer 就是利用这个检查点让 turn 续跑。steer 只在这个检查点生效：在别的时机 steer 只是普通入队；一个 turn 里 steer 多次会续跑多步，示例用 `steered` 标志只注入一次。turn 收尾必写 `turn/end`（含 reason：completed / max-tokens / aborted / error），然后若 inbox 还有 next-turn 待办，开下一个 turn。
 
 ### 三条通道是同一 send 的三种包装
 
@@ -174,11 +174,11 @@ agent.ts:171-190 一目了然：
 
 ### agent 事件的 payload 由融合分发器注入 agent
 
-`agent/status`、`agent/turn-stopping` 的 emit 侧只传 `{ status }` / `{ turn, signal }`；`agentEvents()`（core/agent/src/dispatch.ts:107-148）构造融合分发器，把 agent 主体注入 payload 并绑定 scope carrier——**subject 与 scope key 不可能分叉**。所以根 ctx 上的监听器用 `payload.agent === agent` 过滤即可，类型声明里 payload 本来就带 `agent` 字段（runtime-types.ts:310、:418）。
+`agent/status`、`agent/turn-stopping` 的 emit 侧只传 `{ status }` / `{ turn, signal }`；`agentEvents()`（core/agent/src/dispatch.ts:107-148）构造融合分发器，把 agent 主体注入 payload 并绑定 scope carrier——**subject 与 scope key 不可能分叉**。所以根 ctx 上的监听器用 `payload.agent === agent` 过滤即可，类型声明里 payload 本来就带 `agent` 字段（runtime-types.ts:310、:418）。注意根 ctx 监听器不随 agent dispose 销毁：每个场景都拿 `ctx.on` 返回的 off 句柄手动解除；插件 apply 里的注册（工具、适配器路由）则随 fiber 自动回收，两者处置不同。
 
 ### 适配器必须尊重 signal，失败会被规范化
 
-StreamChunk 协议文档（types.ts:489-494）明确：适配器可以抛错，`LlmRuntime.stream()` 会把失败规范化为终局 `error` 或 `aborted` finish 再暴露给消费者。hang 路由的实现因此非常简单：等 signal abort → `throwIfAborted()`，剩下的交给运行时。cancel 的 cause（`{ kind: 'user' }`）沿 signal 传到 turn/end 的 `reason: { kind: 'aborted', reason: cause }`。
+StreamChunk 协议文档（types.ts:489-494）明确：适配器可以抛错，`LlmRuntime.stream()` 会把失败规范化为终局 `error` 或 `aborted` finish 再暴露给消费者。hang 路由的实现因此非常简单：等 signal abort → `throwIfAborted()`，剩下的交给运行时。cancel 的 cause（`{ kind: 'user' }`）沿 signal 传到 turn/end 的 `reason: { kind: 'aborted', reason: cause }`。followup 之后 driver 异步启动，立刻 cancel 可能打在空闲态上（幂等但测不到在途路径）；用 agent/status 事件等到 running 再 cancel 是确定性做法（S4）。
 
 ## 6 运行agent循环示例
 
@@ -303,18 +303,7 @@ AGENT_LOOP_OK
 - **S2 的 3 个 step**：steer 不是「打断」，而是在 turn-stopping 检查点往 next-step 塞消息，循环发现 inbox 非空就继续；
 - **S4 的 aborted**：取消真实穿透到适配器的 `options.signal`，hang 路由抛出后被 LlmRuntime 规范化为 aborted 终局，turn/end 如实记录。
 
-## 7 边界与坑
-
-1. **rc.3 的 FinishReason 是对象不是字符串**：`{ kind: 'tool-calls' }` / `{ kind: 'stop' }`（types.ts:163-172，merge-extensible）。旧探针里的 `reason: 'tool-calls' as never` 写法在 rc.3 上过不了 typecheck。
-2. **模型路由在 agentOptions，不在 meta**：root 会话的 header 只接受 `{ cwd }`，`origin` 是子 agent 专用；provider/model 填进 meta 会被 validateSessionHeader 拒掉。
-3. **turn-stopping 的 payload 没有显式 agent 传入**：emit 侧只有 `{ turn, signal }`，`agent` 是融合分发器注入的——直接读 `payload.agent` 即可，不要自己拼。
-4. **steer 只在检查点生效**：turn-stopping 之后循环立刻复查 nextStep；在别的时机 steer 只是普通入队。一个 turn 里 steer 多次会续跑多步，示例用 `steered` 标志只注入一次。
-5. **根 ctx 监听器不随 agent dispose 销毁**：每个场景都拿 `ctx.on` 返回的 off 句柄手动解除（沿用 tool-pipeline-demo 的教训）。插件 apply 里的注册（工具、适配器路由）则随 fiber 自动回收，两者处置不同。
-6. **step 计数要按 model 路由隔离**：同一个适配器实例服务所有场景，共用计数会让 S2 的第一个 step 直接给文本、跳过工具步。
-7. **在途取消要等 running 再 cancel**：followup 之后 driver 异步启动，立刻 cancel 可能打在空闲态上（幂等但测不到在途路径）。用 agent/status 事件等到 running 是确定性做法。
-8. **本示例不挂 ptc/subprocess**，Bun 无需补丁；会话日志落在本目录 `.dsh-home/`（gitignored）。
-
-## 8 从零复现：完整文件与运行路径
+## 7 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -580,7 +569,7 @@ console.log('\nAGENT_LOOP_OK')
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 
-## 9 小结
+## 8 小结
 
 这个示例验证了六件事：
 

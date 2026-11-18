@@ -40,7 +40,7 @@ cordis 插件）→ **dsh-lab**（21 个独立示例 + 自写插件）。插件�
 | [dsh-agent-loop-demo](examples/dsh-agent-loop-demo/README.md) | Agent 循环干预：turn/step、steer、inbox、取消 |
 | [dsh-session-demo](examples/dsh-session-demo/README.md) | 会话日志：append-only 事件流、JSONL、恢复 |
 | [dsh-trajectory-probe-demo](examples/dsh-trajectory-probe-demo/README.md) | Trajectory 探针：事件流折叠成 turn 大纲 |
-| [dsh-hitl-demo](examples/dsh-hitl-demo/README.md) | 人在回路：审批、提问、命令、todo |
+| [dsh-hitl-demo](examples/dsh-hitl-demo/README.md) | 人机协作（HITL）：审批、提问、命令、todo |
 | [dsh-sandbox-demo](examples/dsh-sandbox-demo/README.md) | 执行边界：沙箱、观察策略、权限预设 |
 | [dsh-subagent-demo](examples/dsh-subagent-demo/README.md) | 委派：spawn、fork、归属与深度预算 |
 | [dsh-jobs-demo](examples/dsh-jobs-demo/README.md) | 长期运行：后台任务、目标、PTC、workflow |

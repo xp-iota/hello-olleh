@@ -92,9 +92,11 @@ callable directly`。程序是 async 函数体，`return` 即输出，在沙箱�
 **S4 workflow 脚本编排。** workflow 工具注册在 SDK 声明里（`tools.schemas()`
 可见），但 PTC 模式下要从 run_code 程序内的 `tools.*` 绑定调。脚本只用
 `phase/log/args` 钩子、不 fan-out 子代理，离线可跑；返回
-`{ kind: 'foreground', runId, agentsStarted: 0, result: 42 }`。guest 程序经
-**data URL 动态导入**注入 worker（`workflow-ptc/src/host.ts:26-27`）——这条缝
-在 Bun 下会断，见坑 5。
+`{ kind: 'foreground', runId, agentsStarted: 0, result: 42 }`。`workflow-ptc`
+启动即解析 spawn provider：不挂 `subagent-spawn-in-process`（providerName:
+spawn），连不 fan-out 的脚本也起不来；continuable 激活还要求会话持久化
+（session-persistence-jsonl 行）。guest 程序经 **data URL 动态导入**注入 worker
+（`workflow-ptc/src/host.ts:26-27`）——这条缝在 Bun 下会断，修法见 §5 缝 5。
 
 **S5 schedule 定时任务。** 存储是 durable 的（storage-json 落在
 `.dsh-home/storages`）：上次运行残留的任务还在，先幂等清理保证计数确定。
@@ -271,12 +273,13 @@ const ctx = await boot(
 # 安装依赖（41 个运行时依赖 + 2 个 devDependencies）
 npm install
 
-# Windows：先按坑 11 给工程目录补 FullControl（只需一次）
+# Windows：先给工程目录补 FullControl（只需一次，根因与修法见 dsh-sandbox-demo）
 
-# Node 侧（start 脚本带 --no-warnings，见坑 10）
+# Node 侧（--no-warnings 抑制 stripTypeScriptTypes 实验警告：警告带随机 pid，
+# 会破坏双运行时输出逐行一致；Bun 侧无此警告）
 npm start
 
-# Bun 侧（run-bun.mjs 用 Node 拉起 Bun 并注入 preload，见坑 1–5）
+# Bun 侧（run-bun.mjs 用 Node 拉起 Bun 并注入 preload，修补五条 Bun 缝）
 npm run start:bun
 
 # 类型检查
@@ -347,79 +350,15 @@ fs-sandbox 附加的能力警告，不是错误。
   typecheck 0 错误。
 
 留档：[runtime/out-node.txt](runtime/out-node.txt) ·
-[runtime/out-bun.txt](runtime/out-bun.txt)（含 npm notice 行的完整输出）。## 5 边界与坑（全部实测）
+[runtime/out-bun.txt](runtime/out-bun.txt)（含 npm notice 行的完整输出）。
 
-1. **Bun 缝 1：runner 分隔符。** subprocess-local 的协议是
-   `process.execPath runner.js -- <argv>`，Bun 吞掉脚本后第一个 `--`。
-   `runtime/bun-preload.mjs` 在 runner 入口（`DSH_SUBPROCESS_RUNNER` +
-   文件名双判定）补回；`runtime/run-bun.mjs` 用 Node 拉起 Bun 并经
-   **BUN_OPTIONS** 注入 preload（runner 是孙进程，命令行 `--preload` 到不了）。
-2. **Bun 缝 2：`node:module` 具名导出缺失。** Bun 1.4.4 缺
-   `stripTypeScriptTypes`/`registerHooks`/`syncBuiltinESMExports`，
-   ptc-runtime-node 直接导入失败、`ptc-runtime` 静默不激活。preload 把该包
-   lib 全部 js 的 `from "node:module"` 重定向到 `runtime/lib/bun-shim.mjs`
-   （`Bun.Transpiler` 实现，保留上游 `slice(35, -2)` 依赖的 35 字节前缀/`\n}`
-   后缀；`registerHooks` 是空壳 `{ deregister() {} }`）。**空壳的代价**：程序内
-   动态 import 不再经沙箱判决钩子——演示程序不依赖这一点，生产环境要留意。
-3. **Bun 缝 3：worker env 白名单清洗。** 修好缝 2 后 worker 仍报
-   registerHooks missing——根因是 preload 根本没到 worker：宿主 spawn worker
-   时把 `process.env` 除白名单外全部键置 undefined
-   （`ptc-runtime-node/src/worker.ts:290-296`，白名单
-   `STARTUP_ENVIRONMENT_NAMES = PATH/PATHEXT/SYSTEMROOT/WINDIR/TEMP/TMP`，
-   `environment.ts:5`），`BUN_OPTIONS` 被清洗掉。穿透路径是存在的：
-   subprocess-local 的 `childEnv(extra)` 在清洗后的父 env **之后**合并 extra
-   （`subprocess-local/src/spawn.ts:44-52`），Windows runner 又把完整 targetEnv
-   经 IPC 交给 `CreateProcessW`（`windows-job.ts:230`）。修法：preload 在宿主
-   lib/index.js 的 `const handle = this.ctx.subprocess.spawn({` 锚点前注入
-   `env.BUN_OPTIONS = "--preload <path>"`，让 preload 随 extra 一路穿透到 worker。
-4. **Bun 缝 4：fd 控制通道。** worker 与 runner 之间的控制通道是继承的匿名
-   管道，上游用 `new Socket({ fd: 7, … })` 打开
-   （`subprocess/src/control.ts:19-24`）。Bun/Windows 既不把继承句柄映射到 fd
-   （`fs.readSync(7)` EBADF），`Socket({ fd })` 也抛 `Unsupported fd type:
-   UNKNOWN`——但句柄确实在进程里（koffi `GetFileType` 扫到 PIPE）。修法：
-   `runtime/lib/bun-control-channel.mjs` 用 koffi 直调 kernel32：扫句柄
-   4..4096（步长 4）、排除 `GetStdHandle` 的三个 std 句柄、`PeekNamedPipe`
-   确认是管道且**恰好一根**，再用 overlapped `ReadFile`（OVERLAPPED 的 hEvent
-   在 x64 偏移 **24**）+ manual-reset event 轮询、同步 `WriteFile`，包成
-   Duplex 替换 `Socket({ fd: 7 })`。假设「恰好一根非 std 管道」对本工程的
-   worker 成立；多管道场景会大声报错而不是猜。
-5. **Bun 缝 5：data URL 模块格式误判。** workflow guest 经
-   `data:text/javascript,${encodeURIComponent(source)}` 动态导入
-   （`workflow-ptc/src/host.ts:26-27`）。Bun 1.4.4 的 data URL 格式判定被
-   guest 源码里的 **class 字段**（`path;`）与 **//#region 注释**触发，误按
-   CJS 包成 `{ __esModule, default }`，named export 全丢，报
-   `runWorkflowGuest is not a function`；同源码落盘成 `.mjs` 导入则正常，
-   与尺寸无关（104KB 合成源正常），`Bun.plugin` onLoad 也拦不到运行时动态
-   import。修法：`runtime/lib/bun-guest-import.mjs` 把 data URL 解码落盘到
-   `.bun-guest-cache/<sha1>.mjs`（已 gitignore）再 import；preload 双侧补丁——
-   宿主侧把 PROGRAM 模板的 import 换成 `__dshBunGuestImport(GUEST_URL)`，
-   worker 侧把该函数注入求值器 globals（作为 AsyncFunction 参数传入程序）。
-6. **storage-domain 必须显式 `backend: json`。** 不配时默认后端不是 json，
-   schedule 的 durable 存取直接失败。storage-json 的 root 用
-   `!!js dshHomePath('storages')` 落在示例自己的 `.dsh-home` 里。
-7. **goal create 即 armed，complete 要用最新 revision。** 见 S2：离线演示
-   每次 create/resume 后立刻 disarm；complete 前重新 `ctx.goals.get(agent)`
-   取 revision，拿旧值会被乐观锁拒绝。
-8. **schedule 两面形状不同 + durable 残留。** 服务面 timing 对象/工具面
-   rrule，服务面 target 对象/工具面枚举（见 S5）；默认 `new_once` 需要
-   sessionController。存储跨运行持久，演示开头必须幂等清理，否则第二次运行
-   计数断言失败。
-9. **workflow-ptc 启动即解析 spawn provider。** 不挂
-   `subagent-spawn-in-process`（providerName: spawn），连不 fan-out 的脚本
-   也起不来；continuable 激活还要求会话持久化（session-persistence-jsonl 行）。
-10. **`node --no-warnings` 不是可选的。** 宿主调 `stripTypeScriptTypes` 会报
-    实验警告，警告带随机 pid，破坏双运行时输出逐行一致；start 脚本用
-    `node --no-warnings` 抑制，Bun 侧无此警告。
-11. **Windows 工作目录 ACL。** 本示例同样挂 sandbox-local，工作目录必须给
-    当前用户 FullControl（含 WRITE_OWNER），否则 Win32 5——修法与根因见
-    [dsh-sandbox-demo 坑 1](../dsh-sandbox-demo/README.md)。
-
-## 6 从零复现：完整文件与运行路径
+## 5 从零复现：完整文件与运行路径
 
 前置条件：Node ≥ 22.18（实测 v26.12.1，原生 TypeScript 类型剥离）；跑 Bun 侧
-需要 Bun ≥ 1.4.4（实测 1.4.4，`npm i -g bun` 或官方安装器）；Windows 上先按
-坑 11 给工程目录补一次 FullControl。不需要 API key，不访问网络（npm install
-除外）。
+需要 Bun ≥ 1.4.4（实测 1.4.4，`npm i -g bun` 或官方安装器）；Windows 上先给
+工程目录补一次 FullControl（含 WRITE_OWNER，否则 Win32 5，根因与修法见
+[dsh-sandbox-demo](../dsh-sandbox-demo/README.md) §3 S2）。不需要 API key，
+不访问网络（npm install 除外）。
 
 目录结构（node_modules、.dsh-home、.bun-guest-cache 除外，后两者已 gitignore）：
 
@@ -895,24 +834,64 @@ child.on('exit', (code, signal) => {
 })
 ```
 
-runtime/ 其余四件是加载期补丁的实现体，合计约 515 行，不在此重复镜像，
-结构说明 + 文件指针（每条缝的根因与修法见坑 1–5）：
+runtime/ 其余四件是加载期补丁的实现体，合计约 515 行，不在此重复镜像。
+Bun 侧要修五条缝，全部在加载期完成，未动 node_modules：
 
-- [runtime/bun-preload.mjs](runtime/bun-preload.mjs)（181 行）：五条缝的总入口。
-  `Bun.plugin` 的 onLoad 按包名 filter 收得很窄（ptc-runtime-node 的 lib 全部
-  js、workflow-ptc 的宿主 index.js、subprocess-local 的 runner 入口），字符串
-  精确匹配替换，不匹配就原样返回并在 stderr 留警告——上游改了写法应当立刻
-  被看见，而不是静默失效。缝 1 用 `DSH_SUBPROCESS_RUNNER` + 文件名双判定只在
-  runner 入口补 `--`；缝 3 在宿主 spawn 锚点前注入 `env.BUN_OPTIONS`。
-- [runtime/lib/bun-shim.mjs](runtime/lib/bun-shim.mjs)（171 行）：缝 2 的
-  `node:module` 替身。`Bun.Transpiler` 实现 stripTypeScriptTypes，保留上游
-  `slice(35, -2)` 依赖的 35 字节前缀/`\n}` 后缀；registerHooks 降级空壳
-  `{ deregister() {} }`（代价见坑 2）。
-- [runtime/lib/bun-control-channel.mjs](runtime/lib/bun-control-channel.mjs)
-  （131 行）：缝 4 的 koffi 直调 kernel32 管道 Duplex——扫句柄、PeekNamedPipe
-  确认恰好一根非 std 管道、overlapped ReadFile + manual-reset event 轮询。
-- [runtime/lib/bun-guest-import.mjs](runtime/lib/bun-guest-import.mjs)
-  （32 行）：缝 5 的 data URL 解码落盘（`.bun-guest-cache/<sha1>.mjs`）再 import。
+1. **runner 分隔符。** subprocess-local 的协议是
+   `process.execPath runner.js -- <argv>`，Bun 吞掉脚本后第一个 `--`。
+   [runtime/bun-preload.mjs](runtime/bun-preload.mjs)（181 行，五条缝的总入口）
+   用 `DSH_SUBPROCESS_RUNNER` + 文件名双判定只在 runner 入口补回；
+   run-bun.mjs 用 Node 拉起 Bun 并经 **BUN_OPTIONS** 注入 preload——runner 是
+   孙进程，命令行 `--preload` 到不了那一层，只有环境变量一路继承。
+2. **`node:module` 具名导出缺失。** Bun 1.4.4 缺
+   `stripTypeScriptTypes`/`registerHooks`/`syncBuiltinESMExports`，
+   ptc-runtime-node 直接导入失败、`ptc-runtime` 静默不激活。preload 把该包
+   lib 全部 js 的 `from "node:module"` 重定向到
+   [runtime/lib/bun-shim.mjs](runtime/lib/bun-shim.mjs)（171 行，
+   `Bun.Transpiler` 实现，保留上游 `slice(35, -2)` 依赖的 35 字节前缀/`\n}`
+   后缀；`registerHooks` 降级空壳 `{ deregister() {} }`）。**空壳的代价**：
+   程序内动态 import 不再经沙箱判决钩子——演示程序不依赖这一点，生产环境
+   要留意。
+3. **worker env 白名单清洗。** 宿主 spawn worker 时把 `process.env` 除白名单
+   外全部键置 undefined（`ptc-runtime-node/src/worker.ts:290-296`，白名单
+   `STARTUP_ENVIRONMENT_NAMES = PATH/PATHEXT/SYSTEMROOT/WINDIR/TEMP/TMP`，
+   `environment.ts:5`），`BUN_OPTIONS` 被清洗掉，preload 到不了 worker。
+   穿透路径是存在的：subprocess-local 的 `childEnv(extra)` 在清洗后的父 env
+   **之后**合并 extra（`subprocess-local/src/spawn.ts:44-52`），Windows runner
+   又把完整 targetEnv 经 IPC 交给 `CreateProcessW`（`windows-job.ts:230`）。
+   修法：preload 在宿主 lib/index.js 的
+   `const handle = this.ctx.subprocess.spawn({` 锚点前注入
+   `env.BUN_OPTIONS = "--preload <path>"`，让 preload 随 extra 一路穿透到 worker。
+4. **fd 控制通道。** worker 与 runner 之间的控制通道是继承的匿名管道，上游用
+   `new Socket({ fd: 7, … })` 打开（`subprocess/src/control.ts:19-24`）。
+   Bun/Windows 既不把继承句柄映射到 fd（`fs.readSync(7)` EBADF），
+   `Socket({ fd })` 也抛 `Unsupported fd type: UNKNOWN`——但句柄确实在进程里
+   （koffi `GetFileType` 扫到 PIPE）。修法：
+   [runtime/lib/bun-control-channel.mjs](runtime/lib/bun-control-channel.mjs)
+   （131 行）用 koffi 直调 kernel32：扫句柄 4..4096（步长 4）、排除
+   `GetStdHandle` 的三个 std 句柄、`PeekNamedPipe` 确认是管道且**恰好一根**，
+   再用 overlapped `ReadFile`（OVERLAPPED 的 hEvent 在 x64 偏移 **24**）+
+   manual-reset event 轮询、同步 `WriteFile`，包成 Duplex 替换
+   `Socket({ fd: 7 })`。假设「恰好一根非 std 管道」对本工程的 worker 成立；
+   多管道场景会大声报错而不是猜。
+5. **data URL 模块格式误判。** workflow guest 经
+   `data:text/javascript,${encodeURIComponent(source)}` 动态导入
+   （`workflow-ptc/src/host.ts:26-27`）。Bun 1.4.4 的 data URL 格式判定被
+   guest 源码里的 **class 字段**（`path;`）与 **//#region 注释**触发，误按
+   CJS 包成 `{ __esModule, default }`，named export 全丢，报
+   `runWorkflowGuest is not a function`；同源码落盘成 `.mjs` 导入则正常，
+   与尺寸无关（104KB 合成源正常），`Bun.plugin` onLoad 也拦不到运行时动态
+   import。修法：
+   [runtime/lib/bun-guest-import.mjs](runtime/lib/bun-guest-import.mjs)
+   （32 行）把 data URL 解码落盘到 `.bun-guest-cache/<sha1>.mjs`（已
+   gitignore）再 import；preload 双侧补丁——宿主侧把 PROGRAM 模板的 import
+   换成 `__dshBunGuestImport(GUEST_URL)`，worker 侧把该函数注入求值器 globals
+   （作为 AsyncFunction 参数传入程序）。
+
+preload 的 `Bun.plugin` onLoad 按包名 filter 收得很窄（ptc-runtime-node 的 lib
+全部 js、workflow-ptc 的宿主 index.js、subprocess-local 的 runner 入口），
+字符串精确匹配替换，不匹配就原样返回并在 stderr 留警告——上游改了写法应当
+立刻被看见，而不是静默失效。
 
 按顺序验证：
 
@@ -920,7 +899,7 @@ runtime/ 其余四件是加载期补丁的实现体，合计约 515 行，不在
 # 1 安装依赖
 npm install
 
-# 2 Windows：给工程目录补 FullControl（坑 11，只需一次）
+# 2 Windows：给工程目录补 FullControl（只需一次，见 dsh-sandbox-demo）
 
 # 3 类型检查（0 错误）
 npm run typecheck
@@ -938,7 +917,7 @@ npm start
 本示例不依赖任何环境变量、端口或外部服务：`DSH_HOME` 由代码自己指向工程内的
 `.dsh-home`，不需要 API key，存储与缓存全部落在本工程目录里（已 gitignore）。
 
-## 7 小结
+## 6 小结
 
 这个示例验证了 4 件事：
 

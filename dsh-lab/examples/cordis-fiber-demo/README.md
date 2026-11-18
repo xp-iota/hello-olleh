@@ -28,7 +28,7 @@ cordis 的做法：插件的一切注册都走 `ctx.effect()`，登记在所属 
 - 六个状态没有任何一个字段直接保存，全部由 uid / _error / epoch 三个量推导（core 包 fiber.ts:365）；dispose() 可从 PENDING / ACTIVE / FAILED 任一状态发生。
 - UNLOADING 有两条出路：卸载完成时 epoch 回 INACTIVE 则落回 PENDING，已换新值则直接进 LOADING——后者让换 provider 的热重载省掉一次回落。
 
-`FiberState` 在源码里是 `const enum`：`PENDING, LOADING, ACTIVE, FAILED, DISPOSED, UNLOADING`。注意它**不是**一条直线：LOADING 可以掉进 FAILED，UNLOADING 可以回到 PENDING 或再进 LOADING。场景 ① 的观察对象是 yml 里初始禁用的 slow 行（apply 与清理都是 async），用一对 sleep 把 LOADING 与 UNLOADING 这两个「进行中」状态暴露在观测窗口里：
+`FiberState` 在源码里是 `const enum`：`PENDING, LOADING, ACTIVE, FAILED, DISPOSED, UNLOADING`。编译后内联为数字，运行时 `FiberState.PENDING` 不存在——示例的 `STATE` 数组按源码顺序自建映射；升级 cordis 时若枚举顺序变化，映射要跟着核对。注意它**不是**一条直线：LOADING 可以掉进 FAILED，UNLOADING 可以回到 PENDING 或再进 LOADING。场景 ① 的观察对象是 yml 里初始禁用的 slow 行（apply 与清理都是 async），用一对 sleep 把 LOADING 与 UNLOADING 这两个「进行中」状态暴露在观测窗口里：
 
 ```ts
 const slow = row(ctx, 'slow')              // cordis.yml 里声明的行，初始禁用
@@ -43,6 +43,8 @@ console.log(stateOf(slow.innerFiber))      // UNLOADING
 await disposing
 console.log(stateOf(slow.innerFiber))      // DISPOSED
 ```
+
+`row()` 辅助有个值得注意的细节：`ctx.loader.resolve(id)` 只查根树的行；cordis CLI 把 cordis.yml 挂在 include 子树里，直接 resolve 会报 cannot resolve entry——用 `[...ctx.loader.entries()]` 递归遍历再按 `options.id` 匹配。这也要求 yml 里需要运行时寻址的行必须写显式 `id:`，否则 loader 生成随机 hex，没法按名字找。
 
 ## 3 PENDING 不是错误，是等待
 
@@ -59,7 +61,7 @@ await row(ctx, 'provider-b').update({ disabled: false })   // provide('tick', { 
 // … watcher 再次 ACTIVE，第 2 次激活
 ```
 
-这就是 seam 示例第 ⑥ 步「原地复活」的机制本体：复活不是新建 fiber，而是旧 fiber 的 epoch 换了值。
+这就是 seam 示例第 ⑥ 步「原地复活」的机制本体：复活不是新建 fiber，而是旧 fiber 的 epoch 换了值。这个机制的反面：inject 拼错服务名时，插件会永远安静地停在 PENDING，不报任何错。排查「插件装了没生效」的第一动作是看 fiber.state，而不是加日志——dsh 的装配审计（`auditStartupEntries`）就是把这个状态变成启动期断言。
 
 ## 4 可逆 effect 的回收顺序
 
@@ -108,7 +110,7 @@ await row(ctx, 'broken').dispose()
 // … DISPOSED
 ```
 
-装配期失败被限制在单个 fiber 内，不会把整棵树带崩——但也不会被静默吞掉，`ctx.logger.error` 会记录原因。
+装配期失败被限制在单个 fiber 内，不会把整棵树带崩——但也不会被静默吞掉，`ctx.logger.error` 会记录原因。FAILED 的 fiber 仍然持有 uid 与已登记的部分 effect；不 dispose 它就留在树里——长跑进程里反复挂载失败插件而不 dispose，是泄漏的一种来源。
 
 ## 7 运行fiber示例
 
@@ -217,29 +219,7 @@ npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过
 
 装配路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordisjs/include`、`@cordisjs/fs`、`@cordisjs/fs-node`，加上场景 ④ 用的 `@cordisjs/timer`，都已写进 `package.json`。
 
-## 8 容易踩的坑
-
-### 异步清理不保证完成顺序
-
-逆序的是**启动**，不是完成。两个 async 清理函数谁先结束取决于各自的 await；需要先后关系就把它们放进同一个 effect 迭代器，或拆成有依赖关系的服务。
-
-### PENDING 的插件不占资源，但也不报错
-
-inject 拼错服务名时，插件会永远安静地停在 PENDING。排查「插件装了没生效」的第一动作是看 fiber.state，而不是加日志——装配清单审计（dsh 的 `auditStartupEntries`）就是把这个状态变成启动期断言。
-
-### FAILED 不是终态，别忘记 dispose
-
-FAILED 的 fiber 仍然持有 uid 与已登记的部分 effect；不 dispose 它就留在树里。长跑进程里反复挂载失败插件而不 dispose，是泄漏的一种来源。
-
-### const enum 拿不到名字
-
-`FiberState` 是 const enum，编译后内联为数字，运行时 `FiberState.PENDING` 不存在。示例里的 `STATE` 数组按源码顺序自建映射；升级 cordis 时若枚举顺序变化，映射要跟着核对。
-
-### resolve 只查根树
-
-`ctx.loader.resolve(id)` 只查根树的行；cordis CLI 把 cordis.yml 挂在 include 子树里，直接 resolve 会报 cannot resolve entry。示例的 `row()` 用 `[...ctx.loader.entries()]` 递归遍历再按 `options.id` 匹配——这也要求 yml 里需要运行时寻址的行必须写显式 `id:`，否则 loader 生成随机 hex，没法按名字找。
-
-## 9 从零复现：完整文件与运行路径
+## 8 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -526,7 +506,7 @@ export function apply() {
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 
-## 10 小结
+## 9 小结
 
 用 fiber 记住四件事就够了：
 

@@ -59,12 +59,12 @@
 
 allow 的调用打印一行预览：`pre-execute tool=<名> agent=<id 或 (standalone)> args=<一行 JSON>`。证据链由探针工具产生：每个工具函数体开始时检查「护栏日志是否已写出」（`bodySawGuardrail`），并把执行事实记进 `bodyOrder`。脱敏有两条规则：
 
-- `redactValue()` 递归脱敏（深度上限 8），只替换命中键的**值**为 `[REDACTED]`，键名保留——看得出「这里本来有密钥」。键名规范化（转小写、去非字母数字）后**精确或后缀匹配**：`apiKey` / `access_token` / `clientSecret` 命中，`maxTokens` 不被 `token` 误伤。
-- `previewArguments()` 超长按 `previewChars` 截断加 `…`；循环引用输出 `[unserializable]`，绝不因日志搞崩一次工具调用。
+- `redactValue()` 递归脱敏（深度上限 8），只替换命中键的**值**为 `[REDACTED]`，键名保留——看得出「这里本来有密钥」。键名规范化（转小写、去非字母数字）后**精确或后缀匹配**：`apiKey` / `access_token` / `clientSecret` 命中，`maxTokens` 不被 `token` 误伤；反过来 `my_api_key` 会命中 `api_key`——规范化后后缀相同。
+- `previewArguments()` 超长按 `previewChars` 截断加 `…`；循环引用输出 `[unserializable]`，绝不因日志搞崩一次工具调用。注意这条防线只在纯函数预览里验证：`ToolCallBlock.arguments` 本身是 JSON 字符串，循环参数在 `JSON.stringify` 阶段就抛了，进不了批接口。
 
 ### S2 deny：先留痕再拦截
 
-名单拒绝与命令模式拒绝都先打印 `deny tool=… reason=…` 留痕行，再把决定返回管线——这是「谁在什么时候被哪条规则拦下」的唯一证据。被拒绝的工具函数体**绝不执行**（`bodyOrder` 里没有它）。模型看到的是 `Error: <reason>`，turn 照常收尾。
+名单拒绝与命令模式拒绝都先打印 `deny tool=… reason=…` 留痕行，再把决定返回管线——这是「谁在什么时候被哪条规则拦下」的唯一证据。被拒绝的工具函数体**绝不执行**（`bodyOrder` 里没有它）。模型看到的是 `Error: <reason>`，turn 照常收尾。优先级有掩盖效应：一个工具同时在 denyTools 名单上又命中命令模式时，reason 永远是名单——想单独观察模式规则，要用不在名单上的干净工具（示例里的 demo_shell）。
 
 ### S3 ask：管线自动走 approval 缝
 
@@ -77,11 +77,11 @@ allow 的调用打印一行预览：`pre-execute tool=<名> agent=<id 或 (stand
 | 无回答器 | fail-closed，`APPROVAL_UNAVAILABLE` |
 | 无 agent（standalone 调用） | 没有路由对象，`APPROVAL_UNAVAILABLE` |
 
-关键约束：**审批必须在 open turn 内**。`approval.request()` 检查 approvalState 投影的 `turnOpen`，turn 外直接抛错——审计对（approval/asked + approval/decided）必须被 turn 包住，否则崩溃重载时会留下不完整的垃圾记录。真实部署里 turn 由 agent-loop 打开；本示例直接驱动管线，所以手动 `session.append('turn/start', { turn: 1 })` 把门打开（收尾 append turn/end）。
+关键约束：**审批必须在 open turn 内**。`approval.request()` 检查 approvalState 投影的 `turnOpen`，turn 外直接抛错——审计对（approval/asked + approval/decided）必须被 turn 包住，否则崩溃重载时会留下不完整的垃圾记录。真实部署里 turn 由 agent-loop 打开；本示例直接驱动管线，所以手动 `session.append('turn/start', { turn: 1 })` 把门打开（收尾 append turn/end）。护栏日志带 `agent=<id>`：示例用固定 SessionId（`guardrail-demo-ask`）而不是时间戳后缀，输出才可复现对比。
 
 ### S4 cancel：规范取消，不呈现策略拒绝
 
-cancel 与 deny 的区别在模型视角：deny 给模型一条拒绝理由（它能据此改道），cancel 走规范取消结果 `Error: tool call aborted before dispatch`（`error.info = { name: 'AbortError', code: 'ABORTED_BEFORE_DISPATCH' }`），不呈现任何策略身份。函数体同样不执行。
+cancel 与 deny 的区别在模型视角：deny 给模型一条拒绝理由（它能据此改道），cancel 走规范取消结果 `Error: tool call aborted before dispatch`（`error.info = { name: 'AbortError', code: 'ABORTED_BEFORE_DISPATCH' }`），不呈现任何策略身份。函数体同样不执行。注意常量名与值不同：`TOOL_ABORTED_BEFORE_DISPATCH` 常量的值是 `'ABORTED_BEFORE_DISPATCH'`（contracts.ts），断言要写值不是常量名。
 
 ### S5 guard 对照：单调拒绝
 
@@ -161,7 +161,7 @@ cancel 与 deny 的区别在模型视角：deny 给模型一条拒绝理由（�
       name: './src/plugins/probe-tools.ts'
 ```
 
-`src/index.ts` 的启动核心（完整文件见 §6）：
+`src/index.ts` 的启动核心（完整文件见 §5）：
 
 ```ts
 const ctx = await boot(
@@ -229,7 +229,7 @@ guard 摘除：isError=false
 GUARDRAIL_DEMO_OK
 ```
 
-Bun（`npm run start:bun`）除首行 `runtime = bun 1.4.4` 外**逐行一致**（归一化比对验证）。`npm run typecheck` 0 错误；`npm test` / `npm run test:bun` 均 **4 pass / 0 fail**。
+Bun（`npm run start:bun`）除首行 `runtime = bun 1.4.4` 外**逐行一致**（归一化比对验证）。`npm run typecheck` 0 错误；`npm test` / `npm run test:bun` 均 **4 pass / 0 fail**。护栏行由 index.ts 的 stdout 包装器收集：包装器必须调用原始 write 透传场景输出，否则场景输出全部消失；`bind(process.stdout)` 保住 this。
 
 6 个值得注意的事实：
 
@@ -242,20 +242,7 @@ Bun（`npm run start:bun`）除首行 `runtime = bun 1.4.4` 外**逐行一致**�
 
 留档：[runtime-out-node.txt](runtime-out-node.txt) / [runtime-out-bun.txt](runtime-out-bun.txt)。
 
-## 5 边界与坑
-
-1. **审批必须在 open turn 内**。直接 `callTool` 带 agent 调 ask 工具，即使回答器在场也拿到 `APPROVAL_UNAVAILABLE`——`approval.request()` 在 turn 外抛错，管线降级为 unavailable。修法：手动 append `turn/start`（或走真实 turn）。
-2. **名单优先级会掩盖模式规则**。`demo_danger` 既在 denyTools 又带 `rm -rf` 命令时，reason 永远是名单——模式规则要用不在名单上的干净工具（demo_shell）才能单独看见。
-3. **取消错误码的常量名与值不同**：`TOOL_ABORTED_BEFORE_DISPATCH` 常量的值是 `'ABORTED_BEFORE_DISPATCH'`（contracts.ts），断言要写值不是常量名。
-4. **sink 默认 stderr 是对的，演示要切 stdout**。stderr 不打断 REPL 的 stdout 流式渲染；但双流合并时顺序不确定，演示用 stdout 让护栏日志与场景输出同流，双运行时才能逐行对比。
-5. **agent id 要确定化**。护栏日志带 `agent=<id>`；用固定 SessionId（`guardrail-demo-ask`）而不是时间戳后缀，输出才可复现对比。
-6. **脱敏是后缀匹配不是包含匹配**：`maxTokens` 不被 `token` 误伤是设计目标；反过来 `my_api_key` 会命中 `api_key`——规范化后后缀相同。
-7. **循环引用不能进批接口**：`ToolCallBlock.arguments` 是 JSON 字符串，循环参数在 `JSON.stringify` 就抛了；`[unserializable]` 防线只在纯函数单测里验证。
-8. **本地插件一行装配**：`name: './src/plugins/safety-guardrail/index.ts'` 相对工程根；schemastery Config 的默认值在 patch 缺省时自动补齐。
-9. **stdout 包装器要透传**：收集护栏行的包装器必须调用原始 write，否则场景输出全部消失；`bind(process.stdout)` 保住 this。
-10. 本示例不挂 ptc/subprocess，Bun 无需补丁（`node:test` 由 `bun test` 兼容跑）；状态落在本目录 `.dsh-home/`（gitignored）。
-
-## 6 从零复现：完整文件与运行路径
+## 5 从零复现：完整文件与运行路径
 
 前置条件：Node >= 22.18（原生 TS 类型剥离，实测 v26.12.1）或 Bun >= 1.4.4；`npm install` 一次。本示例不依赖任何环境变量、端口或外部服务。
 
@@ -827,7 +814,7 @@ npm run test:bun
 
 本示例不依赖任何环境变量、端口或外部服务。
 
-## 7 小结
+## 6 小结
 
 这个示例验证了 3 件事：
 

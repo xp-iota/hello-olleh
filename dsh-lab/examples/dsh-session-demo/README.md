@@ -29,7 +29,7 @@ dsh 没有独立的「聊天记录数据库」：**会话日志就是唯一事�
 | `session-query-sqlite` | `@deepseek-ai/dsh-session-query-sqlite` | 读取面 `ctx.sessionQuery`；`static inject = ['sessions']`；`:memory:` + `openAt: never` |
 | `session-title` | `@deepseek-ai/dsh-session-title` | 标题投影；`static inject = ['sessions', 'sessionProjections', 'agents']`；只挂规则回退，不挂 title-llm |
 
-再加两行自写插件（word-count / scripted-adapter，与 agent-loop 示例逐字相同），共十六行。`compression: none` 是刻意的演示选择：默认是 **zstd**（session-persistence-jsonl/src/index.ts:69），这里要肉眼可读的落盘文件。
+再加两行自写插件（word-count / scripted-adapter，与 agent-loop 示例逐字相同），共十六行。`compression: none` 是刻意的演示选择：默认是 **zstd**（session-persistence-jsonl/src/index.ts:69），这里要肉眼可读的落盘文件。node:sqlite（`:memory:`）在 Node 26 与 Bun 1.4.4 上都可用。
 
 ## 3 播种一条真实 turn
 
@@ -90,7 +90,7 @@ const resumed = await ctx.agents.resume({ resumeSessionId: sessionId })
 
 ### 落盘布局与 v4 编码
 
-文件在 `<root>/<项目路径 slug>/<会话 id>/session.v4.jsonl`：项目 slug 把 cwd 的盘符与分隔符拍平成目录名（实测 `--D-coding-creative-…--`）。首行 `session` 头记录携带 header，其后是 v4 编码的事件行——编解码由 session-log-deepseek 注册，它依赖 deepseek-llm-api-extensions 提供的扩展字段。默认物理编码是 zstd（`.jsonl.zstd`），`compression: none` 时是纯文本。
+文件在 `<root>/<项目路径 slug>/<会话 id>/session.v4.jsonl`：项目 slug 把 cwd 的盘符与分隔符拍平成目录名（实测 `--D-coding-creative-…--`）。首行 `session` 头记录携带 header，其后是 v4 编码的事件行——编解码由 session-log-deepseek 注册，它依赖 deepseek-llm-api-extensions 提供的扩展字段；缺这条依赖行，编解码行永远 pending，而 boot 审计对非 required 行只 warn 不抛，症状是「落盘悄悄不工作」。默认物理编码是 zstd（`.jsonl.zstd`），`compression: none` 时是纯文本。
 
 ### live-preferred 列表与两个标志
 
@@ -102,7 +102,7 @@ const resumed = await ctx.agents.resume({ resumeSessionId: sessionId })
 
 ### resume 是重建而不是读取
 
-`agents.resume({ resumeSessionId })`（core/agent/src/index.ts:205、:423）加载持久化日志、重放事件、在原身份上重建 agent 与全部投影，并追加恢复锚点。disposer 是一种**能力**：持有它才能消费这个 agent。恢复后的 agent 与新建的没有任何身份差异——S6 实测 id 完全一致。
+`agents.resume({ resumeSessionId })`（core/agent/src/index.ts:205、:423）加载持久化日志、重放事件、在原身份上重建 agent 与全部投影，并追加恢复锚点。disposer 是一种**能力**：持有它才能消费这个 agent。恢复后的 agent 与新建的没有任何身份差异——S6 实测 id 完全一致。因为恢复锚点是追加的，断言判据是「事件数 >= 恢复前且身份一致」，不是相等。
 
 ## 6 运行会话日志示例
 
@@ -192,7 +192,7 @@ const resumed = await ctx.agents.resume({ resumeSessionId: sessionId })
       name: ./src/plugins/scripted-adapter.ts
 ```
 
-`npm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，工具与适配器随装配就位：
+`npm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，工具与适配器随装配就位。两个类型层面的细节：`ctx.sessionQuery` 的 Context 增补来自 `import type {} from '@deepseek-ai/dsh-session-query-sqlite'`，缺了它运行正常但 typecheck 报 TS2339；示例的 `assert()` 辅助不做类型收窄，`assert(record !== undefined, …)` 之后 TS 仍认为 record 可能 undefined（TS18048），需要收窄的地方用显式 `if (x === undefined) throw …`：
 
 ```ts
 const ctx = await boot(
@@ -217,7 +217,7 @@ npm run start:bun       # Bun：不挂 ptc/subprocess，无需任何补丁，输
 npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
 
-下面是 `npm start` 的实测输出（Node 26.12.1，`.dsh-home` 为空的首跑；Bun 1.4.4 除首行 `runtime = bun 1.4.4` 与随机会话 id 外逐行一致）：
+下面是 `npm start` 的实测输出（Node 26.12.1，`.dsh-home` 为空的首跑；Bun 1.4.4 除首行 `runtime = bun 1.4.4` 与随机会话 id 外逐行一致）。语料计数受历史运行影响：`.dsh-home/sessions` 会累积往次运行的会话，S3 的「语料会话数」随之变化——对比前先清空 `.dsh-home`（gitignored，删了不心疼）：
 
 ```text
 runtime = node v26.12.1
@@ -256,18 +256,7 @@ SESSION_DEMO_OK
 - **恢复 17 → 18**：resume 不是丢事件，而是**追加一条恢复锚点**——日志永远只增不减；
 - **标题 = 首条人类消息原文**：12 个汉字 36 字节，没超过 `fallbackMaxBytes: 40`，规则回退原样保留。
 
-## 7 边界与坑
-
-1. **`ctx.sessionQuery` 需要类型增补导入**：`import type {} from '@deepseek-ai/dsh-session-query-sqlite'` 缺了它，运行正常但 typecheck 报 TS2339（Context 上没有 sessionQuery）。
-2. **assert 辅助函数不做类型收窄**：`assert(record !== undefined, …)` 之后 TS 仍认为 record 可能 undefined（TS18048）。需要收窄的地方用显式 `if (x === undefined) throw …`。
-3. **编解码行有隐藏依赖**：只挂 session-log-deepseek 不挂 deepseek-llm-api-extensions，前者永远 pending——boot 审计对非 required 行只 warn 不抛，症状是「落盘悄悄不工作」。
-4. **语料计数受历史运行影响**：`.dsh-home/sessions` 会累积往次运行的会话，S3 的「语料会话数」随之变化。实测对比前先清空 `.dsh-home`（gitignored，删了不心疼）。
-5. **flush 之前读盘是空的**：append 只进内存缓冲；S2 必须先 `sessions.flush` 再找文件。
-6. **resume 会多一条事件**：断言「恢复后事件数相等」会误判失败——正确判据是 `>=` 且身份一致。
-7. **默认压缩是 zstd**：想 `readFileSync` 直接读落盘内容，config 必须 `compression: none`，否则拿到的是压缩字节。
-8. **本示例不挂 ptc/subprocess**，Bun 无需补丁；node:sqlite（`:memory:`）在 Node 26 与 Bun 1.4.4 上都可用（实测）。
-
-## 8 从零复现：完整文件与运行路径
+## 7 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -480,7 +469,7 @@ console.log('\nSESSION_DEMO_OK')
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 
-## 9 小结
+## 8 小结
 
 这个示例验证了六件事：
 

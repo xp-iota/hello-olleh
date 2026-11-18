@@ -42,7 +42,7 @@ base 九行与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md) 相同
 > 依赖链：`pwsh/bash-sandbox` 注入 `subprocess + sandbox + sandboxPolicy`
 > 提供 shell 服务；`tool-pwsh/tool-bash` 注入 `tools + shell + systemPrompt +
 > shellEnv + workingDirectory`；`fs-sandbox` 注入 `sandboxPolicy` 提供沙箱化 fs
-> （**不需要另挂 fs-local**）；`working-directory` 注入 `fs + sessionProjections +
+> （**不需要另挂 fs-local**，多挂一行反而制造两个 fs 提供者）；`working-directory` 注入 `fs + sessionProjections +
 > systemPrompt`；`permission-presets` 注入 `shell + approval + sessions +
 > agents + sessionProjections`。
 
@@ -83,15 +83,36 @@ base 九行与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md) 相同
 
 **S1 沙箱内写文件并读回。** `write`/`read` 走 tool-fs → fs-sandbox。fs-sandbox
 把每次读写交给 `sandboxPolicy.resolve({ session })` 判决：会话头 `cwd` 是
-workspace-write 的边界，`.dsh-home` 在边界内所以放行。文件名带时间戳后缀——
-原因见坑 4。
+workspace-write 的边界，`.dsh-home` 在边界内所以放行。文件名带时间戳后缀：
+观察策略按会话记忆，固定文件名会让第二次运行变成「未读先写已存在文件」
+而被拒，误报成沙箱故障。
 
 **S2 一次性 shell 命令。** `pwsh` 工具 → pwsh-sandbox（提供 shell 服务）→
 subprocess-local 的私有 runner 子进程 → sandbox-local 施加的受限令牌。
 Windows 上 sandbox-local 的 runner 链是 `['windows-acl']`
 （`sandbox-local/src/index.ts:184`）：先给工作目录与临时目录授「能力 SID 写权限 +
 Low 完整性标签 + 拒绝 Everyone 的 ambient 删除权」，再以低完整性受限令牌跑命令。
-**这一步对工作目录的 ACL 有硬要求，见坑 1。**
+
+这一步对工作目录的 ACL 有硬要求：**必须给当前用户 FullControl（含
+WRITE_OWNER），否则 Win32 5**，报
+`sandbox-local: windows-acl workspace grant failed: Win32Error: SetNamedSecurityInfoW failed (Win32 5): grantWrite(<工作目录>)`。
+根因是 `grantWrite` 一次调用同时写 DACL 和 **Low 完整性标签**，标签住在
+SACL 里，而目录所有者的隐式权利只覆盖 READ_CONTROL 与 WRITE_DAC——源码
+注释写明「The directory must be owned by the caller AND grant WRITE_OWNER」
+（`sandbox-windows-acl/src/acl.ts:368`）。修法（在工程目录里执行一次）：
+
+```powershell
+$acl = Get-Acl .
+$rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+  $env:USERNAME, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
+$acl.SetAccessRule($rule)
+Set-Acl . $acl
+```
+
+首次 grant 会把可继承 ACE 传播到整棵目录树（含 node_modules），大目录会慢；
+之后的运行命中幂等跳过（精确 ACE + deny + label 三者齐备就不再 apply）。
+[dsh-jobs-demo](../dsh-jobs-demo/README.md) 等挂 sandbox-local 的示例同样
+受这条约束。
 
 **S3 沙箱模式。** 服务上没有现成的 `mode` 字段：部署默认叫 `defaultMode`
 （patch 里配的 `workspace-write`；不配时 fail-safe 默认是 `read-only`，
@@ -100,8 +121,10 @@ Low 完整性标签 + 拒绝 Everyone 的 ambient 删除权」，再以低完整
 workspaceRoot 取会话头 cwd、无会话时退回配置根（`index.ts:208-220`）。
 
 **S4 观察策略。** fs-observation-policy 无 inject，纯挂 `fs/*` 监听登记「观察」：
-用 node 直接落盘的文件没有观察记录，`edit` 被拒（`cannot modify …`）；
-`read` 一次之后同样的 `edit` 放行。这是防「模型凭记忆盲改文件」的缝。
+演示必须用 `writeFileSync` 直接落盘建文件——若用 `write` 工具建文件，那次
+write 本身就登记了一次观察，后面的 edit 自然合法，演示不出拒绝。直接落盘的
+文件没有观察记录，`edit` 被拒（`cannot modify …`）；`read` 一次之后同样的
+`edit` 放行。这是防「模型凭记忆盲改文件」的缝。
 
 **S5 /permission 切换。** permission-presets 注册 `/permission` 命令，一条命令
 同时改沙箱模式与审批策略（预设三档见上文）。切到 read-only 后 `write` 被
@@ -249,12 +272,12 @@ const ctx = await boot(
 # 安装依赖（31 个运行时依赖 + 2 个 devDependencies）
 npm install
 
-# Windows：先按坑 1 给工程目录补 FullControl（只需一次）
+# Windows：先给工程目录补 FullControl（只需一次，见 §3 S2）
 
 # Node 侧
 npm start
 
-# Bun 侧（run-bun.mjs 用 Node 拉起 Bun 并注入 preload，见坑 5）
+# Bun 侧（run-bun.mjs 用 Node 拉起 Bun 并注入 preload，见 runtime/bun-preload.mjs）
 npm run start:bun
 
 # 类型检查
@@ -310,63 +333,19 @@ SANDBOX_OK
   typecheck 0 错误。
 
 留档：[runtime/out-node.txt](runtime/out-node.txt) ·
-[runtime/out-bun.txt](runtime/out-bun.txt)（含 npm notice 行的完整输出）。## 5 边界与坑（全部实测）
+[runtime/out-bun.txt](runtime/out-bun.txt)（含 npm notice 行的完整输出）。
 
-1. **Windows 工作目录必须给当前用户 FullControl（含 WRITE_OWNER），否则 Win32 5。**
-   首跑 S2 报：
-   `sandbox-local: windows-acl workspace grant failed: Win32Error: SetNamedSecurityInfoW failed (Win32 5): grantWrite(<工作目录>)`。
-   根因不是 rc.3 回归：`grantWrite` 一次调用同时写 DACL 和 **Low 完整性标签**，
-   标签住在 SACL 里，而目录所有者的隐式权利只覆盖 READ_CONTROL 与 WRITE_DAC——
-   源码注释写明「The directory must be owned by the caller AND grant WRITE_OWNER」
-   （`sandbox-windows-acl/src/acl.ts:368`，rc.1 同文）。实测对照：新建的示例目录
-   继承来的 ACL 只有 Modify → 失败；旧实验室目录恰好有 FullControl → 同机通过。
-   修法（在工程目录里执行一次）：
-
-   ```powershell
-   $acl = Get-Acl .
-   $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-     $env:USERNAME, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
-   $acl.SetAccessRule($rule)
-   Set-Acl . $acl
-   ```
-
-   首次 grant 会把可继承 ACE 传播到整棵目录树（含 node_modules），大目录会慢；
-   之后的运行命中幂等跳过（精确 ACE + deny + label 三者齐备就不再 apply）。
-   [dsh-jobs-demo](../dsh-jobs-demo/README.md) 等挂 sandbox-local 的示例同样
-   受这条约束。
-2. **`ctx.sandboxPolicy` 没有 `mode` 字段。** 直接读 `policy.mode` 得到 undefined。
-   部署默认读 `defaultMode`，生效策略用 `resolve({ session })`（见 S3）。
-3. **观察策略演示必须绕过工具建文件。** 若用 `write` 工具建文件，那次 write 本身
-   就登记了一次观察，后面的 edit 自然合法——演示不出拒绝。所以 S4 用
-   `writeFileSync` 直接落盘。
-4. **文件名要带时间戳。** 观察策略按会话记忆；固定文件名会让第二次运行变成
-   「未读先写已存在文件」而被拒，误报成沙箱故障。
-5. **Bun 的 runner 分隔符缝。** subprocess-local 的协议是
-   `process.execPath runner.js -- <argv>`，Bun 吞掉脚本后第一个 `--`。
-   本工程自带迷你 runtime 层：`runtime/bun-preload.mjs` 只在 runner 入口
-   （`DSH_SUBPROCESS_RUNNER` 环境变量 + 文件名双判定）补回 `--`；
-   `runtime/run-bun.mjs` 用 Node 拉起 Bun 并经 **BUN_OPTIONS** 注入 preload——
-   runner 是孙进程，命令行 `--preload` 到不了那一层，只有环境变量一路继承。
-6. **Bun 必须 ≥ 1.4.4。** 1.3.x 缺 `node:util.getSystemErrorMessage`，
-   subprocess-local 直接导入失败（实测 1.3.11：`Export named 'getSystemErrorMessage'
-   not found in module 'node:util'`，四个插件连锁不激活）。机器上可能同时存在
-   新旧两份 Bun：`run-bun.mjs` 的回退候选按「npm 全局包（新）→ ~/.bun/bin（可能旧）」
-   排序，PATH 上无可 spawn 的 bun 时才用回退。
-7. **fs-sandbox 不需要 fs-local。** 它注入 `sandboxPolicy` 后自己提供沙箱化 fs；
-   多挂一行 fs-local 反而制造两个 fs 提供者。shell 执行器与工具按平台
-   `disabled: !!js` 二选一，同一份 patch 在 Windows 与 POSIX 都能装配。
-8. **本示例不挂 ptc-runtime。** preload 只修 runner 分隔符一条缝，不需要
-   jobs 示例那套 shim/控制通道/data URL 补丁。`.dsh-home/` 已 gitignore；
-   `.cordis/` 是 cordis 启动时自动生成的 resolve 缓存（自带 gitignore），
-   两者都不用手工维护。
-
-## 6 从零复现：完整文件与运行路径
+## 5 从零复现：完整文件与运行路径
 
 前置条件：Node ≥ 22.18（实测 v26.12.1，原生 TypeScript 类型剥离）；跑 Bun 侧
-需要 Bun ≥ 1.4.4（实测 1.4.4，坑 6）；Windows 上先按坑 1 给工程目录补一次
-FullControl。不需要 API key，不访问网络（npm install 除外）。
+需要 Bun ≥ 1.4.4（实测 1.4.4；1.3.x 缺 `node:util.getSystemErrorMessage`，
+subprocess-local 直接导入失败，四个插件连锁不激活）。Windows 上先给工程
+目录补一次 FullControl（见 §3 S2）。不需要 API key，不访问网络（npm install
+除外）。
 
-目录结构（node_modules、.dsh-home、.cordis 除外，均已 gitignore 或自带忽略）：
+目录结构（node_modules、.dsh-home、.cordis 除外：前两者已 gitignore，
+`.cordis/` 是 cordis 启动时自动生成的 resolve 缓存，自带 gitignore，都不用
+手工维护）：
 
 ```text
 dsh-sandbox-demo/
@@ -785,7 +764,7 @@ restoreRunnerDelimiter()
 # 1 安装依赖
 npm install
 
-# 2 Windows：给工程目录补 FullControl（坑 1，只需一次）
+# 2 Windows：给工程目录补 FullControl（只需一次，见 §3 S2）
 
 # 3 类型检查（0 错误）
 npm run typecheck
@@ -801,9 +780,9 @@ npm start
 ```
 
 本示例不依赖任何环境变量、端口或外部服务：`DSH_HOME` 由代码自己指向工程内的
-`.dsh-home`，不需要 API key；唯一的宿主前置是 Windows 的工作目录 ACL（坑 1）。
+`.dsh-home`，不需要 API key；唯一的宿主前置是 Windows 的工作目录 ACL（见 §3 S2）。
 
-## 7 小结
+## 6 小结
 
 这个示例验证了 3 件事：
 

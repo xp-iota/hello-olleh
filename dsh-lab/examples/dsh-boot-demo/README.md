@@ -49,12 +49,16 @@ new Context()
 
 两个失败标签值得记住：`prepare` 抛错标 **`host preparation failed`**（此时还没有任何配置条目挂载）；之后抛错标 **`plugin tree failed to load`**。失败路径先 `ctx.fiber.dispose()` 再抛——不会留下半棵树。
 
+`DSH_HOME` 必须在 boot 之前设置：boot 内部 `provide('dshHomePath', ...)` 供 `!!js` 表达式用。本示例把 home 收进 `<示例>/.dsh-home`（gitignore），整目录拷走不污染用户主目录。
+
 启动审计的规则（`auditStartupEntries`，index.ts:1173-1187）：
 
 - 全局 required 清单（index.ts:966-977）：`agent-loop`、`tool-executor-native`、`tool-executor-ptc`、`webserver`、`web-runtime`、`modules`、`connection`、`headless-runner`、`acp`、`sdk-jsonrpc-server`；
 - **缺席的 required id 被忽略**——清单是「挂了就必须活」，不是「必须挂」；
 - required 行 inactive → 抛 `StartupError`（message 里连同所有 inactive 行一起列出）；
 - 非 required 行 inactive → 只打一条 warning，成功的兄弟行继续运行。
+
+一个容易读错的 API 形状：`loader.entries()` 返回 Generator 不是数组，直接 `.find()` 会在 typecheck 报 TS2339，先 `[...ctx.loader.entries()]` 展开。
 
 ## 3 最小树：五行
 
@@ -66,7 +70,7 @@ new Context()
 | `tool-executor-native` | `@deepseek-ai/dsh-tool-executor-native` | `inject = ['tools']`；0.2.2 起执行器与注册表分离，且行 id 在 required 清单里 |
 | `hello` | `./src/plugins/hello.ts`（本地） | 本示例的观察点：`inject = ['labMark']`，labMark 由宿主提供 |
 
-依赖链一眼可见：`systemPrompt → tools → tool-executor-native`，`labMark（宿主）→ hello`。这条链就是「服务可用性驱动激活」的实体。
+依赖链一眼可见：`systemPrompt → tools → tool-executor-native`，`labMark（宿主）→ hello`。这条链就是「服务可用性驱动激活」的实体。漏挂 system-prompt 会连环失败：tools PENDING → tool-executor-native PENDING → 后者是 required → 整个 boot 抛 StartupError；错误信息会列出缺失服务链，但第一因在树上最深处。
 
 ## 4 五个场景
 
@@ -236,7 +240,7 @@ for (const [key, value] of Object.entries(overrides)) {
 }
 ```
 
-所以 overlay 层的 `config: { tag: overlay-wins }` 把 hello 的整个 config 换掉——如果第一层还有别的 config key，它们会**消失**而不是保留。多层叠加时同一个 key 后写的层胜出（`PatchIndex` 按 patch 数组下标记录每个 key 的 owner）。insert 行则相反：追加进目标 group（或根），且每个插入条目都会被 `ensureIds` 补上 id，运行时变更才能按 id 路由回来。
+所以 overlay 层的 `config: { tag: overlay-wins }` 把 hello 的整个 config 换掉——如果第一层还有别的 config key，它们会**消失**而不是保留。多层叠加时同一个 key 后写的层胜出（`PatchIndex` 按 patch 数组下标记录每个 key 的 owner）。insert 行则相反：追加进目标 group（或根），且每个插入条目都会被 `ensureIds` 补上 id，运行时变更才能按 id 路由回来。相对插件名锚定 **patch 文件所在目录**，不是 cwd（`anchorInsertedPluginNames`，index.ts:567-577）：`./src/plugins/hello.ts` 相对的是 `cordis.patch.yml` 所在目录——所以 patch 文件和插件目录要一起搬。
 
 ### prepare 的位置决定了它能做什么
 
@@ -260,18 +264,7 @@ for (const [key, value] of Object.entries(overrides)) {
 
 cordis 的 `FiberState` 是 const enum，编译后没有运行时对象。app-boot 自己的做法（index.ts:954-957）就是按值镜像：`PENDING=0 / LOADING=1 / ACTIVE=2 / FAILED=3 / DISPOSED=4 / UNLOADING=5`。本示例的 `STATE_NAMES` 数组同款。
 
-## 7 边界与坑
-
-1. **`loader.entries()` 返回 Generator 不是数组**。直接 `.find()` 会在 typecheck 报 TS2339（本示例实测踩过）；先 `[...ctx.loader.entries()]` 展开。
-2. **最小树漏挂 system-prompt 会连环失败**：tools PENDING → tool-executor-native PENDING → 它是 required → 整个 boot 抛 StartupError。错误信息会列出缺失服务链，但第一因在树上最深处。
-3. **overlay 不是深合并**（第 6 节）。想只改一个字段又保留其余字段，得把其余字段也写进 overlay 层。
-4. **相对插件名锚定 patch 文件目录**，不是 cwd（`anchorInsertedPluginNames`，index.ts:567-577）。`./src/plugins/hello.ts` 相对的是 `cordis.patch.yml` 所在目录——所以 patch 文件和插件目录要一起搬。
-5. **`DSH_HOME` 必须在 boot 之前设置**。boot 内部 `provide('dshHomePath', ...)` 供 `!!js` 表达式用；本示例把 home 收进 `<示例>/.dsh-home`（gitignore），整目录拷走不污染用户主目录。
-6. **boot 已经自带审计**，返回后再手动 `auditStartupEntries` 是可选的二次检查，不是必须。
-7. **npm 会自动安装 peerDependencies**：`dsh-tools` 的 peer 面（llm/agent/scope/session/user-approval 等）没有写进本示例 package.json，但 `npm install` 后都在（共 47 包）。声明的只是本主题直接用到或直接引用的包。
-8. 本示例不挂 ptc/subprocess，Bun 无需补丁（对比：需要 `stripTypeScriptTypes` 或 subprocess runner 的示例要自带 preload 补丁，见 dsh-jobs-demo / dsh-sandbox-demo）；运行时状态落在本目录 `.dsh-home/`（gitignored）。
-
-## 8 从零复现：完整文件与运行路径
+## 7 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -325,6 +318,8 @@ dsh-boot-demo/
   }
 }
 ```
+
+npm 会自动安装 peerDependencies：`dsh-tools` 的 peer 面（llm/agent/scope/session/user-approval 等）没有写进 package.json，但 `npm install` 后都在（共 47 包）。声明的只是本主题直接用到或直接引用的包。
 
 tsconfig.json 与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md) 逐字相同（NodeNext + allowImportingTsExtensions，`include: ["src"]`）。
 
@@ -484,7 +479,7 @@ npm run start:bun       # Bun：除首行 runtime 标识外逐行一致
 
 示例不依赖任何环境变量、端口或外部服务。运行时状态落在工程内 `.dsh-home/`（已 gitignore）。
 
-## 9 小结
+## 8 小结
 
 这个示例验证了七件事：
 

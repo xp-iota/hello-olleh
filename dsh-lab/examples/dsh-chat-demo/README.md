@@ -86,13 +86,19 @@
 
 > 依赖链：`boot()` → loader 读 patch → 89 行插件按 inject 拓扑激活 → `llm`（两条路由）/ `sessions` / `tools`（27 个）/ `agentLoop` / `approval` / `jobs` / `invariants` 等 19 个必检服务在场。与 dsh-base 刻意不同的地方只有「去掉冗余」：不挂 profile 专属行（plugin-manager、hmr、config-editor、settings、api-gateway、otel 遥测——它们是桌面/Web 产品外壳，需要 profileContext 才可用），agent-loop 的 agents 保持空表。装配方式与逐行读法见 [dsh-boot-demo](../dsh-boot-demo/README.md)。
 
+两处配置值得单独看。适配器的 `maxTokens: 8192` 是实测值：fuyao 网关的推理
+模型会把小额 maxTokens 全花在 thinking 上（实测 1024 仍零正文、
+finish=max-tokens），8192 才有正文。`web-deepseek-api` 行不带 config：rc.3 里
+baseURL/apiKeyEnv/apiKey 不再是 schema 字段，凭据跟随会话选择；
+`web-search-deepseek` 仍接受 apiKeyEnv。
+
 ## 3 逐场景机制
 
 ### chat：REPL 的三类交互监听
 
 `repl.ts` 在 `agents.create` 的 `setup` 回调里注册 **agent 作用域**的 waterfall：`approval/request` 翻成终端审批菜单（返回 `allowed-once` / `rejected`），`user-questions/request` 翻成选项菜单（支持自由回答）——agent 释放时自动解绑，不用手工记 disposer。全局监听负责渲染：`agent/assistant-stream` 逐 chunk 画流式文本与 thinking 块，`session/event` 处理 `turn/end` 与 `tool/call` + `tool/result`，`agent/error` 保证运行期错误可见。
 
-两个签名坑在代码注释里留了痕：`session/event` 是**两个位置参数** `(session, event)`，不像 `agent/*` 收一个 payload 对象——按 payload 解构会永远拿不到事件且不报错；`tool/result` 的消息体在 `data.message` 里，不是摊在 `data` 上。
+两个容易读错的签名在代码注释里留了痕：`session/event` 是**两个位置参数** `(session, event)`，不像 `agent/*` 收一个 payload 对象——按 payload 解构会永远拿不到事件且不报错；`tool/result` 的消息体在 `data.message` 里，不是摊在 `data` 上。
 
 斜杠命令分两类：本地命令（`/help` `/traj` `/sessions` `/new` `/model`）不进会话日志——它们是「看会话」的动作，不是会话内容；官方命令（`/compact` `/goal` `/permission` `/plan` `/feedback`）走 `ctx.commands.execute`，落进日志。普通输入只有一句：`agent.followup(createUserMessage(...))` 塞进 inbox 再 `await agent.whenIdle()`——**没有第二套循环**，turn/step 推进、工具调度、压缩、重试全部由 dsh-agent-loop 完成。
 
@@ -106,11 +112,11 @@
 
 ### 默认路由兜底
 
-rc.3 的 `agentDefaultModel` 只是配置服务（`currentSelection()` / `saveSelection()`），不再自动填进 AgentOptions。`startAgent` 在未显式指定路由时读 `currentSelection()` 兜底，否则首轮直接报 `has no provider/model`（§5 第 3 条）。
+rc.3 的 `agentDefaultModel` 只是配置服务（`currentSelection()` / `saveSelection()`），不再自动填进 AgentOptions。`startAgent` 在未显式指定路由时读 `currentSelection()` 兜底，否则首轮直接报 `has no provider/model`。
 
 ## 4 运行 chat 示例
 
-前置：`npm install`（`.npmrc` 放宽 peer 解析，见 §5 第 1 条）。探针、测试、会话回看全程不需要 key；真实对话需要本目录 `.env`（模板见 §6）。
+前置：`npm install`（`.npmrc` 放宽 peer 解析，见 §5 .npmrc 节）。探针、测试、会话回看全程不需要 key；真实对话需要本目录 `.env`（模板见 §5）。
 
 根配置全文（装配全在 patch）：
 
@@ -119,7 +125,7 @@ rc.3 的 `agentDefaultModel` 只是配置服务（`currentSelection()` / `saveSe
 []
 ```
 
-`src/boot.ts` 的启动核心（完整文件见 §6）：
+`src/boot.ts` 的启动核心（完整文件见 §5）：
 
 ```ts
 export async function bootChatDemo(options: {
@@ -266,7 +272,7 @@ turn 大纲
 7 个值得注意的数字：
 
 - **89** 行装配清单，`cordis.yml` 是空表，代码里零手工接线。
-- **127** 个依赖，其中 26 个是为 `legacy-peer-deps` 显式补写的 peer（§5 第 1 条）。
+- **127** 个依赖，其中 26 个是为 `legacy-peer-deps` 显式补写的 peer（见 §5 .npmrc 节）。
 - **19/19** 必检服务、**27** 个工具，双运行时探针输出逐行一致。
 - **22** 个测试（6 + 12 + 4），双侧 0 fail。
 - **5** 个官方斜杠命令：/compact、/feedback、/goal、/permission、/plan。
@@ -275,19 +281,9 @@ turn 大纲
 
 留档：[probe-out-node.txt](probe-out-node.txt) / [probe-out-bun.txt](probe-out-bun.txt)、[chat-real-node.txt](chat-real-node.txt) / [chat-real-bun.txt](chat-real-bun.txt)、[chat-nokey-node.txt](chat-nokey-node.txt)、[traj-out-node.txt](traj-out-node.txt)、冒烟 [chat-smoke-node.txt](chat-smoke-node.txt) / [chat-smoke-bun.txt](chat-smoke-bun.txt)。
 
-## 5 边界与坑
+## 5 从零复现：完整文件与运行路径
 
-1. **`legacy-peer-deps` 不装 peer 依赖**。`dsh-invariants` 上游未发 rc.3（最新 0.2.0-rc.2），其 peer 声明 cordis ~4.0.4 与本示例的 4.1.0 冲突，只能 `.npmrc` 放宽 peer 解析——副作用是 npm **不再自动安装任何 peerDependencies**，首跑报 `ERR_MODULE_NOT_FOUND '@deepseek-ai/dsh-error'`。解法：把 26 个被声明为 peer 的包（dsh-error / dsh-scope / dsh-fs / dsh-shell / dsh-subprocess / dsh-compaction …）全部显式写进 dependencies（均 pin 0.2.2-rc.3），迭代两轮收敛到 127 个依赖、缺失 peer 为 NONE。其他示例没有 `.npmrc`，peers 自动安装，所以没撞上。
-2. **rc.3 工具数 26→27**。新增 `wait_agent`；探针判据与文档同步改 27，不能拿 rc.1 的旧判据断言 rc.3 的树。
-3. **rc.3 默认路由不再自动注入**。`agentDefaultModel` 从「自动填 AgentOptions」退成纯配置服务，入口必须自己 `currentSelection()` 兜底（本示例 repl 已修；症状是首轮 `agent "…" has no provider/model`）。
-4. **thinking 预算**。fuyao 网关的推理模型会把小额 maxTokens 全花在 thinking 上（实测 1024 仍零正文、finish=max-tokens），patch 里适配器配 **8192** 才有正文。
-5. **Bun 两条缝**（rc.3 形态未变）：`dsh-ptc-runtime-node` 依赖 `node:module.stripTypeScriptTypes`（Bun 没有），`dsh-subprocess-local` 的 runner 协议依赖私有 `--` 分隔符（Bun 吞掉）。`runtime/bun-preload.mjs` + `lib/bun-shim.mjs` + `lib/spawn.mjs` 三件套在加载期修补，**不改 node_modules**；preload 必须经 `BUN_OPTIONS` 注入（runner 是孙进程，只继承环境变量）。缺 shim 时工具静默 27→26，info 探针专抓。
-6. **rc.3 `web-deepseek-api` 配置面收窄**：baseURL / apiKeyEnv / apiKey 不再是 schema 字段，patch 中该行不带 config；`web-search-deepseek` 仍接受 apiKeyEnv。
-7. **Windows 沙箱 TEMP 探针**：沙箱 ACL 授权要求父目录 WRITE_DAC/WRITE_OWNER，`boot.ts` 用 `dsh-sandbox-windows-acl` 自己的 API 做可写探针（icacls 只碰 DACL，会给假阳性），候选目录逐个试；`DSH_CHAT_TEMP=keep` 可禁用。
-8. **`.env` 只读本目录**：`bin.ts` 启动时读示例根的 `.env`，不覆盖已存在的环境变量；机制路径（info/sessions/traj）完全不受 key 影响。
-9. 本示例挂了 ptc-runtime 与 subprocess-local，Bun 必须经 `runtime/` 三件套启动（`:bun` 脚本已内置）；会话、存储、凭据都落在本目录 `.dsh-home/`（gitignored），刻意不继承外层 shell 的 `DSH_HOME`，不污染用户目录。## 6 从零复现：完整文件与运行路径
-
-前置条件：Node >= 22.18（原生 TS 类型剥离，实测 v26.12.1）或 Bun >= 1.4.4；`npm install` 一次（`.npmrc` 已放宽 peer 解析）。探针、测试、会话回看不需要任何 key；真实对话复制 `.env.example` 为 `.env` 并填入网关与 key。
+前置条件：Node >= 22.18（原生 TS 类型剥离，实测 v26.12.1）或 Bun >= 1.4.4；`npm install` 一次（`.npmrc` 已放宽 peer 解析）。探针、测试、会话回看不需要任何 key；真实对话复制 `.env.example` 为 `.env` 并填入网关与 key。`.env` 只读本目录：`bin.ts` 启动时读示例根的 `.env`，不覆盖已存在的环境变量，机制路径（info/sessions/traj）完全不受 key 影响。会话、存储、凭据都落在本目录 `.dsh-home/`（gitignored），刻意不继承外层 shell 的 `DSH_HOME`，不污染用户目录。Windows 上沙箱对 TEMP 目录有要求：`boot.ts` 用 `dsh-sandbox-windows-acl` 自己的 API 做可写探针（icacls 只碰 DACL，会给假阳性），候选目录逐个试，`DSH_CHAT_TEMP=keep` 可禁用。
 
 ### 目录结构
 
@@ -479,6 +475,11 @@ dsh-chat-demo/
 # 故沿用根工程的解法：放宽 peer 解析。上游发新版后应移除本文件。
 legacy-peer-deps=true
 ```
+
+放宽 peer 解析的副作用是 npm **不再自动安装任何 peerDependencies**：26 个被
+声明为 peer 的包（dsh-error / dsh-scope / dsh-fs / dsh-shell / dsh-subprocess /
+dsh-compaction …）必须全部显式写进 dependencies（均 pin 0.2.2-rc.3），收敛到
+127 个依赖、缺失 peer 为 NONE。其他示例没有 `.npmrc`，peers 自动安装。
 
 ### .env.example（完整版）
 
@@ -938,7 +939,7 @@ trajectory 视图 384 行，全文在 [traj.ts](src/cli/traj.ts)：
 
 ### src/plugins/（两份副本，结构说明）
 
-- `anthropic-compat/index.ts`（607 行）：与 [dsh-llm-adapter-demo 的适配器](../dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts) 逐行 diff 只差头注释与缺 key 报错文案。结构地图见那篇 README §6：Config schema 8 字段、5 个导出纯函数（parseSseData / splitSystem / toAnthropicMessages / toAnthropicTool / tokenUsage）、apply 里的环境变量覆盖与每次请求解析凭据。12 个单测在 [index.test.ts](src/plugins/anthropic-compat/index.test.ts)。
+- `anthropic-compat/index.ts`（607 行）：与 [dsh-llm-adapter-demo 的适配器](../dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts) 逐行 diff 只差头注释与缺 key 报错文案。结构地图见那篇 README §5：Config schema 8 字段、5 个导出纯函数（parseSseData / splitSystem / toAnthropicMessages / toAnthropicTool / tokenUsage）、apply 里的环境变量覆盖与每次请求解析凭据。12 个单测在 [index.test.ts](src/plugins/anthropic-compat/index.test.ts)。
 - `safety-guardrail/index.ts`（153 行）：与 [dsh-guardrail-demo 的护栏](../dsh-guardrail-demo/src/plugins/safety-guardrail/index.ts) 只差头注释。`inject = ['tools']`，Config 8 字段全默认值（默认只观察不拦截）；`decide()` 优先级 cancel > deny 名单 > deny 命令模式 > ask > allow；`redactValue()` 规范化键名后精确/后缀匹配脱敏（`maxTokens` 不会被 `token` 误伤）；apply 注册一个 `tools/pre-execute` 监听，非 allow 决定先留痕再返回，日志走 stderr 不打断流式渲染。4 个测试在 [index.test.ts](src/plugins/safety-guardrail/index.test.ts)。
 
 ### runtime/（迷你双运行时层，结构说明）
@@ -976,7 +977,7 @@ npm run traj
 
 机制路径（info / sessions / traj / test / 冒烟）不依赖任何环境变量、端口或外部服务；真实对话只多一个本目录 `.env`。
 
-## 7 小结
+## 6 小结
 
 这个示例验证了 4 件事：
 
