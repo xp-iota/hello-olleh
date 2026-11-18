@@ -11,9 +11,9 @@ sources:
   - id: patch-yml
     resource: "dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml"
     title: 两条 provider 路由的挂载与默认选路
-  - id: m03-module
+  - id: adapter-example
     resource: "dsh-lab/examples/04-dsh-llm-adapter-demo/src/index.ts"
-    title: M03 的真实 provider 访问路径
+    title: 真实 provider 访问路径（04-dsh-llm-adapter-demo）
   - id: wire-test
     resource: "dsh-lab/examples/04-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.test.ts"
     title: 对 Anthropic wire format 的纯函数回归测试
@@ -80,7 +80,7 @@ LLM 服务通过适配器连接推理后端。新协议需要实现适配器并�
 | 整条工具调用回路 | 脚本化适配器探针跑真实 turn | 已验证，见 [一次工具调用等于两步](04-tool-call-round-trip.md) |
 | 真实端点连通性 | 需显式提供 `LLM_API_KEY`（示例自己的 `.env`） | 已实测：fuyao 网关真实对话在 Node 与 Bun 上都完成带正文的 turn（留档见 `dsh-chat-demo` README） |
 
-旧版已知失败点已解决：旧 M03.3 显式传 `maxTokens: 200`，fuyao 网关的模型把预算花光在 `thinking`
+旧版已知失败点已解决：早期版本显式传 `maxTokens: 200`，fuyao 网关的模型把预算花光在 `thinking`
 块上，`stop_reason` 变成 `max_tokens`，于是没有 `text` 块。现示例把预算提到 **8192**，
 真实调用在两个运行时上都返回正文；这仍是具体网关的输出习惯问题，不是适配器缺陷。
 

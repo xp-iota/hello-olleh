@@ -45,7 +45,7 @@ IR 源：[12-example-minimax-loop.sequence.json](../../hello-dsh/diagrams/12-exa
 > `ctx.llm.stream` 入口、`tool/call` 与 `tool/result` 落 JSONL——与本文的接缝名一致。
 > 图里「第二次请求带上工具结果」那一步，就是本文说的第二步。
 
-- **工具定义复用**：M01 用 `defineTool` 注册 `word_count`，原样复用；默认路由是 `anthropic-compat`（`cordis.patch.yml` 的 `agent-default-model` 行）；schema 汇入提示由 `systemPrompt` 负责。
+- **工具定义复用**：工具管线示例用 `defineTool` 注册 `word_count`，原样复用；默认路由是 `anthropic-compat`（`cordis.patch.yml` 的 `agent-default-model` 行）；schema 汇入提示由 `systemPrompt` 负责。
 - **证据取自会话日志**：`tool/call` 与 `tool/result` 都从会话事件读；探针在拿不到
   `turn/start`、`tool/call`、`assistant/message` 时直接抛错。
 - **一次工具调用等于两步**：第一步模型只发调用意图；结果回灌后才有第二步收尾。
@@ -85,6 +85,6 @@ const toolCalls = events.filter((event) => event.type === 'tool/call').length
 
 - [推理服务可替换](03-provider-swap.md)
 - [能力缝的三角色](02-capability-seam.md)
-- 可运行示例：[M01 工具管线](../../../dsh-lab/examples/02-dsh-tool-pipeline-demo/README.md)
+- 可运行示例：[02-dsh-tool-pipeline-demo](../../../dsh-lab/examples/02-dsh-tool-pipeline-demo/README.md)
 
 上一层：[Concepts](index.md)。
