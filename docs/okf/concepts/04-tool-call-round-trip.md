@@ -6,16 +6,16 @@ tags: [okf, dsh-lab, tools, agent-loop, evidence]
 status: stable
 sources:
   - id: probe-trajectory
-    resource: "dsh-lab/scripts/probe-trajectory.ts"
+    resource: "dsh-lab/examples/dsh-trajectory-probe-demo/src/index.ts"
     title: 用脚本化适配器跑一个真实 turn 并读取会话日志
   - id: m01-module
-    resource: "dsh-lab/M01-tool-pipeline/index.ts"
+    resource: "dsh-lab/examples/dsh-tool-pipeline-demo/src/index.ts"
     title: word_count 工具的三件套定义与工具管线演示
   - id: tools-helper
-    resource: "dsh-lab/src/lab/tools.ts"
+    resource: "dsh-lab/examples/dsh-tool-pipeline-demo/src/index.ts"
     title: 阶段脚本共用的工具调用辅助 callTool
   - id: m04-module
-    resource: "dsh-lab/M04-agent-loop-intervention/index.ts"
+    resource: "dsh-lab/examples/dsh-agent-loop-demo/src/index.ts"
     title: turn / step 边界的观察阶段
 generated: { by: mcode/minimax-m3.1-flash, at: 2026-10-23T10:00:00Z }
 verified:
@@ -59,17 +59,18 @@ dsh-lab 里的读法是 `ctx.sessionQuery.readSession(sessionId)`——官方异
 已弃用的同步快照接口不再使用：
 
 ```ts
-const { events } = await lab.ctx.sessionQuery.readSession(sessionId)
+const { events } = await ctx.sessionQuery.readSession(sessionId)
 const toolCalls = events.filter((event) => event.type === 'tool/call').length
 ```
 
-不需要模型时，阶段脚本可以直接调工具：`src/lab/tools.ts` 的 `callTool()` 把
+不需要模型时，示例脚本可以直接调工具：各示例 `src/tools.ts`（如
+[`dsh-tool-pipeline-demo/src/tools.ts`](../../../dsh-lab/examples/dsh-tool-pipeline-demo/src/tools.ts)）的 `callTool()` 把
 `ctx.tools.execute()` 的返回压成一行可打印的文本，绕开模型也照样能验工具本身。
 
 ## 错误处理
 
-缺少 `LLM_API_KEY` 时，模型类阶段（M03.3、M04.1、M04.2）**明确失败**并说明
-要配哪个环境变量，不静默降级，也没有 mock 或离线回退。工具执行本身失败时
+缺少 `LLM_API_KEY` 时，需要真实调用的两个示例（`dsh-llm-adapter-demo`、`dsh-chat-demo`）**明确失败**并说明
+要配哪个环境变量（放在示例自己的 `.env`），不静默降级，也没有 mock 或离线回退。工具执行本身失败时
 （异常、预算耗尽、中止等），`@deepseek-ai/dsh-tools` 的执行管线会把它转成
 带 `isError=true` 的结构化结果，阶段断言随即失败。
 
@@ -84,6 +85,6 @@ const toolCalls = events.filter((event) => event.type === 'tool/call').length
 
 - [推理服务可替换](03-provider-swap.md)
 - [能力缝的三角色](02-capability-seam.md)
-- 可运行示例：[M01 工具管线](../../../dsh-lab/M01-tool-pipeline/README.md)
+- 可运行示例：[M01 工具管线](../../../dsh-lab/examples/dsh-tool-pipeline-demo/README.md)
 
 上一层：[Concepts](index.md)。

@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "一次完整生命周期：pending、激活与有序卸载",
+    "output": "seam-lifecycle.html",
+    "viewBox": [1460, 760],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "index", "type": "external", "label": "index.ts", "sublabel": "装配脚本" },
+    { "id": "cordis", "type": "backend", "label": "cordis", "sublabel": "依赖调度" },
+    { "id": "consumer", "type": "frontend", "label": "consumer", "sublabel": "inject: greeter" },
+    { "id": "provider", "type": "backend", "label": "provider-en", "sublabel": "ctx.greeter" },
+    { "id": "audit", "type": "messagebus", "label": "audit", "sublabel": "事件监听" }
+  ],
+  "segments": [
+    { "from": 141, "to": 415, "label": "挂载与自动激活" },
+    { "from": 435, "to": 690, "label": "有序卸载与换实现" }
+  ],
+  "messages": [
+    {
+      "id": "use-first",
+      "from": "index",
+      "to": "cordis",
+      "y": 175,
+      "label": "use(audit) / use(consumer)",
+      "variant": "emphasis",
+      "note": "inject 未满足：consumer 停在 PENDING，apply 一次也没执行"
+    },
+    {
+      "id": "use-provider",
+      "from": "index",
+      "to": "cordis",
+      "y": 230,
+      "label": "use(provider-en)"
+    },
+    {
+      "id": "apply-provider",
+      "from": "cordis",
+      "to": "provider",
+      "y": 285,
+      "label": "apply()：new EnglishGreeter(ctx)",
+      "note": "构造即注册，ctx.greeter 就绪"
+    },
+    {
+      "id": "wake-consumer",
+      "from": "cordis",
+      "to": "consumer",
+      "y": 340,
+      "label": "服务就绪，自动激活",
+      "note": "激活与挂载顺序无关，由依赖声明决定"
+    },
+    {
+      "id": "greet",
+      "from": "consumer",
+      "to": "provider",
+      "y": 395,
+      "label": "greet('cordis')"
+    },
+    {
+      "id": "emit",
+      "from": "provider",
+      "to": "audit",
+      "y": 460,
+      "label": "emit('greeter/greet', …)",
+      "note": "同步派发，不检查有没有监听者"
+    },
+    {
+      "id": "dispose",
+      "from": "index",
+      "to": "cordis",
+      "y": 515,
+      "label": "enFiber.dispose()",
+      "variant": "emphasis"
+    },
+    {
+      "id": "unload-consumer",
+      "from": "cordis",
+      "to": "consumer",
+      "y": 570,
+      "label": "先卸载 consumer",
+      "variant": "return",
+      "note": "consumer 的清理逻辑运行时，服务还活着"
+    },
+    {
+      "id": "unregister",
+      "from": "cordis",
+      "to": "provider",
+      "y": 625,
+      "label": "再注销 ctx.greeter",
+      "variant": "return",
+      "note": "audit 不受影响；换上 pirate 后 consumer 原地复活"
+    }
+  ],
+  "activations": [
+    { "participant": "cordis", "from": 170, "to": 631, "type": "backend" },
+    { "participant": "provider", "from": 280, "to": 631, "type": "backend" },
+    { "participant": "consumer", "from": 335, "to": 576, "type": "frontend" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "正向：依赖驱动",
+      "items": [
+        "consumer 先挂但停在 PENDING",
+        "provider 一出现，cordis 自动激活 consumer",
+        "greet 调用内部同步广播事件"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "反向：卸载有方向",
+      "items": [
+        "dispose(provider) 先卸载依赖它的 consumer",
+        "再注销服务本身，audit 全程不受影响",
+        "服务消失时 consumer 回到 PENDING 而非销毁"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "原地复活",
+      "items": [
+        "挂上 provider-pirate，同一 fiber 重新加载",
+        "consumer 的代码一行没改",
+        "生命周期：PENDING → LOADING → ACTIVE → UNLOADING"
+      ]
+    }
+  ]
+}

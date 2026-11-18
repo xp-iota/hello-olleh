@@ -287,7 +287,7 @@ rc.3 把 8571 行的 `apiproxy` 删除，API 面按**资源域**拆成 9 个控�
 
 ## 9.17 `settings` 组
 
-> 📐 **配套可跑示例**：[`M11.1 · 存储域：schema 校验的结构化记录`](../../dsh-lab/M11-config-data-durability/index.ts) 打开一个命名领域
+> 📐 **配套可跑示例**：[`M11.1 · 存储域：schema 校验的结构化记录`](../../dsh-lab/examples/dsh-storage-demo/src/index.ts) 打开一个命名领域
 > （`lab_m11_demo` / 表 `notes`），并用 zod 校验写入——schema 不符即报错，不会静默存脏数据。
 > ⚠️ 配套工程**没有挂载 settings 服务**（`@deepseek-ai/dsh-settings` 不在 `cordis.patch.yml` 的 89 条行里），
 > 所以"默认值 → `update` 合并 → 过期 `expectedRevision` 冲突 → `mutate` → `replace({})` 重置 → 重复注册抛错"
@@ -330,7 +330,7 @@ rc.3 把 8571 行的 `apiproxy` 删除，API 面按**资源域**拆成 9 个控�
 
 ## 9.20 Jobs：`ctx.jobs`
 
-> 📐 **配套可跑示例**：[`M09.1 · 启动一个后台任务并读它的输出`](../../dsh-lab/M09-long-running-work/index.ts) 启动一个 job、确认它出现在会话可见的列表里，
+> 📐 **配套可跑示例**：[`M09.1 · 启动一个后台任务并读它的输出`](../../dsh-lab/examples/dsh-jobs-demo/src/index.ts) 启动一个 job、确认它出现在会话可见的列表里，
 > 再读出它的状态与本次产出的 chunk 数——后台任务的输出有界保留（ring buffer），模型用游标读取，观察者用字节偏移读。
 > ⚠️ 配套工程**没有**覆盖"JobHooks 拉模型 / `wait` 结算 / 属主栅栏 / `kill` / 没有 controller 时 start 被拒"这几条——以本快照的源码分析为准。
 
@@ -375,7 +375,7 @@ rc.3 把 8571 行的 `apiproxy` 删除，API 面按**资源域**拆成 9 个控�
 
 ## 9.23 Goal：同会话目标
 
-> 📐 **配套可跑示例**：[`M09.2 · 目标与自动续跑`](../../dsh-lab/M09-long-running-work/index.ts) 创建一个目标并读回，
+> 📐 **配套可跑示例**：[`M09.2 · 目标与自动续跑`](../../dsh-lab/examples/dsh-jobs-demo/src/index.ts) 创建一个目标并读回，
 > > 说明"目标通过投影单元重建，因此重启后仍在"。
 > ⚠️ 配套工程**没有**覆盖"过期 `GoalRef` 的 CAS 冲突"与"状态完全折叠自日志"这两条——以本快照的源码分析为准。
 

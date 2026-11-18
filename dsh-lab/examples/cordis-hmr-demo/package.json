@@ -1,0 +1,19 @@
+{
+  "name": "cordis-hmr-demo",
+  "private": true,
+  "type": "module",
+  "description": "HMR 原位替换：Node 走 @cordisjs/hmr reconcile 事务（--expose-internals），Bun 走 core registry.replace 同一条缝。双运行时。",
+  "scripts": {
+    "start": "node --expose-internals src/index.ts",
+    "start:bun": "bun src/index.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cordisjs/hmr": "2.0.0-rc.0",
+    "cordis": "4.0.0-rc.13"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "typescript": "7.0.2"
+  }
+}

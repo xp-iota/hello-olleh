@@ -1,0 +1,5 @@
+node_modules/
+.dsh-home/
+.dsh-project/
+AGENTS.md
+skills/runtime-note/

@@ -1,0 +1,137 @@
+# 长期运行工作的完整树：九行 base + 二十四行长生栈。
+# 本示例不跑模型 turn：jobs/goal/schedule 直接驱动服务 API，workflow/run_code
+# 用 callTool 走真实工具管线（不需要 key）。
+# 执行器选 PTC（tool-executor-ptc 替换 native）：run_code 只在 PTC 执行器下暴露。
+# 依赖链：ptc-runtime-node 注入 fs + subprocess + sandbox + sandboxPolicy；
+#         workflow-ptc 注入 subagents + ptcRuntime + sandboxPolicy + workingDirectory；
+#         schedule 注入 agents + sessions + storageDomain + sessionPersistence；
+#         storage-domain/storage-json 注入 storage；goal-round-driver 注入 agents + goals + sessions。
+- insert:
+    - id: timer
+      name: '@deepseek-ai/cordis-plugin-timer'
+
+    - id: system-prompt
+      name: '@deepseek-ai/dsh-system-prompt'
+
+    - id: tools
+      name: '@deepseek-ai/dsh-tools'
+
+    # PTC 执行器：setExecutor 覆盖 native，run_code 成为模型可见的程序传输面。
+    - id: tool-executor-ptc
+      name: '@deepseek-ai/dsh-tool-executor-ptc'
+
+    - id: session
+      name: '@deepseek-ai/dsh-session'
+
+    - id: session-projection
+      name: '@deepseek-ai/dsh-session-projection'
+
+    - id: agent
+      name: '@deepseek-ai/dsh-agent'
+
+    - id: llm
+      name: '@deepseek-ai/dsh-llm'
+
+    - id: agent-loop
+      name: '@deepseek-ai/dsh-agent-loop'
+      config:
+        agents: []
+
+    # ── 后台任务：registry + 工具面 ────────────────────────────────────────
+    - id: jobs
+      name: '@deepseek-ai/dsh-jobs-local'
+
+    - id: tool-jobs
+      name: '@deepseek-ai/dsh-tool-jobs'
+
+    # ── 目标：服务 + 工具 + /goal 命令 + 续跑驱动 ──────────────────────────
+    - id: commands
+      name: '@deepseek-ai/dsh-commands'
+
+    - id: goal
+      name: '@deepseek-ai/dsh-goal'
+
+    - id: tool-goal
+      name: '@deepseek-ai/dsh-tool-goal'
+
+    - id: command-goal
+      name: '@deepseek-ai/dsh-command-goal'
+
+    # 续跑驱动：只在 goal active 且 armed 时驱动自动续跑；
+    # create/resume 都会 arm，演示里用 disarm 同步解除，避免离线环境偷跑 turn。
+    - id: goal-round-driver
+      name: '@deepseek-ai/dsh-goal-round-driver'
+
+    # ── PTC 与沙箱：run_code 的宿主与边界 ──────────────────────────────────
+    - id: subprocess
+      name: '@deepseek-ai/dsh-subprocess-local'
+
+    - id: sandbox
+      name: '@deepseek-ai/dsh-sandbox-local'
+
+    - id: sandbox-policy
+      name: '@deepseek-ai/dsh-sandbox-policy'
+      config:
+        mode: workspace-write
+        workspaceRoot: !!js "process.cwd()"
+
+    - id: fs-sandbox
+      name: '@deepseek-ai/dsh-fs-sandbox'
+
+    - id: working-directory
+      name: '@deepseek-ai/dsh-working-directory'
+
+    - id: ptc-runtime
+      name: '@deepseek-ai/dsh-ptc-runtime-node'
+
+    # ── 工作流：subagent 服务（fan-out 的宿主）+ PTC 引擎 + 工具 ───────────
+    - id: subagent
+      name: '@deepseek-ai/dsh-subagent'
+      config:
+        maxDepth: 1
+
+    # workflow 启动即解析默认 provider（spawn）：不挂 provider 连不 fan-out
+    # 的脚本也起不来；continuable 激活要求会话持久化（上面已挂）。
+    - id: subagent-spawn
+      name: '@deepseek-ai/dsh-subagent-spawn-in-process'
+      config:
+        providerName: spawn
+
+    - id: workflow-ptc
+      name: '@deepseek-ai/dsh-workflow-ptc'
+
+    - id: tool-workflow
+      name: '@deepseek-ai/dsh-tool-workflow'
+
+    # ── 存储与持久化：schedule 的 durable 底座 ─────────────────────────────
+    - id: storage
+      name: '@deepseek-ai/dsh-storage'
+
+    - id: storage-json
+      name: '@deepseek-ai/dsh-storage-json'
+      config:
+        root: !!js dshHomePath('storages')
+
+    - id: storage-domain
+      name: '@deepseek-ai/dsh-storage-domain'
+      config:
+        backend: json
+
+    - id: session-log-deepseek
+      name: '@deepseek-ai/dsh-session-log-deepseek'
+
+    - id: deepseek-llm-api-extensions
+      name: '@deepseek-ai/dsh-deepseek-llm-api-extensions'
+
+    - id: session-persistence-jsonl
+      name: '@deepseek-ai/dsh-session-persistence-jsonl'
+      config:
+        root: !!js dshHomePath('sessions')
+        compression: none
+
+    # ── 定时与提醒：到点把一条 prompt 送进会话 ─────────────────────────────
+    - id: schedule
+      name: '@deepseek-ai/dsh-schedule'
+
+    - id: tool-schedule
+      name: '@deepseek-ai/dsh-tool-schedule'

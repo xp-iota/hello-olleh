@@ -1,0 +1,37 @@
+{
+  "name": "dsh-hitl-demo",
+  "private": true,
+  "type": "module",
+  "description": "人在回路：审批 waterfall 词汇表与 fail-closed、turn 约束与会话级策略覆盖、pre-execute ask 的真实工具审批、结构化提问、自定义斜杠命令、todo 工具。Node 与 Bun 双运行时。",
+  "scripts": {
+    "start": "node src/index.ts",
+    "start:bun": "bun src/index.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "4.1.0",
+    "@deepseek-ai/cordis-plugin-group": "1.1.0",
+    "@deepseek-ai/cordis-plugin-include": "1.1.0",
+    "@deepseek-ai/cordis-plugin-loader": "1.1.0",
+    "@deepseek-ai/cordis-plugin-timer": "1.2.0",
+    "@deepseek-ai/dsh-agent": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-agent-loop": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-commands": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-session-projection": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-tool-todo": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-user-approval": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-user-questions": "0.2.2-rc.3"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "typescript": "5.9.3"
+  }
+}

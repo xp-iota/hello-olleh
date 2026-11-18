@@ -1,0 +1,24 @@
+npm notice run start:bun
+npm notice run bun src/index.ts
+runtime = bun 1.4.4
+
+=== S1 路由与模型目录 ===
+已注册路由：anthropic-compat
+模型目录：MiniMax-M3
+resolveModelInfo：id=MiniMax-M3，defaultMaxTokens=8192
+
+=== S2 llm/stream waterfall ===
+llm/stream 命中：provider=lab-scripted model=seed
+waterfall 命中 1 次，经手 5 个 chunk，文本长度=28
+
+=== S3 合成 SSE 端到端（离线）===
+线协议端点：http://fuyao-ai-gateway.xiaopeng.link/v1/messages
+归属头在场：true，x-api-key 在场=true
+翻译结果：text=你好，护栏。，finish=stop，usage=12 in / 7 out
+
+=== S4 真实调用 ===
+请求 anthropic-compat / fuyao-coding
+回答：dsh 的工具管线通常分为三段。
+推理增量块：753；用量：0 in / 2672 out
+
+LLM_ADAPTER_OK

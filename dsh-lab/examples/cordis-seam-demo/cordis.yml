@@ -1,0 +1,4 @@
+# 插件与装配分离：换实现只改这个文件，src 里的代码不用动
+- name: ./src/audit.ts        # 事件型 consumer：只监听 greeter/greet
+- name: ./src/consumer.ts     # 服务型 consumer：inject 未满足时会等待
+- name: ./src/provider-en.ts  # provider：注册 ctx.greeter 并广播事件

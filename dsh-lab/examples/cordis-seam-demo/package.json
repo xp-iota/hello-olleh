@@ -1,0 +1,24 @@
+{
+  "name": "cordis-seam-demo",
+  "private": true,
+  "type": "module",
+  "description": "一条 greeter 接缝摆齐 cordis 四种角色：Service Definition / Provider / 服务型 Consumer / 事件型 Consumer。Node 与 Bun 双运行时。",
+  "scripts": {
+    "start": "node src/index.ts",
+    "start:bun": "bun src/index.ts",
+    "start:yml": "cordis",
+    "start:yml:bun": "bun node_modules/cordis/bin.js",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cordisjs/fs": "2.0.0-rc.0",
+    "@cordisjs/fs-node": "0.1.0",
+    "@cordisjs/include": "2.0.0-rc.0",
+    "@cordisjs/loader": "1.0.0-rc.10",
+    "cordis": "4.0.0-rc.13"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "typescript": "7.0.2"
+  }
+}

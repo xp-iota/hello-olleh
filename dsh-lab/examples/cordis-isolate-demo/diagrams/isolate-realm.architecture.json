@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "isolate 前后的存储键变化",
+    "output": "isolate-realm.html",
+    "viewBox": [1500, 620],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "b1",
+      "type": "external",
+      "label": "root 的 isolate 映射",
+      "sublabel": "{ greeter: Sym_A }",
+      "pos": [70, 120],
+      "size": [260, 95]
+    },
+    {
+      "id": "b2",
+      "type": "frontend",
+      "label": "consumer-root 的 ctx",
+      "sublabel": "原型链继承，greeter 指向 Sym_A",
+      "pos": [70, 270],
+      "size": [260, 95]
+    },
+    {
+      "id": "b3",
+      "type": "frontend",
+      "label": "consumer-realm 的 ctx",
+      "sublabel": "同样指向 Sym_A",
+      "pos": [70, 420],
+      "size": [260, 95]
+    },
+    {
+      "id": "b4",
+      "type": "backend",
+      "label": "默认 store",
+      "sublabel": "{ [Sym_A]: outer 实现 }",
+      "pos": [390, 270],
+      "size": [260, 95]
+    },
+    {
+      "id": "a2",
+      "type": "frontend",
+      "label": "consumer-root 不变",
+      "sublabel": "仍指向 Sym_A",
+      "pos": [830, 120],
+      "size": [280, 95]
+    },
+    {
+      "id": "a3",
+      "type": "security",
+      "label": "realm 的新视图",
+      "sublabel": "own 属性 greeter 指向 Sym_B",
+      "pos": [830, 420],
+      "size": [280, 95]
+    },
+    {
+      "id": "a4",
+      "type": "backend",
+      "label": "isolate 之后的 store",
+      "sublabel": "Sym_A outer、Sym_B inner 并存",
+      "pos": [1170, 270],
+      "size": [280, 95]
+    }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "默认状态：无 isolate", "wraps": ["b1", "b2", "b3", "b4"] },
+    { "kind": "region", "label": "realm = ctx.isolate('greeter') 之后", "wraps": ["a2", "a3", "a4"] }
+  ],
+  "connections": [
+    { "id": "e1", "from": "b2", "to": "b4" },
+    { "id": "e2", "from": "b3", "to": "b4" },
+    { "id": "e3", "from": "a2", "to": "a4" },
+    { "id": "e4", "from": "a3", "to": "a4" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "变的只有一个键",
+      "items": [
+        "root 的 isolate 映射始终是 { greeter: Sym_A }",
+        "realm 的新视图多出一个 own 属性 greeter 指向 Sym_B",
+        "root 侧的消费者完全不受影响"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "store 里新增而非替换",
+      "items": [
+        "Sym_A 的 outer 实现仍在",
+        "Sym_B 的 inner 实现是新记录",
+        "两者可以同时存活（示例场景 ①）"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "这就是空间可组合性",
+      "items": [
+        "同名服务在不同 realm 是不同实体",
+        "无需插件配合，调用方单方面决定",
+        "传同一个 label 即共享 realm（示例场景 ④）"
+      ]
+    }
+  ]
+}

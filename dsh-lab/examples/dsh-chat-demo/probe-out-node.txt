@@ -1,0 +1,13 @@
+npm notice run info
+npm notice run node src/cli/bin.ts info
+
+dsh-chat-demo 装配概况
+  工程      D:\coding\creative\hello-olleh\dsh-lab\examples\dsh-chat-demo
+  harness   D:\coding\creative\hello-olleh\dsh-lab\examples\dsh-chat-demo\.dsh-home
+  路由      anthropic-compat, deepseek-official
+  服务      19/19 必检在场
+  工具      27
+  命令      /compact, /feedback, /goal, /permission, /plan
+  护栏      pre-execute 日志（开启）
+
+BOOT_PROBE {"missing":[],"tools":27}

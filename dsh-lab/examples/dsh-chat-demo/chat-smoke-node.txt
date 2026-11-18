@@ -1,0 +1,6 @@
+npm notice run start
+npm notice run node src/cli/bin.ts chat
+
+dsh-chat-demo · 交互式会话
+  session  308761ff-88ad-4378-9d4d-2c2ce7be960b
+  route    anthropic-compat / fuyao-coding

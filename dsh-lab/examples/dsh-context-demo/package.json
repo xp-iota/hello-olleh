@@ -1,0 +1,38 @@
+{
+  "name": "dsh-context-demo",
+  "private": true,
+  "type": "module",
+  "description": "上下文装配与经济学：section 装配、变量插值校验、token 估算、超长结果裁剪、大输出溢写、会话模型表面。Node 与 Bun 双运行时。",
+  "scripts": {
+    "start": "node src/index.ts",
+    "start:bun": "bun src/index.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "4.1.0",
+    "@deepseek-ai/cordis-plugin-group": "1.1.0",
+    "@deepseek-ai/cordis-plugin-include": "1.1.0",
+    "@deepseek-ai/cordis-plugin-loader": "1.1.0",
+    "@deepseek-ai/cordis-plugin-timer": "1.2.0",
+    "@deepseek-ai/dsh-agent": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-agent-loop": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-compaction-tool-result-pruner": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-session-projection": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-session-query-sqlite": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-spill-local": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-spill-policy": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-token-meter": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.3"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "typescript": "5.9.3"
+  }
+}

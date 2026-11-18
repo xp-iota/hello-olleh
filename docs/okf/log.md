@@ -6,6 +6,21 @@ tags: [okf, dsh-lab]
 ---
 # dsh-lab 知识包更新历史
 
+## 2026-11-17
+
+dsh-lab 重构为「一文一工程」：旧 M01–M12 模块体系（60 阶段 + 共享 boot 树）退役，
+替换为 `examples/` 下 21 个完全独立的示例（cordis 6 + dsh 15，各自带 package.json、
+装配清单与主题文章）；版本面升到 `@deepseek-ai/*` 0.2.2-rc.3 + cordis 4.1.0。
+
+- 概念 01–04 的 `sources[].resource` 与正文链接改指新示例路径（如
+  `dsh-lab/src/boot.ts` → `dsh-lab/examples/dsh-chat-demo/src/boot.ts`）；
+  结论本身不变，但计数类断言（如 services.ts 的 24 个导入）属于旧结构，
+  复核时以新示例为准。
+- [graphify 建图参考](references/01-graphify-dsh-lab.md) 加历史快照横幅：
+  图谱基于旧结构，需重建，未提交新图谱。
+- 仓库级验证判据改为 `npm run verify` 遍历 examples/：
+  `RUNTIMES_VERIFY_OK runtimes=2 checks=63`（21 示例 × typecheck/start/start:bun）。
+
 ## 2026-10-23
 
 迁移到继任工程 `dsh-lab/`（前身 `dsh-example/` 已随提交 `40dfeb4` 从仓库删除）：

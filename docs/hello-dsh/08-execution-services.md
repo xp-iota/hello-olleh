@@ -28,7 +28,7 @@ title: "执行侧服务：文件、Shell、沙箱、子代理、压缩"
 
 ## 8.2 `FileSystem` 抽象类：15 个抽象方法
 
-> 📐 **配套可跑示例**：[`M07.1 · 用沙箱化文件系统读写`](../../dsh-lab/M07-execution-backends/index.ts) 在真实沙箱文件系统上写一个文件再读回来，
+> 📐 **配套可跑示例**：[`M07.1 · 用沙箱化文件系统读写`](../../dsh-lab/examples/dsh-sandbox-demo/src/index.ts) 在真实沙箱文件系统上写一个文件再读回来，
 > 并断言读回成功（`isError=false`）——写与读都按会话的 sandbox 策略判定。
 
 
@@ -168,7 +168,7 @@ title: "执行侧服务：文件、Shell、沙箱、子代理、压缩"
 
 ## 8.11 `ShellExecutor`：两个抽象方法
 
-> 📐 **配套可跑示例**：[`M07.2 · 一次性 shell 命令`](../../dsh-lab/M07-execution-backends/index.ts) 通过真实工具通道跑一条一次性命令
+> 📐 **配套可跑示例**：[`M07.2 · 一次性 shell 命令`](../../dsh-lab/examples/dsh-sandbox-demo/src/index.ts) 通过真实工具通道跑一条一次性命令
 > （Windows 走 `pwsh`，其他平台走 `bash`），并断言 `isError=false`。
 > ⚠️ 配套工程**没有**覆盖旧版示例里的"请求超时值被夹到实现上限"、"非零退出 / 超时 / 取消都 resolve"、"消费性增量读"这几条——它们以本快照的源码分析为准。
 
@@ -292,7 +292,7 @@ rc.3 把 `code-runtime` 组整体改名 **`ptc-runtime`**，并重写为 PTC（p
 
 ## 8.18 `SandboxProvider.confine()`：唯一的方法
 
-> 📐 **配套可跑示例**：[`M07.3 · 沙箱模式与 fail-closed`](../../dsh-lab/M07-execution-backends/index.ts) 打印当前挂载的 sandbox provider
+> 📐 **配套可跑示例**：[`M07.3 · 沙箱模式与 fail-closed`](../../dsh-lab/examples/dsh-sandbox-demo/src/index.ts) 打印当前挂载的 sandbox provider
 > 与策略（`mode` / `workspaceRoot`），并说明模式取自 `DSH_PERMISSION_MODE`（默认 `workspace-write`），
 > `read-only` 下写操作会被拒绝。
 > ⚠️ 配套工程**没有**自造 `WrapSandbox` / `RefuseSandbox` 两个后端——沙箱后端全部来自官方包
@@ -355,7 +355,7 @@ sandbox 组四个包的行数对比：
 
 ## 8.21 审批链：从 `ask` 到用户
 
-> 📐 **配套可跑示例**：[`M06.2 · 三种审批结果`](../../dsh-lab/M06-human-in-the-loop/index.ts) 把审批的几种局面都跑了一遍：
+> 📐 **配套可跑示例**：[`M06.2 · 三种审批结果`](../../dsh-lab/examples/dsh-hitl-demo/src/index.ts) 把审批的几种局面都跑了一遍：
 > ① 监听拒绝 → `rejected`；② 监听放行 → `allowed-once`；③ **无人认领 → `unavailable`（fail closed：不给结论就不放行）**；
 > ④ 服务层裸调 → `turn-enclosed`（审计对必须包在 turn 里）。
 
@@ -457,7 +457,7 @@ CI 里有专门的 sandbox workflow（[02 § 2.9](02-codebase-map.md) 的 33 个
 
 ## 8.27 驱动的谱系
 
-> 📐 **配套可跑示例**：[`M08.1 · 列出委派 provider`](../../dsh-lab/M08-delegation-presets/index.ts) 列出已注册的委派 provider
+> 📐 **配套可跑示例**：[`M08.1 · 列出委派 provider`](../../dsh-lab/examples/dsh-subagent-demo/src/index.ts) 列出已注册的委派 provider
 > 与委派工具（`subagent` / `subagent_fork` / `list_agents`）。
 > ⚠️ 配套工程**没有**自造第七种离线的 `local-reviewer` provider——委派后端全部来自官方包
 > （`@deepseek-ai/dsh-subagent`、`dsh-subagent-spawn-in-process`、`dsh-subagent-fork-in-process`），
@@ -557,7 +557,7 @@ rc.3 删除了 `packages/examples/` 组与顶层 `examples/` 目录（`agent-spi
 
 > 📐 **配套可跑示例**：压缩后端在配套工程里由**官方包**提供（`@deepseek-ai/dsh-compaction-basic`、
 > `dsh-compaction-image-offload`、`dsh-compaction-tool-result-pruner`），
-> [M02.3 · 折叠会话历史为模型表面](../../dsh-lab/M02-context-assembly-economics/index.ts) 用的就是它。
+> [M02.3 · 折叠会话历史为模型表面](../../dsh-lab/examples/dsh-context-demo/src/index.ts) 用的就是它。
 > 配套工程**不再自己实现 compaction provider**；"继承 → `static inject` / `static Config` → 构造里 `super(ctx)` 即挂到
 > `ctx.compaction` → `export default`"这条形状以本快照的源码分析为准。
 
@@ -580,7 +580,7 @@ rc.3 删除了 `packages/examples/` 组与顶层 `examples/` 目录（`agent-spi
 
 ## 8.34 压缩怎么做到"不丢日志"
 
-> 📐 **配套可跑示例**：[M02.3 · 折叠会话历史为模型表面](../../dsh-lab/M02-context-assembly-economics/index.ts) 读出一个真实会话的模型表面并打印事件条数，
+> 📐 **配套可跑示例**：[M02.3 · 折叠会话历史为模型表面](../../dsh-lab/examples/dsh-context-demo/src/index.ts) 读出一个真实会话的模型表面并打印事件条数，
 > 同时核对 `tokenMeter` 在位。
 > ⚠️ 配套工程**没有**逐字复现旧版示例"12 个 surface 节点折成 4 个"那组计数；
 > `summarySeq` / `shadowedRange` / `shadowedSeqs` / `shadowedTokenCount` 这份账以本快照的源码分析为准。

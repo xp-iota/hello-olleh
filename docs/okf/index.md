@@ -11,10 +11,12 @@ generated: { by: mcode/minimax-m3.1-flash, at: 2026-10-23T10:00:00Z }
 本目录是一个 [OKF v0.2](../../tools/okf/SPEC-v0.2.md) bundle，记录 `dsh-lab/`
 的服务装配、扩展接口和工具调用流程。
 
-`dsh-lab/` 是本仓库的配套可运行工程，基于已发布的 `@deepseek-ai/*` 0.2.2-rc.1，
-含 12 个能力模块（M01–M12）、60 个可运行阶段，并支持 Node.js 与 Bun 双运行时。
+`dsh-lab/` 是本仓库的配套可运行工程，基于已发布的 `@deepseek-ai/*` 0.2.2-rc.3，
+`examples/` 下含 21 个完全独立的一文一工程示例（cordis 6 + dsh 15），
+支持 Node.js 与 Bun 双运行时。
 本包 2026-09 的初版针对的是它的前身 `dsh-example/`，该目录已随提交 `40dfeb4`
-删除；2026-10-23 整包迁移到 `dsh-lab/`，见 [log.md](log.md)。
+删除；2026-10-23 整包迁移到 `dsh-lab/`；2026-11-17 dsh-lab 重构为独立示例集，
+旧 M01–M12 模块体系退役，见 [log.md](log.md)。
 
 它与仓库其他文档的分工：
 
@@ -26,7 +28,7 @@ generated: { by: mcode/minimax-m3.1-flash, at: 2026-10-23T10:00:00Z }
 
 ## Concepts
 
-- [装配枢纽：cordis.patch.yml 装配清单](concepts/01-assembly-hub.md) — 12 个模块共用的服务树，由一份声明式清单装配。
+- [装配枢纽：cordis.patch.yml 装配清单](concepts/01-assembly-hub.md) — 声明式清单装配的服务树（旧结构为 12 模块共用；现每个 dsh 示例自持一份）。
 - [能力缝的三角色](concepts/02-capability-seam.md) — Definition、Provider、Consumer 的职责和后端注册方式。
 - [推理服务可替换](concepts/03-provider-swap.md) — 推理协议适配与 provider 路由配置。
 - [一次工具调用等于两步](concepts/04-tool-call-round-trip.md) — 工具调用回路的步数从哪里来，怎么用会话日志验证。

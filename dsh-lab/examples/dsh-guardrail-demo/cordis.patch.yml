@@ -1,0 +1,58 @@
+# 安全护栏的最小树：九行 base + 审批服务 + 自写护栏 + 探针工具，共 12 行。
+# 本示例不跑模型 turn：全部场景用 callTool 直接驱动工具管线（与模型步同一条
+# pre-execute → execute → post-execute 路径），ask 场景需要一个 agent 路由审批。
+# 依赖链：safety-guardrail 注入 tools（pre-execute 事件来自工具注册表）；
+#         probe-tools 注入 tools；user-approval 注入 sessionProjections（base 已有）。
+- insert:
+    - id: timer
+      name: '@deepseek-ai/cordis-plugin-timer'
+
+    - id: system-prompt
+      name: '@deepseek-ai/dsh-system-prompt'
+
+    - id: tools
+      name: '@deepseek-ai/dsh-tools'
+
+    - id: tool-executor-native
+      name: '@deepseek-ai/dsh-tool-executor-native'
+
+    - id: session
+      name: '@deepseek-ai/dsh-session'
+
+    - id: session-projection
+      name: '@deepseek-ai/dsh-session-projection'
+
+    - id: agent
+      name: '@deepseek-ai/dsh-agent'
+
+    - id: llm
+      name: '@deepseek-ai/dsh-llm'
+
+    - id: agent-loop
+      name: '@deepseek-ai/dsh-agent-loop'
+      config:
+        agents: []
+
+    # ── 审批缝：policy ask = 交给 approval/request waterfall 的回答器组合 ───
+    # 护栏返回 { kind: 'ask' } 时，管线自己调 approval.request；无回答器 fail-closed。
+    - id: user-approval
+      name: '@deepseek-ai/dsh-user-approval'
+      config:
+        policy: ask
+
+    # ── 自写护栏：本地插件一行装配，策略全部来自 config ─────────────────────
+    # sink 默认 stderr（不打断 REPL 的 stdout 流式渲染）；演示用 stdout 让
+    # 护栏日志与场景输出同流，顺序确定、便于双运行时逐行对比。
+    - id: safety-guardrail
+      name: './src/plugins/safety-guardrail/index.ts'
+      config:
+        sink: stdout
+        previewChars: 240
+        denyTools: [demo_danger]
+        denyCommandPatterns: ['rm -rf']
+        askTools: [demo_ask]
+        cancelTools: [demo_cancel]
+
+    # ── 探针工具：六个 demo_* 工具，函数体记录执行顺序 ──────────────────────
+    - id: probe-tools
+      name: './src/plugins/probe-tools.ts'

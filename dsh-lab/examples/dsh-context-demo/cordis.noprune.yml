@@ -1,0 +1,7 @@
+# 第二棵树的 overlay：禁用 pruner。
+# spill-policy 以 { prepend: true } 挂在 tools/post-execute 链首，先 await next()
+# 拿到下游决定再计价——pruner 在下游会把超大文本先截到 ~5k 字符，
+# spill 看到的已经是小内容，永远到不了 12500 token 阈值。
+# 禁用 pruner 才能让 spill 单独观察到完整的大输出。
+- id: tool-result-pruner
+  disabled: true

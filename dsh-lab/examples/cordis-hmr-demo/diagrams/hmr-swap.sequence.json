@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "HMR 换代：缓存驱逐到原位替换（rc.13）",
+    "output": "hmr-swap.html",
+    "viewBox": [1480, 680],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "hmr", "type": "external", "label": "HMR 事务", "sublabel": "reconcile 串行队列" },
+    { "id": "cache", "type": "database", "label": "模块缓存", "sublabel": "runtime/ 子系统" },
+    { "id": "registry", "type": "backend", "label": "registry", "sublabel": "组件注册表" },
+    { "id": "fiber", "type": "backend", "label": "同一个 Fiber", "sublabel": "身份与 config 不变" },
+    { "id": "dep", "type": "messagebus", "label": "依赖方 Fiber", "sublabel": "inject 了该服务" }
+  ],
+  "segments": [
+    { "from": 155, "to": 280, "label": "Stage 1 先校验后动手" },
+    { "from": 288, "to": 430, "label": "Stage 2 原位替换" },
+    { "from": 438, "to": 600, "label": "Stage 3 级联与 settle" }
+  ],
+  "messages": [
+    {
+      "id": "evict",
+      "from": "hmr",
+      "to": "cache",
+      "y": 195,
+      "label": "驱逐 changed 及其全部 importer（反向 BFS）",
+      "note": "H/index.ts:335-342；evict 返回 ModuleBackup 供回滚"
+    },
+    {
+      "id": "import-validate",
+      "from": "hmr",
+      "to": "cache",
+      "y": 250,
+      "label": "重新 import 新模块并当场校验导出",
+      "note": ":617-661；失败按 unit aborted 并恢复缓存，不动任何 Fiber"
+    },
+    {
+      "id": "replace",
+      "from": "hmr",
+      "to": "registry",
+      "y": 330,
+      "label": "registry.replace(old, new) 同步一步",
+      "variant": "emphasis",
+      "note": ":734；C/registry.ts:187-211 复用旧 runtime 的 fiber 列表"
+    },
+    {
+      "id": "fiber-replace",
+      "from": "registry",
+      "to": "fiber",
+      "y": 390,
+      "label": "fiber._replace(target, inject)",
+      "note": "C/fiber.ts:401-416：只换 runtime 与 inject，_revision++"
+    },
+    {
+      "id": "epoch",
+      "from": "fiber",
+      "to": "dep",
+      "y": 470,
+      "label": "_refresh() 得新 epoch，依赖方自动重载",
+      "variant": "emphasis",
+      "note": "epoch 以 _revision 起始（C/fiber.ts:420），级联无需 HMR 参与"
+    },
+    {
+      "id": "settled",
+      "from": "dep",
+      "to": "hmr",
+      "y": 550,
+      "label": "Result.settled：被替换的 Fiber，uid 全程不变",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    { "participant": "cache", "from": 190, "to": 256, "type": "database" },
+    { "participant": "registry", "from": 325, "to": 396, "type": "backend" },
+    { "participant": "fiber", "from": 385, "to": 476, "type": "backend" },
+    { "participant": "dep", "from": 465, "to": 556, "type": "messagebus" }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "先校验后动手",
+      "items": [
+        "Stage 1 全部新模块 import 成功并校验导出形态",
+        "失败按 unit aborted 并恢复缓存",
+        "不动任何 Fiber，旧组件继续运行"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "原位替换而非拆建",
+      "items": [
+        "registry.replace 复用旧 runtime 的 fiber 列表",
+        "_replace 只换 runtime 与 inject，_revision++",
+        "Fiber 身份、config、entry 全部不变"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "级联是免费的",
+      "items": [
+        "epoch 以 _revision 起始，_refresh 必产新 epoch",
+        "只有 inject 了该服务的 Fiber 会重载",
+        "HMR 代码里没有一行处理依赖者"
+      ]
+    }
+  ]
+}

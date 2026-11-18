@@ -1,0 +1,15 @@
+# 配置树示例：group / disabled / 配置层 inject 都在这里声明
+# 只读展示：include 子树的 commit 会写回本文件，运行时改动走 root 内存树
+- id: consumers
+  name: '@cordisjs/group'
+  group: true
+  config:
+    - id: watcher
+      name: ./src/plugins/watcher.ts
+      inject:            # 配置层追加依赖：插件代码里没有 inject
+        - greeter
+    - id: sleeper
+      name: ./src/plugins/watcher.ts
+      disabled: true     # 这行不创建 Fiber
+      config:
+        tag: sleeper

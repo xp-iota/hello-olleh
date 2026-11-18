@@ -1,0 +1,69 @@
+# 会话表面的最小树：agent-loop 九行基础上追加五行会话设施——
+# session-log-deepseek（v4 编解码）+ deepseek-llm-api-extensions（它注入的扩展字段，
+# 缺这一行编解码行永远 pending）+ session-persistence-jsonl（落盘）
+# + session-query-sqlite（读取面）+ session-title（标题投影，规则回退）。
+# 依赖链：systemPrompt → tools → tool-executor-native；
+#         sessionProjections → agent；
+#         agents + sessions + llm + tools + systemPrompt + sessionProjections → agent-loop；
+#         sessions → session-query-sqlite / session-title（后者还要 agents）。
+- insert:
+    - id: timer
+      name: '@deepseek-ai/cordis-plugin-timer'
+
+    - id: system-prompt
+      name: '@deepseek-ai/dsh-system-prompt'
+
+    - id: tools
+      name: '@deepseek-ai/dsh-tools'
+
+    - id: tool-executor-native
+      name: '@deepseek-ai/dsh-tool-executor-native'
+
+    - id: session
+      name: '@deepseek-ai/dsh-session'
+
+    - id: session-projection
+      name: '@deepseek-ai/dsh-session-projection'
+
+    - id: agent
+      name: '@deepseek-ai/dsh-agent'
+
+    - id: llm
+      name: '@deepseek-ai/dsh-llm'
+
+    - id: agent-loop
+      name: '@deepseek-ai/dsh-agent-loop'
+      config:
+        agents: []
+
+    # 会话日志的官方 v4 编解码（tool/call、assistant/attempt 等事件序列化）。
+    - id: session-log-deepseek
+      name: '@deepseek-ai/dsh-session-log-deepseek'
+
+    # session-log-deepseek 注入 deepseekLlmApiExtensions；缺这一行它永远 pending。
+    - id: deepseek-llm-api-extensions
+      name: '@deepseek-ai/dsh-deepseek-llm-api-extensions'
+
+    # 每会话一份 JSONL，根目录在本工程 .dsh-home/sessions。
+    # compression: none 是刻意的演示选择：默认 zstd，这里要肉眼可读的落盘文件。
+    - id: session-persistence-jsonl
+      name: '@deepseek-ai/dsh-session-persistence-jsonl'
+      config:
+        root: !!js dshHomePath('sessions')
+        compression: none
+
+    # 读取面：ctx.sessionQuery（精确读、列表、标题、表面）。
+    # openAt: never = 不落 SQLite 索引文件；精确读照常可用。
+    - id: session-query-sqlite
+      name: '@deepseek-ai/dsh-session-query-sqlite'
+      config:
+        path: ':memory:'
+        openAt: never
+
+    # 标题投影：本示例不挂 session-title-llm，只观察首条人类消息的规则回退。
+    - id: session-title
+      name: '@deepseek-ai/dsh-session-title'
+      config:
+        fallbackMaxWords: 5
+        fallbackMaxBytes: 40
+        maxTitleBytes: 80

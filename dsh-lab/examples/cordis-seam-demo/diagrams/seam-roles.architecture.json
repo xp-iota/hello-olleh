@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "seam 的四个角色",
+    "output": "seam-roles.html",
+    "viewBox": [1240, 560],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "seam",
+      "type": "database",
+      "label": "Service Definition",
+      "sublabel": "seam.ts · 只写词汇，不写实现",
+      "tag": "greeter + GreetEvent",
+      "pos": [460, 50],
+      "size": [320, 100]
+    },
+    {
+      "id": "provider",
+      "type": "backend",
+      "label": "Provider",
+      "sublabel": "provider-en.ts · 实现能力并广播事实",
+      "tag": "new EnglishGreeter(ctx)",
+      "pos": [120, 230],
+      "size": [280, 100]
+    },
+    {
+      "id": "consumer",
+      "type": "frontend",
+      "label": "服务型 Consumer",
+      "sublabel": "consumer.ts · 问能力，强依赖",
+      "tag": "inject: ['greeter']",
+      "pos": [840, 230],
+      "size": [280, 100]
+    },
+    {
+      "id": "audit",
+      "type": "messagebus",
+      "label": "事件型 Consumer",
+      "sublabel": "audit.ts · 记事实，弱依赖",
+      "tag": "ctx.on('greeter/greet')",
+      "pos": [460, 410],
+      "size": [320, 100]
+    }
+  ],
+  "connections": [
+    {
+      "id": "p-seam",
+      "from": "provider",
+      "to": "seam",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "实现定义",
+      "labelDy": -18
+    },
+    {
+      "id": "c-seam",
+      "from": "consumer",
+      "to": "seam",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "label": "依赖定义",
+      "labelDy": -18
+    },
+    {
+      "id": "p-c",
+      "from": "provider",
+      "to": "consumer",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight",
+      "variant": "emphasis",
+      "label": "ctx.greeter · 服务注入",
+      "labelDy": -22
+    },
+    {
+      "id": "p-a",
+      "from": "provider",
+      "to": "audit",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "label": "greeter/greet · 事件广播",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "契约",
+      "items": [
+        "服务名 greeter 两侧逐字一致",
+        "declare module 'cordis' 同时给出 ctx 与事件类型",
+        "事件载荷 GreetEvent 也是契约的一部分"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "运行时由 cordis 连接",
+      "items": [
+        "构造即注册：服务挂在 provider 的 fiber 上",
+        "inject 未满足时 consumer 停在 PENDING",
+        "卸载先撤 consumer，再注销服务"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "两类消费者",
+      "items": [
+        "服务型：要用它完成工作，按依赖调度",
+        "事件型：发生了要知道，没人听事件照发",
+        "audit 不随 provider 重启而重启"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+npm notice run start
+npm notice run node src/index.ts
+runtime = node v26.12.1
+
+=== S1 存储域：schema 校验 ===
+put/get：STORAGE-DOMAIN-OK-21
+update 后：STORAGE-DOMAIN-OK-21（已更新）（表内 1 条）
+脏记录重开：code=invalid-record（table=notes, key=n2）
+backup-and-skip 重开：表内 1 条（坏记录已挪走），c1 仍在=true
+落盘文件：.dsh-home\storages\storage_demo_notes.json
+
+=== S2 附件：字节与引用分离 ===
+引用形状：attachmentId=sha256:b5b153203… name=note.txt bytes=19
+宿主路径读回：19 字节，内容一致=true
+同字节重存：id 相同=true
+
+=== S3 凭据：解析而不暴露 ===
+文件层：source=file，值长度=13
+环境层：source=env，值长度=12
+文件与环境同名：source=file（托管存储优先）
+不存在的引用：undefined（fail closed）
+热轮换：新值长度=13，source=file（进程未重启）
+
+=== S4 文件引用 ===
+@src/in 候选：src/index.ts(file), src/plugins(directory)
+系统提示含文件引用指引：true（read 工具在位）
+
+=== S5 跨会话引用 ===
+候选 2 条，含源会话：true（label=请记住标记 STORAGE-REF-MARKER-13，）
+快照进上下文：true，含标记：true
+自引用：code=SESSION_REFERENCE_SELF_REFERENCE
+
+STORAGE_DEMO_OK

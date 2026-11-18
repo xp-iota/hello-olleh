@@ -2,7 +2,7 @@
 
 本页按工具、上下文、会话和任务编排等 12 个方向，对比 DSH 与 iota 的功能、替换单元和责任归属。
 
-> **对照基线**：DSH 侧取配套工程 [dsh-lab](../../dsh-lab/README.md)（`@deepseek-ai/*` **0.2.2-rc.1** 发布包），iota 侧取 `iota-example/`。本页不直接绑定 `sources/deepseek-harness` 快照（该快照已升级到 **0.2.2-rc.3**，见 [README § 一](README.md)）；两侧源码行号会随版本漂移，因此证据一律用**符号名**而非行号锚定。
+> **对照基线**：DSH 侧取配套工程 [dsh-lab](../../dsh-lab/README.md)（`@deepseek-ai/*` **0.2.2-rc.3** 发布包，与 `sources/deepseek-harness` 快照同版，见 [README § 一](README.md)），iota 侧取 `iota-example/`。两侧源码行号会随版本漂移，因此证据一律用**符号名**而非行号锚定。
 
 ## 三种关系
 
@@ -18,18 +18,18 @@
 
 | 模块 | DSH 教材 | iota 教材 | 关系摘要 |
 |---|---|---|---|
-| M01 工具管线 | [DSH](../../dsh-lab/M01-tool-pipeline/README.md) | `M01-tool-pipeline` | ToolPipeline 可补齐编排层工具阶段；内核可见性保持边界 |
-| M02 上下文装配 | [DSH](../../dsh-lab/M02-context-assembly-economics/README.md) | `M02-context-assembly-economics` | 作用域记忆等价；完整 Prompt 压缩属于内核 |
-| M03 推理接入 | [DSH](../../dsh-lab/M03-inference-service-access/README.md) | `M03-inference-service-access` | DSH 换 LLM Adapter；iota 换整个 KernelAdapter |
-| M04 循环干预 | [DSH](../../dsh-lab/M04-agent-loop-intervention/README.md) | `M04-agent-loop-intervention` | 事件和节点 hook 等价；mid-turn 状态归内核 |
-| M05 会话面 | [DSH](../../dsh-lab/M05-session-surface/README.md) | `M05-session-surface` | 存储语义可对位；日志投影不变量不同 |
-| M06 人在环路 | [DSH](../../dsh-lab/M06-human-in-the-loop/README.md) | `M06-human-in-the-loop` | permission fail-closed 等价；计划模式归宿主 |
-| M07 执行后端 | [DSH](../../dsh-lab/M07-execution-backends/README.md) | `M07-execution-backends` | DSH 在 harness 提供 seam；iota 将执行栈留给内核 |
-| M08 委派 | [DSH](../../dsh-lab/M08-delegation-presets/README.md) | `M08-delegation-presets` | SubagentProvider 与 GraphSpec DAG 语义对位 |
-| M09 长任务 | [DSH](../../dsh-lab/M09-long-running-work/README.md) | `M09-long-running-orchestration` | iota 另有租约队列、checkpoint 与恢复语义 |
-| M10 外部能力 | [DSH](../../dsh-lab/M10-external-capabilities/README.md) | `M10-external-capabilities` | Skill 数据与 MCP server 均有真实路径 |
-| M11 配置数据 | [DSH](../../dsh-lab/M11-config-data-durability/README.md) | `M11-config-data-infrastructure` | Profile/store 可对位；凭证附件归宿主 |
-| M12 框架机制 | [DSH](../../dsh-lab/M12-cordis-runtime/README.md) | `M12-framework-mechanisms` | 可逆 effect 等价；不复制事件总线与 Proxy/Fiber 架构 |
+| M01 工具管线 | [DSH](../../dsh-lab/examples/dsh-tool-pipeline-demo/README.md) | `M01-tool-pipeline` | ToolPipeline 可补齐编排层工具阶段；内核可见性保持边界 |
+| M02 上下文装配 | [DSH](../../dsh-lab/examples/dsh-context-demo/README.md) | `M02-context-assembly-economics` | 作用域记忆等价；完整 Prompt 压缩属于内核 |
+| M03 推理接入 | [DSH](../../dsh-lab/examples/dsh-llm-adapter-demo/README.md) | `M03-inference-service-access` | DSH 换 LLM Adapter；iota 换整个 KernelAdapter |
+| M04 循环干预 | [DSH](../../dsh-lab/examples/dsh-agent-loop-demo/README.md) | `M04-agent-loop-intervention` | 事件和节点 hook 等价；mid-turn 状态归内核 |
+| M05 会话面 | [DSH](../../dsh-lab/examples/dsh-session-demo/README.md) | `M05-session-surface` | 存储语义可对位；日志投影不变量不同 |
+| M06 人在环路 | [DSH](../../dsh-lab/examples/dsh-hitl-demo/README.md) | `M06-human-in-the-loop` | permission fail-closed 等价；计划模式归宿主 |
+| M07 执行后端 | [DSH](../../dsh-lab/examples/dsh-sandbox-demo/README.md) | `M07-execution-backends` | DSH 在 harness 提供 seam；iota 将执行栈留给内核 |
+| M08 委派 | [DSH](../../dsh-lab/examples/dsh-subagent-demo/README.md) | `M08-delegation-presets` | SubagentProvider 与 GraphSpec DAG 语义对位 |
+| M09 长任务 | [DSH](../../dsh-lab/examples/dsh-jobs-demo/README.md) | `M09-long-running-orchestration` | iota 另有租约队列、checkpoint 与恢复语义 |
+| M10 外部能力 | [DSH](../../dsh-lab/examples/dsh-skills-mcp-demo/README.md) | `M10-external-capabilities` | Skill 数据与 MCP server 均有真实路径 |
+| M11 配置数据 | [DSH](../../dsh-lab/examples/dsh-storage-demo/README.md) | `M11-config-data-infrastructure` | Profile/store 可对位；凭证附件归宿主 |
+| M12 框架机制 | [DSH](../../dsh-lab/examples/cordis-seam-demo/README.md) | `M12-framework-mechanisms` | 可逆 effect 等价；不复制事件总线与 Proxy/Fiber 架构 |
 
 ## 建议阅读方法
 

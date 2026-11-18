@@ -1,0 +1,6 @@
+# fail-loud 演示层：插入一个行 id 为 agent-loop 的坏插件。
+# agent-loop 在 boot() 的全局 required 清单里（app-boot/src/index.ts:966-977），
+# 所以它激活失败会让整个 boot() 抛 StartupError——而不是只打一条 warning。
+- insert:
+    - id: agent-loop
+      name: './src/plugins/broken.ts'

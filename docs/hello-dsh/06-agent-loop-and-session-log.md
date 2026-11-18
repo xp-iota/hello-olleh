@@ -77,7 +77,7 @@ title: "Agent 循环与会话日志"
 
 ## 6.4 `turn()`：主循环
 
-> 📐 **配套可跑示例**：[`M04.1 · 观察 turn / step 边界`](../../dsh-lab/M04-agent-loop-intervention/index.ts) 用真实 agent-loop 跑一个 turn，
+> 📐 **配套可跑示例**：[`M04.1 · 观察 turn / step 边界`](../../dsh-lab/examples/dsh-agent-loop-demo/src/index.ts) 用真实 agent-loop 跑一个 turn，
 > 把 `turn/start → step/start → step/end → turn/end` 四个**边界**事件逐条打印出来。
 > 缺 `LLM_API_KEY` 时该阶段会退化成"只验证事件订阅通道在位"，并把跳过原因打印出来。
 
@@ -212,7 +212,7 @@ phase.step = 0
 
 ## 6.8 12 个 `agent/*` 事件
 
-> 📐 **配套可跑示例**：[`M04.2 · 在 turn 结束前 steer`](../../dsh-lab/M04-agent-loop-intervention/index.ts) 在 `agent/turn-stopping` 上挂监听器，
+> 📐 **配套可跑示例**：[`M04.2 · 在 turn 结束前 steer`](../../dsh-lab/examples/dsh-agent-loop-demo/src/index.ts) 在 `agent/turn-stopping` 上挂监听器，
 > 监听者调 `agent.steer(...)` 注入一条新消息，并验证主循环**重读 inbox**、真的多走一步。
 
 
@@ -241,7 +241,7 @@ phase.step = 0
 
 ## 6.9 `Inbox`：两条有序队列
 
-> 📐 **配套可跑示例**：[`M04.3 · 三条 inbox 通道`](../../dsh-lab/M04-agent-loop-intervention/index.ts) 把 inbox 通道的区别跑成断言：
+> 📐 **配套可跑示例**：[`M04.3 · 三条 inbox 通道`](../../dsh-lab/examples/dsh-agent-loop-demo/src/index.ts) 把 inbox 通道的区别跑成断言：
 > `send(..., 'next-turn', wakeup=false)` 只入队**不唤醒**（driver 仍是 idle），`inbox.clear()` 后队列归零。
 > 配套工程验证的是"入队 / 不唤醒 / 清空"这条语义链；流水事件（谁在什么时候塞了什么）以本快照的源码分析为准。
 
@@ -310,7 +310,7 @@ phase.step = 0
 
 ## 6.12 核心不变量：Model-visible means logged
 
-> 📐 **配套可跑示例**：[`M05.1 · 日志结构与 seq 不变量`](../../dsh-lab/M05-session-surface/index.ts) 逐条验证本节的不变量：
+> 📐 **配套可跑示例**：[`M05.1 · 日志结构与 seq 不变量`](../../dsh-lab/examples/dsh-session-demo/src/index.ts) 逐条验证本节的不变量：
 > seq 从 0 开始连续递增、事件类型分布（`type × count`）、新建会话至少有一条 `session/created`。
 > 配套工程**未覆盖**"事件深冻结"与"`deriveMessages()` 只投影消息事件"这两条断言——它们以本快照的源码分析为准。
 
@@ -393,7 +393,7 @@ phase.step = 0
 
 ## 6.15 `surfaceOp`：有序表面
 
-> 📐 **配套可跑示例**：[`M02.3 · 折叠会话历史为模型表面`](../../dsh-lab/M02-context-assembly-economics/index.ts) 读出一个真实会话的**模型表面**（`ctx.sessionQuery.readSurface`），
+> 📐 **配套可跑示例**：[`M02.3 · 折叠会话历史为模型表面`](../../dsh-lab/examples/dsh-context-demo/src/index.ts) 读出一个真实会话的**模型表面**（`ctx.sessionQuery.readSurface`），
 > 打印表面事件条数，并与 `tokenMeter` 是否在位一起核对——"模型看到什么"与"计量了多少"在同一次调用里对上。
 > 配套工程**没有**逐字复现旧版示例里那两条 `surface replace:` 抛错原文；`replace` 的 fail-closed 约束以本快照的源码分析为准。
 
@@ -494,7 +494,7 @@ phase.step = 0
 
 ## 6.19 `fork()`：分叉会话
 
-> 📐 **配套可跑示例**：[`M08.3 · fork：继承父会话前缀`](../../dsh-lab/M08-delegation-presets/index.ts) 演示 fork 的稳定前缀语义 ——
+> 📐 **配套可跑示例**：[`M08.3 · fork：继承父会话前缀`](../../dsh-lab/examples/dsh-subagent-demo/src/index.ts) 演示 fork 的稳定前缀语义 ——
 > 子会话带 `parentSession` 与显式 seed 前缀，事件数与继承前缀条数一起打印（`inheritedEventCount`），子会话可独立回放与审计。
 > 配套工程**没有**断言"边界落在未闭合 turn 里会抛 `SessionForkError { code: 'OPEN_TURN' }`"——那一条以本快照的源码分析为准。
 

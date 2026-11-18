@@ -1,0 +1,39 @@
+npm notice run start:bun
+npm notice run bun src/index.ts
+runtime = bun 1.4.4
+
+=== S1 观察与脱敏 ===
+[safety-guardrail] pre-execute tool=demo_echo agent=(standalone) args={"text":"hello guardrail","apiKey":"[REDACTED]","authorization":"[REDACTED]","maxTokens":4096}
+echo 结果：echo: hello guardrail
+日志先于函数体：true
+脱敏：[REDACTED] 在场=true，明文密钥缺席=true，maxTokens 未误伤=true
+
+=== S2 deny：名单与命令模式 ===
+[safety-guardrail] deny tool=demo_danger agent=(standalone) reason=tool "demo_danger" is on the guardrail deny list
+名单 deny：isError=true，留痕=true
+[safety-guardrail] deny tool=demo_shell agent=(standalone) reason=command contains forbidden pattern "rm -rf"
+模式 deny：isError=true，reason=Error: command contains forbidden pattern "rm -rf"
+函数体从未执行：true
+
+=== S3 ask：审批缝 ===
+[safety-guardrail] ask tool=demo_ask agent=guardrail-demo-ask
+回答器批准：isError=false（allowed-once → 执行）
+[safety-guardrail] ask tool=demo_ask agent=guardrail-demo-ask
+回答器拒绝：code=APPROVAL_REJECTED
+[safety-guardrail] ask tool=demo_ask agent=guardrail-demo-ask
+无回答器：code=APPROVAL_UNAVAILABLE
+[safety-guardrail] ask tool=demo_ask agent=(standalone)
+无 agent：code=APPROVAL_UNAVAILABLE
+
+=== S4 cancel：规范取消 ===
+[safety-guardrail] cancel tool=demo_cancel agent=(standalone)
+cancel 结果：Error: tool call aborted before dispatch
+函数体未执行：true
+
+=== S5 guard 对照：单调拒绝 ===
+[safety-guardrail] pre-execute tool=demo_guarded agent=(standalone) args={}
+guard 在场：isError=true（pre-execute 仍 allow，日志 × 1）
+[safety-guardrail] pre-execute tool=demo_guarded agent=(standalone) args={}
+guard 摘除：isError=false
+
+GUARDRAIL_DEMO_OK

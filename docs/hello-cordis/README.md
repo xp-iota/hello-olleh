@@ -119,15 +119,15 @@ title: "cordis 源代码全面分析（中文）"
 
 ## 五、配套工程（dsh-lab）
 
-本仓库的 [`dsh-lab/`](../../dsh-lab/README.md) 是本仓库的配套工程：以 DSH 为主线，12 个能力模块里也包含直接验证 cordis 原语的最小程序。工程锁定 `@deepseek-ai/*@0.2.2-rc.1`（cordis 运行时为 `@deepseek-ai/cordis@4.0.5`）；因此它们验证的是 DSH 发布包所携带的 cordis 契约，与本文分析的 cordiverse 上游快照 `bc9fae7`（v4.0.0-rc.13）需按“双版本口径”对照阅读。注意上游自 rc.11 起 Fiber 的 epoch/卸载语义有变（`_revision` 自换代、dependents/release 卸载握手），与 DSH 所携带的旧契约差异会更大（见 [03](03-fiber-model.md)）。
+本仓库的 [`dsh-lab/`](../../dsh-lab/README.md) 是本仓库的配套工程：21 个完全独立的一文一工程示例里有 **6 个 cordis 示例**（seam / fiber / events / isolate / loader / hmr）直接验证 cordis 原语，它们 pin 的是 cordiverse 上游 `cordis@4.0.0-rc.13`，与本文分析的快照同版；其余 15 个 dsh 示例锁定 `@deepseek-ai/*@0.2.2-rc.3`，其 cordis 运行时是 DSH 自携的 fork `@deepseek-ai/cordis@4.1.0`。因此读 dsh 示例时需按“双版本口径”对照：上游 rc.13 与 fork 4.1.0（基于上游 rc.11）在 Fiber 的 epoch/卸载语义上有差异（`_revision` 自换代、dependents/release 卸载握手，见 [03](03-fiber-model.md)）。
 
 | Cordis 主题 | 配套工程里的入口 | 观察点 |
 |---|---|---|
-| Context / 插件装配 | [`cordis.yml`](../../dsh-lab/cordis.yml)、[`cordis.patch.yml`](../../dsh-lab/cordis.patch.yml)、[M12 · Cordis 运行时与装配树](../../dsh-lab/M12-cordis-runtime/README.md) | 配置树如何挂插件、插件卸载时如何回收 effect |
-| Fiber / 可逆副作用 | [M12 · Cordis 运行时与装配树](../../dsh-lab/M12-cordis-runtime/README.md)（M12.1） | 插件注册的 section 与监听随 Fiber 卸载一起消失 |
-| Service / 依赖与作用域 | [M03 · 推理服务接入](../../dsh-lab/M03-inference-service-access/README.md)、[M01 · 工具管线](../../dsh-lab/M01-tool-pipeline/README.md) | Provider 注入、Consumer 解析、scope 限制 |
-| Events / waterfall | [M01 · 工具管线](../../dsh-lab/M01-tool-pipeline/README.md)（M01.2 / M01.3）、[M03 · 推理服务接入](../../dsh-lab/M03-inference-service-access/README.md)（M03.2） | waterfall 的“认领即终结”与包装链 |
-| 生命周期 / 清理 | [M01 · 工具管线](../../dsh-lab/M01-tool-pipeline/README.md)（M01.1）、[M12 · Cordis 运行时与装配树](../../dsh-lab/M12-cordis-runtime/README.md) | 注册在插件 Fiber 上时，卸载即回收 |
+| Context / 插件装配 | [`cordis.yml`](../../dsh-lab/examples/dsh-chat-demo/cordis.yml)、[`cordis.patch.yml`](../../dsh-lab/examples/dsh-chat-demo/cordis.patch.yml)、[M12 · Cordis 运行时与装配树](../../dsh-lab/examples/cordis-seam-demo/README.md) | 配置树如何挂插件、插件卸载时如何回收 effect |
+| Fiber / 可逆副作用 | [M12 · Cordis 运行时与装配树](../../dsh-lab/examples/cordis-seam-demo/README.md)（M12.1） | 插件注册的 section 与监听随 Fiber 卸载一起消失 |
+| Service / 依赖与作用域 | [M03 · 推理服务接入](../../dsh-lab/examples/dsh-llm-adapter-demo/README.md)、[M01 · 工具管线](../../dsh-lab/examples/dsh-tool-pipeline-demo/README.md) | Provider 注入、Consumer 解析、scope 限制 |
+| Events / waterfall | [M01 · 工具管线](../../dsh-lab/examples/dsh-tool-pipeline-demo/README.md)（M01.2 / M01.3）、[M03 · 推理服务接入](../../dsh-lab/examples/dsh-llm-adapter-demo/README.md)（M03.2） | waterfall 的“认领即终结”与包装链 |
+| 生命周期 / 清理 | [M01 · 工具管线](../../dsh-lab/examples/dsh-tool-pipeline-demo/README.md)（M01.1）、[M12 · Cordis 运行时与装配树](../../dsh-lab/examples/cordis-seam-demo/README.md) | 注册在插件 Fiber 上时，卸载即回收 |
 
 > 📐 各章的对应示例也会直接放在相关小节；运行环境、命令与预期输出以[配套工程 README](../../dsh-lab/README.md)为准。
 
@@ -135,11 +135,11 @@ title: "cordis 源代码全面分析（中文）"
 
 | 统一主题 | Cordis | DeepSeek Harness | 可跑示例 |
 |---|---|---|---|
-| 定位与代码地图 | [01](01-overview-and-design-philosophy.md) · [02](02-code-structure-and-package-boundaries.md) | [DSH 01](../hello-dsh/01-overview.md) · [02](../hello-dsh/02-codebase-map.md) | [`cordis.patch.yml`](../../dsh-lab/cordis.patch.yml)（唯一的装配清单） |
-| 生命周期与服务 | [03 Fiber](03-fiber-model.md) · [04 Context](04-context-and-reflect-proxy.md) · [05 Service](05-service-registration-and-dependency-resolution.md) | [DSH 03 Seam](../hello-dsh/03-capability-seams-and-services.md) · [05 启动](../hello-dsh/05-startup-and-cordis-runtime.md) | [M03 · 推理服务接入](../../dsh-lab/M03-inference-service-access/README.md) · [M12 · Cordis 运行时](../../dsh-lab/M12-cordis-runtime/README.md) |
-| 事件与扩展 | [06 Events](06-event-system-and-waterfall.md) | [DSH 04 扩展](../hello-dsh/04-extensions-and-ecosystem.md) · [06 Agent](../hello-dsh/06-agent-loop-and-session-log.md) · [07 请求管线](../hello-dsh/07-request-pipeline-llm-tools-and-prompts.md) | [M01 · 工具管线](../../dsh-lab/M01-tool-pipeline/README.md) · [M03 · 推理服务接入](../../dsh-lab/M03-inference-service-access/README.md) |
-| 配置、装配与热更新 | [07 Loader](07-loader-and-configuration-tree.md) · [08 HMR](08-hmr.md) | [DSH 05 启动与 Cordis](../hello-dsh/05-startup-and-cordis-runtime.md) | [`cordis.yml`](../../dsh-lab/cordis.yml) · [M12 · Cordis 运行时](../../dsh-lab/M12-cordis-runtime/README.md) |
-| 执行与安全边界 | [03](03-fiber-model.md) · [05](05-service-registration-and-dependency-resolution.md) · [06](06-event-system-and-waterfall.md) | [DSH 08 执行侧服务](../hello-dsh/08-execution-services.md) | [M06 · 人机交互](../../dsh-lab/M06-human-in-the-loop/README.md) · [M07 · 执行后端与边界](../../dsh-lab/M07-execution-backends/README.md) |
+| 定位与代码地图 | [01](01-overview-and-design-philosophy.md) · [02](02-code-structure-and-package-boundaries.md) | [DSH 01](../hello-dsh/01-overview.md) · [02](../hello-dsh/02-codebase-map.md) | [`cordis.patch.yml`](../../dsh-lab/examples/dsh-chat-demo/cordis.patch.yml)（唯一的装配清单） |
+| 生命周期与服务 | [03 Fiber](03-fiber-model.md) · [04 Context](04-context-and-reflect-proxy.md) · [05 Service](05-service-registration-and-dependency-resolution.md) | [DSH 03 Seam](../hello-dsh/03-capability-seams-and-services.md) · [05 启动](../hello-dsh/05-startup-and-cordis-runtime.md) | [M03 · 推理服务接入](../../dsh-lab/examples/dsh-llm-adapter-demo/README.md) · [M12 · Cordis 运行时](../../dsh-lab/examples/cordis-seam-demo/README.md) |
+| 事件与扩展 | [06 Events](06-event-system-and-waterfall.md) | [DSH 04 扩展](../hello-dsh/04-extensions-and-ecosystem.md) · [06 Agent](../hello-dsh/06-agent-loop-and-session-log.md) · [07 请求管线](../hello-dsh/07-request-pipeline-llm-tools-and-prompts.md) | [M01 · 工具管线](../../dsh-lab/examples/dsh-tool-pipeline-demo/README.md) · [M03 · 推理服务接入](../../dsh-lab/examples/dsh-llm-adapter-demo/README.md) |
+| 配置、装配与热更新 | [07 Loader](07-loader-and-configuration-tree.md) · [08 HMR](08-hmr.md) | [DSH 05 启动与 Cordis](../hello-dsh/05-startup-and-cordis-runtime.md) | [`cordis.yml`](../../dsh-lab/examples/dsh-chat-demo/cordis.yml) · [M12 · Cordis 运行时](../../dsh-lab/examples/cordis-seam-demo/README.md) |
+| 执行与安全边界 | [03](03-fiber-model.md) · [05](05-service-registration-and-dependency-resolution.md) · [06](06-event-system-and-waterfall.md) | [DSH 08 执行侧服务](../hello-dsh/08-execution-services.md) | [M06 · 人机交互](../../dsh-lab/examples/dsh-hitl-demo/README.md) · [M07 · 执行后端与边界](../../dsh-lab/examples/dsh-sandbox-demo/README.md) |
 | 测试、速查与排障 | [09 速查](09-call-chain-reference.md) | [DSH 10 测试](../hello-dsh/10-testing-and-engineering.md) · [11 速查](../hello-dsh/11-call-chain-reference.md) | [工程索引与批量运行](../../dsh-lab/README.md) |
 
 ## 七、Mermaid 配色图例

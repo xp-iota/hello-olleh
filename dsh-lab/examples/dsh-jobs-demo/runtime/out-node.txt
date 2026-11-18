@@ -1,0 +1,37 @@
+npm notice run start
+npm notice run node --no-warnings src/index.ts
+runtime = node v26.12.1
+
+=== S1 后台任务与输出环 ===
+会话可见 job 数：1
+首次读：2 个 chunk，status=running
+游标再读：0 个 chunk（游标已推进）
+kill 返回：requested
+取消后状态：killed
+
+=== S2 目标生命周期 ===
+初始目标：(无)
+create：phase=active，activation=armed
+disarm：activation=disarmed
+pause → paused；resume → active（activation=armed）
+重复 create：goal "<id>" already exists with phase "active"
+/goal 命令可见：true
+/goal 执行：kind=success
+complete：phase=complete
+
+=== S3 PTC run_code ===
+顶层直调 workflow：isError=true，Error: unknown tool "workflow": only `run_code` is callable directly — call `wo…
+run_code：isError=false，42 File sandbox enforcement is partial on this host.
+
+=== S4 workflow 脚本编排 ===
+workflow 工具已注册：true（在 SDK 声明里，不在顶层）
+workflow：isError=false，{ "kind": "foreground", "runId": "<uuid>", "agentsStarted": 0, "result": 42 } F…
+
+=== S5 schedule 定时任务 ===
+create：status=active，title=演示提醒
+list：total=1
+工具面 create/list/delete：isError=false，{ "total": 2, "deleted": true } File sandbox enforcement is partial on this hos…
+delete：deleted=true
+删除后 list：total=0
+
+JOBS_OK

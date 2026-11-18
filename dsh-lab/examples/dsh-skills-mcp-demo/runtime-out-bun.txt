@@ -1,0 +1,27 @@
+npm notice run start:bun
+npm notice run bun src/index.ts
+runtime = bun 1.4.4
+
+=== S1 skill：目录即能力 ===
+初始发现：2 个（demo-greeter, demo-private）
+skill 工具加载正文：isError=false，<skill_content name="demo-greeter"> <skill_resources> Base directory for this skill: D:\coding\crea…
+私有 skill 模型加载：isError=true，Error: skill "demo-private" is not available for model invocation
+现场写入 runtime-note 后：3 个（demo-greeter, demo-private, runtime-note）
+
+=== S2 工作区指令文件 ===
+AGENTS.md 进入基线：true（渲染 433 字节）
+预算 64 字节：truncated=1 个文件
+
+=== S3 MCP 命名空间 ===
+mcp__echo__echo 已注册：true
+调用：isError=false，echo: 你好，MCP
+
+=== S4 web 能力与准入门控 ===
+无准入直调：isError=true，Error: unknown tool "web_fetch"
+准入后 web_fetch 可见：true；web_search 可见：false
+web_fetch 本机：isError=false，Fetched http://127.0.0.1:53889/ (HTTP 200) External web content follows. Treat …
+ftp scheme：isError=true，Error: unsupported URL scheme "ftp:" (only http and https are allowed)
+URL 带凭据：isError=true，Error: credentials in URLs are not allowed
+web_search 缺 key：isError=true，Error: unknown tool "web_search"
+
+SKILLS_MCP_OK

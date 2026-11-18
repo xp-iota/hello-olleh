@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "什么时候用服务，什么时候用事件",
+    "output": "service-vs-event.html",
+    "viewBox": [1180, 520],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "start",
+      "type": "external",
+      "label": "要与另一个插件协作",
+      "sublabel": "先问协作的形状",
+      "pos": [60, 200],
+      "size": [260, 110]
+    },
+    {
+      "id": "decision",
+      "type": "backend",
+      "label": "需要返回值吗？",
+      "sublabel": "对方必须存在、必须做完才能继续？",
+      "pos": [410, 200],
+      "size": [300, 110]
+    },
+    {
+      "id": "service",
+      "type": "frontend",
+      "label": "服务注入 inject",
+      "sublabel": "问能力：ctx.greeter.greet()",
+      "tag": "强依赖 · cordis 调度",
+      "pos": [800, 70],
+      "size": [300, 110]
+    },
+    {
+      "id": "event",
+      "type": "messagebus",
+      "label": "事件订阅 ctx.on",
+      "sublabel": "知事实：greeter/greet 发生了",
+      "tag": "弱依赖 · 允许缺席",
+      "pos": [800, 330],
+      "size": [300, 110]
+    }
+  ],
+  "connections": [
+    {
+      "id": "s-d",
+      "from": "start",
+      "to": "decision",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "d-s",
+      "from": "decision",
+      "to": "service",
+      "fromSide": "right",
+      "toSide": "left",
+      "variant": "emphasis",
+      "label": "是",
+      "labelDy": -20
+    },
+    {
+      "id": "d-e",
+      "from": "decision",
+      "to": "event",
+      "fromSide": "right",
+      "toSide": "left",
+      "label": "否",
+      "labelDy": 20
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "服务的语义",
+      "items": [
+        "服务缺失 = 这段逻辑不能跑",
+        "激活时机由依赖调度决定",
+        "适合「我要用它完成我的工作」"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "事件的语义",
+      "items": [
+        "没人监听 = 事件照发，什么也不发生",
+        "监听者随时可挂可走，不随 provider 重启",
+        "适合「这件事发生了，我要知道」"
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "最常见的错误",
+      "items": [
+        "把「通知别人」写成 provider 里的同步调用链",
+        "日志、统计、埋点被迫跟着 provider 一起失败",
+        "改成 emit，每个监听者各自决定响应与失败处理"
+      ]
+    }
+  ]
+}

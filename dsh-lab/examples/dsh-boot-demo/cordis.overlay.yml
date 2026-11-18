@@ -1,0 +1,6 @@
+# 第二层 patch（overlay）：非 insert 行按 id 命中已有条目，
+# 对每个 key 做整体替换（vendor/include/src/patch.ts:102-105），后写的层胜出。
+# 这里把 hello 的 config 整段换成新值——不是深合并，tag 直接变成 overlay-wins。
+- id: hello
+  config:
+    tag: overlay-wins

@@ -1,0 +1,3 @@
+# 根配置刻意留空：本示例的全部装配来自 cordis.patch.yml 与 cordis.overlay.yml。
+# 这正是 dsh 的装配哲学——根文件是"项目自己的清单"，patch 层是"发行版/宿主的清单"。
+[]

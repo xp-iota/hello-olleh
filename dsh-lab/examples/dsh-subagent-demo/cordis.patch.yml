@@ -1,0 +1,96 @@
+# 委派的最小树：九行 base + 十行委派栈。
+# 模型侧不挂任何真实 provider：脚本化 LlmAdapter 在进程内注册（见 src/plugins/scripted-adapter.ts）。
+# 依赖链：subagent 注入 workingDirectory + sessionProjections；
+#         working-directory 注入 fs + sessionProjections + systemPrompt → 需要 fs-local 提供 fs 服务；
+#         spawn/fork provider 注入 subagents；tool-subagent 注入 tools + subagents + systemPrompt + sessionProjections；
+#         continuable 子 agent 要求会话持久化 → session-persistence-jsonl（及其日志编解码链）。
+- insert:
+    - id: timer
+      name: '@deepseek-ai/cordis-plugin-timer'
+
+    - id: system-prompt
+      name: '@deepseek-ai/dsh-system-prompt'
+
+    - id: tools
+      name: '@deepseek-ai/dsh-tools'
+
+    - id: tool-executor-native
+      name: '@deepseek-ai/dsh-tool-executor-native'
+
+    - id: session
+      name: '@deepseek-ai/dsh-session'
+
+    - id: session-projection
+      name: '@deepseek-ai/dsh-session-projection'
+
+    # 配置态 agent 保持空表：本示例的 agent 全部由运行时 agents.create() 创建。
+    - id: agent
+      name: '@deepseek-ai/dsh-agent'
+
+    - id: llm
+      name: '@deepseek-ai/dsh-llm'
+
+    - id: agent-loop
+      name: '@deepseek-ai/dsh-agent-loop'
+      config:
+        agents: []
+
+    # ── 委派栈十行 ────────────────────────────────────────────────────────
+    # 会话日志的官方 v4 编解码 + 它依赖的 DeepSeek 扩展字段（缺了编解码行永远 pending）。
+    - id: session-log-deepseek
+      name: '@deepseek-ai/dsh-session-log-deepseek'
+
+    - id: deepseek-llm-api-extensions
+      name: '@deepseek-ai/dsh-deepseek-llm-api-extensions'
+
+    # continuable 子 agent 的硬要求：没有持久化后端，spawn 激活直接拒绝。
+    - id: session-persistence-jsonl
+      name: '@deepseek-ai/dsh-session-persistence-jsonl'
+      config:
+        root: !!js dshHomePath('sessions')
+        compression: none
+
+    # 会话读取面：fork 场景要读父会话快照做 seed 前缀。
+    # openAt: never = 不落 SQLite、不做全文索引；精确读照常可用。
+    - id: session-query-sqlite
+      name: '@deepseek-ai/dsh-session-query-sqlite'
+      config:
+        path: ':memory:'
+        openAt: never
+
+    # fs 服务：working-directory 的 inject 依赖（本示例不做沙箱，见 dsh-sandbox-demo）。
+    - id: fs-local
+      name: '@deepseek-ai/dsh-fs-local'
+
+    - id: working-directory
+      name: '@deepseek-ai/dsh-working-directory'
+
+    # 委派运行时：maxDepth 是 volatile 配置，默认 1（子 agent 不能再委派）。
+    - id: subagent
+      name: '@deepseek-ai/dsh-subagent'
+      config:
+        maxDepth: 1
+
+    # 两条进程内 provider：spawn 从零开始，fork 继承父会话前缀。
+    - id: subagent-spawn
+      name: '@deepseek-ai/dsh-subagent-spawn-in-process'
+      config:
+        providerName: spawn
+
+    - id: subagent-fork
+      name: '@deepseek-ai/dsh-subagent-fork-in-process'
+      config:
+        providerName: fork
+
+    # 同一个 tool-subagent 包装配两次：一次 spawn 一次 fork，各注册一个工具。
+    - id: tool-subagent
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: spawn
+        toolName: subagent
+
+    - id: tool-subagent-fork
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: fork
+        toolName: subagent_fork

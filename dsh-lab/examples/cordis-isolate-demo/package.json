@@ -1,0 +1,18 @@
+{
+  "name": "cordis-isolate-demo",
+  "private": true,
+  "type": "module",
+  "description": "ctx.isolate 的 realm 隔离：同名服务多份实现、按名字隔离、事件可见性、共享 label。Node 与 Bun 双运行时。",
+  "scripts": {
+    "start": "node src/index.ts",
+    "start:bun": "bun src/index.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "cordis": "4.0.0-rc.13"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "typescript": "7.0.2"
+  }
+}

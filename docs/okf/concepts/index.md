@@ -8,7 +8,7 @@ tags: [okf, dsh-lab]
 
 ## 结构
 
-- [装配枢纽：cordis.patch.yml 装配清单](01-assembly-hub.md) — 声明式装配：一份 patch 层挂载全部服务行，12 个模块共用同一棵服务树。
+- [装配枢纽：cordis.patch.yml 装配清单](01-assembly-hub.md) — 声明式装配：每个 dsh 示例自持一份 patch 层挂载全部服务行（旧结构为 12 模块共用一棵树）。
 
 ## 运行时
 
