@@ -1,4 +1,4 @@
-# dsh 的 guardrail 示例
+# 14 · dsh 的 guardrail 示例
 
 本示例演示一个自写安全护栏插件的完整策略面：观察、脱敏、留痕，升级为 deny / ask / cancel 四种决定，再对照官方单调 guard。全部装配都在 `cordis.patch.yml`（12 行）里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。**全程离线**——不需要任何 API key，五个场景全部用 `callTool` 直接驱动真实工具管线（与模型步同一条 pre-execute → execute 路径）。基于 `@deepseek-ai/*` 0.2.2-rc.3 与 `@deepseek-ai/cordis` 4.1.0，Node v26.12.1 与 Bun 1.4.4 双运行时实测等价。
 
@@ -308,7 +308,7 @@ dsh-guardrail-demo/
 }
 ```
 
-`tsconfig.json` 与 [dsh-agent-loop-demo 的 tsconfig.json](../dsh-agent-loop-demo/tsconfig.json) 逐字一致（ES2023 / nodenext / strict / noEmit / allowImportingTsExtensions），不再重复。`cordis.yml` 与 `cordis.patch.yml` 全文见 §4。
+`tsconfig.json` 与 [dsh-agent-loop-demo 的 tsconfig.json](../05-dsh-agent-loop-demo/tsconfig.json) 逐字一致（ES2023 / nodenext / strict / noEmit / allowImportingTsExtensions），不再重复。`cordis.yml` 与 `cordis.patch.yml` 全文见 §4。
 
 ### src/index.ts（完整版）
 
@@ -822,4 +822,4 @@ npm run test:bun
 - 四种决定各有处理方式：allow 留脱敏预览、deny 留拒绝理由、ask 交审批缝（必须在 open turn 内）、cancel 走规范取消；官方 guard 是它们之后的单调兜底。
 - 证据链可以完全离线构造：探针工具 + stdout 包装器就能证明「日志先于函数体」「被拦的函数体从未执行」，不需要模型参与。
 
-兄弟示例：[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md)（管线五段机制本身）、[dsh-hitl-demo](../dsh-hitl-demo/README.md)（审批缝的完整词汇表与真实 turn 内的工具审批）、[dsh-chat-demo](../dsh-chat-demo/README.md)（护栏副本在完整终端里的样子）。
+兄弟示例：[dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/README.md)（管线五段机制本身）、[dsh-hitl-demo](../08-dsh-hitl-demo/README.md)（审批缝的完整词汇表与真实 turn 内的工具审批）、[dsh-chat-demo](../15-dsh-chat-demo/README.md)（护栏副本在完整终端里的样子）。

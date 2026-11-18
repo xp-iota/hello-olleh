@@ -1,4 +1,4 @@
-# dsh 的执行边界示例
+# 09 · dsh 的执行边界示例
 
 本示例演示 dsh 的执行边界栈：沙箱化文件读写、一次性 shell 命令、沙箱模式、
 观察策略（写前必须先读）、/permission 权限预设。24 个服务全部在
@@ -29,7 +29,7 @@ Node v26.12.1 与 Bun 1.4.4 双运行时实测，输出除 runtime 行外逐行�
 
 ## 2 装配树：九行 base + 十五行边界栈
 
-base 九行与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md) 相同
+base 九行与 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 相同
 （执行器是 native，不是 jobs 示例的 PTC）。边界栈十五行按职责分四组：
 
 | 组 | 行 | 职责 |
@@ -111,7 +111,7 @@ Set-Acl . $acl
 
 首次 grant 会把可继承 ACE 传播到整棵目录树（含 node_modules），大目录会慢；
 之后的运行命中幂等跳过（精确 ACE + deny + label 三者齐备就不再 apply）。
-[dsh-jobs-demo](../dsh-jobs-demo/README.md) 等挂 sandbox-local 的示例同样
+[dsh-jobs-demo](../11-dsh-jobs-demo/README.md) 等挂 sandbox-local 的示例同样
 受这条约束。
 
 **S3 沙箱模式。** 服务上没有现成的 `mode` 字段：部署默认叫 `defaultMode`
@@ -134,7 +134,7 @@ workspace-write 后同一路径写入恢复。判决随会话走，工具与代�
 ## 4 运行 sandbox 示例
 
 `cordis.yml` 全文（根配置留空，装配全部来自 patch，见
-[dsh-boot-demo](../dsh-boot-demo/README.md) 的装配哲学）：
+[dsh-boot-demo](../01-dsh-boot-demo/README.md) 的装配哲学）：
 
 ```yaml
 # 根配置留空：装配全部来自 cordis.patch.yml（见 dsh-boot-demo 的装配哲学）。
@@ -418,7 +418,7 @@ dsh-sandbox-demo/
 }
 ```
 
-`tsconfig.json` 与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/tsconfig.json)
+`tsconfig.json` 与 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/tsconfig.json)
 逐字一致（SHA256 相同，14 行）：ES2023 + nodenext + strict + noEmit +
 allowImportingTsExtensions + verbatimModuleSyntax，include 只有 src。
 
@@ -562,7 +562,7 @@ console.log('\nSANDBOX_OK')
 ```
 
 `src/tools.ts` 全文（78 行，与
-[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/src/tools.ts) 逐字一致，
+[dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/src/tools.ts) 逐字一致，
 SHA256 相同）：
 
 ```ts
@@ -794,7 +794,7 @@ npm start
    含 WRITE_OWNER），Bun 的 runner 协议缝需要加载期补丁；两者都已在本工程内
    处理好，双运行时输出逐行一致。
 
-兄弟示例：[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md)（工具管线本体）、
-[dsh-hitl-demo](../dsh-hitl-demo/README.md)（审批判决链，与 permission-presets 的
-approval 联动同源）、[dsh-jobs-demo](../dsh-jobs-demo/README.md)（run_code 与
+兄弟示例：[dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/README.md)（工具管线本体）、
+[dsh-hitl-demo](../08-dsh-hitl-demo/README.md)（审批判决链，与 permission-presets 的
+approval 联动同源）、[dsh-jobs-demo](../11-dsh-jobs-demo/README.md)（run_code 与
 workflow 脚下的另一套边界栈）。

@@ -1,4 +1,4 @@
-# dsh 的外部能力接入示例
+# 12 · dsh 的外部能力接入示例
 
 本示例演示 dsh 外部能力接入的四种形态：skill 目录、工作区指令文件、MCP 外部
 进程、web provider 注册。20 个服务全部在 cordis.patch.yml 里声明，boot 后全程
@@ -34,7 +34,7 @@ runtime 行、npm notice 行与随机端口外逐行一致——本示例不挂 
 
 ## 2 装配树：九行 base + 十一行能力栈
 
-base 九行与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md) 相同
+base 九行与 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 相同
 （执行器是 native，不是 PTC——本示例不跑 `run_code`，也就不需要 jobs 示例
 那五条 Bun 缝）。能力栈十一行按形态分四组：
 
@@ -137,7 +137,7 @@ fetch 的边界与网络无关：只容 http/https（`unsupported URL scheme`）
 ## 4 运行 skills-mcp 示例
 
 `cordis.yml` 全文（根配置留空，装配全部来自 patch，见
-[dsh-boot-demo](../dsh-boot-demo/README.md) 的装配哲学）：
+[dsh-boot-demo](../01-dsh-boot-demo/README.md) 的装配哲学）：
 
 ```yaml
 # 根配置留空：装配全部来自 cordis.patch.yml（见 dsh-boot-demo 的装配哲学）。
@@ -403,7 +403,7 @@ dsh-skills-mcp-demo/
 }
 ```
 
-`tsconfig.json` 与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/tsconfig.json)
+`tsconfig.json` 与 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/tsconfig.json)
 逐字一致（SHA256 相同，14 行）：ES2023 + nodenext + strict + noEmit +
 allowImportingTsExtensions + verbatimModuleSyntax，include 只有 src。
 
@@ -821,6 +821,6 @@ npm start
 4. **不挂 ptc/subprocess 就没有 Bun 缝**——MCP 由 SDK 自己 spawn，
    `bun src/index.ts` 直接跑通，与 jobs 示例的五条缝形成对照。
 
-兄弟示例：[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md)（工具管线本体）、
-[dsh-jobs-demo](../dsh-jobs-demo/README.md)（需要五条 Bun 缝的对照组）、
-[dsh-context-demo](../dsh-context-demo/README.md)（上下文装配）。
+兄弟示例：[dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/README.md)（工具管线本体）、
+[dsh-jobs-demo](../11-dsh-jobs-demo/README.md)（需要五条 Bun 缝的对照组）、
+[dsh-context-demo](../03-dsh-context-demo/README.md)（上下文装配）。

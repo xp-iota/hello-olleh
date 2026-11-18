@@ -22,32 +22,32 @@ cordis 插件）→ **dsh-lab**（21 个独立示例 + 自写插件）。插件�
 
 | 示例 | 主题 |
 |:--|:--|
-| [cordis-seam-demo](examples/cordis-seam-demo/README.md) | seam：服务/事件/配置/ effect 四种接缝 |
-| [cordis-fiber-demo](examples/cordis-fiber-demo/README.md) | fiber：一个插件的一生（生命周期） |
-| [cordis-events-demo](examples/cordis-events-demo/README.md) | 事件：五种派发模式与中间件链 |
-| [cordis-isolate-demo](examples/cordis-isolate-demo/README.md) | isolate：同名服务，两个世界 |
-| [cordis-loader-demo](examples/cordis-loader-demo/README.md) | loader：配置树到 Fiber |
-| [cordis-hmr-demo](examples/cordis-hmr-demo/README.md) | HMR：原位替换，Fiber 身份不变 |
+| [cordis-seam-demo](examples/01-cordis-seam-demo/README.md) | seam：服务/事件/配置/ effect 四种接缝 |
+| [cordis-fiber-demo](examples/02-cordis-fiber-demo/README.md) | fiber：一个插件的一生（生命周期） |
+| [cordis-events-demo](examples/03-cordis-events-demo/README.md) | 事件：五种派发模式与中间件链 |
+| [cordis-isolate-demo](examples/04-cordis-isolate-demo/README.md) | isolate：同名服务，两个世界 |
+| [cordis-loader-demo](examples/05-cordis-loader-demo/README.md) | loader：配置树到 Fiber |
+| [cordis-hmr-demo](examples/06-cordis-hmr-demo/README.md) | HMR：原位替换，Fiber 身份不变 |
 
 ### DeepSeek Harness（15）
 
 | 示例 | 主题 |
 |:--|:--|
-| [dsh-boot-demo](examples/dsh-boot-demo/README.md) | boot() 声明式装配：最小树、overlay、fail-loud |
-| [dsh-tool-pipeline-demo](examples/dsh-tool-pipeline-demo/README.md) | 工具管线五段：注册、可见性、执行前后策略 |
-| [dsh-context-demo](examples/dsh-context-demo/README.md) | 上下文装配与经济学：section、计量、裁剪、溢写 |
-| [dsh-llm-adapter-demo](examples/dsh-llm-adapter-demo/README.md) | 模型接入层：自写适配器与 llm/stream 接缝 🔑 |
-| [dsh-agent-loop-demo](examples/dsh-agent-loop-demo/README.md) | Agent 循环干预：turn/step、steer、inbox、取消 |
-| [dsh-session-demo](examples/dsh-session-demo/README.md) | 会话日志：append-only 事件流、JSONL、恢复 |
-| [dsh-trajectory-probe-demo](examples/dsh-trajectory-probe-demo/README.md) | Trajectory 探针：事件流折叠成 turn 大纲 |
-| [dsh-hitl-demo](examples/dsh-hitl-demo/README.md) | 人机协作（HITL）：审批、提问、命令、todo |
-| [dsh-sandbox-demo](examples/dsh-sandbox-demo/README.md) | 执行边界：沙箱、观察策略、权限预设 |
-| [dsh-subagent-demo](examples/dsh-subagent-demo/README.md) | 委派：spawn、fork、归属与深度预算 |
-| [dsh-jobs-demo](examples/dsh-jobs-demo/README.md) | 长期运行：后台任务、目标、PTC、workflow |
-| [dsh-skills-mcp-demo](examples/dsh-skills-mcp-demo/README.md) | 外部能力四形态：skill、工作区指令、MCP、web |
-| [dsh-storage-demo](examples/dsh-storage-demo/README.md) | 结构化状态四归属：存储域、附件、凭据、引用 |
-| [dsh-guardrail-demo](examples/dsh-guardrail-demo/README.md) | 自写安全护栏：从「看见」到四种决定 |
-| [dsh-chat-demo](examples/dsh-chat-demo/README.md) | 完整交互式终端：chat / sessions / traj / info 🔑 |
+| [dsh-boot-demo](examples/01-dsh-boot-demo/README.md) | boot() 声明式装配：最小树、overlay、fail-loud |
+| [dsh-tool-pipeline-demo](examples/02-dsh-tool-pipeline-demo/README.md) | 工具管线五段：注册、可见性、执行前后策略 |
+| [dsh-context-demo](examples/03-dsh-context-demo/README.md) | 上下文装配与经济学：section、计量、裁剪、溢写 |
+| [dsh-llm-adapter-demo](examples/04-dsh-llm-adapter-demo/README.md) | 模型接入层：自写适配器与 llm/stream 接缝 🔑 |
+| [dsh-agent-loop-demo](examples/05-dsh-agent-loop-demo/README.md) | Agent 循环干预：turn/step、steer、inbox、取消 |
+| [dsh-session-demo](examples/06-dsh-session-demo/README.md) | 会话日志：append-only 事件流、JSONL、恢复 |
+| [dsh-trajectory-probe-demo](examples/07-dsh-trajectory-probe-demo/README.md) | Trajectory 探针：事件流折叠成 turn 大纲 |
+| [dsh-hitl-demo](examples/08-dsh-hitl-demo/README.md) | 人机协作（HITL）：审批、提问、命令、todo |
+| [dsh-sandbox-demo](examples/09-dsh-sandbox-demo/README.md) | 执行边界：沙箱、观察策略、权限预设 |
+| [dsh-subagent-demo](examples/10-dsh-subagent-demo/README.md) | 委派：spawn、fork、归属与深度预算 |
+| [dsh-jobs-demo](examples/11-dsh-jobs-demo/README.md) | 长期运行：后台任务、目标、PTC、workflow |
+| [dsh-skills-mcp-demo](examples/12-dsh-skills-mcp-demo/README.md) | 外部能力四形态：skill、工作区指令、MCP、web |
+| [dsh-storage-demo](examples/13-dsh-storage-demo/README.md) | 结构化状态四归属：存储域、附件、凭据、引用 |
+| [dsh-guardrail-demo](examples/14-dsh-guardrail-demo/README.md) | 自写安全护栏：从「看见」到四种决定 |
+| [dsh-chat-demo](examples/15-dsh-chat-demo/README.md) | 完整交互式终端：chat / sessions / traj / info 🔑 |
 
 🔑 = 真实模型调用路径需要 `LLM_API_KEY`（示例目录自己的 `.env`，模板见 `.env.example`）。
 缺 key 时相关路径**明确失败**（fail-loud），机制路径不受影响。
@@ -64,7 +64,7 @@ npm run verify                      # 仓库级双运行时校验（见下）
 也可以直接进入任一示例目录独立操作（这才是常态）：
 
 ```powershell
-Set-Location examples/dsh-chat-demo
+Set-Location examples/15-dsh-chat-demo
 npm install
 npm start          # Node；npm run start:bun 走 Bun
 npm run typecheck

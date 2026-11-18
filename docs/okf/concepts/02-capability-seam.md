@@ -6,16 +6,16 @@ tags: [okf, dsh-lab, seam, extensibility]
 status: stable
 sources:
   - id: patch-yml
-    resource: "dsh-lab/examples/dsh-chat-demo/cordis.patch.yml"
+    resource: "dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml"
     title: 装配清单：官方后端行与本工程自写 provider 行
   - id: anthropic-compat
-    resource: "dsh-lab/examples/dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts"
+    resource: "dsh-lab/examples/04-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts"
     title: 自写 LlmAdapter 实现（AnthropicCompatAdapter，旧 M03）
   - id: m02-module
-    resource: "dsh-lab/examples/dsh-context-demo/src/index.ts"
+    resource: "dsh-lab/examples/03-dsh-context-demo/src/index.ts"
     title: 上下文装配与经济学示例（旧 M02）
   - id: m07-module
-    resource: "dsh-lab/examples/dsh-sandbox-demo/src/index.ts"
+    resource: "dsh-lab/examples/09-dsh-sandbox-demo/src/index.ts"
     title: 执行后端与边界示例（旧 M07）
   - id: dsh-03
     resource: "docs/hello-dsh/03-capability-seams-and-services.md"

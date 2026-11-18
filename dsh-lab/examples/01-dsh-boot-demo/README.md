@@ -1,4 +1,4 @@
-# dsh 的 boot() 装配示例
+# 01 · dsh 的 boot() 装配示例
 
 本示例演示 boot() 声明式装配的五件事：prepare + patch 层建起最小树、overlay 整配置替换、required 行失败的 fail-loud、缺服务行的 PENDING 与运行时激活、dispose 逆序回收。hello 与 broken 两个本地插件都在 YAML 清单里声明，代码里没有一处 `ctx.plugin()`。
 
@@ -204,7 +204,7 @@ hello state = ACTIVE（tag 见上方 [hello] 日志）
 
 === S4 服务可用性驱动：无 prepare → PENDING → provide → ACTIVE ===
 dsh-boot-demo: warning: 1 entry did not activate
-hello (file:///D:/coding/creative/hello-olleh/dsh-lab/examples/dsh-boot-demo/src/plugins/hello.ts): pending (waiting for service: labMark)
+hello (file:///D:/coding/creative/hello-olleh/dsh-lab/examples/01-dsh-boot-demo/src/plugins/hello.ts): pending (waiting for service: labMark)
 provide 之前 hello state = PENDING
 [hello] ACTIVE tag=base labMark=late-provide
 [hello] effect#1 mount
@@ -321,7 +321,7 @@ dsh-boot-demo/
 
 npm 会自动安装 peerDependencies：`dsh-tools` 的 peer 面（llm/agent/scope/session/user-approval 等）没有写进 package.json，但 `npm install` 后都在（共 47 包）。声明的只是本主题直接用到或直接引用的包。
 
-tsconfig.json 与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md) 逐字相同（NodeNext + allowImportingTsExtensions，`include: ["src"]`）。
+tsconfig.json 与 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 逐字相同（NodeNext + allowImportingTsExtensions，`include: ["src"]`）。
 
 ### src/plugins/hello.ts（完整版）
 
@@ -491,4 +491,4 @@ npm run start:bun       # Bun：除首行 runtime 标识外逐行一致
 - dispose 逆序回收 effect，boot 失败路径同样回收已挂载的兄弟行；
 - Node 与 Bun 双运行时逐行一致，不碰 ptc/subprocess 就无需补丁。
 
-下一篇：[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md)——在这棵树的 `tools` 服务上走完注册→可见性→waterfall→执行→回收的全管线。
+下一篇：[dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/README.md)——在这棵树的 `tools` 服务上走完注册→可见性→waterfall→执行→回收的全管线。

@@ -1,4 +1,4 @@
-# dsh 的 agent 循环示例
+# 05 · dsh 的 agent 循环示例
 
 本示例演示怎么在不写循环的前提下干预 agent 循环：turn/step 边界观察、turn-stopping 时 steer 续跑、三条 inbox 通道、在途取消、status 事件。word-count 工具与脚本化适配器都在 cordis.patch.yml 里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。
 
@@ -19,7 +19,7 @@ dsh 的 agent 循环由 `dsh-agent-loop` 独占驱动：宿主只往 inbox 里�
 
 ## 2 最小树：九行底座 + 两个自写插件
 
-与 [dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md) 相同的九行底座（timer / system-prompt / tools / tool-executor-native / session / session-projection / agent / llm / agent-loop），再追加两行自写插件：
+与 [dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/README.md) 相同的九行底座（timer / system-prompt / tools / tool-executor-native / session / session-projection / agent / llm / agent-loop），再追加两行自写插件：
 
 ```yaml
 # 自写插件也走声明式：工具与脚本化适配器全程在位，随整树 dispose 回收。
@@ -361,7 +361,7 @@ dsh-agent-loop-demo/
 }
 ```
 
-tsconfig.json 与 [dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md) 逐字相同；`word-count.ts` 直接复制该示例同名文件（第 3 节有全文镜像）。
+tsconfig.json 与 [dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/README.md) 逐字相同；`word-count.ts` 直接复制该示例同名文件（第 3 节有全文镜像）。
 
 ### src/index.ts（完整版）
 
@@ -580,4 +580,4 @@ console.log('\nAGENT_LOOP_OK')
 - agent 事件 payload 的 agent 字段由融合分发器注入，subject 与 scope 不分叉；
 - 自写插件走 patch 清单声明，registerAdapter 随 fiber 自动回收，Node 与 Bun 双运行时逐行一致。
 
-上一篇：[dsh-context-demo](../dsh-context-demo/README.md)；下一篇：[dsh-session-demo](../dsh-session-demo/README.md)——会话日志的结构、落盘、恢复与读取面。
+上一篇：[dsh-context-demo](../03-dsh-context-demo/README.md)；下一篇：[dsh-session-demo](../06-dsh-session-demo/README.md)——会话日志的结构、落盘、恢复与读取面。

@@ -20,7 +20,7 @@ npm run example:dsh-context-demo            # 上下文装配
 npm run example:dsh-llm-adapter-demo        # 推理服务
 ```
 
-⚠️ **推理服务示例的真实调用需要模型 API Key**：缺 `LLM_API_KEY` 会**明确失败**（不静默降级）；机制路径不需要 key。Key 放在**示例自己的** `.env`（如 `dsh-lab/examples/dsh-llm-adapter-demo/.env`，已 gitignore，模板见同目录 `.env.example`）。
+⚠️ **推理服务示例的真实调用需要模型 API Key**：缺 `LLM_API_KEY` 会**明确失败**（不静默降级）；机制路径不需要 key。Key 放在**示例自己的** `.env`（如 `dsh-lab/examples/04-dsh-llm-adapter-demo/.env`，已 gitignore，模板见同目录 `.env.example`）。
 
 这条路线依次演示三个主题：
 
@@ -51,9 +51,9 @@ npm run example:dsh-llm-adapter-demo        # 推理服务
 交互版：[12-example-topology.html](diagrams/12-example-topology.html)　·　
 IR 源：[12-example-topology.architecture.json](diagrams/12-example-topology.architecture.json)
 
-- **装配清单每示例自持一份**：最全的一份在 [`dsh-chat-demo`](../../dsh-lab/examples/dsh-chat-demo/cordis.patch.yml)——`cordis.yml` 是空表，`cordis.patch.yml` **89 条 `- id:` 行**（87 官方 + 2 自写插件），`boot()` 来自官方 `@deepseek-ai/dsh-app-boot`；其余 dsh 示例按主题裁剪出更小的树。
+- **装配清单每示例自持一份**：最全的一份在 [`dsh-chat-demo`](../../dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml)——`cordis.yml` 是空表，`cordis.patch.yml` **89 条 `- id:` 行**（87 官方 + 2 自写插件），`boot()` 来自官方 `@deepseek-ai/dsh-app-boot`；其余 dsh 示例按主题裁剪出更小的树。
 - **示例与验证**：21 个示例 · 每个自带 `start` / `start:bun` / `typecheck`；根层 `npm run verify` 对全部示例跑三项检查，末行 `RUNTIMES_VERIFY_OK runtimes=2 checks=63`。需要 key 的两个示例（`dsh-llm-adapter-demo`、`dsh-chat-demo`）缺 `LLM_API_KEY` 时**明确失败**，没有 mock 或离线回退。
-- **provider 只有一处自写**：`AnthropicCompatAdapter` 在 [`dsh-llm-adapter-demo`](../../dsh-lab/examples/dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts)（`dsh-chat-demo` 持一份独立副本），其余走官方 `@deepseek-ai/dsh-*` 服务包；沙箱实测是官方 `LocalSandboxProvider`（见 `dsh-sandbox-demo`）。
+- **provider 只有一处自写**：`AnthropicCompatAdapter` 在 [`dsh-llm-adapter-demo`](../../dsh-lab/examples/04-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts)（`dsh-chat-demo` 持一份独立副本），其余走官方 `@deepseek-ai/dsh-*` 服务包；沙箱实测是官方 `LocalSandboxProvider`（见 `dsh-sandbox-demo`）。
 - **依赖图谱（2026-10-23 实测，旧结构历史数据）**：当时对旧 `dsh-lab/` 建图得 **51 文件 · 396 节点 · 600 边 · 32 社区**；`EXTRACTED` 537 条、`INFERRED` 63 条；`diagnose multigraph --directed` 0 dangling / 0 self-loop / 0 duplicate。旧模块体系已于 2026-11-17 退役，**这份图谱不对应当前示例集，需重建**。
   当时的一条结论仍然适用：`cordis.yml` / `cordis.patch.yml` 在 AST 图上贡献 **0 个节点**（tree-sitter 不覆盖 YAML），所以"装配来自清单"这件事**图上验不出来**，只能读文件与 `rg -c`。
   更早的旧数字（169 文件 / 584 节点 / 744 边 / 45 社区 / 枢纽度数 66）是对**已删除的 `dsh-example/`** 的建图，只作历史记录保留在 [OKF 知识包的 graphify 参考](../okf/references/01-graphify-dsh-lab.md) 的历史小节里。
@@ -201,7 +201,7 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 
 > **配套工程与正文基线版本对齐**：两者都在 `0.2.2-rc.3`（源码快照 `38a6a5c9`）。例外仅 `dsh-invariants` 停在 `0.2.0-rc.2`（上游未发 rc.3，peer 冲突用 `legacy-peer-deps` 化解）。
 > rc.1 → rc.3 的三处行为差异已实测并记在示例代码注释与 README 里：`agentDefaultModel` 退成纯配置服务（入口须读 `currentSelection()` 兜底）、工具数 26 → 27（新增 `wait_agent`）、`web-deepseek-api` 不再读 `DEEPSEEK_API_KEY`。
-> 更早的跨版本契约差异（0.1.5 → 0.2.1 的四处 `LlmAdapter` 变化：工具结果成为独立 `role: 'tool'` 消息、必须带 `attributionHeaders()`、`providerInfo()`/`listModels()`/`resolveModel()`、`purpose` 标记）逐条列在 [`anthropic-compat`](../../dsh-lab/examples/dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts) 开头。
+> 更早的跨版本契约差异（0.1.5 → 0.2.1 的四处 `LlmAdapter` 变化：工具结果成为独立 `role: 'tool'` 消息、必须带 `attributionHeaders()`、`providerInfo()`/`listModels()`/`resolveModel()`、`purpose` 标记）逐条列在 [`anthropic-compat`](../../dsh-lab/examples/04-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts) 开头。
 > 配套工程**不手写装配**：`dsh-chat-demo` 的 89 条行中 87 条是官方包、2 条是自写插件（`anthropic-compat`、`safety-guardrail`）；压缩、沙箱、溢写都走官方包，**不再有"刻意留空再由示例补上"的缝**。
 
 | 文档章节 | 配套工程里的可跑点 |
@@ -209,10 +209,10 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 | [03 § 3.1](03-capability-seams-and-services.md) seam 三角色 | M03 · 推理服务接入 |
 | [03 § 3.8](03-capability-seams-and-services.md) seam 全表 | M02 · M03 · M05 · M07 · M08 · M09 · M10 · M11 |
 | [04 § 4.1](04-extensions-and-ecosystem.md) 扩展路径 · [§ 4.3](04-extensions-and-ecosystem.md) hooks | M10.2 · 现场写一个 skill · M04.2 · 在 turn 结束前 steer |
-| [05 § 5.1](05-startup-and-cordis-runtime.md) profile/bundle · [§ 5.17](05-startup-and-cordis-runtime.md) cordis 原语 | [`cordis.yml`](../../dsh-lab/examples/dsh-chat-demo/cordis.yml) · [`cordis.patch.yml`](../../dsh-lab/examples/dsh-chat-demo/cordis.patch.yml) · M12.1 · 可逆 effect |
+| [05 § 5.1](05-startup-and-cordis-runtime.md) profile/bundle · [§ 5.17](05-startup-and-cordis-runtime.md) cordis 原语 | [`cordis.yml`](../../dsh-lab/examples/15-dsh-chat-demo/cordis.yml) · [`cordis.patch.yml`](../../dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml) · M12.1 · 可逆 effect |
 | [06 § 6.4](06-agent-loop-and-session-log.md) `turn()` · [§ 6.8](06-agent-loop-and-session-log.md) `agent/*` · [§ 6.9](06-agent-loop-and-session-log.md) Inbox | M04.1 · M04.2 · M04.3 |
 | [06 § 6.12](06-agent-loop-and-session-log.md) 不变量 · [§ 6.15](06-agent-loop-and-session-log.md) `surfaceOp` · [§ 6.19](06-agent-loop-and-session-log.md) fork | M05.1 · M05.2 · M05.4 · M08.3 |
-| [07 § 7.2](07-request-pipeline-llm-tools-and-prompts.md) `LlmAdapter` · [§ 7.3](07-request-pipeline-llm-tools-and-prompts.md) `llm/stream` | [`anthropic-compat`](../../dsh-lab/examples/dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts) · M03.2 |
+| [07 § 7.2](07-request-pipeline-llm-tools-and-prompts.md) `LlmAdapter` · [§ 7.3](07-request-pipeline-llm-tools-and-prompts.md) `llm/stream` | [`anthropic-compat`](../../dsh-lab/examples/04-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts) · M03.2 |
 | [07 § 7.10](07-request-pipeline-llm-tools-and-prompts.md) `ToolDefinition` · [§ 7.11](07-request-pipeline-llm-tools-and-prompts.md) 三段 waterfall · [§ 7.14](07-request-pipeline-llm-tools-and-prompts.md) 注册表 | M01.1 · M01.2 · M01.3 · M01.5 · M01.4 |
 | [07 § 7.18](07-request-pipeline-llm-tools-and-prompts.md) 四类注册 · [§ 7.26](07-request-pipeline-llm-tools-and-prompts.md) assemble waterfall | M02.1 · M02.2 |
 | [08 § 8.2](08-execution-services.md) `FileSystem` · [§ 8.11](08-execution-services.md) `ShellExecutor` | M07.1 · M07.2 |
@@ -229,12 +229,12 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 
 | 统一主题 | Cordis 地基 | DeepSeek Harness | 配套工程 |
 |---|---|---|---|
-| 定位与代码地图 | [Cordis 01](../hello-cordis/01-overview-and-design-philosophy.md) · [02](../hello-cordis/02-code-structure-and-package-boundaries.md) | [01 项目概览](01-overview.md) · [02 代码结构地图](02-codebase-map.md) | [`cordis.yml`](../../dsh-lab/examples/dsh-chat-demo/cordis.yml) · [`cordis.patch.yml`](../../dsh-lab/examples/dsh-chat-demo/cordis.patch.yml) |
-| 生命周期与服务 | [Cordis 03 Fiber](../hello-cordis/03-fiber-model.md) · [04 Context](../hello-cordis/04-context-and-reflect-proxy.md) · [05 Service](../hello-cordis/05-service-registration-and-dependency-resolution.md) | [03 Seam](03-capability-seams-and-services.md) · [05 启动](05-startup-and-cordis-runtime.md) | [M03.2 · 环绕 llm/stream](../../dsh-lab/examples/dsh-llm-adapter-demo/README.md) · [M12.1 · 可逆 effect](../../dsh-lab/examples/cordis-seam-demo/README.md) |
-| 事件与扩展 | [Cordis 06 Events](../hello-cordis/06-event-system-and-waterfall.md) | [04 扩展](04-extensions-and-ecosystem.md) · [06 Agent](06-agent-loop-and-session-log.md) · [07 请求管线](07-request-pipeline-llm-tools-and-prompts.md) | [M04.2 · 在 turn 结束前 steer](../../dsh-lab/examples/dsh-agent-loop-demo/README.md) · [M12.3 · 行 id 与 patch 覆盖](../../dsh-lab/examples/cordis-seam-demo/README.md) · [M01.2 · 权限门](../../dsh-lab/examples/dsh-tool-pipeline-demo/README.md) |
-| 配置、装配与热更新 | [Cordis 07 Loader](../hello-cordis/07-loader-and-configuration-tree.md) · [08 HMR](../hello-cordis/08-hmr.md) | [05 启动与 Cordis](05-startup-and-cordis-runtime.md) | [`cordis.patch.yml`](../../dsh-lab/examples/dsh-chat-demo/cordis.patch.yml) · [M12.3 · 行 id 与 patch 覆盖](../../dsh-lab/examples/cordis-seam-demo/README.md) |
-| Agent 状态与请求管线 | [Cordis 03–06](../hello-cordis/03-fiber-model.md) | [06 Agent 与会话](06-agent-loop-and-session-log.md) · [07 LLM/工具/提示](07-request-pipeline-llm-tools-and-prompts.md) | [M04.1 · 观察 turn 边界](../../dsh-lab/examples/dsh-agent-loop-demo/README.md) · [M05.1 · 日志不变量](../../dsh-lab/examples/dsh-session-demo/README.md) · [M03.3 · 真实调用一次模型](../../dsh-lab/examples/dsh-llm-adapter-demo/README.md) |
-| 执行、安全与宿主 | [Cordis 03–07](../hello-cordis/03-fiber-model.md) | [08 执行侧](08-execution-services.md) · [09 宿主与运行面](09-host-runtime-and-storage.md) | [M06.2 · 三种审批结果](../../dsh-lab/examples/dsh-hitl-demo/README.md) · [M07.1 · 沙箱内写文件](../../dsh-lab/examples/dsh-sandbox-demo/README.md) · [M07.3 · 沙箱模式](../../dsh-lab/examples/dsh-sandbox-demo/README.md) |
+| 定位与代码地图 | [Cordis 01](../hello-cordis/01-overview-and-design-philosophy.md) · [02](../hello-cordis/02-code-structure-and-package-boundaries.md) | [01 项目概览](01-overview.md) · [02 代码结构地图](02-codebase-map.md) | [`cordis.yml`](../../dsh-lab/examples/15-dsh-chat-demo/cordis.yml) · [`cordis.patch.yml`](../../dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml) |
+| 生命周期与服务 | [Cordis 03 Fiber](../hello-cordis/03-fiber-model.md) · [04 Context](../hello-cordis/04-context-and-reflect-proxy.md) · [05 Service](../hello-cordis/05-service-registration-and-dependency-resolution.md) | [03 Seam](03-capability-seams-and-services.md) · [05 启动](05-startup-and-cordis-runtime.md) | [M03.2 · 环绕 llm/stream](../../dsh-lab/examples/04-dsh-llm-adapter-demo/README.md) · [M12.1 · 可逆 effect](../../dsh-lab/examples/01-cordis-seam-demo/README.md) |
+| 事件与扩展 | [Cordis 06 Events](../hello-cordis/06-event-system-and-waterfall.md) | [04 扩展](04-extensions-and-ecosystem.md) · [06 Agent](06-agent-loop-and-session-log.md) · [07 请求管线](07-request-pipeline-llm-tools-and-prompts.md) | [M04.2 · 在 turn 结束前 steer](../../dsh-lab/examples/05-dsh-agent-loop-demo/README.md) · [M12.3 · 行 id 与 patch 覆盖](../../dsh-lab/examples/01-cordis-seam-demo/README.md) · [M01.2 · 权限门](../../dsh-lab/examples/02-dsh-tool-pipeline-demo/README.md) |
+| 配置、装配与热更新 | [Cordis 07 Loader](../hello-cordis/07-loader-and-configuration-tree.md) · [08 HMR](../hello-cordis/08-hmr.md) | [05 启动与 Cordis](05-startup-and-cordis-runtime.md) | [`cordis.patch.yml`](../../dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml) · [M12.3 · 行 id 与 patch 覆盖](../../dsh-lab/examples/01-cordis-seam-demo/README.md) |
+| Agent 状态与请求管线 | [Cordis 03–06](../hello-cordis/03-fiber-model.md) | [06 Agent 与会话](06-agent-loop-and-session-log.md) · [07 LLM/工具/提示](07-request-pipeline-llm-tools-and-prompts.md) | [M04.1 · 观察 turn 边界](../../dsh-lab/examples/05-dsh-agent-loop-demo/README.md) · [M05.1 · 日志不变量](../../dsh-lab/examples/06-dsh-session-demo/README.md) · [M03.3 · 真实调用一次模型](../../dsh-lab/examples/04-dsh-llm-adapter-demo/README.md) |
+| 执行、安全与宿主 | [Cordis 03–07](../hello-cordis/03-fiber-model.md) | [08 执行侧](08-execution-services.md) · [09 宿主与运行面](09-host-runtime-and-storage.md) | [M06.2 · 三种审批结果](../../dsh-lab/examples/08-dsh-hitl-demo/README.md) · [M07.1 · 沙箱内写文件](../../dsh-lab/examples/09-dsh-sandbox-demo/README.md) · [M07.3 · 沙箱模式](../../dsh-lab/examples/09-dsh-sandbox-demo/README.md) |
 | 测试、速查与排障 | [Cordis 09](../hello-cordis/09-call-chain-reference.md) | [10 测试](10-testing-and-engineering.md) · [11 速查](11-call-chain-reference.md) | [配套工程索引与批量运行](../../dsh-lab/README.md) |
 
 ## 七、Mermaid 配色图例

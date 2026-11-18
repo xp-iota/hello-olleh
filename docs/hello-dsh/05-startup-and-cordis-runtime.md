@@ -11,7 +11,7 @@ title: "启动流程与 Cordis 落地"
 
 ## 5.1 两个概念：Profile 与 Bundle
 
-> 📐 **配套可跑示例**：[`cordis.yml`](../../dsh-lab/examples/dsh-chat-demo/cordis.yml) + [`cordis.patch.yml`](../../dsh-lab/examples/dsh-chat-demo/cordis.patch.yml) 是**真实的装配清单** ——
+> 📐 **配套可跑示例**：[`cordis.yml`](../../dsh-lab/examples/15-dsh-chat-demo/cordis.yml) + [`cordis.patch.yml`](../../dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml) 是**真实的装配清单** ——
 > 根表是空的，全部行由 patch 层一次性挂载；每一行就是本节说的那种配置行（`id` / `name` / `config`），
 > 由官方 `boot()` 应用到根表上。这与本节讲的"profile 叠加 bundle"是同一套语义，只是换了个文件放。
 
@@ -538,11 +538,11 @@ function emitPluginDisposed(context: Context, fiber: Fiber) {
 
 ## 5.17 DSH 怎么用 cordis 的每个原语
 
-> 📐 **配套可跑示例**：[`M12 · Cordis 运行时与装配树`](../../dsh-lab/examples/cordis-seam-demo/src/index.ts) 在真实 `@deepseek-ai/cordis` 上逐条演示本节说的原语 ——
-> [M12.1 · 可逆 effect](../../dsh-lab/examples/cordis-seam-demo/src/index.ts)：插件卸载时它注册的 section 与监听器随 fiber 一起回收；
-> [M12.2 · 依赖注入：缺席即不启动](../../dsh-lab/examples/cordis-seam-demo/src/index.ts)：依赖不满足时 `apply` 根本不被调用，插件停在 pending；
-> [M12.3 · 行 id 与 patch 覆盖](../../dsh-lab/examples/cordis-seam-demo/src/index.ts)：同一行 id 在后一层 patch 里被整段替换；
-> [M12.4 · 失败即大声](../../dsh-lab/examples/cordis-seam-demo/src/index.ts)：非法配置在装配期就抛错，不允许带病运行。
+> 📐 **配套可跑示例**：[`M12 · Cordis 运行时与装配树`](../../dsh-lab/examples/01-cordis-seam-demo/src/index.ts) 在真实 `@deepseek-ai/cordis` 上逐条演示本节说的原语 ——
+> [M12.1 · 可逆 effect](../../dsh-lab/examples/01-cordis-seam-demo/src/index.ts)：插件卸载时它注册的 section 与监听器随 fiber 一起回收；
+> [M12.2 · 依赖注入：缺席即不启动](../../dsh-lab/examples/01-cordis-seam-demo/src/index.ts)：依赖不满足时 `apply` 根本不被调用，插件停在 pending；
+> [M12.3 · 行 id 与 patch 覆盖](../../dsh-lab/examples/01-cordis-seam-demo/src/index.ts)：同一行 id 在后一层 patch 里被整段替换；
+> [M12.4 · 失败即大声](../../dsh-lab/examples/01-cordis-seam-demo/src/index.ts)：非法配置在装配期就抛错，不允许带病运行。
 >
 > ⚠️ 与旧版示例的差别：配套工程**没有**逐一跑 `parallel` / `serial` / `bail` / `waterfall` 五种派发模式的阶段——那五种模式的覆盖在 cordis 自身的测试里，本模块聚焦的是装配语义。
 
@@ -557,7 +557,7 @@ function emitPluginDisposed(context: Context, fiber: Fiber) {
 
 ## 5.18 DSH 在 cordis 之上加的一层：`Scoped<T>` 与 `core/scope`
 
-> 📐 **配套可跑示例**：[`M01.4 · 按 agent 收紧可见工具`](../../dsh-lab/examples/dsh-tool-pipeline-demo/src/index.ts) 是 scope 的最小落点 ——
+> 📐 **配套可跑示例**：[`M01.4 · 按 agent 收紧可见工具`](../../dsh-lab/examples/02-dsh-tool-pipeline-demo/src/index.ts) 是 scope 的最小落点 ——
 > 它在 `ctx.agents.create()` 的 `setup` 里对 **agent 作用域**调 `agentCtx.tools.restrict({ allow: [...] })`，
 > 并断言"收紧只影响这个 agent 的下一轮装配、不外溢到全局"：全局工具集合条数不变。
 > 与旧版示例不同：配套工程**没有**在 plain context 上调用 `restrict` 去撞那条 fail-closed 报错——

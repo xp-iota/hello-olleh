@@ -1,4 +1,4 @@
-# dsh 的工具管线示例
+# 02 · dsh 的工具管线示例
 
 本示例演示 dsh 工具管线的五个干预点：注册、可见性、执行前策略、执行、执行后策略。word-count 工具插件在 cordis.patch.yml 里声明（初始禁用），五个场景全部经行句柄的 disabled 开关驱动，代码里没有一处 `ctx.plugin()`。
 
@@ -26,7 +26,7 @@
 
 ## 2 最小树：比 boot-demo 多六行
 
-`cordis.patch.yml` 在 [dsh-boot-demo](../dsh-boot-demo/README.md) 的五行基础上追加：
+`cordis.patch.yml` 在 [dsh-boot-demo](../01-dsh-boot-demo/README.md) 的五行基础上追加：
 
 | 行 id | 包 | 为什么需要 |
 |---|---|---|
@@ -647,4 +647,4 @@ console.log('\nTOOL_PIPELINE_OK')
 - 自写插件也走声明式：patch 清单一行 + 运行时开关，代码里没有 ctx.plugin；
 - Node 与 Bun 双运行时逐行一致。
 
-上一篇：[dsh-boot-demo](../dsh-boot-demo/README.md)；下一篇：[dsh-context-demo](../dsh-context-demo/README.md)——system prompt 的 section 装配与 token 经济学。
+上一篇：[dsh-boot-demo](../01-dsh-boot-demo/README.md)；下一篇：[dsh-context-demo](../03-dsh-context-demo/README.md)——system prompt 的 section 装配与 token 经济学。

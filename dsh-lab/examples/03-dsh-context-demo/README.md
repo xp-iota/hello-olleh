@@ -1,4 +1,4 @@
-# dsh 的上下文装配示例
+# 03 · dsh 的上下文装配示例
 
 本示例演示上下文装配与经济学：section 装配与可逆注册、变量插值的严格校验、token 估算、超长工具结果裁剪、大输出溢写、会话历史折叠为模型表面。big-text 工具在 cordis.patch.yml 里声明，两棵树都带上，代码里没有一处 `ctx.plugin()`。
 
@@ -19,7 +19,7 @@ dsh 把「模型看到什么」拆成两层：
 
 ## 2 最小树：十行底座 + 五行经济学设施 + 一行自写工具
 
-在 [dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md) 的十行基础上追加六行，共 **16 行**：
+在 [dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/README.md) 的十行基础上追加六行，共 **16 行**：
 
 | 行 id | 包 | 说明 |
 |---|---|---|
@@ -320,7 +320,7 @@ dsh-context-demo/
 }
 ```
 
-tsconfig.json 与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md) 逐字相同；`tools.ts` 与 [dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md) 的同名文件逐字节相同（批接口封装，该示例 README 有全文镜像）。
+tsconfig.json 与 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 逐字相同；`tools.ts` 与 [dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/README.md) 的同名文件逐字节相同（批接口封装，该示例 README 有全文镜像）。
 
 ### src/plugins/big-text.ts（完整版）
 
@@ -562,4 +562,4 @@ npm run start:bun       # Bun：随机 id/临时目录名除外逐行一致
 - 模型表面是历史的投影，内存 SQLite 即可演示；
 - Node 与 Bun 双运行时逐行一致。
 
-上一篇：[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md)；下一篇：[dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md)——turn/step 事件与脚本化适配器驱动的循环。
+上一篇：[dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/README.md)；下一篇：[dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md)——turn/step 事件与脚本化适配器驱动的循环。

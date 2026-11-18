@@ -1,4 +1,4 @@
-# dsh 的模型接入示例
+# 04 · dsh 的模型接入示例
 
 本示例演示模型接入层这条接缝：适配器的发现面、`llm/stream` waterfall 的环绕与拦截、合成 SSE 的离线端到端验证、真实网关调用。两个自写适配器都在 cordis.patch.yml 里声明——anthropic-compat 全程在位，scripted-adapter 行初始禁用、S2 用行句柄开关临时启用，代码里没有一处 `ctx.plugin()`。
 
@@ -287,7 +287,7 @@ dsh-llm-adapter-demo/
 }
 ```
 
-tsconfig.json 与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md) 逐字相同（NodeNext + allowImportingTsExtensions，`include: ["src"]`）。
+tsconfig.json 与 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 逐字相同（NodeNext + allowImportingTsExtensions，`include: ["src"]`）。
 
 ### src/env.ts（完整版）
 
@@ -616,4 +616,4 @@ npm run test:bun        # bun test：12 pass / 0 fail
 - 翻译层的正确性可以完全离线验证（合成 SSE + stub fetch），真实调用失败时先跑机制路径定位是翻译层还是网关的问题；
 - rc.3 迁移的三处形状变化（错误码表、resolveModel、CredentialRef）都由 typecheck 兜底，`as any` 绕不过去——这正是类型契约的价值。
 
-兄弟示例：[dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md)（stream 的消费端：循环怎样把 chunk 变成会话事件）、[dsh-boot-demo](../dsh-boot-demo/README.md)（boot() + 声明式 patch 的装配方式）、[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/README.md)（模型输出之后的工具管线五段）。
+兄弟示例：[dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md)（stream 的消费端：循环怎样把 chunk 变成会话事件）、[dsh-boot-demo](../01-dsh-boot-demo/README.md)（boot() + 声明式 patch 的装配方式）、[dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/README.md)（模型输出之后的工具管线五段）。

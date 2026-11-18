@@ -6,16 +6,16 @@ tags: [okf, dsh-lab, llm, provider, minimax]
 status: stable
 sources:
   - id: anthropic-compat
-    resource: "dsh-lab/examples/dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts"
+    resource: "dsh-lab/examples/04-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts"
     title: Anthropic 兼容适配器（MiniMax / Fuyao 共用）
   - id: patch-yml
-    resource: "dsh-lab/examples/dsh-chat-demo/cordis.patch.yml"
+    resource: "dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml"
     title: 两条 provider 路由的挂载与默认选路
   - id: m03-module
-    resource: "dsh-lab/examples/dsh-llm-adapter-demo/src/index.ts"
+    resource: "dsh-lab/examples/04-dsh-llm-adapter-demo/src/index.ts"
     title: M03 的真实 provider 访问路径
   - id: wire-test
-    resource: "dsh-lab/examples/dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.test.ts"
+    resource: "dsh-lab/examples/04-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.test.ts"
     title: 对 Anthropic wire format 的纯函数回归测试
 generated: { by: mcode/minimax-m3.1-flash, at: 2026-10-23T10:00:00Z }
 verified:

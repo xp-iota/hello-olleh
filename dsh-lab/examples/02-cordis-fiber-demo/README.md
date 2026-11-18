@@ -1,4 +1,4 @@
-# Cordis 的 fiber 示例
+# 02 · Cordis 的 fiber 示例
 
 本示例演示一个插件从挂上到卸载会经历什么：六态状态机、可逆 effect 的逆序回收、timer 作为 effect。插件全部在 cordis.yml 里声明，代码里没有一处 `ctx.use()`——runner 只经行句柄做启用 / 禁用 / dispose 这些运行时操作。
 

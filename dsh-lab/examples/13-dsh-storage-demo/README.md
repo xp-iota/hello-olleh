@@ -1,4 +1,4 @@
-# dsh 的存储示例
+# 13 · dsh 的存储示例
 
 本示例演示结构化状态的四种归属：存储域的 schema 校验、附件的字节与引用分离、凭据的解析而不暴露（含热轮换）、文件引用与跨会话引用。脚本化适配器在 cordis.patch.yml 里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。
 
@@ -373,7 +373,7 @@ dsh-storage-demo/
 }
 ```
 
-tsconfig.json 与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md) 逐字相同（NodeNext + allowImportingTsExtensions，`include: ["src"]`）。
+tsconfig.json 与 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 逐字相同（NodeNext + allowImportingTsExtensions，`include: ["src"]`）。
 
 ### src/plugins/scripted-adapter.ts（完整版）
 
@@ -729,4 +729,4 @@ npm run start:bun       # Bun：除首行 runtime 标识外逐行一致
 - 文件引用是条件渲染的发现缝：read 工具在位才渲染 @ 指引，能力与指引同进同出；
 - 跨会话引用按显式字节预算把别的会话快照放进上下文（不可信内容），自引用被明确拒绝。
 
-兄弟示例：[dsh-session-demo](../dsh-session-demo/README.md)（会话日志与读取面配方）、[dsh-jobs-demo](../dsh-jobs-demo/README.md)（turn 外机制，同样消费 storage）、[dsh-skills-mcp-demo](../dsh-skills-mcp-demo/README.md)（外部能力，凭据缝的另一侧消费者）。
+兄弟示例：[dsh-session-demo](../06-dsh-session-demo/README.md)（会话日志与读取面配方）、[dsh-jobs-demo](../11-dsh-jobs-demo/README.md)（turn 外机制，同样消费 storage）、[dsh-skills-mcp-demo](../12-dsh-skills-mcp-demo/README.md)（外部能力，凭据缝的另一侧消费者）。

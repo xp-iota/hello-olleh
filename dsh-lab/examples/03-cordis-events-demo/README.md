@@ -1,4 +1,4 @@
-# Cordis 的事件示例
+# 03 · Cordis 的事件示例
 
 本示例演示 cordis 事件系统的五种派发模式：`emit` / `parallel` / `serial` / `bail` / `waterfall`，外加两条规则——监听器本身也是 effect（插件卸载时自动摘除），`internal/dispatch` 是能看到全部事件的观测入口。
 

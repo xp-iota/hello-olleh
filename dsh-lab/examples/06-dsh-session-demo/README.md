@@ -1,4 +1,4 @@
-# dsh 的会话日志示例
+# 06 · dsh 的会话日志示例
 
 本示例演示会话日志的六个面：append-only 事件流的结构与 seq 不变量、JSONL 落盘、live-preferred 会话列表、标题投影、模型表面、从日志恢复。word-count 工具与脚本化适配器都在 cordis.patch.yml 里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。
 
@@ -15,7 +15,7 @@ dsh 没有独立的「聊天记录数据库」：**会话日志就是唯一事�
 
 > 这些观察点都需要「真的跑过一个 turn」才有内容，而真实 turn 需要模型。
 
-本示例沿用 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md) 的脚本化适配器离线播种一条真实 turn（工具步 + 回答步），然后把六个观察点全部真实触发。
+本示例沿用 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 的脚本化适配器离线播种一条真实 turn（工具步 + 回答步），然后把六个观察点全部真实触发。
 
 ## 2 最小树：九行底座 + 五行会话设施 + 两个自写插件
 
@@ -319,7 +319,7 @@ dsh-session-demo/
 }
 ```
 
-tsconfig.json 与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md) 逐字相同；`word-count.ts` 与 `scripted-adapter.ts` 直接复制该示例同名文件（agent-loop README 第 3 节有适配器全文镜像）。
+tsconfig.json 与 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 逐字相同；`word-count.ts` 与 `scripted-adapter.ts` 直接复制该示例同名文件（agent-loop README 第 3 节有适配器全文镜像）。
 
 ### src/index.ts（完整版）
 
@@ -480,4 +480,4 @@ console.log('\nSESSION_DEMO_OK')
 - resume 在原身份上重建 agent 并追加锚点——日志只增不减；
 - 自写插件走 patch 清单声明，Node 与 Bun 双运行时逐行一致。
 
-上一篇：[dsh-agent-loop-demo](../dsh-agent-loop-demo/README.md)；下一篇：[dsh-trajectory-probe-demo](../dsh-trajectory-probe-demo/README.md)——把事件流渲染成可读的 trajectory。
+上一篇：[dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md)；下一篇：[dsh-trajectory-probe-demo](../07-dsh-trajectory-probe-demo/README.md)——把事件流渲染成可读的 trajectory。

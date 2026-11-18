@@ -130,9 +130,9 @@ DeepSeek Harness（`dsh`）是 DeepSeek 开源的 **agent harness**——一个�
 
 > 📐 **这三个概念都能立刻上手跑**：本仓库的 [配套工程 dsh-lab](../../dsh-lab/README.md) 有 21 个完全独立的一文一工程示例（cordis 6 + dsh 15），
 > 全部装在**真实发布的 `@deepseek-ai/*` npm 包**上（`0.2.2-rc.3`，与正文快照同版）——
-> profile/bundle 看 [`cordis.yml`](../../dsh-lab/examples/dsh-chat-demo/cordis.yml) 与 [`cordis.patch.yml`](../../dsh-lab/examples/dsh-chat-demo/cordis.patch.yml)，
-> seam 看 [M03 · 推理服务接入](../../dsh-lab/examples/dsh-llm-adapter-demo/README.md) / [M07.3 · 沙箱模式](../../dsh-lab/examples/dsh-sandbox-demo/src/index.ts)，
-> 三类事件域看 [M04.1 · 观察 turn 边界](../../dsh-lab/examples/dsh-agent-loop-demo/src/index.ts) / [M04.2 · 在 turn 结束前 steer](../../dsh-lab/examples/dsh-agent-loop-demo/src/index.ts) / [M01.2 · 权限门](../../dsh-lab/examples/dsh-tool-pipeline-demo/src/index.ts)。
+> profile/bundle 看 [`cordis.yml`](../../dsh-lab/examples/15-dsh-chat-demo/cordis.yml) 与 [`cordis.patch.yml`](../../dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml)，
+> seam 看 [M03 · 推理服务接入](../../dsh-lab/examples/04-dsh-llm-adapter-demo/README.md) / [M07.3 · 沙箱模式](../../dsh-lab/examples/09-dsh-sandbox-demo/src/index.ts)，
+> 三类事件域看 [M04.1 · 观察 turn 边界](../../dsh-lab/examples/05-dsh-agent-loop-demo/src/index.ts) / [M04.2 · 在 turn 结束前 steer](../../dsh-lab/examples/05-dsh-agent-loop-demo/src/index.ts) / [M01.2 · 权限门](../../dsh-lab/examples/02-dsh-tool-pipeline-demo/src/index.ts)。
 
 ## 1.6 ⚠️ DSH 用的 cordis 是 vendored 的分叉
 

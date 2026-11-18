@@ -1,4 +1,4 @@
-# Cordis 的 HMR 示例
+# 06 · Cordis 的 HMR 示例
 
 本示例演示 HMR 的原位替换：改一行插件代码，进程不重启、Fiber 不拆建、配置不丢、无关插件不受影响。装配写在 cordis.yml 里，插件由 loader 动态 import——正是 hmr 能追踪的形态；hmr 行在 yml 里声明为禁用，只在 Node 分支运行时启用。
 

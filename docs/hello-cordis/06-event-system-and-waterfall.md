@@ -11,7 +11,7 @@ title: "事件系统与 Waterfall"
 
 ## 6.1 五种派发模式
 
-> 📐 **配套可跑示例**：dsh-lab 没有逐一跑 `emit` / `parallel` / `serial` / `bail` / `waterfall` 五种模式的阶段；最接近的可跑对照是 [`M01 · 工具管线`](../../dsh-lab/examples/dsh-tool-pipeline-demo/README.md) 的 M01.2（`tools/pre-execute` 的 waterfall）与 M01.3（`tools/post-execute`），以及 [`M03 · 推理服务接入`](../../dsh-lab/examples/dsh-llm-adapter-demo/README.md) 的 M03.2（`llm/stream` 的 waterfall）。在 `dsh-lab/` 执行 `npm run example:dsh-tool-pipeline-demo` / `npm run example:dsh-llm-adapter-demo`，可直接观察“返回即认领、`next()` 才转发”的语义。
+> 📐 **配套可跑示例**：dsh-lab 没有逐一跑 `emit` / `parallel` / `serial` / `bail` / `waterfall` 五种模式的阶段；最接近的可跑对照是 [`M01 · 工具管线`](../../dsh-lab/examples/02-dsh-tool-pipeline-demo/README.md) 的 M01.2（`tools/pre-execute` 的 waterfall）与 M01.3（`tools/post-execute`），以及 [`M03 · 推理服务接入`](../../dsh-lab/examples/04-dsh-llm-adapter-demo/README.md) 的 M03.2（`llm/stream` 的 waterfall）。在 `dsh-lab/` 执行 `npm run example:dsh-tool-pipeline-demo` / `npm run example:dsh-llm-adapter-demo`，可直接观察“返回即认领、`next()` 才转发”的语义。
 
 `DispatchMode`（`C/events.ts:14`）：
 
@@ -168,7 +168,7 @@ ctx.waterfall('demo/wrap', '原始文本', () => '【base】')   // 兜底函数
 
 若 B 不调 `next()` 直接 `return '【B】接管'`，则 inner 不会执行，最终为 `'【A】【B】接管'`——A 的外层包装仍在，但默认行为已被替换。
 
-> 📐 **配套可跑示例**：上面这条轨迹是按 § 6.3 的执行语义展开的示意；dsh-lab 的 M12 换成“装配树”主题后不再产出这条轨迹，可跑的近似对照是 [`M03.2`](../../dsh-lab/examples/dsh-llm-adapter-demo/src/index.ts) 里环绕 `llm/stream` 的 waterfall（`npm run example:dsh-llm-adapter-demo`）。
+> 📐 **配套可跑示例**：上面这条轨迹是按 § 6.3 的执行语义展开的示意；dsh-lab 的 M12 换成“装配树”主题后不再产出这条轨迹，可跑的近似对照是 [`M03.2`](../../dsh-lab/examples/04-dsh-llm-adapter-demo/src/index.ts) 里环绕 `llm/stream` 的 waterfall（`npm run example:dsh-llm-adapter-demo`）。
 
 ### 6.3.5 与 Koa 中间件的对照
 
@@ -197,7 +197,7 @@ waterfall 常被误认为责任链（Chain of Responsibility）。其实 cordis 
 
 判别准则只有一条：**转发之后还能不能拿回控制权、加工下游结果？** 能，就是中间件语义，与名字无关——Servlet 的 `FilterChain.doFilter()` 名叫“链”，结构上与 `next()` 同构，实为中间件。
 
-💡 **DSH 的 `tools/pre-execute` 是“以责任链方式使用 waterfall”的实例**（[`M01.2 · pre-execute 权限门`](../../dsh-lab/examples/dsh-tool-pipeline-demo/src/index.ts)）：权限门命中黑名单就返回 `{ kind: 'deny' }` 截链（=接盘），否则 `return next()`（=转发）。但底层是 waterfall，下游决定在返回途中仍可被外层加工，所以 pre-execute 的拒绝可以被后续监听者推翻；这正是 DSH 另设单调 `ctx.tools.guard()` 的原因——guard 只能返回拒绝理由，没有“放行”这个返回值，因此监听器顺序无法把拒绝改回放行（[`M01 · 工具管线`](../../dsh-lab/examples/dsh-tool-pipeline-demo/README.md) 的 M01.5）。
+💡 **DSH 的 `tools/pre-execute` 是“以责任链方式使用 waterfall”的实例**（[`M01.2 · pre-execute 权限门`](../../dsh-lab/examples/02-dsh-tool-pipeline-demo/src/index.ts)）：权限门命中黑名单就返回 `{ kind: 'deny' }` 截链（=接盘），否则 `return next()`（=转发）。但底层是 waterfall，下游决定在返回途中仍可被外层加工，所以 pre-execute 的拒绝可以被后续监听者推翻；这正是 DSH 另设单调 `ctx.tools.guard()` 的原因——guard 只能返回拒绝理由，没有“放行”这个返回值，因此监听器顺序无法把拒绝改回放行（[`M01 · 工具管线`](../../dsh-lab/examples/02-dsh-tool-pipeline-demo/README.md) 的 M01.5）。
 
 💡 **cordis 内部大量用 waterfall**：`internal/get`、`internal/set`、`internal/update`、`internal/config` 四个 internal 事件都是 waterfall（rc.13 新增了 `internal/config`，其内建监听器在事件层挂接 Standard Schema 校验，`C/events.ts:81-83`；见 § 6.6）。DSH 更是把它当作核心扩展机制——`tools/pre-execute`、`tools/execute`、`tools/post-execute`、`agent/pre-step`、`agent/request-error`、`llm/stream` 全是 waterfall（见 [DSH 07 篇](../hello-dsh/07-request-pipeline-llm-tools-and-prompts.md)）。**本节（§ 6.3）是本仓库唯一展开 waterfall 原理的位置，其余文档一律引用此处。**
 

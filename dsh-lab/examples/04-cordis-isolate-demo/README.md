@@ -1,4 +1,4 @@
-# Cordis 的 isolate 示例
+# 04 · Cordis 的 isolate 示例
 
 本示例演示 `ctx.isolate` 的 realm 隔离：同名服务多份实现、按名字隔离、事件可见性、共享 label。realm 划分全部写在 cordis.yml 配置行的 `isolate:` 字段里，代码里没有一处 `ctx.use()`——runner 只经行句柄做启用 / 禁用。
 

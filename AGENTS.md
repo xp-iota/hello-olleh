@@ -229,7 +229,7 @@ Verified on this repo: `collect_files(Path('scripts'))` found 7 files, `extract`
 
 Also verified on `dsh-lab/` (2026-10-23, **old structure** — M01–M12 + shared `src/`, retired 2026-11-17): 51 files, 396 nodes, 600 edges, 32 communities, `EXTRACTED` 537 / `INFERRED` 63; `diagnose multigraph --directed` reports 0 dangling / 0 self-loop / 0 duplicate. The same data rebuilt **undirected** collapses 12 edges. Full write-up and the rebuild commands live in [`docs/okf/references/01-graphify-dsh-lab.md`](docs/okf/references/01-graphify-dsh-lab.md); the graph needs rebuilding against `examples/` before its numbers are quoted as current facts.
 
-⚠️ **YAML does not enter the AST graph.** `cordis.yml` / `cordis.patch.yml` contribute **0 nodes** — tree-sitter covers code, not config. So "the assembly comes from one declarative manifest" is **not** verifiable from the graph; count it with `rg -c '^\s*- id:' dsh-lab/examples/dsh-chat-demo/cordis.patch.yml` instead.
+⚠️ **YAML does not enter the AST graph.** `cordis.yml` / `cordis.patch.yml` contribute **0 nodes** — tree-sitter covers code, not config. So "the assembly comes from one declarative manifest" is **not** verifiable from the graph; count it with `rg -c '^\s*- id:' dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml` instead.
 
 Two traps:
 

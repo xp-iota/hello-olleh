@@ -1,4 +1,4 @@
-# dsh 的长期运行示例
+# 11 · dsh 的长期运行示例
 
 本示例演示 dsh 里五种「活得比 turn 久」的机制：后台任务、目标生命周期、
 PTC run_code、workflow 编排、schedule 定时任务。34 个服务全部在
@@ -109,7 +109,7 @@ after_seconds }` + `target: { kind: 'session', sessionId }`；工具面
 ## 4 运行 jobs 示例
 
 `cordis.yml` 全文（根配置留空，装配全部来自 patch，见
-[dsh-boot-demo](../dsh-boot-demo/README.md) 的装配哲学）：
+[dsh-boot-demo](../01-dsh-boot-demo/README.md) 的装配哲学）：
 
 ```yaml
 # 根配置留空：装配全部来自 cordis.patch.yml（见 dsh-boot-demo 的装配哲学）。
@@ -357,7 +357,7 @@ fs-sandbox 附加的能力警告，不是错误。
 前置条件：Node ≥ 22.18（实测 v26.12.1，原生 TypeScript 类型剥离）；跑 Bun 侧
 需要 Bun ≥ 1.4.4（实测 1.4.4，`npm i -g bun` 或官方安装器）；Windows 上先给
 工程目录补一次 FullControl（含 WRITE_OWNER，否则 Win32 5，根因与修法见
-[dsh-sandbox-demo](../dsh-sandbox-demo/README.md) §3 S2）。不需要 API key，
+[dsh-sandbox-demo](../09-dsh-sandbox-demo/README.md) §3 S2）。不需要 API key，
 不访问网络（npm install 除外）。
 
 目录结构（node_modules、.dsh-home、.bun-guest-cache 除外，后两者已 gitignore）：
@@ -446,7 +446,7 @@ dsh-jobs-demo/
 }
 ```
 
-`tsconfig.json` 与 [dsh-agent-loop-demo](../dsh-agent-loop-demo/tsconfig.json)
+`tsconfig.json` 与 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/tsconfig.json)
 逐字一致（SHA256 相同，14 行）：ES2023 + nodenext + strict + noEmit +
 allowImportingTsExtensions + verbatimModuleSyntax，include 只有 src。
 
@@ -691,7 +691,7 @@ console.log('\nJOBS_OK')
 ```
 
 `src/tools.ts` 全文（78 行，与
-[dsh-tool-pipeline-demo](../dsh-tool-pipeline-demo/src/tools.ts) 逐字一致，
+[dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/src/tools.ts) 逐字一致，
 SHA256 相同）：
 
 ```ts
@@ -931,7 +931,7 @@ npm start
    worker env 白名单、fd 控制通道、data URL 误判，全部由本工程自带的
    runtime/ 迷你层修补，未动 node_modules，双运行时输出逐行一致。
 
-兄弟示例：[dsh-sandbox-demo](../dsh-sandbox-demo/README.md)（run_code 脚下的
-边界栈）、[dsh-subagent-demo](../dsh-subagent-demo/README.md)（workflow fan-out
-的宿主与深度预算）、[dsh-session-demo](../dsh-session-demo/README.md)（goal 与
+兄弟示例：[dsh-sandbox-demo](../09-dsh-sandbox-demo/README.md)（run_code 脚下的
+边界栈）、[dsh-subagent-demo](../10-dsh-subagent-demo/README.md)（workflow fan-out
+的宿主与深度预算）、[dsh-session-demo](../06-dsh-session-demo/README.md)（goal 与
 schedule 落脚的会话日志）。

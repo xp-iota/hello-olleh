@@ -1,4 +1,4 @@
-# Cordis 的 seam 示例
+# 01 · Cordis 的 seam 示例
 
 本示例将演示如何开发一个 seam，示例`greeter` 涵盖了 cordis 里四种角色：定义服务者、提供服务者、使用服务者、记录事件者。
 
@@ -108,7 +108,7 @@ export function apply(ctx: Context) {
 }
 ```
 
-最关键的一行是 `new EnglishGreeter(ctx)`：`Service` 的构造函数会调用 `ctx.provide('greeter', this)`，而 `ctx.provide` 又把这个服务挂到当前插件的 fiber 上。于是「provider 被卸载」与「服务消失」是同一件事，不需要任何手写的注销代码。同一隔离域里同名服务只能有一个提供者：第二个 provider 激活时直接抛 `service "greeter" has been registered at <provider-en>`。要让两套实现共存（多语言实例、多租户），用 `ctx.isolate('greeter')` 划出互相隔离的命名空间，见 [isolate 示例](../cordis-isolate-demo/README.md)。
+最关键的一行是 `new EnglishGreeter(ctx)`：`Service` 的构造函数会调用 `ctx.provide('greeter', this)`，而 `ctx.provide` 又把这个服务挂到当前插件的 fiber 上。于是「provider 被卸载」与「服务消失」是同一件事，不需要任何手写的注销代码。同一隔离域里同名服务只能有一个提供者：第二个 provider 激活时直接抛 `service "greeter" has been registered at <provider-en>`。要让两套实现共存（多语言实例、多租户），用 `ctx.isolate('greeter')` 划出互相隔离的命名空间，见 [isolate 示例](../04-cordis-isolate-demo/README.md)。
 
 第二关键的是 `this.ctx.emit`：动作发生的那一刻同步派发事件。此时 provider 既没有等待返回值，也不检查有没有监听者——没人听，事件就安静地过去，这是事件模型该有的样子。
 
