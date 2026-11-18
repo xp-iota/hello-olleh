@@ -2,7 +2,7 @@ npm notice run start
 npm notice run node src/cli/bin.ts chat
 
 dsh-chat-demo · 交互式会话
-  session  4ab49e51-b55e-4040-ba7b-2f26cf7327c6
+  session  e43912b2-d0c4-4eaa-a812-60608e941147
   route    anthropic-compat / fuyao-coding
   tools    27 个
 
@@ -11,5 +11,5 @@ dsh-chat-demo · 交互式会话
 … thinking
   ┌ thinking
   └
-dsh 的服务装配由官方 `boot()` 加声明式 `cordis.patch.yml`（89 行插件/服务配置行）驱动的 Cordis 插件化装配树完成，并非手工编写代码来接线。
+dsh 的服务装配由声明式装配清单 `cordis.patch.yml` 驱动：官方 `boot()` 读取这份清单，在 Cordis 的依赖注入容器里按声明逐条加载插件、注册服务，运行时无需手工装配。
 — turn 1 completed

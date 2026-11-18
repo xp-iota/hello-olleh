@@ -1,31 +1,31 @@
 npm notice run traj
 npm notice run node src/cli/bin.ts traj
-(默认最近会话 642ebb94-93bb-4bf6-895b-d5ad766cd43e)
+(默认最近会话 e43912b2-d0c4-4eaa-a812-60608e941147)
 
-trajectory 642ebb94-93bb-4bf6-895b-d5ad766cd43e
-  标题      dsh 服务装配的驱动方式
+trajectory e43912b2-d0c4-4eaa-a812-60608e941147
+  标题      dsh 服务装配的驱动机制
   cwd       D:\coding\creative\hello-olleh\dsh-lab\examples\dsh-chat-demo
   事件      20 条
   turn      1 个
   工具调用  0 次
-  耗时      2.9s
-  token     0 in / 124 out
+  耗时      10.0s
+  token     0 in / 106 out
 
 turn 大纲
   #   seq          时间           耗时    步  工具  提示词
-   1     4→19    19:51:58.830    2.9s   1     0  用一句话回答：dsh 的服务装配靠什么驱动？不要调用任何工具。
+   1     4→19    16:57:23.975   10.0s   1     0  用一句话回答：dsh 的服务装配靠什么驱动？不要调用任何工具。
 
 事件明细
-     0 19:51:58.824  权限预设 workspace-write
-     1 19:51:58.826  沙箱模式 workspace-write
-     2 19:51:58.826  审批策略 ask
-     4 19:51:58.830  turn 1 开始
-     6 19:51:59.138  step 1 开始
-     8 19:51:59.142  user     用一句话回答：dsh 的服务装配靠什么驱动？不要调用任何工具。
-     9 19:51:59.143  context  <system-reminder> The following workspace instructions may be relevan…
-    10 19:51:59.144  context  <system-reminder> The following information describes your current se…
-    11 19:51:59.144  context  <system-reminder> A skill is a reusable set of task-specific instruct…
-    17 19:52:01.704  assistant dsh 的服务装配由声明式配置驱动：官方 `boot()` 读取 `cordis.yml` / `cordis.patch.yml` 声明清单（dsh-lab 中为 89 行）来…
-    18 19:52:01.705  step 1 结束
-    19 19:52:01.706  turn 1 结束 (completed)
+     0 16:57:23.967  权限预设 workspace-write
+     1 16:57:23.969  沙箱模式 workspace-write
+     2 16:57:23.970  审批策略 ask
+     4 16:57:23.975  turn 1 开始
+     6 16:57:24.254  step 1 开始
+     8 16:57:24.256  user     用一句话回答：dsh 的服务装配靠什么驱动？不要调用任何工具。
+     9 16:57:24.257  context  <system-reminder> The following workspace instructions may be relevan…
+    10 16:57:24.257  context  <system-reminder> The following information describes your current se…
+    11 16:57:24.257  context  <system-reminder> A skill is a reusable set of task-specific instruct…
+    17 16:57:33.938  assistant dsh 的服务装配由声明式装配清单 `cordis.patch.yml` 驱动：官方 `boot()` 读取这份清单，在 Cordis 的依赖注入容器里按声明逐条加载插件、注册服…
+    18 16:57:33.938  step 1 结束
+    19 16:57:33.938  turn 1 结束 (completed)
 

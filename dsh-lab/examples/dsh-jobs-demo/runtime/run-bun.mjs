@@ -8,7 +8,7 @@
  * 顺带清掉继承来的 NODE_OPTIONS / BUN_OPTIONS：机器上装了 tsx、或用户全局
  * 设了别的 preload 时，会让"本工程的运行环境"取决于外部状态。
  *
- * @module dsh-sandbox-demo/runtime/run-bun
+ * @module dsh-jobs-demo/runtime/run-bun
  */
 import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'

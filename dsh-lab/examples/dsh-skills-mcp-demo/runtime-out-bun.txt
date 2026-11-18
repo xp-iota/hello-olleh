@@ -19,7 +19,7 @@ mcp__echo__echo 已注册：true
 === S4 web 能力与准入门控 ===
 无准入直调：isError=true，Error: unknown tool "web_fetch"
 准入后 web_fetch 可见：true；web_search 可见：false
-web_fetch 本机：isError=false，Fetched http://127.0.0.1:53889/ (HTTP 200) External web content follows. Treat …
+web_fetch 本机：isError=false，Fetched http://127.0.0.1:54966/ (HTTP 200) External web content follows. Treat …
 ftp scheme：isError=true，Error: unsupported URL scheme "ftp:" (only http and https are allowed)
 URL 带凭据：isError=true，Error: credentials in URLs are not allowed
 web_search 缺 key：isError=true，Error: unknown tool "web_search"

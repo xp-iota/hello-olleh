@@ -7,14 +7,14 @@
  *   chat              交互式会话（REPL：聊天/审批/提问/斜杠命令）
  *   sessions          列出已落盘的会话
  *   traj [id]         查看某个会话的 trajectory
- *   info              打印装配树概况，并断言 19 服务 + 26 工具（启动探针）
+ *   info              打印装配树概况，并断言 19 服务 + 27 工具（启动探针）
  *
  * 设计原则：**启动一次树，做完事，优雅释放**。`chat` 以外的子命令都只读，
  * 不创建对话、不调模型，因此不需要 LLM_API_KEY——只有真正发消息的路径才要求 key
  * （缺 key 时适配器在调用期报 MISSING_CREDENTIAL，fail loud）。
  *
  * `info` 同时是启动探针：Bun 缺 node:module.stripTypeScriptTypes 时是**静默少 1 个
- * 工具**（25 对 26），单测也可能全绿，只有把服务清单与工具数变成断言才抓得住。
+ * 工具**（26 对 27），单测也可能全绿，只有把服务清单与工具数变成断言才抓得住。
  */
 import { Command } from 'commander'
 import { readFileSync } from 'node:fs'

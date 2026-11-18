@@ -2,7 +2,7 @@ npm notice run start
 npm notice run node src/cli/bin.ts chat
 
 dsh-chat-demo · 交互式会话
-  session  dd9b37d9-0c5e-4567-ba1f-043bcf2d785a
+  session  5f6973f8-abd7-47bb-9452-22ba9634c4f1
   route    anthropic-compat / MiniMax-M3
   tools    27 个
 

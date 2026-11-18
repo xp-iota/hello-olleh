@@ -1,0 +1,26 @@
+npm notice run start:bun
+npm notice run node runtime/run-bun.mjs
+runtime = bun 1.4.4
+
+=== S1 沙箱内写文件并读回 ===
+write：isError=false，<path>D:\coding\creative\hello-olleh\dsh-lab\examples\dsh-sandbox-demo\.dsh-hom…
+read：isError=false，<path>D:\coding\creative\hello-olleh\dsh-lab\examples\dsh-sandbox-demo\.dsh-hom…
+
+=== S2 一次性 shell 命令 ===
+pwsh：isError=false，sandbox ok
+
+=== S3 沙箱模式 ===
+部署默认：defaultMode=workspace-write，fallbackRoot=D:\coding\creative\hello-olleh\dsh-lab\examples\dsh-sandbox-demo
+会话解析：mode=workspace-write，workspaceRoot=D:\coding\creative\hello-olleh\dsh-lab\examples\dsh-sandbox-demo
+
+=== S4 观察策略 ===
+未读先编辑：isError=true，Error: cannot modify "D:\coding\creative\hello-olleh\dsh-lab\examples\dsh-sandb…
+读过之后编辑：isError=false，The file D:\coding\creative\hello-olleh\dsh-lab\examples\dsh-sandbox-demo\.dsh-…
+
+=== S5 /permission 切换 ===
+/permission 命令可见：true
+切到 read-only：kind=success
+read-only 下写：isError=true，Error: [sandbox: file access denied under read-only mode] [sandbox: escalation …
+切回 workspace-write：kind=success，写 isError=false
+
+SANDBOX_OK

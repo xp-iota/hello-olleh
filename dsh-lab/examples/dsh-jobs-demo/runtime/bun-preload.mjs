@@ -1,8 +1,11 @@
 /**
- * bun-preload.mjs —— Bun 侧的加载期补丁，修两条缝：
+ * bun-preload.mjs —— Bun 侧的加载期补丁，修五条缝：
  *   1. subprocess-local 的 runner 分隔符（Bun 吞脚本后首个 `--`）；
  *   2. ptc-runtime-node 的 `node:module` 导入（Bun 1.4.4 缺 stripTypeScriptTypes
- *      与 registerHooks 两个具名导出，链接期直接抛）→ 改指到 lib/bun-shim.mjs。
+ *      与 registerHooks 两个具名导出，链接期直接抛）→ 改指到 lib/bun-shim.mjs；
+ *   3. worker env 白名单洗掉 BUN_OPTIONS → 宿主 spawn 前补回；
+ *   4. Socket({fd:7}) 匿名管道 Bun/Windows 不支持 → koffi 直读句柄 Duplex；
+ *   5. workflow guest 的 data URL 模块格式误判 → 落盘再导入。
  *
  * 用法（由 runtime/run-bun.mjs 自动注入，无需手工调用）：
  *

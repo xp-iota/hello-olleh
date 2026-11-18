@@ -2,5 +2,11 @@ npm notice run start:bun
 npm notice run node runtime/run.mjs --runtime bun src/cli/bin.ts chat
 
 dsh-chat-demo · 交互式会话
-  session  819d0199-c1dd-4a5d-8ad7-903a3d0e5798
+  session  af6e5b69-1f63-406c-b212-7ee6491d41e4
   route    anthropic-compat / fuyao-coding
+  tools    27 个
+
+  直接输入问题；/help 看命令；Ctrl-D 退出。
+
+
+(EOF，退出)

@@ -2,14 +2,12 @@ npm notice run start:bun
 npm notice run node runtime/run.mjs --runtime bun src/cli/bin.ts chat
 
 dsh-chat-demo · 交互式会话
-  session  642ebb94-93bb-4bf6-895b-d5ad766cd43e
+  session  ea26e692-3835-49e8-b61f-6273ba9bc0ee
   route    anthropic-compat / fuyao-coding
   tools    27 个
 
   直接输入问题；/help 看命令；Ctrl-D 退出。
 
 … thinking
-  ┌ thinking
-  └
-dsh 的服务装配由声明式配置驱动：官方 `boot()` 读取 `cordis.yml` / `cordis.patch.yml` 声明清单（dsh-lab 中为 89 行）来装配，而不是手工把服务连起来。
+dsh 的服务装配由声明式配置驱动。具体来说，它通过 Cordis 的服务容器，依照 `cordis.patch.yml` 这类装配清单，以插件化的服务加载方式完成：由配置声明要启用哪些服务，`boot()` 再按这些配置把它们装配起来。
 — turn 1 completed

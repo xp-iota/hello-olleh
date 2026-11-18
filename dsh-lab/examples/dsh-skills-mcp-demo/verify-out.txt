@@ -1,5 +1,0 @@
-npm error Missing script: "verify"
-npm error
-npm error To see a list of scripts, run:
-npm error   npm run
-npm error A complete log of this run can be found in: C:\Users\feuye\AppData\Local\npm-cache\_logs\2026-11-17T11_59_19_308Z-debug-0.log

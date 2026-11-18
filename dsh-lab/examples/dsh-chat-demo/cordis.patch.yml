@@ -389,7 +389,7 @@
 
     # 工作流编排：workflow 工具 + Node 侧 PTC 运行时（run_code 的宿主）。
     # Bun 下这一行依赖 runtime/bun-preload.mjs 的 stripTypeScriptTypes shim，
-    # 缺 shim 会静默少 1 个工具（25 对 26）——info 探针专门抓这个。
+    # 缺 shim 会静默少 1 个工具（26 对 27）——info 探针专门抓这个。
     - id: ptc-runtime
       name: '@deepseek-ai/dsh-ptc-runtime-node'
 

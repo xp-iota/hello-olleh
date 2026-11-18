@@ -23,7 +23,7 @@
  * 且在每个 pre-execute 监听之后才求值；pre-execute 是 waterfall，可 allow / deny /
  * ask / cancel，是更完整的策略面。本插件选 pre-execute，就是为了四种决定都留得住。
  *
- * @module dsh-guardrail-demo/plugins/safety-guardrail
+ * @module dsh-chat-demo/plugins/safety-guardrail
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { PreToolDecision, ToolExecution } from '@deepseek-ai/dsh-tools'

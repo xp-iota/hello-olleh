@@ -7,8 +7,8 @@
  *   S5 schedule：durable 定时任务的创建、列表、删除。
  * 关键认识：活得比 turn 久的东西都走"注册 + 持久化 + 可观测"——状态落在
  * 会话日志或存储域里，而不是只活在某个 Promise 里。
- * Node 与 Bun 双运行时：Bun 的 stripTypeScriptTypes 与 runner 分隔符两条缝
- * 由 runtime/ 迷你层修补。
+ * Node 与 Bun 双运行时：Bun 的五条缝（runner 分隔符、node:module 导出、
+ * worker env 白名单、fd 控制通道、data URL 误判）由 runtime/ 迷你层修补。
  */
 import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
