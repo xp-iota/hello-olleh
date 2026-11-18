@@ -1,5 +1,3 @@
-npm notice run start
-npm notice run node src/index.ts
 runtime = node v26.12.1
 
 === S1 路由与模型目录 ===
@@ -18,7 +16,7 @@ waterfall 命中 1 次，经手 5 个 chunk，文本长度=28
 
 === S4 真实调用 ===
 请求 anthropic-compat / fuyao-coding
-回答：dsh 的工具管线有 3 段。
-推理增量块：479；用量：0 in / 1408 out
+回答：如果 dsh 指某个具体系统，请补充上下文，否则仅凭“dsh”无法确定其工具管线有几段。
+推理增量块：162；用量：43 in / 1087 out
 
 LLM_ADAPTER_OK

@@ -1,0 +1,25 @@
+# Fiber 示例的装配清单：初始开关决定每个插件从哪个状态开始演示
+- id: slow
+  name: ./src/plugins/slow.ts       # ① 六态观察对象：初始禁用，运行时启用
+  disabled: true
+- id: watcher
+  name: ./src/plugins/watcher.ts    # ② inject tick：启动时没有 provider，停在 PENDING
+- id: provider-a
+  name: ./src/plugins/provider-a.ts # ② 第一个 provider：运行时启用再禁用
+  disabled: true
+- id: provider-b
+  name: ./src/plugins/provider-b.ts # ② 第二个 provider：换实现让 watcher 复活
+  disabled: true
+- id: noisy
+  name: ./src/plugins/noisy.ts      # ③ 可逆 effect：初始禁用
+  disabled: true
+- id: timer
+  name: '@cordisjs/timer'           # ④ timer 服务：启动即在位
+- id: alarms
+  name: ./src/plugins/alarms.ts     # ④ 定时器作为 effect：初始禁用
+  disabled: true
+- id: broken
+  name: ./src/plugins/broken.ts     # ⑤ apply 抛错：初始禁用
+  disabled: true
+- id: runner
+  name: ./src/index.ts              # 场景驱动：不挂插件，只对上面的行做运行时开关

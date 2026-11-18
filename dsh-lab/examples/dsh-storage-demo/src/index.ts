@@ -7,6 +7,7 @@
  *   S5 跨会话引用：把另一条会话的快照按预算放进当前上下文（recall 形态）。
  * 关键认识：引用而不是内容——日志里出现的是 id，真实字节在各自后端里，
  * 因此日志可以安全分享，而敏感内容仍受授权保护。
+ * 脚本化适配器在 cordis.patch.yml 里声明，全程在位（S5 才用到）。
  * Node 与 Bun 双运行时：不挂 ptc/subprocess，无需任何 Bun 补丁。
  */
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -22,7 +23,6 @@ import type {} from '@deepseek-ai/dsh-attachment'
 import type {} from '@deepseek-ai/dsh-file-reference'
 import type {} from '@deepseek-ai/dsh-session-query-sqlite'
 import type {} from '@deepseek-ai/dsh-session-reference'
-import { ScriptedAdapter } from './plugins/scripted-adapter.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const BASE_URL = new URL('..', import.meta.url).href
@@ -224,7 +224,7 @@ const fileRefHandle = await ctx.agents.create({
 
 // ── S5：跨会话引用——快照按预算进上下文 ────────────────────────────────────
 console.log('\n=== S5 跨会话引用 ===')
-const releaseAdapter = ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())
+// 脚本化适配器由 patch 清单声明，boot 后已在位。
 const sourceId = SessionId(`storage-source-${suffix}`)
 const sourceHandle = await ctx.agents.create({
   sessionId: sourceId,
@@ -278,7 +278,6 @@ const sourceHandle = await ctx.agents.create({
   await viewerHandle.dispose()
 }
 
-releaseAdapter()
 await sourceHandle.dispose()
 await fileRefHandle.dispose()
 await ctx.fiber.dispose()

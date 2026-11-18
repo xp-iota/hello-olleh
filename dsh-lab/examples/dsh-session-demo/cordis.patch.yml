@@ -67,3 +67,10 @@
         fallbackMaxWords: 5
         fallbackMaxBytes: 40
         maxTitleBytes: 80
+
+    # 自写插件也走声明式：工具与脚本化适配器全程在位，随整树 dispose 回收。
+    - id: word-count
+      name: ./src/plugins/word-count.ts
+
+    - id: scripted-adapter
+      name: ./src/plugins/scripted-adapter.ts

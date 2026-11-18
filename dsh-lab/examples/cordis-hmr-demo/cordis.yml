@@ -1,0 +1,15 @@
+# HMR 示例的装配清单：插件由 loader 动态 import，正是 hmr 能追踪的形态
+- id: greeter
+  name: ./src/plugins/greeter.ts    # 被改写的目标插件
+- id: consumer
+  name: ./src/plugins/consumer.ts   # 依赖 greeter：换代时经 epoch 级联
+- id: clock
+  name: ./src/plugins/clock.ts      # 与 greeter 无关：apply 计数应保持 #1
+- id: hmr
+  name: '@cordisjs/hmr'             # 只在 Node 启用（构造需要 --expose-internals）
+  disabled: true
+  config:
+    watch:
+      enabled: false                # 演示手动 reconcile，不开文件 watch
+- id: runner
+  name: ./src/index.ts              # 场景驱动：改文件 + reconcile / registry.replace

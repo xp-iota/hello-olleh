@@ -1,8 +1,6 @@
 # Cordis 的 seam 示例
 
-这个示例用一条 `greeter` 接缝，演示 cordis 里四种角色怎么配合：定义服务的人、提供服务的人、用服务干活的人、只在旁边记录事件的人。跑一遍就能看到：谁提供、谁消费、谁只是旁观，以及为什么「记日志」这种事不该写在 provider 里。
-
-示例基于 cordis 4.0.0-rc.13，在 Node 26.12.1 和 Bun 1.4.4 上都跑过，输出一致。代码就在本目录，`npm install && npm start` 即可运行。看完这篇，你会写一条可替换的服务接缝，也知道什么时候该用服务注入、什么时候该用事件订阅。
+本示例将演示如何开发一个 seam，示例`greeter` 涵盖了 cordis 里四种角色：定义服务者、提供服务者、使用服务者、记录事件者。
 
 - **插件**是实现 [**Service**](https://deepseek-harness.github.io/deepseek-harness/reference/cordis-api/service) 的对象。它可以是一个带有可选 `inject` 和 `apply(ctx)` 字段的函数，也可以是一个 `Service` 子类，其生命周期由 Cordis 挂载到当前上下文中。
 
@@ -14,7 +12,7 @@
 
 - [**注册**](https://deepseek-harness.github.io/deepseek-harness/reference/cordis-api/registry)是可逆的副作用。提示词片段、工具 schema、适配器、提供方和监听器通过 `ctx.effect()` 或 `ctx.on()` 安装，reload 和 teardown 时会按预期撤销。
 
-## 为什么插件之间不该直接 import
+## 1 插件之间不直接 import
 
 两个插件如果直接 import 彼此，表面上少写了几行胶水，实际有三个麻烦：
 
@@ -23,6 +21,8 @@
 - **启动顺序写死**：谁先被 new 出来、谁后初始化，全靠手工安排；顺序一错就是 undefined。
 
 - **卸载顺序靠自觉**：服务先销毁、使用方还在跑，是最难查的一类空指针。
+
+> 依赖倒置原则 Dependency Inversion Principle(DIP)
 
 seam 的思路很简单：把「提供能力」和「消费能力」拆开，两侧都只认识一份只含词汇、不含实现的定义。provider 实现它，consumer 声明需要它，谁在什么时机被激活、被卸载，交给框架调度。这条缝在 Harness 里被称为 capability seam——文件系统、凭据、附件都各自有这样一条接缝——但它本身没有任何框架魔法，四个角色、两个 API 就够。
 
@@ -36,7 +36,7 @@ seam 的思路很简单：把「提供能力」和「消费能力」拆开，两
 
 图里没有一条线直接连在 provider 和 consumer 的「实现」之间：两条向上的线是「都依赖定义」，横向与斜向的线是「运行时由框架连接」。这正是 seam 的形状。
 
-## 定义：seam 只写词汇，不写实现
+## 2 服务定义
 
 定义文件回答三个问题：服务叫什么、要提供什么能力、会广播哪些事实。除此之外一行实现都不该有，这样它才能被所有插件安全依赖。
 
@@ -80,7 +80,7 @@ declare module 'cordis' {
 
 - **事件也是契约**。事件名带 `greeter/` 命名空间避免撞名，载荷结构由 `GreetEvent` 固定；改载荷等于改 API，和改方法签名一样需要评估。
 
-## Provider：构造即注册，动作即广播
+## 3 Provider：构造即注册，动作即广播
 
 provider 只做两件事：实现能力、在动作发生时把事实广播出去。它不知道谁在消费，也不知道有没有人在听。
 
@@ -114,7 +114,7 @@ export function apply(ctx: Context) {
 
 最后一行的 `ctx.effect(() => () => …)` 是卸载日志的挂点：effect 的返回值是清理函数，fiber 销毁时逆序执行。它顺便演示了「注册是可逆副作用」——连一行日志的安装与撤销都走同一条机制。
 
-## 两个消费者：一个问能力，一个只记事实
+## 4 两个消费者：一个问能力，一个只记事实
 
 「消费」有两种情况。需要拿服务干活的，是强依赖，用 `inject` 声明；只想记录「发生过什么」的，是弱依赖，用 `ctx.on` 订阅。
 
@@ -153,65 +153,86 @@ export function apply(ctx: Context) {
 |适合表达|「我要用它完成我的工作」|「这件事发生了，我要知道 / 记录 / 追加动作」|
 |失败语义|服务缺失 = 这段逻辑不能跑|没人监听 = 事件照发，什么也不发生|
 
-## 把线接起来跑一次
+## 5 运行seam示例
 
-装配代码故意用一个「反直觉」的顺序：先挂 consumer，后挂 provider，中间还插一个不声明 inject 的插件去踩坑。
+装配全部写在 `cordis.yml` 里，代码里没有一处 `ctx.use()`：
 
-```ts
-import { Context } from 'cordis'
-import * as audit from './audit.ts'
-import * as consumer from './consumer.ts'
-import * as providerEn from './provider-en.ts'
-
-const ctx = new Context()
-ctx.use(audit)                        // 事件监听者先就位
-const consumerFiber = ctx.use(consumer)   // 此时没有 provider：保持 pending
-const enFiber = ctx.use(providerEn)       // 服务就绪，consumer 自动激活
-await enFiber
-await consumerFiber
-await enFiber.dispose()               // 先卸载 consumer，再注销服务
+```yaml
+# 插件与装配分离：换实现只改这个文件，src 里的代码不用动
+- id: audit
+  name: ./src/audit.ts        # 事件型 consumer：只监听 greeter/greet
+- id: consumer
+  name: ./src/consumer.ts     # 服务型 consumer：inject 未满足时会等待
+- id: provider-en
+  name: ./src/provider-en.ts  # provider：注册 ctx.greeter 并广播事件
+- id: provider-pirate
+  name: ./src/provider-pirate.ts  # 另一个 provider：先声明为禁用，运行时再启用
+  disabled: true
+- id: runner
+  name: ./src/index.ts        # 场景驱动：不挂插件，只对上面的行做运行时开关
 ```
 
-在本机复现只需要六条命令：`npm start` 与 `npm run start:bun` 走程序化装配，`npm run start:yml` 与 `npm run start:yml:bun` 走 YAML 装配，四条路径应当打印同样的问候顺序。
+`npm start` 就是 cordis CLI：读当前目录的 `cordis.yml`，loader 逐行 import 模块，把导出的 `apply`、`inject`、`name` 当作插件定义挂上去。consumer 声明在 provider 前面也没关系——inject 未满足就等着，服务一出现自动激活。
+
+`runner` 行挂的 `src/index.ts` 也是一个普通插件，负责驱动演示场景。它 inject 了 loader，拿到每一行的句柄，运行时翻转 `disabled`、dispose，不再手工挂任何插件：
+
+```ts
+export const name = 'runner'
+export const inject = ['loader']
+
+export function apply(ctx: Context) {
+  // apply 同步返回：runner 自己的 fiber 先 settle，run() 再等整棵树，避免互相等待
+  void run(ctx)
+}
+
+async function run(ctx: Context) {
+  await ctx.loader.await()
+  // ……越权探针、root 侧调用……
+  await row(ctx, 'provider-en').update({ disabled: true })      // 禁用一行
+  await row(ctx, 'provider-pirate').update({ disabled: false }) // 启用另一行
+}
+```
+
+在本机复现只需要四条命令：
 
 ```bash
 npm install             # cordis 与 loader 依赖
-npm start               # 程序化装配（Node）：打印 ①～⑥ 的完整时序
-npm run start:bun       # 同一份代码（Bun）：输出逐行一致
-npm run start:yml       # YAML 装配（Node）：插件由 cordis.yml 挂载
-npm run start:yml:bun   # YAML 装配（Bun）
+#
+npm start               # cordis CLI 读 cordis.yml（Node）：打印 ①～⑤ 的完整时序
+npm run start:bun       # Bun 下直接跑 cordis 的 bin.js：输出逐行一致
+#
 npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
 
 下面是 `npm start` 的实测输出（Node 26.12.1；Bun 1.4.4 逐行相同）：
 
 ```text
-① 先挂事件监听者 audit 和 consumer，此时没有任何 provider
 [audit] 开始监听 greeter/greet（此刻还没有任何 provider）
-   结果：consumer 保持 pending —— inject 未满足，apply() 一次也没执行
-
-② 再挂 provider-en
 [provider-en] 注册 ctx.greeter
 [audit] 记录：provider-en 对 cordis 说了「Hello, cordis!」
 [consumer] 激活，调用 ctx.greeter.greet() → Hello, cordis!
-   结果：服务就绪后 consumer 自动激活；它的 greet() 调用内部由 provider 广播事件
 
-③ 没声明 inject 的插件直接读 ctx.greeter
+① 启动即在位：provider-en 由 cordis.yml 声明，consumer 已自动激活
+   consumer 状态 = ACTIVE
+
+② 没声明 inject 的插件直接读 ctx.greeter（本 runner 只 inject 了 loader）
    结果：cannot get property "greeter" without inject
 
-④ 换一个调用方（root 侧直接调用服务）：事件照样广播
+③ 换一个调用方（root 侧 ctx.get 直接调用服务）：事件照样广播
 [audit] 记录：provider-en 对 root 说了「Hello, root!」
 
-⑤ 卸载 provider-en
+④ 禁用 provider-en 行：entry.update({ disabled: true })
 [consumer] 卸载
 [provider-en] 卸载，ctx.greeter 随即消失
+   consumer 状态 = PENDING
    结果：provider 卸载时先卸载依赖它的 consumer，再注销服务；audit 不受影响
    ctx.get("greeter") = undefined
 
-⑥ 换成另一个 provider（consumer 的代码一行没改）
+⑤ 启用 provider-pirate 行（yml 里声明为 disabled: true）：consumer 的代码一行没改
 [provider-pirate] 注册 ctx.greeter
 [audit] 记录：provider-pirate 对 cordis 说了「Ahoy, cordis!」
 [consumer] 激活，调用 ctx.greeter.greet() → Ahoy, cordis!
+   consumer 状态 = ACTIVE
    结果：同一条 seam 换了实现，服务型与事件型 consumer 都被重新触发
 
 [consumer] 卸载
@@ -223,51 +244,19 @@ npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过
 
 交互版：[seam-lifecycle.html](diagrams/seam-lifecycle.html) · IR 源：[seam-lifecycle.sequence.json](diagrams/seam-lifecycle.sequence.json)
 
-- 正向：consumer 先挂但停在 PENDING；provider 一出现，cordis 自动激活 consumer；greet 调用内部同步广播事件。
-- 反向：dispose(provider) 先卸载依赖它的 consumer，再注销服务本身；audit 全程不受影响；服务消失时 consumer 回到 PENDING 而非销毁。
-- 原地复活：挂上 provider-pirate，同一 fiber 重新加载，consumer 的代码一行没改；生命周期为 PENDING → LOADING → ACTIVE → UNLOADING。
+- 正向：inject 未满足时 consumer 停在 PENDING；provider 一出现，cordis 自动激活 consumer；greet 调用内部同步广播事件。
+- 反向：禁用 provider 行时先卸载依赖它的 consumer，再注销服务本身；audit 全程不受影响；服务消失时 consumer 回到 PENDING 而非销毁。
+- 原地复活：启用 provider-pirate 行，同一 fiber 重新加载，consumer 的代码一行没改；生命周期为 PENDING → LOADING → ACTIVE → UNLOADING。
 
-## 用 YAML 装配：把装配从代码里拿出去
+换实现也可以不用运行时开关：把 yml 里 `provider-en` 行的 name 改成 `./src/provider-pirate.ts` 再重启，输出随之变成海盗腔，audit 与 consumer 一行都没改。
 
-前面的 `index.ts` 用 `ctx.use()` 一行行挂插件；真实部署里更常见的是把插件清单写进配置，由 cordis 的 loader 读取。同一套插件不改一行代码，装配方式换成一个 YAML 文件。
-
-```yaml
-# 插件与装配分离：换实现只改这个文件，src 里的代码不用动
-- name: ./src/audit.ts        # 事件型 consumer：只监听 greeter/greet
-- name: ./src/consumer.ts     # 服务型 consumer：inject 未满足时会等待
-- name: ./src/provider-en.ts  # provider：注册 ctx.greeter 并广播事件
-```
-
-条目顺序仍是「先 consumer 后 provider」——和 `index.ts` 故意反着来，结果一样：consumer 在 provider 就绪前保持 pending，服务出现后自动激活。`name` 是相对项目根目录的模块路径，loader 会 import 它，并把模块导出的 `apply`、`inject`、`name` 当作插件定义。
-
-```bash
-npm run start:yml       # 等价于 npx cordis：读取当前目录的 cordis.yml
-npm run start:yml:bun   # Bun 下直接跑 cordis 的 bin.js，输出相同
-```
-
-```text
-[audit] 开始监听 greeter/greet（此刻还没有任何 provider）
-[provider-en] 注册 ctx.greeter
-[audit] 记录：provider-en 对 cordis 说了「Hello, cordis!」
-[consumer] 激活，调用 ctx.greeter.greet() → Hello, cordis!
-```
-
-把 `provider-en.ts` 换成 `provider-pirate.ts` 重启，输出随之变成海盗腔，audit 与 consumer 一行都没改：
-
-```text
-[audit] 开始监听 greeter/greet（此刻还没有任何 provider）
-[provider-pirate] 注册 ctx.greeter
-[audit] 记录：provider-pirate 对 cordis 说了「Ahoy, cordis!」
-[consumer] 激活，调用 ctx.greeter.greet() → Ahoy, cordis!
-```
-
-YAML 路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordisjs/include`、`@cordisjs/fs`、`@cordisjs/fs-node`，已写进 `package.json`；只跑 `index.ts` 时它们不会被用到。
+装配路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordisjs/include`、`@cordisjs/fs`、`@cordisjs/fs-node`，已写进 `package.json`。
 
 五个可观察现象，正好对应五条机制：
 
 1. **pending 不执行**：注入未满足时插件停在 pending，`apply()` 从未被调用，也就没有「半初始化」的中间态。
 
-2. **激活与挂载顺序无关**：consumer 先挂、provider 后挂，服务一出现 consumer 自动激活。依赖顺序由声明决定，不由代码顺序决定。
+2. **激活与挂载顺序无关**：yml 里 consumer 声明在 provider 前面，服务一出现 consumer 自动激活。依赖顺序由声明决定，不由清单顺序决定。
 
 3. **访问必须有声明**：没 inject 却读 `ctx.greeter`，运行时抛 `cannot get property "greeter" without inject`；类型层面同样挡住，因为 `ctx.greeter` 的类型只来自 seam 的声明。
 
@@ -275,9 +264,9 @@ YAML 路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordi
 
 5. **事件穿过一切**：调用方换成 root 侧，事件照样广播；provider 换成海盗腔，audit 只是多一条记录，一行代码都不用动。
 
-顺带一个和状态有关的事实：cordis 的插件生命周期是 `PENDING → LOADING → ACTIVE → UNLOADING`，服务消失时 consumer 回到 pending 而不是销毁，所以换一个 provider 挂上来，原来的 fiber 会重新加载——这就是第 ⑥ 步能「原地复活」的原因。
+顺带一个和状态有关的事实：cordis 的插件生命周期是 `PENDING → LOADING → ACTIVE → UNLOADING`，服务消失时 consumer 回到 pending 而不是销毁，所以换一个 provider 挂上来，原来的 fiber 会重新加载——这就是第 ⑤ 步能「原地复活」的原因。
 
-## 什么时候用服务，什么时候用事件
+## 6 什么时候用服务，什么时候用事件
 
 判断只需要一句话：**要「问」能力就用服务，要知道「发生了什么」就用事件。**把这句话写成决策路径，就是下面这张图。
 
@@ -291,11 +280,11 @@ YAML 路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordi
 
 实践里最常见的错误，是把「通知别人」写成同步调用链：provider 里依次调用日志、统计、埋点。这些需求彼此无关，却被迫塞进 provider，还要跟着 provider 一起失败。改成 emit 一个事件之后，provider 只负责「发生了什么」，每个监听者各自决定要不要响应、失败了怎么处理。
 
-## 容易踩的坑
+## 7 容易踩的坑
 
 ### 同名服务只能有一个提供者
 
-同一隔离域里第二个 provider 会在 `ctx.use()` 时直接抛错：`service "greeter" has been registered at <provider-en>`。要让两套实现共存（比如多语言实例、多租户），用 `ctx.isolate('greeter')` 划出互相隔离的命名空间，每个 isolate 内各有一份 provider 与 consumer。
+同一隔离域里第二个 provider 激活时会直接抛错：`service "greeter" has been registered at <provider-en>`。要让两套实现共存（比如多语言实例、多租户），用 `ctx.isolate('greeter')` 划出互相隔离的命名空间，每个 isolate 内各有一份 provider 与 consumer。
 
 ### 事件不保证有人听
 
@@ -307,9 +296,9 @@ YAML 路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordi
 
 ### API 仍在演进
 
-示例跑在 cordis 4.0.0-rc.13 上。这个版本里挂插件的主 API 是 `ctx.use()`（旧版本叫 `ctx.plugin()`，仍保留为 deprecated 别名），升级时以实际类型声明为准，别直接沿用旧文章里的调用。
+示例跑在 cordis 4.0.0-rc.13 上。这个版本里挂插件的底层 API 是 `ctx.use()`（旧版本叫 `ctx.plugin()`，仍保留为 deprecated 别名）；本示例不直接调它，插件一律由 cordis.yml 声明、loader 挂载。升级时以实际类型声明为准，别直接沿用旧文章里的调用。
 
-## 从零复现：完整文件与四条运行路径
+## 8 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -319,7 +308,7 @@ YAML 路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordi
 cordis-seam-demo/
 ├── package.json          # 依赖与脚本（Node / Bun 双运行时）
 ├── tsconfig.json         # 只做类型检查，不产出 JS
-├── cordis.yml            # YAML 装配（可选路径）
+├── cordis.yml            # 唯一装配入口：插件清单与初始开关
 ├── .gitignore
 ├── src/
 │   ├── seam.ts           # 1. Service Definition
@@ -327,7 +316,7 @@ cordis-seam-demo/
 │   ├── provider-pirate.ts# 2'. 同一 seam 的另一个实现
 │   ├── consumer.ts       # 3. 服务型 Consumer
 │   ├── audit.ts          # 4. 事件型 Consumer
-│   └── index.ts          # 程序化装配 + 时序演示
+│   └── index.ts          # runner 插件：运行时开关驱动场景
 └── diagrams/             # 三张画板：SVG / 交互 HTML / IR 源
 ```
 
@@ -340,10 +329,8 @@ cordis-seam-demo/
   "type": "module",
   "description": "一条 greeter 接缝演示 cordis 四种角色：Service Definition / Provider / 服务型 Consumer / 事件型 Consumer。Node 与 Bun 双运行时。",
   "scripts": {
-    "start": "node src/index.ts",
-    "start:bun": "bun src/index.ts",
-    "start:yml": "cordis",
-    "start:yml:bun": "bun node_modules/cordis/bin.js",
+    "start": "cordis",
+    "start:bun": "bun node_modules/cordis/bin.js",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
@@ -366,6 +353,7 @@ cordis-seam-demo/
 {
   "compilerOptions": {
     "target": "ES2023",
+    "types": ["node"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "strict": true,
@@ -380,81 +368,90 @@ cordis-seam-demo/
 
 ### src/index.ts（完整版）
 
-正文第 5 节展示的是节选；这里是可直接运行的完整文件。它依次演示 pending、自动激活、越权访问报错、root 侧调用、有序卸载与换实现复活。
+正文第 5 节展示的是节选；这里是可直接运行的完整文件。它由 cordis.yml 的 runner 行挂载，依次演示启动即在位、越权访问报错、root 侧调用、禁用行后的有序卸载与启用另一行后的换实现复活。
 
 ```ts
 /**
- * 装配：seam 的 provider、服务型 consumer、事件型 consumer 如何互相找到对方
- *
- * 运行：node src/index.ts   （Node 22+ 可直接运行 TS，无需构建）
- *       bun src/index.ts    （Bun 1.4+ 同样直接运行）
+ * runner：场景驱动插件，由 cordis.yml 的 runner 行挂载。
+ * 这里没有一处 ctx.use / ctx.plugin——插件全部在 cordis.yml 里声明，
+ * 本插件只通过 loader 的行句柄做运行时开关（disabled 翻转、dispose）。
  */
-import { Context } from 'cordis'
-import * as audit from './audit.ts'
-import * as consumer from './consumer.ts'
-import * as providerEn from './provider-en.ts'
-import * as providerPirate from './provider-pirate.ts'
+import type { Context } from 'cordis'
+import type { Entry } from '@cordisjs/loader'
 
-const sleep = (ms = 20) => new Promise((resolve) => setTimeout(resolve, ms))
-const ctx = new Context()
+export const name = 'runner'
+export const inject = ['loader']
 
-console.log('\n① 先挂事件监听者 audit 和 consumer，此时没有任何 provider')
-ctx.use(audit)
-const consumerFiber = ctx.use(consumer)
-await sleep()
-console.log('   结果：consumer 保持 pending —— inject 未满足，apply() 一次也没执行\n')
+// FiberState 是 const enum，没有运行时对象可 import；按值镜像。
+const STATE_NAMES = ['PENDING', 'LOADING', 'ACTIVE', 'FAILED', 'DISPOSED', 'UNLOADING']
 
-console.log('② 再挂 provider-en')
-const enFiber = ctx.use(providerEn)
-await enFiber
-await consumerFiber
-console.log('   结果：服务就绪后 consumer 自动激活；它的 greet() 调用内部由 provider 广播事件\n')
+// yml 的行挂在 include 子树里；entries() 会递归遍历，按 id 找行句柄
+function row(ctx: Context, id: string): Entry {
+  const entry = [...ctx.loader.entries()].find(row => row.options.id === id)
+  if (!entry) throw new Error(`cordis.yml 里没有 id=${id} 的行`)
+  return entry
+}
 
-console.log('③ 没声明 inject 的插件直接读 ctx.greeter')
-ctx.use((inner) => {
+function consumerState(ctx: Context): string {
+  const state = row(ctx, 'consumer').innerFiber?.state
+  return state === undefined ? '(no fiber)' : STATE_NAMES[state] ?? String(state)
+}
+
+export function apply(ctx: Context) {
+  // apply 同步返回：runner 自己的 fiber 先 settle，run() 再等整棵树，避免互相等待
+  void run(ctx)
+}
+
+async function run(ctx: Context) {
+  await ctx.loader.await()
+
+  console.log('\n① 启动即在位：provider-en 由 cordis.yml 声明，consumer 已自动激活')
+  console.log(`   consumer 状态 = ${consumerState(ctx)}\n`)
+
+  console.log('② 没声明 inject 的插件直接读 ctx.greeter（本 runner 只 inject 了 loader）')
   try {
-    (inner as any).greeter
+    ;(ctx as any).greeter
   } catch (error) {
     console.log('   结果：' + (error as Error).message + '\n')
   }
-})
-await sleep()
 
-console.log('④ 换一个调用方（root 侧直接调用服务）：事件照样广播')
-ctx.get('greeter')!.greet('root')
-console.log('')
+  console.log('③ 换一个调用方（root 侧 ctx.get 直接调用服务）：事件照样广播')
+  ctx.get('greeter')!.greet('root')
+  console.log('')
 
-console.log('⑤ 卸载 provider-en')
-await enFiber.dispose()
-await sleep()
-console.log('   结果：provider 卸载时先卸载依赖它的 consumer，再注销服务；audit 不受影响')
-console.log('   ctx.get("greeter") =', ctx.get('greeter'), '\n')
+  console.log('④ 禁用 provider-en 行：entry.update({ disabled: true })')
+  await row(ctx, 'provider-en').update({ disabled: true })
+  await ctx.loader.await()
+  console.log(`   consumer 状态 = ${consumerState(ctx)}`)
+  console.log('   结果：provider 卸载时先卸载依赖它的 consumer，再注销服务；audit 不受影响')
+  console.log('   ctx.get("greeter") =', ctx.get('greeter'), '\n')
 
-console.log('⑥ 换成另一个 provider（consumer 的代码一行没改）')
-const pirateFiber = ctx.use(providerPirate)
-await pirateFiber
-await consumerFiber
-console.log('   结果：同一条 seam 换了实现，服务型与事件型 consumer 都被重新触发\n')
+  console.log('⑤ 启用 provider-pirate 行（yml 里声明为 disabled: true）：consumer 的代码一行没改')
+  await row(ctx, 'provider-pirate').update({ disabled: false })
+  await ctx.loader.await()
+  console.log(`   consumer 状态 = ${consumerState(ctx)}`)
+  console.log('   结果：同一条 seam 换了实现，服务型与事件型 consumer 都被重新触发\n')
 
-await pirateFiber.dispose()
-console.log('演示结束')
+  await row(ctx, 'provider-pirate').dispose()
+  console.log('演示结束')
+  // cordis CLI 靠文件 watch 保持进程存活；演示做完主动退出
+  process.exit(0)
+}
 ```
 
 ### 按顺序验证
 
 1. `npm install` 成功，`node_modules` 中出现 `cordis` 与 `@cordisjs/loader`。
 
-2. `npm start` 打印 ①～⑥ 六段，末行是「演示结束」，与第 5 节的输出逐行一致。
+2. `npm start` 打印 ①～⑤ 五段，末行是「演示结束」，与第 5 节的输出逐行一致。
 
-3. `npm run start:bun` 输出与上一条逐行相同——同一份代码，两个运行时。
+3. `npm run start:bun` 输出与上一条逐行相同——同一份清单，两个运行时。
 
-4. `npm run start:yml` 与 `npm run start:yml:bun` 各打印四行，末行是 consumer 的激活日志，与 YAML 一节输出一致。
+4. `npm run typecheck` 无任何输出、退出码 0，说明 `ctx.greeter` 与事件载荷的类型契约成立。
 
-5. `npm run typecheck` 无任何输出、退出码 0，说明 `ctx.greeter` 与事件载荷的类型契约成立。
+示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。Node 需 22.18 以上（原生类型擦除），低于此版本改用 `npm run start:bun`。
 
-若 `node src/index.ts` 报“未知扩展名 .ts”，说明 Node 低于 22.18：升级 Node，或改用 `npm run start:bun`。示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
-
-## 小结
+## 9 小结
 
 写一条 seam 就是四步：
 
@@ -464,6 +461,6 @@ console.log('演示结束')
 
 3. **写消费者**：需要能力就 `export const inject = ['x']`；只需要知道事实就 `ctx.on('x/event', …)`，不要为了记日志去 inject 业务服务。
 
-4. **验证四件事**：先挂 consumer 时是否 pending、服务出现后是否自动激活、provider 卸载时是否先卸 consumer、换实现后 consumer 是否原地复活。
+4. **写清单并验证四件事**：插件全部写进 cordis.yml；启动后 consumer 是否自动激活、禁用 provider 行后是否先卸 consumer 再回到 pending、启用另一个 provider 行后 consumer 是否原地复活。
 
 以上就是这条接缝的全部。代码在本目录，`npm start` 和 `npm run start:bun` 能直接看到上面的输出，`npm run typecheck` 验证类型契约。

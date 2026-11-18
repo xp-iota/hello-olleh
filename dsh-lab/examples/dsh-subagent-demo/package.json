@@ -2,7 +2,7 @@
   "name": "dsh-subagent-demo",
   "private": true,
   "type": "module",
-  "description": "委派：spawn 独立子 agent 与 fork 继承父会话前缀、roots() 归属、真实 subagent 工具激活子 agent 并跑完脚本化 turn、深度预算守卫。Node 与 Bun 双运行时。",
+  "description": "委派：spawn 独立子 agent 与 fork 继承父会话前缀、rootOf() 归属、真实 subagent 工具激活子 agent 并跑完脚本化 turn、深度预算守卫。Node 与 Bun 双运行时。",
   "scripts": {
     "start": "node src/index.ts",
     "start:bun": "bun src/index.ts",

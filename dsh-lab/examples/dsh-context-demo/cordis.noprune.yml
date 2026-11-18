@@ -1,7 +1,6 @@
-# 第二棵树的 overlay：禁用 pruner。
-# spill-policy 以 { prepend: true } 挂在 tools/post-execute 链首，先 await next()
-# 拿到下游决定再计价——pruner 在下游会把超大文本先截到 ~5k 字符，
-# spill 看到的已经是小内容，永远到不了 12500 token 阈值。
-# 禁用 pruner 才能让 spill 单独观察到完整的大输出。
+# 第二棵树的 overlay：禁用 pruner，演示配置层 disabled 开关。
+# rc.3 实测：pruner 是会话表面服务，不在 tools/post-execute 链上，
+# 所以它在位与否都不影响 spill 触发（探针验证：两棵树 huge 输出同样溢写）。
+# 保留第二棵树是为了展示「同一份 patch + 不同 overlay = 不同机制组合」。
 - id: tool-result-pruner
   disabled: true

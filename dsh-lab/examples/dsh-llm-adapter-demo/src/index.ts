@@ -6,15 +6,17 @@
  *   S4 真实调用：需要 LLM_API_KEY（本目录 .env），缺 key 明确失败（fail loud）。
  * 关键认识：ctx.llm.stream() 是唯一入口，适配器把 provider 线协议翻译成 chunk 协议，
  * llm/stream waterfall 环绕它——换网关只改配置，不改管线。
+ * 两个自写适配器都在 cordis.patch.yml 里声明；脚本化行初始禁用，S2 用开关临时启用。
  * 机制路径（--mechanism）跑 S1–S3，全程离线；Node 与 Bun 双运行时。
  */
 import { mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { boot, loadOverlayPatches } from '@deepseek-ai/dsh-app-boot'
+import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/cordis-plugin-loader'
 import type { StreamChunk } from '@deepseek-ai/dsh-llm'
 import { loadDotEnv } from './env.ts'
-import { ScriptedAdapter } from './plugins/scripted-adapter.ts'
 
 loadDotEnv()
 
@@ -41,6 +43,15 @@ function assert(ok: boolean, message: string): void {
   if (!ok) throw new Error(`断言失败：${message}`)
 }
 
+// patch 清单里声明的 scripted-adapter 行：按 options.id 找行句柄，
+// S2 只做开关，挂载与回收都交给 loader。
+async function setScripted(ctx: Context, enabled: boolean): Promise<void> {
+  const entry = [...ctx.loader.entries()].find(row => row.options.id === 'scripted-adapter')
+  if (!entry) throw new Error('cordis.patch.yml 里没有 id=scripted-adapter 的行')
+  await entry.update({ disabled: !enabled })
+  await ctx.loader.await()
+}
+
 const userMessage = { role: 'user' as const, content: [{ type: 'text' as const, text: '用一句中文回答：dsh 的工具管线有几段？' }] }
 
 // ── S1：路由与模型目录——发现面 ────────────────────────────────────────────
@@ -61,7 +72,7 @@ console.log('\n=== S1 路由与模型目录 ===')
 
 // ── S2：llm/stream waterfall——环绕每次模型调用 ────────────────────────────
 console.log('\n=== S2 llm/stream waterfall ===')
-const releaseScripted = ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())
+await setScripted(ctx, true)
 {
   let seen = 0
   let chunks = 0
@@ -86,7 +97,7 @@ const releaseScripted = ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAd
   console.log(`waterfall 命中 ${seen} 次，经手 ${chunks} 个 chunk，文本长度=${texts.join('').length}`)
   assert(seen === 1 && chunks === 5 && texts.join('').length > 0, 'waterfall 应当环绕真实流')
 }
-releaseScripted()
+await setScripted(ctx, false)
 
 // ── S3：合成 SSE 端到端——stub fetch 喂真实适配器 ──────────────────────────
 console.log('\n=== S3 合成 SSE 端到端（离线）===')

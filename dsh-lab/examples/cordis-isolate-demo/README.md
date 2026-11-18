@@ -1,20 +1,24 @@
-# Cordis 的 isolate 示例：同名服务，两个世界
+# Cordis 的 isolate 示例
 
-前面几篇讲了谁提供谁消费、插件的生命周期、插件之间怎么通信，这一篇讲哪些插件能看见彼此的服务。`ctx.isolate(name)` 不改任何插件代码，单方面把某个服务名划进一个新的 realm：同名服务在不同 realm 里是不同实体，可以同时存活、独立卸载。示例用四个场景演示：存储键怎么变、隔离为什么按名字生效、事件可见性怎么跟着 realm 走、以及传同一个 label 时两个上下文共享一个 realm。
+本示例演示 `ctx.isolate` 的 realm 隔离：同名服务多份实现、按名字隔离、事件可见性、共享 label。realm 划分全部写在 cordis.yml 配置行的 `isolate:` 字段里，代码里没有一处 `ctx.use()`——runner 只经行句柄做启用 / 禁用。
 
-示例基于 cordis 4.0.0-rc.13，在 Node 26.12.1 和 Bun 1.4.4 上都跑过，输出一致。代码在本目录，`npm install && npm start` 即可运行。看完你会明白 isolate 其实只改了一个存储键，隔离是调用方的决定而不是插件的义务，以及测试里怎么给插件换一套假服务。
+前面几篇讲了谁提供谁消费、插件的生命周期、插件之间怎么通信，这一篇讲哪些插件能看见彼此的服务。isolate 不改任何插件代码，单方面把某个服务名划进一个新的 realm：同名服务在不同 realm 里是不同实体，可以同时存活、独立卸载。看完你会明白 isolate 其实只改了一个存储键，以及测试里怎么给插件换一套假服务。
 
-## 全局只能有一份服务时，会碰到这三个问题
+## 1 全局只能有一份服务时，会碰到这三个问题
 
 服务注册表若是全局单例（一个名字只能有一份实现），有三件事很容易出错：
 
 - **测试污染**：集成测试想给插件换假数据库，只能改全局注册表——并行跑的测试互相踩。
+
 - **多租户互相干扰**：两个租户各要一份「自己的」配置服务，全局名字放不下第二份。
+
 - **替换即全局事故**：换一次 provider，所有消费者一起重启，哪怕只想影响其中一个子系统。
+
+> 隔离是调用方的决定，不是插件的义务。
 
 cordis 的做法：服务名到实现的映射不是全局字典，而是**每个上下文一张 isolate 表**，表里存的是 symbol 键；store 以 symbol 键存实现。`ctx.isolate(name)` 就是给这张表加一个 own 属性、指向新 symbol——于是同一个名字在不同上下文解析到不同实现，互不知情。
 
-## 机制：isolate 只改一个键
+## 2 机制：isolate 只改一个键
 
 ![isolate 前后的存储键变化](diagrams/isolate-realm.svg)
 
@@ -36,49 +40,185 @@ isolate(name: string, label?: symbol) {
 
 三个细节决定全部行为：新表以旧表为原型（没被 isolate 的名字沿原型链回落到 root 的键）；不传 label 时每次调用都是新 Symbol（完全私有）；返回的是派生上下文，原上下文一个字节都没改。服务解析 `locate()` 沿 fiber 链向上走时，用「当前表到 fiber 上下文表之间是否 own 了这个名字」判定隔离边界（reflect.ts:93-96）——realm 里的消费者看不到 realm 外的同名 provider，反之亦然。
 
-## 场景 ①：同名两份实现同时 ACTIVE
+loader 把这个能力包装成配置字段：`isolate: { greeter: true }` 给这一行一个完全私有的 realm；`isolate: { greeter: 'realm-1' }` 用字符串 label 划出命名 realm——**label 相同的行共享同一个 realm**。本示例全部用后者，四组场景就是四组 label。
 
-root 与 realm 各挂一个 `inject: ['greeter']` 的消费者，再各挂一个 provider：
+## 3 同名两份实现同时 ACTIVE
 
-```ts
-const rootFiber = ctx.use(consumerRoot)      // PENDING
-const realm = ctx.isolate('greeter')
-const realmFiber = realm.use(consumerRealm)  // PENDING
-await ctx.use(providerOuter)                 // provide('greeter', outer)
-await realm.use(providerInner)               // provide('greeter', inner)
+root 与 realm 各声明一个 `inject: ['greeter']` 的消费者，再各声明一个 provider。realm 侧两行写同一个 label：
+
+```yaml
+- id: consumer-realm
+  name: ./src/plugins/greeter-consumer.ts   # 与 provider-inner 同 label = 同 realm
+  isolate:
+    greeter: realm-1
+  config:
+    label: consumer-realm
+- id: provider-inner
+  name: ./src/plugins/greeter-provider.ts   # 同名服务第二份实现
+  disabled: true
+  isolate:
+    greeter: realm-1
+  config:
+    text: inner
 ```
 
-实测两个消费者分别拿到 `outer` 与 `inner`，且**同时 ACTIVE**。没有 isolate 时第二次 provide 会抛 `service "greeter" has been registered at <...>`（reflect.ts:226）——store 以 symbol 键查重，isolate 换了键，查重自然通过。这就是「测试换假服务」的标准做法：被测插件一行不改，调用方把它挂进 realm 即可。
-
-## 场景 ②：隔离按名字生效
-
-realm 只 shadow 了 `greeter`。root 上 `ctx.provide('clock', ...)` 之后，realm 里 `inject: ['clock']` 的消费者照常激活，拿到 root 的实现——因为 realm 的 isolate 表里 `clock` 不是 own 属性，沿原型链回到 root 的键。隔离是**逐名字**的声明，不是「这个上下文从此与世隔绝」：想隔离几个名字就 isolate 几次（或链式调用），其余服务照常共享。
-
-## 场景 ③：事件可见性跟着 realm 走
-
-events 示例里提过：`_resolve()` 按 `thisArg[Context.filter]` 筛监听器。Service 基类实现了这个 filter（service.ts:39-41）：比较监听器上下文与**服务所属上下文**的 isolate 键。所以以服务实例为 thisArg 派发的事件，只有同 realm 的监听器看得见：
+两个 provider 行初始禁用，runner 依次启用：
 
 ```ts
-class Ticker extends Service {
+await row(ctx, 'provider-outer').update({ disabled: false })   // root 侧：outer
+await ctx.loader.await()
+await row(ctx, 'provider-inner').update({ disabled: false })   // realm 侧：inner
+await ctx.loader.await()
+```
+
+实测两个消费者分别拿到 `outer` 与 `inner`，且**同时 ACTIVE**。没有 isolate 时第二次 provide 会抛 `service "greeter" has been registered at <...>`（reflect.ts:226）——store 以 symbol 键查重，isolate 换了键，查重自然通过。这就是「测试换假服务」的标准做法：被测插件一行不改，配置里给它写个 isolate 字段即可。
+
+注意 consumer 与 provider 用的是**同一个插件文件**（`greeter-consumer.ts` / `greeter-provider.ts`），差别全在配置行的 `isolate:` 与 `config:`——插件不知道自己活在哪个 realm。
+
+## 4 隔离按名字生效
+
+realm-1 只 shadow 了 `greeter`。root 上启用 clock-provider 之后，realm 里 `inject: ['clock']` 的 realm-clock 行照常激活，拿到 root 的实现——因为 realm 的 isolate 表里 `clock` 不是 own 属性，沿原型链回到 root 的键。隔离是**逐名字**的声明，不是「这个上下文从此与世隔绝」：想隔离几个名字就在 `isolate:` 下写几个键，其余服务照常共享。
+
+## 5 事件可见性跟着 realm 走
+
+events 示例里提过：`_resolve()` 按 `thisArg[Context.filter]` 筛监听器。Service 基类实现了这个 filter（service.ts:39-41）：比较监听器上下文与**服务所属上下文**的 isolate 键。所以以服务实例为 thisArg 派发的事件，只有同 realm 的监听器看得见。
+
+Ticker 服务定义在 `src/seam.ts`，ticker 插件构造即注册；root 行与 realm 行各挂一份，监听器也各挂一份：
+
+```ts
+/** 以服务实例为 thisArg 派发事件：Service 的 filter 按 isolate 键筛监听器。 */
+export class Ticker extends Service {
   constructor(ctx: Context) { super(ctx, 'ticker') }
-  tick() { this.ctx.emit(this, 'lab/tick') }   // thisArg = 服务实例
+  tick() { this.ctx.emit(this, 'lab/tick') }
 }
-ctx.on('lab/tick', ...)                        // root 监听器
-const tickRealm = ctx.isolate('ticker')
-tickRealm.on('lab/tick', ...)                  // realm 监听器
-new Ticker(ctx).tick()                         // 只有 root 监听器响
-new Ticker(tickRealm).tick()                   // 只有 realm 监听器响
 ```
 
-实测两次 tick 共 2 次命中（`root 听到 → realm 听到`）；若无隔离应为 4 次。注意这里必须 `ctx.isolate('ticker')` 而不是复用场景 ① 的 greeter realm：isolate 表只 own 被 isolate 的名字，greeter realm 里 `ticker` 的键仍继承 root——在那里 provide ticker 会和 root 的撞键。**想隔离哪个服务的行为，就 isolate 哪个名字**，事件可见性用的也是服务名的键，不是事件名。
+```yaml
+- id: ticker-realm
+  name: ./src/plugins/ticker.ts
+  isolate:
+    ticker: tick-realm        # 监听器行写同一个 label
+```
 
-## 场景 ④：同 label 即同 realm
+runner 在各自 fiber 的 ctx 上取服务再 tick：
 
-`isolate(name, label)` 的第二参决定共享范围：两个上下文传同一个 Symbol，就是同一个 realm 的两个入口。示例里 realmA 挂 provider、realmB 挂消费者，消费者照常拿到 `shared`；卸载 realmA 的 provider 后，realmB 的消费者回 PENDING，而 root 的消费者仍 ACTIVE——卸载的影响范围精确等于 realm 的成员范围。loader 层把这个能力包装成配置里的 `isolate: { db: true }`（私有）与 `isolate: { db: 'realmName' }`（命名 realm），下一篇 loader 示例会跑到它。
+```ts
+row(ctx, 'ticker-root').innerFiber!.ctx.get('ticker')!.tick()
+row(ctx, 'ticker-realm').innerFiber!.ctx.get('ticker')!.tick()
+```
 
-## 实测输出
+这里用 `innerFiber.ctx.get()` 而不是 `entry.ctx.ticker`：行句柄的 ctx 直接读服务会做 inject 校验，runner 没声明 inject ticker，走 fiber 内部的 ctx 取。
 
-`npm start`（Node 26.12.1；`npm run start:bun` 逐行相同）：
+实测两次 tick 共 2 次命中（`root 听到 → realm 听到`）；若无隔离应为 4 次。注意这里必须 isolate `ticker` 而不是复用场景 ① 的 greeter realm：isolate 表只 own 被 isolate 的名字，realm-1 里 `ticker` 的键仍继承 root——在那里 provide ticker 会和 root 的撞键。**想隔离哪个服务的行为，就 isolate 哪个名字**，事件可见性用的也是服务名的键，不是事件名。
+
+## 6 同 label 即同 realm
+
+`isolate(name, label)` 的第二参决定共享范围：两个上下文传同一个 symbol，就是同一个 realm 的两个入口；配置层的字符串 label 同理。示例里 consumer-shared 与 provider-shared 两行都写 `greeter: shared-greeter`，消费者照常拿到 `shared`；runner 把 provider 行禁用后，realm 里的消费者回 PENDING，而 root 的消费者仍 ACTIVE——卸载的影响范围精确等于 realm 的成员范围。
+
+## 7 运行isolate示例
+
+装配全部写在 `cordis.yml` 里，四组场景就是四组 isolate label：
+
+```yaml
+# realm 隔离全部写在配置层：isolate 为 true 是独立 realm，字符串 label 相同即共享 realm
+- id: consumer-root
+  name: ./src/plugins/greeter-consumer.ts   # ① root 侧消费者
+  config:
+    label: consumer-root
+- id: consumer-realm
+  name: ./src/plugins/greeter-consumer.ts   # ① realm 侧消费者：与 provider-inner 同 label
+  isolate:
+    greeter: realm-1
+  config:
+    label: consumer-realm
+- id: provider-outer
+  name: ./src/plugins/greeter-provider.ts   # ① root 侧 provider：运行时启用
+  disabled: true
+  config:
+    text: outer
+- id: provider-inner
+  name: ./src/plugins/greeter-provider.ts   # ① realm 侧 provider：同名服务第二份实现
+  disabled: true
+  isolate:
+    greeter: realm-1
+  config:
+    text: inner
+- id: clock-provider
+  name: ./src/plugins/clock-provider.ts     # ② root 侧 clock：没被 isolate，穿透 realm
+  disabled: true
+- id: realm-clock
+  name: ./src/plugins/realm-clock.ts        # ② realm 侧消费者：只 shadow 了 greeter
+  isolate:
+    greeter: realm-1
+- id: tick-listener-root
+  name: ./src/plugins/tick-listener.ts      # ③ root 侧监听器
+  config:
+    label: root 听到
+- id: tick-listener-realm
+  name: ./src/plugins/tick-listener.ts      # ③ realm 侧监听器：跟着 ticker 的 isolate 走
+  isolate:
+    ticker: tick-realm
+  config:
+    label: realm 听到
+- id: ticker-root
+  name: ./src/plugins/ticker.ts             # ③ root 侧 Ticker 服务
+- id: ticker-realm
+  name: ./src/plugins/ticker.ts             # ③ realm 侧 Ticker 服务
+  isolate:
+    ticker: tick-realm
+- id: consumer-shared
+  name: ./src/plugins/greeter-consumer.ts   # ④ 共享 label 的消费者
+  isolate:
+    greeter: shared-greeter
+  config:
+    label: consumer-shared
+- id: provider-shared
+  name: ./src/plugins/greeter-provider.ts   # ④ 共享 label 的 provider：与消费者同 realm
+  disabled: true
+  isolate:
+    greeter: shared-greeter
+  config:
+    text: shared
+- id: runner
+  name: ./src/index.ts                      # 场景驱动：不挂插件，只对上面的行做运行时开关
+```
+
+`npm start` 就是 cordis CLI：读当前目录的 `cordis.yml`，loader 逐行 import 模块，按 `isolate:` 字段划 realm，把导出的 `apply`、`inject`、`name` 当作插件定义挂上去。
+
+`runner` 行挂的 `src/index.ts` 也是一个普通插件，负责驱动四个场景。它 inject 了 loader，按 id 拿到各行的句柄做启用与禁用，不再手工挂任何插件：
+
+```ts
+export const name = 'runner'
+export const inject = ['loader']
+
+export function apply(ctx: Context) {
+  // apply 同步返回：runner 自己的 fiber 先 settle，run() 再等整棵树，避免互相等待
+  void run(ctx)
+}
+
+async function run(ctx: Context) {
+  await ctx.loader.await()
+  // ……①～④ 四个场景，全部经行句柄操作……
+  const providerShared = row(ctx, 'provider-shared')
+  await providerShared.update({ disabled: false })   // 共享 realm 的 provider 上线
+  await ctx.loader.await()
+  await providerShared.update({ disabled: true })    // 禁用只影响本 realm 的消费者
+  process.exit(0)   // cordis CLI 靠文件 watch 保持进程存活；演示做完主动退出
+}
+```
+
+在本机复现只需要四条命令：
+
+```bash
+npm install             # cordis 与 loader 依赖
+#
+npm start               # cordis CLI 读 cordis.yml（Node）：打印 ①～④ 的完整时序
+npm run start:bun       # Bun 下直接跑 cordis 的 bin.js：输出逐行一致
+#
+npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
+```
+
+下面是 `npm start` 的实测输出（Node 26.12.1；Bun 1.4.4 逐行相同）：
 
 ```text
 ① 同名服务两份实现：isolate 按名字划出 realm
@@ -100,15 +240,17 @@ new Ticker(tickRealm).tick()                   // 只有 realm 监听器响
 演示结束
 ```
 
-## 容易踩的坑
+装配路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordisjs/include`、`@cordisjs/fs`、`@cordisjs/fs-node`，已写进 `package.json`。
 
-### isolate 返回新上下文，原上下文不变
+## 8 容易踩的坑
 
-`const realm = ctx.isolate('db')` 之后继续用 `ctx` 挂插件，插件活在 root realm。隔离只作用于**从 realm 派生出去的挂载**：`realm.use(...)`、`realm.on(...)`、realm 里插件的 inner ctx。忘记换挂载入口是「隔离没生效」的第一原因。
+### realm 跟着挂载入口走，不跟着插件走
+
+API 层面 `const realm = ctx.isolate('db')` 之后继续用 `ctx` 挂插件，插件活在 root realm；配置层面 realm 由**这一行**的 `isolate:` 字段决定，同一个插件文件挂两行可以活在两个 realm。忘记换挂载入口（或漏写 isolate 字段）是「隔离没生效」的第一原因。
 
 ### 没被 isolate 的名字全部共享
 
-isolate 表是原型链 shadow，不是拷贝。realm 里 provide 一个没被 isolate 的名字，写的是 root 的键——会影响 root 的所有消费者。想完全私有就逐名字 isolate，或理解「realm 是选择性隔离」这个默认。
+isolate 表是原型链 shadow，不是拷贝。realm 里 provide 一个没被 isolate 的名字，写的是 root 的键——会影响 root 的所有消费者。想完全私有就逐名字 isolate（或配置里写 `true`），或理解「realm 是选择性隔离」这个默认。
 
 ### 事件隔离的键是服务名，不是事件名
 
@@ -118,9 +260,13 @@ Service 的 filter 比较的是 `isolate[this.name]`。以服务为 thisArg 派�
 
 isolate 本身永不报错；报错在 `provide` 发现 store 里同键已有实现时。排查 `service "x" has been registered` 先看两个 provider 是否落在同一个 isolate 键上——通常就是漏了 isolate 或 label 传重了。
 
-## 从零复现：完整文件与两条运行路径
+### 行句柄读服务要过 inject 校验
 
-前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。无构建步骤，本目录拷到任何位置都能独立安装运行。
+`entry.ctx.xxx` 直接读服务时，cordis 会检查该行是否声明了 inject；没声明就抛错。runner 想取某行注册的服务，走 `entry.innerFiber!.ctx.get('xxx')`——fiber 内部的 ctx 不做这层校验（场景 ③ 的用法）。
+
+## 9 从零复现：完整文件与运行路径
+
+前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
 ### 目录结构
 
@@ -128,9 +274,19 @@ isolate 本身永不报错；报错在 `provide` 发现 store 里同键已有实
 cordis-isolate-demo/
 ├── package.json          # 依赖与脚本（Node / Bun 双运行时）
 ├── tsconfig.json         # 只做类型检查，不产出 JS
+├── cordis.yml            # 唯一装配入口：12 个插件行 + runner，realm 全在 isolate 字段
 ├── .gitignore
 ├── src/
-│   └── index.ts          # 四个场景：双实现 / 按名字 / 事件可见性 / 共享 label
+│   ├── index.ts          # runner 插件：四个场景的演示脚本
+│   ├── seam.ts           # Ticker 服务与类型声明
+│   ├── state.ts          # 跨插件共享的命中记录
+│   └── plugins/
+│       ├── greeter-consumer.ts  # ①④ 消费者：config.label 决定日志前缀
+│       ├── greeter-provider.ts  # ①④ provider：config.text 决定实现
+│       ├── clock-provider.ts    # ② root 侧 clock
+│       ├── realm-clock.ts       # ② realm 侧 clock 消费者
+│       ├── tick-listener.ts     # ③ 监听器：config.label 决定命中记录
+│       └── ticker.ts            # ③ Ticker 服务：构造即注册
 └── diagrams/             # 存储键变化：SVG / 交互 HTML / IR 源
 ```
 
@@ -143,11 +299,15 @@ cordis-isolate-demo/
   "type": "module",
   "description": "ctx.isolate 的 realm 隔离：同名服务多份实现、按名字隔离、事件可见性、共享 label。Node 与 Bun 双运行时。",
   "scripts": {
-    "start": "node src/index.ts",
-    "start:bun": "bun src/index.ts",
+    "start": "cordis",
+    "start:bun": "bun node_modules/cordis/bin.js",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@cordisjs/fs": "2.0.0-rc.0",
+    "@cordisjs/fs-node": "0.1.0",
+    "@cordisjs/include": "2.0.0-rc.0",
+    "@cordisjs/loader": "1.0.0-rc.10",
     "cordis": "4.0.0-rc.13"
   },
   "devDependencies": {
@@ -163,6 +323,7 @@ cordis-isolate-demo/
 {
   "compilerOptions": {
     "target": "ES2023",
+    "types": ["node"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "strict": true,
@@ -177,24 +338,90 @@ cordis-isolate-demo/
 
 ### src/index.ts（完整版）
 
+正文第 7 节展示的是节选；这里是可直接运行的完整文件。它由 cordis.yml 的 runner 行挂载，依次演示双实现、按名字隔离、事件可见性、共享 label。
+
 ```ts
 /**
- * ctx.isolate 的 realm 隔离：同名服务多份实现、按名字隔离、事件可见性、共享 label。
+ * isolate 的 realm 隔离：同名服务多份实现、按名字隔离、事件可见性、共享 label。
  *
- * 运行：node src/index.ts / bun src/index.ts（无需构建）
+ * runner：由 cordis.yml 的 runner 行挂载，代码里没有一处 ctx.use / ctx.plugin；
+ * realm 划分全部写在配置行的 isolate 字段里，这里只经行句柄做启用 / 禁用。
  */
-import { Context, Service } from 'cordis'
+import type { Context } from 'cordis'
+import type { Entry } from '@cordisjs/loader'
+import { hits } from './state.ts'
+import type {} from './seam.ts'
+
+export const name = 'runner'
+export const inject = ['loader']
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 /** FiberState 是 const enum，运行时拿不到名字，这里按源码顺序自建映射。 */
 const STATE = ['PENDING', 'LOADING', 'ACTIVE', 'FAILED', 'DISPOSED', 'UNLOADING'] as const
-const stateOf = (fiber: { state: number }) => STATE[fiber.state]
+const stateOf = (fiber?: { state: number }) => (fiber ? STATE[fiber.state] : '（无）')
+
+// yml 的行挂在 include 子树里；entries() 会递归遍历，按 id 找行句柄
+function row(ctx: Context, id: string): Entry {
+  const entry = [...ctx.loader.entries()].find(row => row.options.id === id)
+  if (!entry) throw new Error(`cordis.yml 里没有 id=${id} 的行`)
+  return entry
+}
+
+export function apply(ctx: Context) {
+  // apply 同步返回：runner 自己的 fiber 先 settle，run() 再等整棵树，避免互相等待
+  void run(ctx)
+}
+
+async function run(ctx: Context) {
+  await ctx.loader.await()
+
+  console.log('① 同名服务两份实现：isolate 按名字划出 realm')
+  const consumerRoot = row(ctx, 'consumer-root')
+  const consumerRealm = row(ctx, 'consumer-realm')
+  console.log('   无 provider 时：', stateOf(consumerRoot.innerFiber), '/', stateOf(consumerRealm.innerFiber))
+  await row(ctx, 'provider-outer').update({ disabled: false })
+  await ctx.loader.await()
+  await row(ctx, 'provider-inner').update({ disabled: false })
+  await ctx.loader.await()
+  console.log('   两个 consumer 同时：', stateOf(consumerRoot.innerFiber), '/', stateOf(consumerRealm.innerFiber), '\n')
+
+  console.log('② 隔离按名字生效：没被 isolate 的服务穿透 realm')
+  await row(ctx, 'clock-provider').update({ disabled: false })
+  await ctx.loader.await()
+  console.log('   realm 只 shadow 了 greeter，clock 沿原型链回到 root', '\n')
+
+  console.log('③ 事件跟着 realm 走：以服务为 thisArg 派发，跨 realm 监听器不可见')
+  // 在各自 fiber 的 ctx 上 ctx.get 取服务：root 行与 realm 行各有一份 ticker
+  row(ctx, 'ticker-root').innerFiber!.ctx.get('ticker')!.tick()
+  row(ctx, 'ticker-realm').innerFiber!.ctx.get('ticker')!.tick()
+  console.log('   两次 tick 的命中：', hits.join(' → '), '（无隔离时应为 4 次）', '\n')
+
+  console.log('④ 同 label 即同 realm：卸载只影响本 realm 的消费者')
+  const providerShared = row(ctx, 'provider-shared')
+  await providerShared.update({ disabled: false })
+  await ctx.loader.await()
+  await providerShared.update({ disabled: true })
+  await sleep(10)
+  console.log('   共享 provider 卸载后：consumer-shared =', stateOf(row(ctx, 'consumer-shared').innerFiber), '，consumer-root =', stateOf(consumerRoot.innerFiber))
+
+  console.log('演示结束')
+  // cordis CLI 靠文件 watch 保持进程存活；演示做完主动退出
+  process.exit(0)
+}
+```
+
+### src/seam.ts
+
+```ts
+import { Service } from 'cordis'
+import type { Context } from 'cordis'
 
 declare module 'cordis' {
   interface Context {
     greeter: { greet(): string }
     clock: { now(): string }
+    ticker: Ticker
   }
   interface Events {
     'lab/tick'(): void
@@ -202,7 +429,7 @@ declare module 'cordis' {
 }
 
 /** 以服务实例为 thisArg 派发事件：Service 的 filter 按 isolate 键筛监听器。 */
-class Ticker extends Service {
+export class Ticker extends Service {
   constructor(ctx: Context) {
     super(ctx, 'ticker')
   }
@@ -210,103 +437,100 @@ class Ticker extends Service {
     this.ctx.emit(this, 'lab/tick')
   }
 }
-
-const ctx = new Context()
-
-console.log('① 同名服务两份实现：isolate 按名字划出 realm')
-const consumerRoot = {
-  name: 'consumer-root',
-  inject: ['greeter'],
-  apply(inner: Context) {
-    console.log('   [consumer-root] greeter =', inner.greeter.greet())
-  },
-}
-const consumerRealm = {
-  name: 'consumer-realm',
-  inject: ['greeter'],
-  apply(inner: Context) {
-    console.log('   [consumer-realm] greeter =', inner.greeter.greet())
-  },
-}
-const rootFiber = ctx.use(consumerRoot)
-const realm = ctx.isolate('greeter')
-const realmFiber = realm.use(consumerRealm)
-await sleep(10)
-console.log('   无 provider 时：', stateOf(rootFiber), '/', stateOf(realmFiber))
-const outerFiber = ctx.use({
-  name: 'provider-outer',
-  apply(inner: Context) {
-    inner.provide('greeter', { greet: () => 'outer' })
-  },
-})
-await outerFiber
-const innerFiber = realm.use({
-  name: 'provider-inner',
-  apply(inner: Context) {
-    inner.provide('greeter', { greet: () => 'inner' })
-  },
-})
-await innerFiber
-console.log('   两个 consumer 同时：', stateOf(rootFiber), '/', stateOf(realmFiber), '\n')
-
-console.log('② 隔离按名字生效：没被 isolate 的服务穿透 realm')
-ctx.provide('clock', { now: () => 'root-clock' })
-const clockFiber = realm.use({
-  name: 'realm-clock',
-  inject: ['clock'],
-  apply(inner: Context) {
-    console.log('   [realm-clock] clock.now() =', inner.clock.now())
-  },
-})
-await clockFiber
-console.log('   realm 只 shadow 了 greeter，clock 沿原型链回到 root', '\n')
-
-console.log('③ 事件跟着 realm 走：以服务为 thisArg 派发，跨 realm 监听器不可见')
-const hits: string[] = []
-ctx.on('lab/tick', () => hits.push('root 听到'))
-const tickRealm = ctx.isolate('ticker')
-tickRealm.on('lab/tick', () => hits.push('realm 听到'))
-const rootTicker = new Ticker(ctx)
-const realmTicker = new Ticker(tickRealm)
-rootTicker.tick()
-realmTicker.tick()
-console.log('   两次 tick 的命中：', hits.join(' → '), '（无隔离时应为 4 次）', '\n')
-
-console.log('④ 同 label 即同 realm：卸载只影响本 realm 的消费者')
-const tag = Symbol('shared-greeter')
-const realmA = ctx.isolate('greeter', tag)
-const realmB = ctx.isolate('greeter', tag)
-const sharedFiber = realmB.use({
-  name: 'consumer-shared',
-  inject: ['greeter'],
-  apply(inner: Context) {
-    console.log('   [consumer-shared] greeter =', inner.greeter.greet())
-  },
-})
-const sharedProviderFiber = realmA.use({
-  name: 'provider-shared',
-  apply(inner: Context) {
-    inner.provide('greeter', { greet: () => 'shared' })
-  },
-})
-await sharedProviderFiber
-await sharedFiber
-await sharedProviderFiber.dispose()
-await sleep(10)
-console.log('   共享 provider 卸载后：consumer-shared =', stateOf(sharedFiber), '，consumer-root =', stateOf(rootFiber))
-
-console.log('演示结束')
 ```
 
-### 运行
+### src/state.ts
 
-```bash
-npm install
-npm start          # Node：node src/index.ts（原生 TS type stripping，无需构建）
-npm run start:bun  # Bun：bun src/index.ts，输出逐行相同
-npm run typecheck  # tsc --noEmit，exit 0
+```ts
+/** runner 与 tick 监听插件共享的命中记录。 */
+export const hits: string[] = []
 ```
 
-## 小结
+### src/plugins/greeter-consumer.ts
 
-isolate 的本质是「服务名 → symbol 键」这张表的原型链 shadow：改一个 own 属性，就划出一个新世界；store 以键存实现，所以同名服务可以多份并存、独立卸载。隔离是调用方单方面的决定，插件无需配合。下一篇 loader 示例把这套机制交给配置树：`cordis.yml` 里的每一行 entry 如何变成 fiber，`isolate:` 字段如何变成命名 realm。
+```ts
+import type { Context } from 'cordis'
+
+export const name = 'greeter-consumer'
+export const inject = ['greeter']
+
+export function apply(ctx: Context, config: { label: string }) {
+  console.log(`   [${config.label}] greeter =`, ctx.greeter.greet())
+}
+```
+
+### src/plugins/greeter-provider.ts
+
+```ts
+import type { Context } from 'cordis'
+
+export const name = 'greeter-provider'
+
+export function apply(ctx: Context, config: { text: string }) {
+  ctx.provide('greeter', { greet: () => config.text })
+}
+```
+
+### src/plugins/clock-provider.ts
+
+```ts
+import type { Context } from 'cordis'
+
+export const name = 'clock-provider'
+
+export function apply(ctx: Context) {
+  ctx.provide('clock', { now: () => 'root-clock' })
+}
+```
+
+### src/plugins/realm-clock.ts
+
+```ts
+import type { Context } from 'cordis'
+
+export const name = 'realm-clock'
+export const inject = ['clock']
+
+export function apply(ctx: Context) {
+  console.log('   [realm-clock] clock.now() =', ctx.clock.now())
+}
+```
+
+### src/plugins/tick-listener.ts
+
+```ts
+import type { Context } from 'cordis'
+import { hits } from '../state.ts'
+
+export const name = 'tick-listener'
+
+export function apply(ctx: Context, config: { label: string }) {
+  ctx.on('lab/tick', () => hits.push(config.label))
+}
+```
+
+### src/plugins/ticker.ts
+
+```ts
+import type { Context } from 'cordis'
+import { Ticker } from '../seam.ts'
+
+export const name = 'ticker'
+
+export function apply(ctx: Context) {
+  new Ticker(ctx)   // 构造即注册：root 行与 realm 行各有一份 ticker
+}
+```
+
+### 按顺序验证
+
+1. `npm install` 成功，`node_modules` 中出现 `cordis` 与 `@cordisjs/loader`。
+2. `npm start` 打印 ①～④ 四段，末行「演示结束」，与第 7 节实测输出逐行一致。
+3. `npm run start:bun` 输出逐行相同。
+4. `npm run typecheck` 无输出、退出码 0。
+
+示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
+
+## 10 小结
+
+isolate 的本质是「服务名 → symbol 键」这张表的原型链 shadow：改一个 own 属性，就划出一个新世界；store 以键存实现，所以同名服务可以多份并存、独立卸载。隔离是调用方单方面的决定，插件无需配合——配置层的 `isolate:` 字段把这个决定也变成了声明：`true` 是私有 realm，字符串 label 相同即共享。下一篇 loader 示例展开配置树本身：`cordis.yml` 里的每一行 entry 如何变成 fiber，include 与 patch 如何组合出整棵装配树。

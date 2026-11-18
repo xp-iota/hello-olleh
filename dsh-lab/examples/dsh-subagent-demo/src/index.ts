@@ -6,6 +6,7 @@
  *   S4 真实委派工具：callTool('subagent') 激活子 agent，子继承父的模型路由跑完自己的 turn；
  *   S5 深度预算：maxDepth=1 时，深度 1 的子 agent 再委派被 provider 拒绝。
  * 关键认识：spawn 与 fork 的差别在会话层——独立上下文 vs 继承前缀；归属与预算在运行期层。
+ * word-count 工具与脚本化适配器在 cordis.patch.yml 里声明，全程在位。
  * Node 与 Bun 双运行时：不挂 ptc/subprocess，无需任何 Bun 补丁。
  */
 import { mkdirSync } from 'node:fs'
@@ -17,8 +18,6 @@ import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-query-sqlite'
 import type {} from '@deepseek-ai/dsh-subagent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import * as wordCount from './plugins/word-count.ts'
-import { ScriptedAdapter } from './plugins/scripted-adapter.ts'
 import { callTool, preview } from './tools.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -54,8 +53,7 @@ const makeAgent = (tag: string, model: string) =>
     agentOptions: { provider: 'lab-scripted', model },
   })
 
-const toolFiber = await ctx.plugin(wordCount)
-const releaseAdapter = ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())
+// word_count 工具与脚本化适配器由 patch 清单声明，boot 后已在位。
 
 // ── S1：委派工具与 provider ────────────────────────────────────────────────
 console.log('\n=== S1 委派工具与 provider ===')
@@ -173,7 +171,5 @@ console.log('\n=== S5 深度预算 ===')
   await delegHandle.dispose()
 }
 
-releaseAdapter()
-await toolFiber.dispose()
 await ctx.fiber.dispose()
 console.log('\nSUBAGENT_OK')

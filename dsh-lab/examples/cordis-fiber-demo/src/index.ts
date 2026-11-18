@@ -1,16 +1,21 @@
 /**
  * Fiber 的一生：六态状态机、可逆 effect、timer 作为 effect。
  *
- * 运行：node src/index.ts / bun src/index.ts（无需构建）
+ * runner：由 cordis.yml 的 runner 行挂载，代码里没有一处 ctx.use / ctx.plugin；
+ * 插件全部在 cordis.yml 里声明，这里只经行句柄做启用 / 禁用 / dispose。
  */
-import { Context } from 'cordis'
-import TimerService from '@cordisjs/timer'
+import type { Context } from 'cordis'
+import type { Entry } from '@cordisjs/loader'
+import { counters, order, fired } from './state.ts'
+
+export const name = 'runner'
+export const inject = ['loader']
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 /** FiberState 是 const enum，运行时拿不到名字，这里按源码顺序自建映射。 */
 const STATE = ['PENDING', 'LOADING', 'ACTIVE', 'FAILED', 'DISPOSED', 'UNLOADING'] as const
-const stateOf = (fiber: { state: number }) => STATE[fiber.state]
+const stateOf = (fiber?: { state: number }) => (fiber ? STATE[fiber.state] : '（无）')
 
 declare module 'cordis' {
   interface Context {
@@ -21,121 +26,77 @@ declare module 'cordis' {
   }
 }
 
-const ctx = new Context()
+// yml 的行挂在 include 子树里；entries() 会递归遍历，按 id 找行句柄
+function row(ctx: Context, id: string): Entry {
+  const entry = [...ctx.loader.entries()].find(row => row.options.id === id)
+  if (!entry) throw new Error(`cordis.yml 里没有 id=${id} 的行`)
+  return entry
+}
 
-console.log('① 六态：PENDING → LOADING → ACTIVE → UNLOADING → DISPOSED')
-const slow = {
-  name: 'slow',
-  async apply(inner: Context) {
-    console.log('   [slow] apply 开始')
-    await sleep(30)
-    inner.effect(() => async () => {
-      console.log('   [slow] 清理开始')
-      await sleep(20)
-      console.log('   [slow] 清理结束')
-    })
-    console.log('   [slow] apply 结束')
-  },
+export function apply(ctx: Context) {
+  // apply 同步返回：runner 自己的 fiber 先 settle，run() 再等整棵树，避免互相等待
+  void run(ctx)
 }
-const slowFiber = ctx.use(slow)
-console.log('   use() 刚返回：', stateOf(slowFiber))
-await slowFiber
-console.log('   await 之后：', stateOf(slowFiber))
-const disposing = slowFiber.dispose()
-console.log('   dispose() 刚返回：', stateOf(slowFiber))
-await disposing
-console.log('   清理完成：', stateOf(slowFiber), '\n')
 
-console.log('② inject 缺席：PENDING 不是错误，是等待')
-let applies = 0
-const watcher = {
-  name: 'watcher',
-  inject: ['tick'],
-  apply(inner: Context) {
-    applies++
-    console.log(`   [watcher] 第 ${applies} 次激活，tick.n =`, inner.tick.n)
-  },
-}
-const watcherFiber = ctx.use(watcher)
-await sleep(10)
-console.log('   没有 provider：', stateOf(watcherFiber), '，apply 次数 =', applies)
-const providerA = {
-  name: 'provider-a',
-  apply(inner: Context) {
-    inner.provide('tick', { n: 1 })
-  },
-}
-const aFiber = ctx.use(providerA)
-await aFiber
-await watcherFiber
-console.log('   provider-a 上线：', stateOf(watcherFiber))
-await aFiber.dispose()
-await sleep(10)
-console.log('   provider-a 卸载：', stateOf(watcherFiber), '（回到等待，而非销毁）')
-const providerB = {
-  name: 'provider-b',
-  apply(inner: Context) {
-    inner.provide('tick', { n: 2 })
-  },
-}
-const bFiber = ctx.use(providerB)
-await bFiber
-await watcherFiber
-console.log('   provider-b 上线：', stateOf(watcherFiber), '，apply 次数 =', applies, '\n')
+async function run(ctx: Context) {
+  await ctx.loader.await()
 
-console.log('③ 可逆 effect：同步清理按注册逆序完成，监听器随 fiber 消失')
-const order: string[] = []
-const noisy = {
-  name: 'noisy',
-  apply(inner: Context) {
-    inner.effect(() => {
-      order.push('装 A')
-      return () => order.push('卸 A')
-    })
-    inner.effect(() => {
-      order.push('装 B')
-      return () => order.push('卸 B')
-    })
-    inner.on('lab/ping', () => order.push('听到 ping'))
-  },
-}
-const noisyFiber = ctx.use(noisy)
-await noisyFiber
-ctx.emit('lab/ping')
-await noisyFiber.dispose()
-ctx.emit('lab/ping')   // 监听器已随 fiber 回收：这次 emit 什么也不发生
-console.log('   顺序：', order.join(' → '), '\n')
+  console.log('① 六态：PENDING → LOADING → ACTIVE → UNLOADING → DISPOSED')
+  const slow = row(ctx, 'slow')
+  const enabling = slow.update({ disabled: false })
+  await sleep(10)   // fiber 已创建，apply 还在 sleep：正好落在 LOADING
+  console.log('   启用行刚触发：', stateOf(slow.innerFiber))
+  await enabling
+  await ctx.loader.await()
+  console.log('   await 之后：', stateOf(slow.innerFiber))
+  const disposing = slow.dispose()
+  console.log('   dispose() 刚返回：', stateOf(slow.innerFiber))
+  await disposing
+  console.log('   清理完成：', stateOf(slow.innerFiber), '\n')
 
-console.log('④ timer 也是 effect：fiber 销毁，未触发的定时器一起取消')
-await ctx.use(TimerService)
-const fired: string[] = []
-const alarms = {
-  name: 'alarms',
-  inject: ['timer'],
-  apply(inner: Context) {
-    inner.timeout(() => fired.push('早闹钟(30ms)'), 30)
-    inner.timeout(() => fired.push('晚闹钟(200ms)'), 200)
-  },
-}
-const alarmsFiber = ctx.use(alarms)
-await alarmsFiber
-await sleep(60)
-await alarmsFiber.dispose()
-await sleep(220)
-console.log('   60ms 时卸载 fiber，最终触发：', fired.join('、') || '（无）', '\n')
+  console.log('② inject 缺席：PENDING 不是错误，是等待')
+  const watcher = row(ctx, 'watcher')
+  console.log('   没有 provider：', stateOf(watcher.innerFiber), '，apply 次数 =', counters.applies)
+  const providerA = row(ctx, 'provider-a')
+  await providerA.update({ disabled: false })
+  await ctx.loader.await()
+  console.log('   provider-a 上线：', stateOf(watcher.innerFiber))
+  await providerA.update({ disabled: true })
+  await sleep(10)
+  console.log('   provider-a 卸载：', stateOf(watcher.innerFiber), '（回到等待，而非销毁）')
+  const providerB = row(ctx, 'provider-b')
+  await providerB.update({ disabled: false })
+  await ctx.loader.await()
+  console.log('   provider-b 上线：', stateOf(watcher.innerFiber), '，apply 次数 =', counters.applies, '\n')
 
-console.log('⑤ apply 抛错：FAILED，且仍然可以 dispose')
-const broken = {
-  name: 'broken',
-  apply() {
-    throw new Error('装配期故意失败')
-  },
-}
-const brokenFiber = ctx.use(broken)
-await sleep(10)
-console.log('   状态：', stateOf(brokenFiber))
-await brokenFiber.dispose()
-console.log('   dispose 后：', stateOf(brokenFiber))
+  console.log('③ 可逆 effect：同步清理按注册逆序完成，监听器随 fiber 消失')
+  const noisy = row(ctx, 'noisy')
+  await noisy.update({ disabled: false })
+  await ctx.loader.await()
+  ctx.emit('lab/ping')
+  await noisy.dispose()
+  ctx.emit('lab/ping')   // 监听器已随 fiber 回收：这次 emit 什么也不发生
+  console.log('   顺序：', order.join(' → '), '\n')
 
-await bFiber.dispose()
-console.log('演示结束')
+  console.log('④ timer 也是 effect：fiber 销毁，未触发的定时器一起取消')
+  const alarms = row(ctx, 'alarms')
+  await alarms.update({ disabled: false })
+  await ctx.loader.await()
+  await sleep(60)
+  await alarms.dispose()
+  await sleep(220)
+  console.log('   60ms 时卸载 fiber，最终触发：', fired.join('、') || '（无）', '\n')
+
+  console.log('⑤ apply 抛错：FAILED，且仍然可以 dispose')
+  const broken = row(ctx, 'broken')
+  await broken.update({ disabled: false }).catch(() => {})
+  await sleep(10)
+  console.log('   状态：', stateOf(broken.innerFiber))
+  await broken.dispose()
+  console.log('   dispose 后：', stateOf(broken.innerFiber))
+
+  await providerB.dispose()
+  console.log('演示结束')
+  // cordis CLI 靠文件 watch 保持进程存活；演示做完主动退出
+  process.exit(0)
+}

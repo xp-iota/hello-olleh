@@ -7,6 +7,7 @@
  *   S5 模型表面（历史折叠后的模型可见事件）；
  *   S6 从日志恢复（dispose → resume，身份与事件守恒）。
  * 会话日志是 dsh 的唯一事实来源：turn/step、消息、工具调用与结果全在同一条事件流里。
+ * word-count 工具与脚本化适配器在 cordis.patch.yml 里声明，全程在位。
  * Node 与 Bun 双运行时：不挂 ptc/subprocess，无需任何 Bun 补丁。
  */
 import { mkdirSync, readFileSync, readdirSync } from 'node:fs'
@@ -16,8 +17,6 @@ import { boot, loadOverlayPatches } from '@deepseek-ai/dsh-app-boot'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-query-sqlite'
-import * as wordCount from './plugins/word-count.ts'
-import { ScriptedAdapter } from './plugins/scripted-adapter.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const BASE_URL = new URL('..', import.meta.url).href
@@ -41,8 +40,7 @@ function assert(ok: boolean, message: string): void {
   if (!ok) throw new Error(`断言失败：${message}`)
 }
 
-const toolFiber = await ctx.plugin(wordCount)
-const releaseAdapter = ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())
+// word_count 工具与脚本化适配器由 patch 清单声明，boot 后已在位。
 
 // 播种一条真实 turn：脚本第 1 步调 word_count，第 2 步给最终回答。
 const sessionId = SessionId(`session-demo-${Date.now().toString(36)}`)
@@ -132,7 +130,5 @@ try {
   await resumed.dispose()
 }
 
-releaseAdapter()
-await toolFiber.dispose()
 await ctx.fiber.dispose()
 console.log('\nSESSION_DEMO_OK')

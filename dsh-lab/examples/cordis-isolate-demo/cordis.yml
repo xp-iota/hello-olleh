@@ -1,0 +1,61 @@
+# realm 隔离全部写在配置层：isolate 为 true 是独立 realm，字符串 label 相同即共享 realm
+- id: consumer-root
+  name: ./src/plugins/greeter-consumer.ts   # ① root 侧消费者
+  config:
+    label: consumer-root
+- id: consumer-realm
+  name: ./src/plugins/greeter-consumer.ts   # ① realm 侧消费者：与 provider-inner 同 label
+  isolate:
+    greeter: realm-1
+  config:
+    label: consumer-realm
+- id: provider-outer
+  name: ./src/plugins/greeter-provider.ts   # ① root 侧 provider：运行时启用
+  disabled: true
+  config:
+    text: outer
+- id: provider-inner
+  name: ./src/plugins/greeter-provider.ts   # ① realm 侧 provider：同名服务第二份实现
+  disabled: true
+  isolate:
+    greeter: realm-1
+  config:
+    text: inner
+- id: clock-provider
+  name: ./src/plugins/clock-provider.ts     # ② root 侧 clock：没被 isolate，穿透 realm
+  disabled: true
+- id: realm-clock
+  name: ./src/plugins/realm-clock.ts        # ② realm 侧消费者：只 shadow 了 greeter
+  isolate:
+    greeter: realm-1
+- id: tick-listener-root
+  name: ./src/plugins/tick-listener.ts      # ③ root 侧监听器
+  config:
+    label: root 听到
+- id: tick-listener-realm
+  name: ./src/plugins/tick-listener.ts      # ③ realm 侧监听器：跟着 ticker 的 isolate 走
+  isolate:
+    ticker: tick-realm
+  config:
+    label: realm 听到
+- id: ticker-root
+  name: ./src/plugins/ticker.ts             # ③ root 侧 Ticker 服务
+- id: ticker-realm
+  name: ./src/plugins/ticker.ts             # ③ realm 侧 Ticker 服务
+  isolate:
+    ticker: tick-realm
+- id: consumer-shared
+  name: ./src/plugins/greeter-consumer.ts   # ④ 共享 label 的消费者
+  isolate:
+    greeter: shared-greeter
+  config:
+    label: consumer-shared
+- id: provider-shared
+  name: ./src/plugins/greeter-provider.ts   # ④ 共享 label 的 provider：与消费者同 realm
+  disabled: true
+  isolate:
+    greeter: shared-greeter
+  config:
+    text: shared
+- id: runner
+  name: ./src/index.ts                      # 场景驱动：不挂插件，只对上面的行做运行时开关

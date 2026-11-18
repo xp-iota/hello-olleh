@@ -1,5 +1,6 @@
 # 人在回路的最小树：九行 base（与 dsh-agent-loop-demo 相同）+ 四行交互面。
-# 模型侧不挂任何真实 provider：脚本化 LlmAdapter 在进程内注册（见 src/plugins/scripted-adapter.ts）。
+# 模型侧不挂任何真实 provider：脚本化 LlmAdapter 与 word-count 工具
+# 都是自写插件，声明在末尾两行，全程在位。
 # 依赖链：user-approval / user-questions / tool-todo 都注入 sessionProjections（base 已有）；
 #         tool-todo 另注入 tools；commands 无额外服务依赖。
 - insert:
@@ -54,3 +55,10 @@
       name: '@deepseek-ai/dsh-tool-todo'
       config:
         allowParallelInProgress: true
+
+    # 自写插件也走声明式：工具与脚本化适配器全程在位，随整树 dispose 回收。
+    - id: word-count
+      name: ./src/plugins/word-count.ts
+
+    - id: scripted-adapter
+      name: ./src/plugins/scripted-adapter.ts

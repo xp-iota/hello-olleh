@@ -13,3 +13,5 @@
       disabled: true     # 这行不创建 Fiber
       config:
         tag: sleeper
+- id: runner
+  name: ./src/index.ts   # 场景驱动：运行时 patch 走 root 内存树，不写回本文件

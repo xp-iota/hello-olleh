@@ -1,5 +1,3 @@
-npm notice run mechanism
-npm notice run node src/index.ts --mechanism
 runtime = node v26.12.1
 
 === S1 路由与模型目录 ===
@@ -12,7 +10,7 @@ llm/stream 命中：provider=lab-scripted model=seed
 waterfall 命中 1 次，经手 5 个 chunk，文本长度=28
 
 === S3 合成 SSE 端到端（离线）===
-线协议端点：https://api.minimaxi.com/anthropic/v1/messages
+线协议端点：http://fuyao-ai-gateway.xiaopeng.link/v1/messages
 归属头在场：true，x-api-key 在场=true
 翻译结果：text=你好，护栏。，finish=stop，usage=12 in / 7 out
 

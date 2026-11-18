@@ -37,3 +37,8 @@
       name: '@deepseek-ai/dsh-agent-loop'
       config:
         agents: []
+
+    # 自写工具插件也走声明式：初始禁用，五个场景由运行时开关驱动
+    - id: word-count
+      name: ./src/plugins/word-count.ts
+      disabled: true

@@ -4,8 +4,8 @@
   "type": "module",
   "description": "配置树到 Fiber：group / disabled / 配置层 inject / 配置层 isolate / 运行时 patch 与禁用开关。Node 与 Bun 双运行时。",
   "scripts": {
-    "start": "node src/index.ts",
-    "start:bun": "bun src/index.ts",
+    "start": "cordis",
+    "start:bun": "bun node_modules/cordis/bin.js",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

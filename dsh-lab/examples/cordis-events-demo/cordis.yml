@@ -1,0 +1,6 @@
+# 事件示例的装配清单：监听器插件与场景 runner 都在这里声明
+- id: listener
+  name: ./src/listener.ts   # 监听器即 effect：随 fiber 回收（初始禁用，④ 里启用）
+  disabled: true
+- id: runner
+  name: ./src/index.ts      # 场景驱动：五种派发模式的演示脚本

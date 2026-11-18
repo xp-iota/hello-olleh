@@ -1,5 +1,3 @@
-npm notice run start:bun
-npm notice run bun src/index.ts
 runtime = bun 1.4.4
 
 === S1 存储域：schema 校验 ===

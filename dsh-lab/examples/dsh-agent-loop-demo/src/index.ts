@@ -6,6 +6,7 @@
  *   S4 取消：空闲幂等、keepInbox 语义、在途 turn 的真实中止；
  *   S5 agent/status 现场事件。
  * 关键认识：不要自己写循环——只往 inbox 塞消息，推进完全由 dsh-agent-loop 负责。
+ * word-count 工具与脚本化适配器在 cordis.patch.yml 里声明，全程在位。
  * Node 与 Bun 双运行时：不挂 ptc/subprocess，无需任何 Bun 补丁。
  */
 import { mkdirSync } from 'node:fs'
@@ -14,8 +15,6 @@ import { fileURLToPath } from 'node:url'
 import { boot, loadOverlayPatches } from '@deepseek-ai/dsh-app-boot'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import * as wordCount from './plugins/word-count.ts'
-import { ScriptedAdapter } from './plugins/scripted-adapter.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const BASE_URL = new URL('..', import.meta.url).href
@@ -51,9 +50,7 @@ const makeAgent = (tag: string, model: string) =>
     agentOptions: { provider: 'lab-scripted', model },
   })
 
-// word_count 工具与脚本化适配器全程在位；注册都返回精确的解除句柄。
-const toolFiber = await ctx.plugin(wordCount)
-const releaseAdapter = ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())
+// word_count 工具与脚本化适配器由 patch 清单声明，boot 后已在位。
 
 // ── S1：脚本化适配器驱动真实 turn ──────────────────────────────────────────
 console.log('\n=== S1 脚本化 turn：turn/step 边界 ===')
@@ -191,7 +188,5 @@ console.log('\n=== S5 agent/status 事件 ===')
   await handle.dispose()
 }
 
-releaseAdapter()
-await toolFiber.dispose()
 await ctx.fiber.dispose()
 console.log('\nAGENT_LOOP_OK')

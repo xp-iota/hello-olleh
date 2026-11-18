@@ -35,7 +35,8 @@
     - id: token-meter
       name: '@deepseek-ai/dsh-token-meter'
 
-    # 超长工具结果裁剪：post-execute waterfall 上按字符阈值截断，保留头尾。
+    # 超长工具结果裁剪：会话表面服务（不是 post-execute 监听），
+    # compaction-basic 每次请求前调 pruneSession：影子计价 + replace 事件。
     - id: tool-result-pruner
       name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
       config:
@@ -58,3 +59,7 @@
       config:
         path: ':memory:'
         openAt: never
+
+    # 自写工具插件也走声明式：两棵树都带上，S5 在第二棵树上调用。
+    - id: big-text
+      name: ./src/plugins/big-text.ts

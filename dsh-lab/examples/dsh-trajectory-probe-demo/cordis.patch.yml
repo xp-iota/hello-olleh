@@ -1,4 +1,4 @@
-# Trajectory 探针的最小树：与 dsh-session-demo 相同的十四行——
+# Trajectory 探针的最小树：与 dsh-session-demo 相同的十六行——
 # 渲染需要 sessionQuery 的精确读/标题/表面，从盘上渲染需要 JSONL 落盘。
 # 依赖链：systemPrompt → tools → tool-executor-native；
 #         sessionProjections → agent；
@@ -65,3 +65,10 @@
         fallbackMaxWords: 5
         fallbackMaxBytes: 40
         maxTitleBytes: 80
+
+    # 自写插件也走声明式：工具与脚本化适配器全程在位，随整树 dispose 回收。
+    - id: word-count
+      name: ./src/plugins/word-count.ts
+
+    - id: scripted-adapter
+      name: ./src/plugins/scripted-adapter.ts

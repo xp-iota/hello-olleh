@@ -6,6 +6,7 @@
  *   S4 超长工具结果裁剪（tool-result-pruner 真实触发）；
  *   S5 大输出溢写（spill-policy 真实触发，第二棵树禁用 pruner）；
  *   S6 会话历史折叠为模型表面（sessionQuery.readSurface）。
+ * big-text 工具在 cordis.patch.yml 里声明，两棵树都带上，S5 在第二棵树上调用。
  * Node 与 Bun 双运行时：不挂 ptc/subprocess，无需任何 Bun 补丁。
  */
 import { existsSync, mkdirSync } from 'node:fs'
@@ -19,7 +20,6 @@ import type { ToolResultMessage } from '@deepseek-ai/dsh-session'
 import { MessageId, ToolCallId } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-compaction-tool-result-pruner'
 import type {} from '@deepseek-ai/dsh-session-query-sqlite'
-import * as bigText from './plugins/big-text.ts'
 import { makeText } from './plugins/big-text.ts'
 import { callTool, preview } from './tools.ts'
 
@@ -143,7 +143,7 @@ const ctxB = await boot(
   [...patches(), ...loadOverlayPatches('dsh-context-demo', NOPRUNE)],
   undefined, BASE_URL,
 )
-const fiberB = await ctxB.plugin(bigText)
+// big_text 工具由 patch 清单声明，boot 后已在位。
 // spill 需要会话 owner（exec.agent.session.header.id）：不传 agent 会 warn 并保留内联内容。
 const handleB = await ctxB.agents.create({
   sessionId: SessionId(`context-spill-${Date.now().toString(36)}`),
@@ -163,7 +163,6 @@ assert(pathMatch !== null, '溢写通知里没有文件路径')
 const spilled = pathMatch![0].replace(/[.'")\]]+$/, '')
 console.log(`溢写文件存在 = ${existsSync(spilled)}（${spilled}）`)
 assert(existsSync(spilled), '溢写文件应当落盘')
-await fiberB.dispose()
 await handleB.dispose()
 await ctxB.fiber.dispose()
 

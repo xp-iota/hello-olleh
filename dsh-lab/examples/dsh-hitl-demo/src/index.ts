@@ -7,6 +7,7 @@
  *   S5 commands.register 自定义斜杠命令 + execute 生命周期事件；
  *   S6 todo_write 工具：有 agent 才能写，counts 汇总。
  * 关键认识：审批不是"弹个框"——它是 turn 内的审计事件对 + 封闭结果词汇 + fail-closed 判决链。
+ * word-count 工具与脚本化适配器在 cordis.patch.yml 里声明，全程在位。
  * Node 与 Bun 双运行时：不挂 ptc/subprocess，无需任何 Bun 补丁。
  */
 import { mkdirSync } from 'node:fs'
@@ -20,8 +21,6 @@ import type { ApprovalOutcome } from '@deepseek-ai/dsh-user-approval'
 import type {} from '@deepseek-ai/dsh-user-questions'
 import type {} from '@deepseek-ai/dsh-commands'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import * as wordCount from './plugins/word-count.ts'
-import { ScriptedAdapter } from './plugins/scripted-adapter.ts'
 import { blocksToText, callTool, preview } from './tools.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -57,8 +56,7 @@ const makeAgent = (tag: string, model: string) =>
     agentOptions: { provider: 'lab-scripted', model },
   })
 
-const toolFiber = await ctx.plugin(wordCount)
-const releaseAdapter = ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())
+// word_count 工具与脚本化适配器由 patch 清单声明，boot 后已在位。
 
 /**
  * 在一个真实 turn 内部执行 fn。挂点选 agent/turn-stopping：此刻 turn 尚未 end
@@ -304,7 +302,5 @@ console.log('\n=== S6 todo_write ===')
   await handle.dispose()
 }
 
-releaseAdapter()
-await toolFiber.dispose()
 await ctx.fiber.dispose()
 console.log('\nHITL_OK')

@@ -1,7 +1,8 @@
 # Agent 循环的最小树：与 dsh-tool-pipeline-demo 相同的九行——
 # 循环干预需要真实的 agent 与 driver，而 agents.create() 需要
 # agent-loop 注册的 factory（否则报 no agent factory registered）。
-# 模型侧不挂任何真实 provider：脚本化 LlmAdapter 在进程内注册（见 src/plugins/scripted-adapter.ts）。
+# 模型侧不挂任何真实 provider：脚本化 LlmAdapter 与 word-count 工具
+# 都是自写插件，声明在下方两行，全程在位。
 # 依赖链：systemPrompt → tools → tool-executor-native；
 #         sessionProjections → agent；
 #         agents + sessions + llm + tools + systemPrompt + sessionProjections → agent-loop。
@@ -37,3 +38,10 @@
       name: '@deepseek-ai/dsh-agent-loop'
       config:
         agents: []
+
+    # 自写插件也走声明式：工具与脚本化适配器全程在位，随整树 dispose 回收。
+    - id: word-count
+      name: ./src/plugins/word-count.ts
+
+    - id: scripted-adapter
+      name: ./src/plugins/scripted-adapter.ts

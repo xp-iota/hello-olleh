@@ -7,6 +7,7 @@
  *   S5 dispose 之后从盘上渲染：flush 过的会话不依赖 live agent。
  * 探针的价值：turn 大纲、工具行、token 用量这些渲染路径，只有会话里真的跑过
  * turn 之后才有内容——播种空会话照不出折叠逻辑的 bug。
+ * word-count 工具与脚本化适配器在 cordis.patch.yml 里声明，全程在位。
  * Node 与 Bun 双运行时：不挂 ptc/subprocess，无需任何 Bun 补丁。
  */
 import { mkdirSync } from 'node:fs'
@@ -15,8 +16,6 @@ import { fileURLToPath } from 'node:url'
 import { boot, loadOverlayPatches } from '@deepseek-ai/dsh-app-boot'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import * as wordCount from './plugins/word-count.ts'
-import { ScriptedAdapter } from './plugins/scripted-adapter.ts'
 import { foldTurns, renderTrajectory } from './trajectory.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -41,8 +40,7 @@ function assert(ok: boolean, message: string): void {
   if (!ok) throw new Error(`断言失败：${message}`)
 }
 
-const toolFiber = await ctx.plugin(wordCount)
-const releaseAdapter = ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())
+// word_count 工具与脚本化适配器由 patch 清单声明，boot 后已在位。
 
 const userMsg = (text: string) =>
   createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'user' } })
@@ -101,7 +99,5 @@ const after = await ctx.sessionQuery.readSession(sessionId)
 assert(after.events.length >= snapshot.events.length, '盘上读回的事件不应少于 live 快照')
 console.log(`\n盘上读回 ${after.events.length} 条事件（live 快照 ${snapshot.events.length} 条），渲染不依赖 live agent`)
 
-releaseAdapter()
-await toolFiber.dispose()
 await ctx.fiber.dispose()
 console.log('\nTRAJ_PROBE_OK')

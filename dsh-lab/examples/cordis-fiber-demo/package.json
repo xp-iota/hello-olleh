@@ -4,11 +4,15 @@
   "type": "module",
   "description": "Fiber 六态状态机、可逆 effect 的逆序回收、timer 作为 effect：一个插件的一生。Node 与 Bun 双运行时。",
   "scripts": {
-    "start": "node src/index.ts",
-    "start:bun": "bun src/index.ts",
+    "start": "cordis",
+    "start:bun": "bun node_modules/cordis/bin.js",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@cordisjs/fs": "2.0.0-rc.0",
+    "@cordisjs/fs-node": "0.1.0",
+    "@cordisjs/include": "2.0.0-rc.0",
+    "@cordisjs/loader": "1.0.0-rc.10",
     "@cordisjs/timer": "1.1.5",
     "cordis": "4.0.0-rc.13"
   },

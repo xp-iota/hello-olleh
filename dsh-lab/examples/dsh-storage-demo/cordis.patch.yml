@@ -111,3 +111,7 @@
       name: '@deepseek-ai/dsh-session-reference'
       config:
         maxReferenceBytes: 65536
+
+    # 自写插件也走声明式：脚本化适配器全程在位（S5 才用到），随整树 dispose 回收。
+    - id: scripted-adapter
+      name: ./src/plugins/scripted-adapter.ts

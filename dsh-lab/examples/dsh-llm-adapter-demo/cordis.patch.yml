@@ -1,5 +1,6 @@
-# 模型接入层的最小树：九行 base + 凭据 + 自写适配器，共 11 行。
-# 机制路径（S1–S3）全程离线：S2 用脚本化适配器，S3 用合成 SSE 喂真实适配器。
+# 模型接入层的最小树：九行 base + 凭据 + 两个自写适配器，共 12 行。
+# 机制路径（S1–S3）全程离线：S2 用脚本化适配器（初始禁用，运行时开关），
+# S3 用合成 SSE 喂真实适配器。
 # 真实调用（S4）需要 LLM_API_KEY（本目录 .env 或进程环境）。
 # 依赖链：anthropic-compat 注入 llm；凭据解析机会主义消费 credentials
 #         （ctx.get('credentials')，缺服务时回退进程环境）；
@@ -47,3 +48,8 @@
         provider: anthropic-compat
         apiKeyEnv: LLM_API_KEY
         maxTokens: 8192
+
+    # 脚本化适配器也走声明式：初始禁用，S2 用行句柄的 disabled 开关临时启用。
+    - id: scripted-adapter
+      name: ./src/plugins/scripted-adapter.ts
+      disabled: true

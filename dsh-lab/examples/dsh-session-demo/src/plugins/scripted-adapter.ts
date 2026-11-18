@@ -11,9 +11,13 @@
  *   - scripted：第 1 个 step 产出 word_count 工具调用，之后的 step 给最终文本；
  *   - hang：产出 block-start 后挂起，直到 options.signal 中止才抛错——
  *     用于演示在途取消（LlmRuntime 会把抛出规范化为 aborted 终局）。
+ *
+ * 文件末尾的 name/inject/apply 是 cordis 插件形态：本文件在 cordis.patch.yml
+ * 里声明为一行，registerAdapter 内部走 ctx.effect，fiber 销毁时路由自动回收。
  */
 import { LlmAdapter, ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
+import type { Context } from '@deepseek-ai/cordis'
 
 export class ScriptedAdapter extends LlmAdapter {
   /** 每个 model 路由独立的 step 计数：不同场景用不同 model id，互不串步。 */
@@ -58,4 +62,12 @@ export class ScriptedAdapter extends LlmAdapter {
     yield { type: 'usage', usage: { inputTokens: 1500, outputTokens: 18 } }
     yield { type: 'finish', reason: { kind: 'stop' } }
   }
+}
+
+export const name = 'scripted-adapter'
+export const inject = ['llm']
+
+export function apply(ctx: Context): void {
+  // registerAdapter 内部是 ctx.effect：不需要手动 release，fiber 销毁即回收。
+  ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())
 }

@@ -1,5 +1,3 @@
-npm notice run start:bun
-npm notice run bun src/index.ts
 runtime = bun 1.4.4
 
 === S1 路由与模型目录 ===
@@ -18,7 +16,7 @@ waterfall 命中 1 次，经手 5 个 chunk，文本长度=28
 
 === S4 真实调用 ===
 请求 anthropic-compat / fuyao-coding
-回答：dsh 的工具管线通常分为三段。
-推理增量块：753；用量：0 in / 2672 out
+回答：dsh 的工具管线共 3 段。
+推理增量块：251；用量：0 in / 1120 out
 
 LLM_ADAPTER_OK
