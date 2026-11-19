@@ -6,7 +6,7 @@
 ## 三层同心结构
 
 自内而外：**cordis**（运行时内核 + built-in 插件系）→ **dsh**（官方能力包，每个都是
-cordis 插件）→ **dsh-lab**（21 个独立示例 + 自写插件）。插件分布的读法：官方包与自写件
+cordis 插件）→ **dsh-lab**（22 个独立示例 + 自写插件）。插件分布的读法：官方包与自写件
 （`anthropic-compat`、`safety-guardrail`、`word_count` 等）在 cordis 眼里没有区别，
 都经各示例的装配清单挂成插件，卸载时 effect 自动回收。
 
@@ -14,7 +14,7 @@ cordis 插件）→ **dsh-lab**（21 个独立示例 + 自写插件）。插件�
 
 ## 示例索引
 
-目录名带分组编号：cordis 系 **01–06**、dsh 系 **07–21**，按下面两表的阅读顺序排列；
+目录名带分组编号：cordis 系 **01–06**、dsh 系 **07–22**，按下面两表的阅读顺序排列；
 根层代跑脚本名保持不带编号（`example:<name>`）。
 
 ### Cordis 运行时（6）
@@ -28,7 +28,7 @@ cordis 插件）→ **dsh-lab**（21 个独立示例 + 自写插件）。插件�
 | [05-cordis-loader-demo](examples/05-cordis-loader-demo/README.md) | loader：配置树到 Fiber |
 | [06-cordis-hmr-demo](examples/06-cordis-hmr-demo/README.md) | HMR：原位替换，Fiber 身份不变 |
 
-### DeepSeek Harness（15）
+### DeepSeek Harness（16）
 
 | 示例 | 主题 |
 |:--|:--|
@@ -47,14 +47,16 @@ cordis 插件）→ **dsh-lab**（21 个独立示例 + 自写插件）。插件�
 | [19-dsh-storage-demo](examples/19-dsh-storage-demo/README.md) | 结构化状态四归属：存储域、附件、凭据、引用 |
 | [20-dsh-guardrail-demo](examples/20-dsh-guardrail-demo/README.md) | 自写安全护栏：从「看见」到四种决定 |
 | [21-dsh-chat-demo](examples/21-dsh-chat-demo/README.md) | 完整交互式终端：chat / sessions / traj / info 🔑 |
+| [22-dsh-perf-metrics-demo](examples/22-dsh-perf-metrics-demo/README.md) | 流式性能与 token 统计：TTFT / TPOT / ITL / E2E + token-meter 🔑 |
 
 🔑 = 真实模型调用路径需要 `LLM_API_KEY`（示例目录自己的 `.env`，模板见 `.env.example`）。
-缺 key 时相关路径**明确失败**（fail-loud），机制路径不受影响。
+缺 key 时相关路径**明确失败**（fail-loud），机制路径不受影响
+（dsh-perf-metrics-demo 没有机制路径，整体需要 key）。
 
 ## 快速开始
 
 ```powershell
-npm run install:all                 # 遍历 21 个示例逐个 npm install
+npm run install:all                 # 遍历 22 个示例逐个 npm install
 npm run example:dsh-boot-demo       # 代跑任一示例的 start（Node）
 npm run example:dsh-boot-demo:bun   # Bun 变体
 npm run verify                      # 仓库级双运行时校验（见下）
@@ -71,7 +73,7 @@ npm run typecheck
 
 每个示例的脚本面统一：`start` / `start:bun` / `typecheck`，按需另有：
 
-- `test` / `test:bun`：`dsh-chat-demo`（22 条）、`dsh-llm-adapter-demo`（12 条）、`dsh-guardrail-demo`（4 条）；
+- `test` / `test:bun`：`dsh-chat-demo`（22 条）、`dsh-perf-metrics-demo`（21 条）、`dsh-llm-adapter-demo`（12 条）、`dsh-guardrail-demo`（4 条）；
 - `mechanism` / `mechanism:bun`：`dsh-llm-adapter-demo` 的无 key 脚本化适配器路径；
 - `info` / `sessions` / `traj`（各带 `:bun`）：`dsh-chat-demo` 的装配探针、会话列表与轨迹回看。
 
@@ -91,10 +93,10 @@ npm run typecheck
 ## 仓库级校验
 
 `npm run verify` 遍历 `examples/`，每个示例跑 **typecheck + start（Node）+ start:bun（Bun）**
-共 63 项检查，末行打印：
+共 66 项检查，末行打印：
 
 ```text
-RUNTIMES_VERIFY_OK runtimes=2 checks=63
+RUNTIMES_VERIFY_OK runtimes=2 checks=66
 ```
 
 缺 key 时 🔑 示例的 start 按「明确失败」计入报告（△ 行，设计行为）而非静默跳过——
@@ -105,13 +107,14 @@ RUNTIMES_VERIFY_OK runtimes=2 checks=63
 
 另有 `npm run check:copies`：把「成对拷贝的文件应保持一致」变成可执行的漂移守卫——
 bun-shim（根/17/21 三份）、spawn（根/21）、bun-preload（根/21）、anthropic-compat
-（10/21，含测试）、safety-guardrail（20/21，含测试）归一化后逐行比对（17 的 preload
+（10/21/22，含测试）、safety-guardrail（20/21，含测试）归一化后逐行比对（17 的 preload
 是五缝超集，另做包含性检查），任何副本间漂移非零退出。
 
-最近一次全量实测（2026-11-19，`@deepseek-ai/*` 0.2.2-rc.5）：**63 项全 ✓**（0 个 △），
-含两个 🔑 示例的真实模型调用（fuyao 网关，Node 与 Bun 均完成带正文的 turn）；
-`check:shim` 3 例全过、`check:copies` 8 对全绿（同日审查把 safety-guardrail 测试对
-纳入守护后为 9 对，复跑仍全绿）。
+最近一次全量实测（2026-11-19，`@deepseek-ai/*` 0.2.2-rc.5，新增 22-dsh-perf-metrics-demo 后）：
+**66 项全 ✓**（0 个 △），含三个 🔑 示例中两个的真实模型调用（fuyao 网关，Node 与 Bun
+均完成带正文的 turn；chat-demo 的 start 是 REPL，stdin=ignore 下读 EOF 退出）；
+`check:shim` 3 例全过、`check:copies` 11 对全绿（anthropic-compat 扩为 10/21/22 三份后
+由 9 对增至 11 对）。
 
 ## 版本面
 
@@ -125,7 +128,7 @@ bun-shim（根/17/21 三份）、spawn（根/21）、bun-preload（根/21）、a
 - **cordis 示例（6 个）**：cordiverse 上游 `cordis` **4.0.0-rc.13**（与 `sources/cordis/` 快照同版），
   插件系按需：`@cordisjs/loader` 1.0.0-rc.10、`include`/`fs`/`hmr` 2.0.0-rc.0、`group` 1.0.1、
   `timer` 1.1.5、`fs-node` 0.1.0。
-- **dsh 示例（15 个）**：`@deepseek-ai/*` **0.2.2-rc.5**（npm `next` 通道，2026-11-19 升级；
+- **dsh 示例（16 个）**：`@deepseek-ai/*` **0.2.2-rc.5**（npm `next` 通道，2026-11-19 升级；
   `sources/deepseek-harness/` 源码快照仍为 rc.3，正文分析以快照为准，rc.4/rc.5 的增量
   未回写章节叙述——实测 rc.5 下装配树不变：19 必检服务 + 27 工具、Bun 两条缝形态不变。
   例外 `dsh-invariants` 0.2.0-rc.2，上游未发 rc 线更新），cordis 运行时为 DSH 自携 fork
@@ -137,7 +140,7 @@ bun-shim（根/17/21 三份）、spawn（根/21）、bun-preload（根/21）、a
 
 ```text
 dsh-lab/
-├── examples/<NN-name>/     # 21 个独立示例，目录名带分组编号（README.md 即主题文章）
+├── examples/<NN-name>/     # 22 个独立示例，目录名带分组编号（README.md 即主题文章）
 │   ├── package.json        # 只声明本主题用到的依赖，精确锁定
 │   ├── tsconfig.json       # noEmit 类型检查
 │   ├── cordis.yml          # 需要 YAML 装配的示例：空根表
@@ -145,7 +148,7 @@ dsh-lab/
 │   ├── src/                # 示例源码（含自写插件与测试）
 │   ├── diagrams/           # cordis 系 6 示例：archify SVG/HTML/IR
 │   ├── runtime/            # 仅 chat/jobs/sandbox 三示例：Bun 修补迷你调度层
-│   ├── .env.example        # 仅两个 🔑 示例：变量模板（.env 已 gitignore）
+│   ├── .env.example        # 仅三个 🔑 示例：变量模板（.env 已 gitignore）
 │   └── .dsh-home/          # dsh 系运行时自管 home（已 gitignore）
 ├── runtime/                # 根层运行时工具：run/status/verify/install-all/check-bun-shim/check-copies + lib（runtimes/spawn/examples/bun-shim）
 └── package.json            # example:<name>[:bun] 代跑脚本 + verify 等仓库级命令

@@ -1,6 +1,6 @@
 /**
- * Anthropic Messages 兼容适配器 —— dsh-lab 的自写 provider（10-dsh-llm-adapter-demo
- * 与 21-dsh-chat-demo 各持一份同源副本——完全独立的代价）。
+ * Anthropic Messages 兼容适配器 —— dsh-lab 的自写 provider（10-dsh-llm-adapter-demo、
+ * 21-dsh-chat-demo 与 22-dsh-perf-metrics-demo 各持一份同源副本——完全独立的代价）。
  *
  * 自写 provider（0.2.2-rc.5 的 `LlmAdapter` API）：官方只发布了 DeepSeek 原生路由
  * 与 pi-ai 多路由转发，没有任何直接讲 Anthropic Messages + SSE 协议的适配器；

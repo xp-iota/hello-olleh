@@ -1,0 +1,42 @@
+npm notice run start:bun
+npm notice run bun src/index.ts
+runtime = bun 1.4.4
+provider = anthropic-compat，model = fuyao-coding
+
+turn 1：短回答
+turn 2：约 300 字短文（ITL 样本）
+
+会话 perf-metrics-mwn5jbgq：19 条事件
+
+=== S1 sessionStats 投影（官方口径）===
+turns=2  steps=2  llmMs=14.2s  toolMs=0ms
+ttftMs=10.8s（2 个 step 有首 token，均值 5.4s）
+decodeMs=3.4s  decodeTokens=624
+TPOT = decodeMs / decodeTokens = 5.4ms/token（吞吐 186.3 token/s）
+
+=== S2 step 明细与 ITL 分布 ===
+  turn/step  TTFT      解码      输出token  ITL均值  P50     P99     最大    样本
+  1/1        1.3s      301ms     85         11ms     11ms    26ms    26ms    17
+  2/1        9.5s      3.0s      539        15ms     14ms    68ms    68ms    42
+交叉校验通过：ΣTTFT=10.8s、Σ解码=3.4s、Σ输出token=624 与投影一致
+
+=== S3 turn 级 E2E ===
+  turn 1：E2E=1.6s（1 步）
+  turn 2：E2E=12.6s（1 步）
+  ΣE2E=14.2s ≥ llmMs+toolMs=14.2s（差额是循环与落日志开销）
+
+=== S4 token 统计（token-meter）===
+会话累计：uncachedInput=0  output=624  cacheRead=0  cacheWrite=0
+上下文压力：pressureTokens=0（最近一次请求的 prompt 实测）  projectedTokens=238（下次请求的锚定估计）  contextWindow=(适配器未声明)
+  注意：本网关只在 message_delta 里报 output_tokens，不报 input_tokens；
+  prompt 侧四桶里的 input/cache 因此为 0——这是上报事实，不是折叠错误。
+组成分解（启发式，只看构成不看总量）：system=16  tools=0  messages=349
+measure()：baseline=usage  totalTokens=539  surfaceTokens=365（5 个表面节点）
+
+=== S5 deriveTurnTokenUsage（逐 attempt 精确口径）===
+  turn 1：undefined——usage 缺 totalTokens 且 cache 桶不全，精确口径无法证明（fail-loud 返回空，不猜）
+  turn 2：undefined——usage 缺 totalTokens 且 cache 桶不全，精确口径无法证明（fail-loud 返回空，不猜）
+  说明：anthropic-compat 副本不上报 totalTokens，cache 桶仅在 >0 时携带；
+  网关若两者都没给，deriveTurnTokenUsage 按契约返回空。可证明路径的完整断言见 src/metrics.test.ts。
+
+PERF_METRICS_OK

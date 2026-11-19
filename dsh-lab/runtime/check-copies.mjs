@@ -9,7 +9,7 @@
  *   1. bun-shim.mjs 三份（根参照层、17-jobs、21-chat）；
  *   2. spawn.mjs 两份（根、21-chat）；
  *   3. bun-preload.mjs 两份（根、21-chat；17-jobs 的五缝超集另做包含性检查）；
- *   4. anthropic-compat 插件两份（10-llm-adapter、21-chat，含各自测试）；
+ *   4. anthropic-compat 插件三份（10-llm-adapter、21-chat、22-perf-metrics，含各自测试）；
  *   5. safety-guardrail 插件两份（20-guardrail、21-chat，含各自测试）。
  *
  * 归一化只抹掉**必然不同**的部分：@module 名、示例名前缀（dsh-lab/dsh-jobs-demo/
@@ -27,7 +27,7 @@ import { PROJECT_ROOT } from './lib/runtimes.mjs'
 /** 归一化：抹掉副本间**必然**不同的标识，其余逐字节比较。 */
 function normalize(content) {
   return content
-    .replace(/dsh-(lab|jobs-demo|chat-demo|llm-adapter-demo|guardrail-demo)/g, 'DEMO')
+    .replace(/dsh-(lab|jobs-demo|chat-demo|llm-adapter-demo|guardrail-demo|perf-metrics-demo)/g, 'DEMO')
     .replace(/npm run (mechanism|info)/g, 'npm run <cmd>')
     .split(/\r?\n/)
     .filter((line) => !line.includes('@module'))
@@ -67,17 +67,19 @@ const COPY_GROUPS = [
     files: ['runtime/bun-preload.mjs', 'examples/21-dsh-chat-demo/runtime/bun-preload.mjs'],
   },
   {
-    name: 'anthropic-compat/index.ts（10 / 21）',
+    name: 'anthropic-compat/index.ts（10 / 21 / 22）',
     files: [
       'examples/10-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts',
       'examples/21-dsh-chat-demo/src/plugins/anthropic-compat/index.ts',
+      'examples/22-dsh-perf-metrics-demo/src/plugins/anthropic-compat/index.ts',
     ],
   },
   {
-    name: 'anthropic-compat/index.test.ts（10 / 21）',
+    name: 'anthropic-compat/index.test.ts（10 / 21 / 22）',
     files: [
       'examples/10-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.test.ts',
       'examples/21-dsh-chat-demo/src/plugins/anthropic-compat/index.test.ts',
+      'examples/22-dsh-perf-metrics-demo/src/plugins/anthropic-compat/index.test.ts',
     ],
   },
   {

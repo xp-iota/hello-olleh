@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "一文一工程的 dsh/cordis 示例集：examples/ 下 21 个完全独立的示例（cordis 6 + dsh 15），各自带完整装配、README 主题文章与 Node/Bun 双运行时脚本。根层只保留运行时工具（调度/状态/校验/shim 契约）。",
+  "description": "一文一工程的 dsh/cordis 示例集：examples/ 下 22 个完全独立的示例（cordis 6 + dsh 16），各自带完整装配、README 主题文章与 Node/Bun 双运行时脚本。根层只保留运行时工具（调度/状态/校验/shim 契约）。",
   "engines": {
     "node": ">=22.18",
     "bun": ">=1.4.4"
@@ -39,6 +39,8 @@
     "example:dsh-jobs-demo:bun": "npm --prefix examples/17-dsh-jobs-demo run start:bun",
     "example:dsh-llm-adapter-demo": "npm --prefix examples/10-dsh-llm-adapter-demo start",
     "example:dsh-llm-adapter-demo:bun": "npm --prefix examples/10-dsh-llm-adapter-demo run start:bun",
+    "example:dsh-perf-metrics-demo": "npm --prefix examples/22-dsh-perf-metrics-demo start",
+    "example:dsh-perf-metrics-demo:bun": "npm --prefix examples/22-dsh-perf-metrics-demo run start:bun",
     "example:dsh-sandbox-demo": "npm --prefix examples/15-dsh-sandbox-demo start",
     "example:dsh-sandbox-demo:bun": "npm --prefix examples/15-dsh-sandbox-demo run start:bun",
     "example:dsh-session-demo": "npm --prefix examples/12-dsh-session-demo start",
