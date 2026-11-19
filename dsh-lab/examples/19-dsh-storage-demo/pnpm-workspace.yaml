@@ -1,0 +1,12 @@
+# pnpm 11 把项目级配置从 package.json 的 pnpm 字段搬到了 pnpm-workspace.yaml；
+# 本文件只承载设置，不声明 packages —— 每个示例仍是独立安装域，不做依赖提升。
+allowBuilds:
+  # tsx 的原生二进制依赖，必须放行安装脚本。
+  esbuild: true
+  # 子进程 / PTY / FFI 边界，安装期需要编译或挑选平台二进制。
+  '@deepseek-ai/dsh-subprocess-local': true
+  koffi: true
+  node-pty: true
+
+# 教学工程按精确版本锁定，rc 包常在发布当天就要装，关闭默认 24h 发布冷却。
+minimumReleaseAge: 0

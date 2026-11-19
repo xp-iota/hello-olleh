@@ -172,7 +172,7 @@ export function apply(ctx: Context) {
   name: ./src/index.ts        # 场景驱动：不挂插件，只对上面的行做运行时开关
 ```
 
-`npm start` 就是 cordis CLI：读当前目录的 `cordis.yml`，loader 逐行 import 模块，把导出的 `apply`、`inject`、`name` 当作插件定义挂上去。consumer 声明在 provider 前面也没关系——inject 未满足就等着，服务一出现自动激活。
+`pnpm start` 就是 cordis CLI：读当前目录的 `cordis.yml`，loader 逐行 import 模块，把导出的 `apply`、`inject`、`name` 当作插件定义挂上去。consumer 声明在 provider 前面也没关系——inject 未满足就等着，服务一出现自动激活。
 
 ### 脚手架速览（照抄即可，原理在 05 篇展开）
 
@@ -211,15 +211,15 @@ async function run(ctx: Context) {
 在本机复现只需要四条命令：
 
 ```bash
-npm install             # cordis 与 loader 依赖
+pnpm install             # cordis 与 loader 依赖
 #
-npm start               # cordis CLI 读 cordis.yml（Node）：打印 ①～⑤ 的完整时序
-npm run start:bun       # Bun 下直接跑 cordis 的 bin.js：输出逐行一致
+pnpm start               # cordis CLI 读 cordis.yml（Node）：打印 ①～⑤ 的完整时序
+pnpm run start:bun       # Bun 下直接跑 cordis 的 bin.js：输出逐行一致
 #
-npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
+pnpm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
 
-下面是 `npm start` 的实测输出（Node 26.12.1；Bun 1.4.4 逐行相同）：
+下面是 `pnpm start` 的实测输出（Node 26.12.1；Bun 1.4.4 逐行相同）：
 
 ```text
 [audit] 开始监听 greeter/greet（此刻还没有任何 provider）
@@ -428,7 +428,7 @@ return this.ctx.fiber.effect(() => {
 
 ## 8 从零复现：完整文件与运行路径
 
-前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
+前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上，pnpm 安装依赖。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
 ### 目录结构
 
@@ -503,15 +503,15 @@ cordis-seam-demo/
 
 ### 按顺序验证
 
-1. `npm install` 成功，`node_modules` 中出现 `cordis` 与 `@cordisjs/loader`。
+1. `pnpm install` 成功，`node_modules` 中出现 `cordis` 与 `@cordisjs/loader`。
 
-2. `npm start` 打印 ①～⑤ 五段，末行是「演示结束」，与第 5 节的输出逐行一致。
+2. `pnpm start` 打印 ①～⑤ 五段，末行是「演示结束」，与第 5 节的输出逐行一致。
 
-3. `npm run start:bun` 输出与上一条逐行相同——同一份清单，两个运行时。
+3. `pnpm run start:bun` 输出与上一条逐行相同——同一份清单，两个运行时。
 
-4. `npm run typecheck` 无任何输出、退出码 0，说明 `ctx.greeter` 与事件载荷的类型契约成立。
+4. `pnpm run typecheck` 无任何输出、退出码 0，说明 `ctx.greeter` 与事件载荷的类型契约成立。
 
-示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。Node 需 22.18 以上（原生类型擦除），低于此版本改用 `npm run start:bun`。
+示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。Node 需 22.18 以上（原生类型擦除），低于此版本改用 `pnpm run start:bun`。
 
 ## 9 延伸阅读
 
@@ -529,6 +529,6 @@ cordis-seam-demo/
 
 4. **写清单并验证四件事**：插件全部写进 cordis.yml；启动后 consumer 是否自动激活、禁用 provider 行后是否先卸 consumer 再回到 pending、启用另一个 provider 行后 consumer 是否原地复活。
 
-以上就是这条接缝的全部。代码在本目录，`npm start` 和 `npm run start:bun` 能直接看到上面的输出，`npm run typecheck` 验证类型契约。
+以上就是这条接缝的全部。代码在本目录，`pnpm start` 和 `pnpm run start:bun` 能直接看到上面的输出，`pnpm run typecheck` 验证类型契约。
 
 下一篇：[02 · Cordis 的 fiber 示例](../02-cordis-fiber-demo/README.md)

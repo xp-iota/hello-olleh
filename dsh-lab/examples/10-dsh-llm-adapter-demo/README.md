@@ -2,7 +2,7 @@
 
 本示例演示模型接入层这条接缝：适配器的发现面、`llm/stream` waterfall 的环绕与拦截、合成 SSE 的离线端到端验证、真实网关调用。两个自写适配器都在 cordis.patch.yml 里声明——anthropic-compat 全程在位，scripted-adapter 行初始禁用、S2 用行句柄开关临时启用，代码里没有一处 `ctx.plugin()`。
 
-两条路径分明：机制路径（`npm run mechanism`）跑 S1–S3 全程离线、不需要 key；真实调用路径（`npm start`）的 S4 发起真实 provider 请求，需要本目录 `.env` 里的 `LLM_API_KEY`，缺 key 明确失败（fail loud），绝不静默跳过。版本面 `@deepseek-ai/*` 0.2.2-rc.5、`@deepseek-ai/cordis` 4.1.0，Node 26.12.1 与 Bun 1.4.4 机制输出逐行一致（首行 runtime 标识除外），单测两侧各 12 pass / 0 fail。
+两条路径分明：机制路径（`pnpm run mechanism`）跑 S1–S3 全程离线、不需要 key；真实调用路径（`pnpm start`）的 S4 发起真实 provider 请求，需要本目录 `.env` 里的 `LLM_API_KEY`，缺 key 明确失败（fail loud），绝不静默跳过。版本面 `@deepseek-ai/*` 0.2.2-rc.5、`@deepseek-ai/cordis` 4.1.0，Node 26.12.1 与 Bun 1.4.4 机制输出逐行一致（首行 runtime 标识除外），单测两侧各 13 pass / 0 fail。
 
 配套文章：[07 请求管线](../../../docs/hello-dsh/07-request-pipeline-llm-tools-and-prompts.md)（§7.2 LlmAdapter、§7.3 llm/stream waterfall、§7.7 错误模型、§7.8 API Key 的处理）。
 
@@ -65,7 +65,7 @@ stub `globalThis.fetch` 返回一段手工构造的合法 Anthropic Messages SSE
 
 ### S4 真实调用——fail loud
 
-缺 `LLM_API_KEY` 时抛出带指引的错误（复制 `.env.example` 为 `.env`，或改跑 `npm run mechanism`），绝不降级成假成功。有 key 时走 `ctx.llm.stream({provider, model, messages, maxTokens: 8192})`，收集 text-delta / reasoning-delta / usage 并断言文本非空。8192 不是随手给的：fuyao 网关的 thinking 预算很顽固，实测 1024 仍然全部花在推理上（330 个 reasoning-delta、finish=max-tokens、零文本），给到 8192 才有正文——这是 provider 特性，两个运行时表现一致，不是适配器 bug，S4 因此固定 8192（与 defaultMaxTokens 一致）。`.env` 由 `src/env.ts` 的手写 24 行加载器读入（不依赖 dotenv 包）：显式导出的进程变量优先于文件，与常见 dotenv 语义一致。
+缺 `LLM_API_KEY` 时抛出带指引的错误（复制 `.env.example` 为 `.env`，或改跑 `pnpm run mechanism`），绝不降级成假成功。有 key 时走 `ctx.llm.stream({provider, model, messages, maxTokens: 8192})`，收集 text-delta / reasoning-delta / usage 并断言文本非空。8192 不是随手给的：fuyao 网关的 thinking 预算很顽固，实测 1024 仍然全部花在推理上（330 个 reasoning-delta、finish=max-tokens、零文本），给到 8192 才有正文——这是 provider 特性，两个运行时表现一致，不是适配器 bug，S4 因此固定 8192（与 defaultMaxTokens 一致）。`.env` 由 `src/env.ts` 的手写 24 行加载器读入（不依赖 dotenv 包）：显式导出的进程变量优先于文件，与常见 dotenv 语义一致。
 
 ## 4 运行模型接入示例
 
@@ -136,7 +136,7 @@ stub `globalThis.fetch` 返回一段手工构造的合法 Anthropic Messages SSE
       disabled: true
 ```
 
-`npm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，两个适配器随装配就位：
+`pnpm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，两个适配器随装配就位：
 
 ```ts
 const ctx = await boot(
@@ -154,15 +154,15 @@ console.log('\nLLM_ADAPTER_OK')
 机制路径在本机复现只需要四条命令：
 
 ```bash
-npm install             # @deepseek-ai/* 依赖（含自动安装的 peer）
+pnpm install             # @deepseek-ai/* 依赖（含自动安装的 peer）
 #
-npm run mechanism       # Node：S1–S3 离线，不需要 key，末行 LLM_ADAPTER_OK
-npm run mechanism:bun   # Bun：不挂 ptc/subprocess，无需任何补丁，输出逐行一致
+pnpm run mechanism       # Node：S1–S3 离线，不需要 key，末行 LLM_ADAPTER_OK
+pnpm run mechanism:bun   # Bun：不挂 ptc/subprocess，无需任何补丁，输出逐行一致
 #
-npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
+pnpm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
 
-下面是 `npm run mechanism` 的实测输出（Node 26.12.1；Bun 1.4.4 除首行 `runtime = bun 1.4.4` 外逐行一致，归一化比对验证。本机带 `.env`（fuyao 网关），所以 S3 端点跟随 `LLM_BASE_URL`；无 `.env` 的默认形态是 MiniMax 端点）：
+下面是 `pnpm run mechanism` 的实测输出（Node 26.12.1；Bun 1.4.4 除首行 `runtime = bun 1.4.4` 外逐行一致，归一化比对验证。本机带 `.env`（fuyao 网关），所以 S3 端点跟随 `LLM_BASE_URL`；无 `.env` 的默认形态是 MiniMax 端点）：
 
 ```text
 runtime = node v26.12.1
@@ -195,15 +195,15 @@ LLM_ADAPTER_OK
 单测与真实调用：
 
 ```bash
-npm test                # node --test：12 pass / 0 fail
-npm run test:bun        # bun test：12 pass / 0 fail
+pnpm test                # node --test：13 pass / 0 fail
+pnpm run test:bun        # bun test：13 pass / 0 fail
 #
 cp .env.example .env    # 填入 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL / LLM_VENDOR
-npm start               # Node：S1–S4，S4 真实调用
-npm run start:bun       # Bun：同上
+pnpm start               # Node：S1–S4，S4 真实调用
+pnpm run start:bun       # Bun：同上
 ```
 
-S4 真实调用（fuyao 网关，`LLM_MODEL=fuyao-coding`）双运行时也都通过，但模型回答与用量**非确定**，只留档不纳入逐行对比（[runtime-out-real-node.txt](runtime-out-real-node.txt) / [runtime-out-real-bun.txt](runtime-out-real-bun.txt)）。另一处非确定：网关不保证回报输入用量——同一次实测 Node 拿到 `43 in`、Bun 拿到 `0 in`，取决于 message_start 事件里有没有 input_tokens；适配器如实翻译，不做假账（S3 合成路径则验证了「有输入用量时累计正确」）。一次实测摘录（Node）：
+S4 真实调用（fuyao 网关，`LLM_MODEL=fuyao-coding`）双运行时也都通过，但模型回答与用量**非确定**，只留档不纳入逐行对比（[runtime-out-real-node.txt](runtime-out-real-node.txt) / [runtime-out-real-bun.txt](runtime-out-real-bun.txt)）。留档时曾出现同一次实测 Node 拿到 `43 in`、Bun 拿到 `0 in`：当时适配器只从 `message_start` 读输入用量，而网关把 `input_tokens` 报在 `message_delta` 里；现在两个事件都读全量 usage，输入用量不再因事件位置而丢。端点自身不报的桶仍然如实缺失，适配器不做假账（S3 合成路径则验证了「有输入用量时累计正确」）。一次实测摘录（Node，修复前留档）：
 
 ```text
 === S4 真实调用 ===
@@ -216,7 +216,7 @@ LLM_ADAPTER_OK
 
 ## 5 从零复现：完整文件与运行路径
 
-前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
+前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上，pnpm 安装依赖。cordis fork 的 .ts 由 tsx 加载（`start:bun` 走 Bun 原生转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
 ### 目录结构
 
@@ -363,19 +363,19 @@ export function apply(ctx: Context): void {
 
 ### src/plugins/anthropic-compat/（结构说明）
 
-适配器本体 607 行，全文在 [index.ts](src/plugins/anthropic-compat/index.ts)，这里给结构地图：
+适配器本体 618 行，全文在 [index.ts](src/plugins/anthropic-compat/index.ts)，这里给结构地图：
 
 - **Config schema**（schemastery）：`provider / baseURL / apiKeyEnv / model / models / maxTokens / anthropicVersion / vendor`，全部有默认值；apply() 里环境变量优先于 yaml（`DSH_MODEL_PROVIDER / LLM_BASE_URL / LLM_MODEL / LLM_VENDOR`），切网关不改装配清单；
-- **5 个导出纯函数**（单测对象）：`parseSseData`（逐行解析 SSE data，跨 chunk 拼半行，`[DONE]` 归一，畸形 JSON 抛 `MALFORMED_RESPONSE`）、`splitSystem`（system 消息折进顶层 system）、`toAnthropicMessages`（tool 消息折叠回 tool_result block、失败结果带 is_error、thinking 签名按 vendor 档位回放）、`toAnthropicTool`（只留 name/description/input_schema）、`tokenUsage`（从总量扣缓存读写，不算负数）；
+- **5 个导出纯函数**（单测对象）：`parseSseData`（逐行解析 SSE data，跨 chunk 拼半行，`[DONE]` 归一，畸形 JSON 抛 `MALFORMED_RESPONSE`）、`splitSystem`（system 消息折进顶层 system）、`toAnthropicMessages`（tool 消息折叠回 tool_result block、失败结果带 is_error、thinking 签名按 vendor 档位回放）、`toAnthropicTool`（只留 name/description/input_schema）、`tokenUsage`（从总量扣缓存读写，不算负数；端点报过 cache 桶时缺失桶按协议补实测 0）；
 - **AnthropicCompatAdapter 类**：`stream()` 里的 SSE 事件状态机——message_start / content_block_* / message_delta / message_stop 翻译成 StreamChunk 序列，finish reason 只映射成功档位（end_turn/stop_sequence → stop，max_tokens → max-tokens，tool_use → tool-calls）；
 - **apply()**：`ctx.llm.registerAdapter([provider], adapter)`；凭据解析放在**每次请求**里做，缺失时抛 `MISSING_CREDENTIAL` 并指明设哪个变量。
 
-[index.test.ts](src/plugins/anthropic-compat/index.test.ts) 用 `node:test` 写 12 个单测覆盖上述 5 个纯函数，`npm test`（node --test）与 `npm run test:bun`（bun test）同一份文件两侧跑。
+[index.test.ts](src/plugins/anthropic-compat/index.test.ts) 用 `node:test` 写 13 个单测覆盖上述 5 个纯函数，`pnpm test`（node --test）与 `pnpm run test:bun`（bun test）同一份文件两侧跑。
 
 ### .env.example（完整版）
 
 ```bash
-# 真实调用路径（S4 / npm start）需要这些变量；机制路径（npm run mechanism）不需要。
+# 真实调用路径（S4 / pnpm start）需要这些变量；机制路径（pnpm run mechanism）不需要。
 # 复制本文件为 .env（已 gitignore），填入你自己的网关与 key。
 LLM_API_KEY=
 # Anthropic 兼容网关基地址（不含 /v1/messages）
@@ -565,7 +565,7 @@ if (MECHANISM_ONLY) {
   if (key === undefined || key === '') {
     throw new Error(
       '缺少 LLM_API_KEY：S4 要发起真实的 provider 请求。复制 .env.example 为 .env 并填入 key 后重跑；' +
-      '只跑机制路径请用 npm run mechanism（不需要 key）。',
+      '只跑机制路径请用 pnpm run mechanism（不需要 key）。',
     )
   }
   const provider = process.env.DSH_MODEL_PROVIDER ?? 'anthropic-compat'
@@ -595,14 +595,14 @@ console.log('\nLLM_ADAPTER_OK')
 ### 按顺序验证
 
 ```bash
-npm install             # 19 依赖精确 pin
+pnpm install             # 19 依赖精确 pin
 #
-npm run typecheck       # tsc 0 错误
-npm run mechanism       # Node：S1–S3 离线，末行 LLM_ADAPTER_OK
-npm run mechanism:bun   # Bun：除首行 runtime 标识外逐行一致
+pnpm run typecheck       # tsc 0 错误
+pnpm run mechanism       # Node：S1–S3 离线，末行 LLM_ADAPTER_OK
+pnpm run mechanism:bun   # Bun：除首行 runtime 标识外逐行一致
 #
-npm test                # node --test：12 pass / 0 fail
-npm run test:bun        # bun test：12 pass / 0 fail
+pnpm test                # node --test：13 pass / 0 fail
+pnpm run test:bun        # bun test：13 pass / 0 fail
 ```
 
 机制路径不依赖任何环境变量、端口或外部服务。真实调用路径才需要 `.env`（复制 `.env.example` 填 key）；S3 的线协议端点跟随 `LLM_BASE_URL`，留档输出因此随 `.env` 形态变化。

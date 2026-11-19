@@ -149,7 +149,7 @@ await broken.dispose()
   name: ./src/index.ts              # 场景驱动：不挂插件，只对上面的行做运行时开关
 ```
 
-`npm start` 就是 cordis CLI：读当前目录的 `cordis.yml`，loader 逐行 import 模块，把导出的 `apply`、`inject`、`name` 当作插件定义挂上去。
+`pnpm start` 就是 cordis CLI：读当前目录的 `cordis.yml`，loader 逐行 import 模块，把导出的 `apply`、`inject`、`name` 当作插件定义挂上去。
 
 `runner` 行挂的 `src/index.ts` 也是一个普通插件，负责驱动五个场景。它 inject 了 loader，按 id 拿到各行的句柄做启用与卸载，不再手工挂任何插件：
 
@@ -181,15 +181,15 @@ async function run(ctx: Context) {
 在本机复现只需要四条命令：
 
 ```bash
-npm install             # cordis、loader 依赖与 @cordisjs/timer
+pnpm install             # cordis、loader 依赖与 @cordisjs/timer
 #
-npm start               # cordis CLI 读 cordis.yml（Node）：打印 ①～⑤ 的完整时序
-npm run start:bun       # Bun 下直接跑 cordis 的 bin.js：输出逐行一致
+pnpm start               # cordis CLI 读 cordis.yml（Node）：打印 ①～⑤ 的完整时序
+pnpm run start:bun       # Bun 下直接跑 cordis 的 bin.js：输出逐行一致
 #
-npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
+pnpm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
 
-下面是 `npm start` 的实测输出（Node 26.12.1；Bun 1.4.4 逐行相同）：
+下面是 `pnpm start` 的实测输出（Node 26.12.1；Bun 1.4.4 逐行相同）：
 
 ```text
 ① 六态：PENDING → LOADING → ACTIVE → UNLOADING → DISPOSED
@@ -330,7 +330,7 @@ const dispose = this.ctx.effect(() => {
 
 ## 9 从零复现：完整文件与运行路径
 
-前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
+前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上，pnpm 安装依赖。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
 ### 目录结构
 
@@ -506,10 +506,10 @@ export function apply() {
 
 ### 按顺序验证
 
-1. `npm install` 成功，`node_modules` 中出现 `cordis`、`@cordisjs/loader` 与 `@cordisjs/timer`。
-2. `npm start` 打印 ①～⑤ 五段，末行「演示结束」，与第 7 节实测输出逐行一致。
-3. `npm run start:bun` 输出逐行相同。
-4. `npm run typecheck` 无输出、退出码 0。
+1. `pnpm install` 成功，`node_modules` 中出现 `cordis`、`@cordisjs/loader` 与 `@cordisjs/timer`。
+2. `pnpm start` 打印 ①～⑤ 五段，末行「演示结束」，与第 7 节实测输出逐行一致。
+3. `pnpm run start:bun` 输出逐行相同。
+4. `pnpm run typecheck` 无输出、退出码 0。
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 
@@ -526,6 +526,6 @@ export function apply() {
 3. **清理顺序只承诺启动逆序**：有先后要求的清理用 effect 迭代器或服务依赖表达，不靠并发碰运气。
 4. **卸载方向由框架保证**：dependent 先卸、provider 后回收，清理代码里可以放心使用仍活着的服务。
 
-装配在 cordis.yml，生命周期在 fiber，代码只剩场景本身。`npm start` 和 `npm run start:bun` 能直接看到上面的输出。
+装配在 cordis.yml，生命周期在 fiber，代码只剩场景本身。`pnpm start` 和 `pnpm run start:bun` 能直接看到上面的输出。
 
 上一篇：[01 · Cordis 的 seam 示例](../01-cordis-seam-demo/README.md) ｜ 下一篇：[03 · Cordis 的事件示例](../03-cordis-events-demo/README.md)

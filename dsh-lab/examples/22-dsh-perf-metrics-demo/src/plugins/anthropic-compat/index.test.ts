@@ -159,6 +159,15 @@ test('tokenUsage 无缓存时不带多余字段', () => {
   assert.equal(usage.cacheWriteTokens, undefined)
 })
 
+test('tokenUsage 端点报过 cache 桶时，缺失的桶按协议补实测 0', () => {
+  // MiniMax 官方只报 cache_read 不报 cache_creation：后者是实测 0，
+  // 补齐转发才能满足精确用量口径「两桶都在」的可证明条件。
+  const usage = tokenUsage(180, 2, 128, 0, true)
+  assert.equal(usage.inputTokens, 52)
+  assert.equal(usage.cacheReadTokens, 128)
+  assert.equal(usage.cacheWriteTokens, 0)
+})
+
 test('tokenUsage 不会算出负数', () => {
   // 异常但可能发生：缓存计数大于总量时，宁可给 0 也不给负 token。
   assert.equal(tokenUsage(10, 5, 30, 0).inputTokens, 0)

@@ -142,7 +142,7 @@ emit:lab/quiet waterfall:lab/wrap serial:lab/claim-async bail:lab/claim
   name: ./src/index.ts      # 场景驱动：五种派发模式的演示脚本
 ```
 
-`npm start` 就是 cordis CLI：读当前目录的 `cordis.yml`，loader 逐行 import 模块，把导出的 `apply`、`inject`、`name` 当作插件定义挂上去。
+`pnpm start` 就是 cordis CLI：读当前目录的 `cordis.yml`，loader 逐行 import 模块，把导出的 `apply`、`inject`、`name` 当作插件定义挂上去。
 
 `runner` 行挂的 `src/index.ts` 也是一个普通插件，负责驱动五个场景。它 inject 了 loader，场景 ④ 里拿到 listener 行的句柄做启用与卸载，不再手工挂任何插件：
 
@@ -171,15 +171,15 @@ async function run(ctx: Context) {
 在本机复现只需要四条命令：
 
 ```bash
-npm install             # cordis 与 loader 依赖
+pnpm install             # cordis 与 loader 依赖
 #
-npm start               # cordis CLI 读 cordis.yml（Node）：打印 ①～⑤ 的完整时序
-npm run start:bun       # Bun 下直接跑 cordis 的 bin.js：输出逐行一致
+pnpm start               # cordis CLI 读 cordis.yml（Node）：打印 ①～⑤ 的完整时序
+pnpm run start:bun       # Bun 下直接跑 cordis 的 bin.js：输出逐行一致
 #
-npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
+pnpm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
 
-下面是 `npm start` 的实测输出（Node 26.12.1；Bun 1.4.4 逐行相同）：
+下面是 `pnpm start` 的实测输出（Node 26.12.1；Bun 1.4.4 逐行相同）：
 
 ```text
 ① emit 与 parallel：同步广播 vs 并发上报
@@ -293,7 +293,7 @@ private register(label: string, name: string | symbol, callback: any, options: E
 
 ## 10 从零复现：完整文件与运行路径
 
-前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
+前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上，pnpm 安装依赖。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
 ### 目录结构
 
@@ -365,15 +365,15 @@ cordis-events-demo/
 
 ### 按顺序验证
 
-1. `npm install` 成功，`node_modules` 中出现 `cordis` 与 `@cordisjs/loader`。
+1. `pnpm install` 成功，`node_modules` 中出现 `cordis` 与 `@cordisjs/loader`。
 
-2. `npm start` 打印 ①～⑤ 五段，末行是「演示结束」，与第 8 节的输出逐行一致。
+2. `pnpm start` 打印 ①～⑤ 五段，末行是「演示结束」，与第 8 节的输出逐行一致。
 
-3. `npm run start:bun` 输出与上一条逐行相同——同一份清单，两个运行时。
+3. `pnpm run start:bun` 输出与上一条逐行相同——同一份清单，两个运行时。
 
-4. `npm run typecheck` 无任何输出、退出码 0，说明事件名与载荷的类型契约成立。
+4. `pnpm run typecheck` 无任何输出、退出码 0，说明事件名与载荷的类型契约成立。
 
-示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。Node 需 22.18 以上（原生类型擦除），低于此版本改用 `npm run start:bun`。
+示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。Node 需 22.18 以上（原生类型擦除），低于此版本改用 `pnpm run start:bun`。
 
 ## 11 延伸阅读
 

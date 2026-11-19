@@ -7,9 +7,9 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "start": "node src/index.ts",
+    "start": "node --import tsx/esm src/index.ts",
     "start:bun": "bun src/index.ts",
-    "test": "node --test src/plugins/safety-guardrail/index.test.ts",
+    "test": "node --import tsx/esm --test src/plugins/safety-guardrail/index.test.ts",
     "test:bun": "bun test src/plugins/safety-guardrail/index.test.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "@types/node": "22.10.2",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "tsx": "4.23.15"
   }
 }

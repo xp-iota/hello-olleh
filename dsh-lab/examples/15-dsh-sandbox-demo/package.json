@@ -7,7 +7,7 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "start": "node src/index.ts",
+    "start": "node --import tsx/esm src/index.ts",
     "start:bun": "node runtime/run-bun.mjs",
     "typecheck": "tsc -p tsconfig.json"
   },
@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@types/node": "22.10.2",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "tsx": "4.23.15"
   }
 }

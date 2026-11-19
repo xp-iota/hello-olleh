@@ -6,7 +6,11 @@
 // 的结果写成 presentation 属性，产出零 CSS 依赖的 SVG —— 可直接在 Markdown 里
 // 用 ![](x.svg) 展示。
 //
-// 用法: node tools/archify/extract-svg.mjs <artifact.html> [out.svg]
+// 用法: node tools/archify/extract-svg.mjs <artifact.html> [out.svg] [--detail full]
+// 可选 --detail full（或环境变量 ARCHIFY_SVG_DETAIL=full）：冻结前揭示 fine 层
+// （sequence 的 note、节点的 tag；read 态默认隐藏它们）；不设则保持交付页默认的 read 态。
+// 实现上除置 container 的 data-detail-level 外，还给 fine/context 元素写 inline opacity：
+// 交付页的 renderControls() 会在相机初始化时把 level 重置回 read，单改属性会被覆盖。
 
 import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
@@ -21,6 +25,13 @@ if (!CHROME) {
   console.error('找不到 Chrome/Chromium。请设置 ARCHIFY_CHROME 指向可执行文件。');
   process.exit(1);
 }
+
+// --detail <level> 优先于环境变量；两者都不设则冻结 read 态
+const cliArgs = process.argv.slice(2);
+const detailIdx = cliArgs.indexOf('--detail');
+const detailFlag = detailIdx >= 0 ? (cliArgs[detailIdx + 1] || '') : '';
+if (detailIdx >= 0) cliArgs.splice(detailIdx, 2);
+const DETAIL_LEVEL = detailFlag || process.env.ARCHIFY_SVG_DETAIL || '';
 
 // 需要固化到属性上的 SVG 表现属性
 const PROPS = [
@@ -40,6 +51,17 @@ window.addEventListener('load', () => {
     const TEXT_PROPS = ['font-family','font-size','font-weight','font-style','letter-spacing','text-anchor','dominant-baseline','text-decoration'];
     const svg = document.querySelector('.diagram-container svg') || document.querySelector('svg');
     if (!svg) { document.title = 'ARCHIFY_NO_SVG'; return; }
+
+    // 可选：冻结前揭示 fine 层（read 态隐藏 note/tag，静态图会丢注解）
+    const DETAIL = ${JSON.stringify(DETAIL_LEVEL)};
+    if (DETAIL) {
+      const container = document.querySelector('.diagram-container');
+      if (container) container.setAttribute('data-detail-level', DETAIL);
+      svg.querySelectorAll('[data-detail="fine"], [data-detail="context"]').forEach((el) => {
+        el.style.transition = 'none';
+        el.style.opacity = '1';
+      });
+    }
 
     // 只移除透明命中区；[data-detail] / [data-detail-anchor] 承载的是节点标签，必须保留
     svg.querySelectorAll('[data-legend-hit]').forEach((n) => n.remove());
@@ -128,7 +150,7 @@ function run(htmlPath) {
   });
 }
 
-const [htmlPath, outPath] = process.argv.slice(2);
+const [htmlPath, outPath] = cliArgs;
 if (!htmlPath) {
   console.error('用法: node tools/archify/extract-svg.mjs <artifact.html> [out.svg]');
   process.exit(2);

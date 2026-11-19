@@ -34,7 +34,7 @@ loader 的答案是三层对象：**配置行（EntryOptions）→ Entry（树�
 
 ## 3 配置树 → Entry → Fiber：group 与 disabled
 
-`cordis.yml` 里一个 `@cordisjs/group` 行包两行 watcher：`watcher` 正常、`sleeper` 带 `disabled: true`。装配入口不用自己写：`npm start` 就是 cordis CLI，它做的事与官方 bin.js 同构——设 baseUrl、挂 Fs / NodeFs / Loader，再 create 一行 include 读 `./cordis.yml`，`await ctx.loader.await()` 等全部 init task。runner 也是 yml 里的一行，inject loader 后遍历整棵树：
+`cordis.yml` 里一个 `@cordisjs/group` 行包两行 watcher：`watcher` 正常、`sleeper` 带 `disabled: true`。装配入口不用自己写：`pnpm start` 就是 cordis CLI，它做的事与官方 bin.js 同构——设 baseUrl、挂 Fs / NodeFs / Loader，再 create 一行 include 读 `./cordis.yml`，`await ctx.loader.await()` 等全部 init task。runner 也是 yml 里的一行，inject loader 后遍历整棵树：
 
 ```ts
 for (const entry of ctx.loader.entries()) {
@@ -87,7 +87,7 @@ greeter-a 是 runner 在 root 内存树上 create 的一行（tag=A）。对它 
   name: ./src/index.ts   # 场景驱动：运行时 patch 走 root 内存树，不写回本文件
 ```
 
-`npm start` 就是 cordis CLI：读当前目录的 `cordis.yml`，loader 逐行 import 模块，把导出的 `apply` 当作插件定义挂上去。Fs / NodeFs / Loader / include 这些基础设施由 CLI 提供，不需要自己挂。
+`pnpm start` 就是 cordis CLI：读当前目录的 `cordis.yml`，loader 逐行 import 模块，把导出的 `apply` 当作插件定义挂上去。Fs / NodeFs / Loader / include 这些基础设施由 CLI 提供，不需要自己挂。
 
 `runner` 行挂的 `src/index.ts` 也是一个普通插件。它 inject 了 loader，演示的正是 loader 的运行时 API——create 与 update 都落在 root 内存树上：
 
@@ -118,15 +118,15 @@ async function run(ctx: Context) {
 在本机复现只需要四条命令：
 
 ```bash
-npm install             # cordis、loader、group 与 include 依赖
+pnpm install             # cordis、loader、group 与 include 依赖
 #
-npm start               # cordis CLI 读 cordis.yml（Node）：打印 ①～⑤ 的完整时序
-npm run start:bun       # Bun 下直接跑 cordis 的 bin.js：输出逐行一致
+pnpm start               # cordis CLI 读 cordis.yml（Node）：打印 ①～⑤ 的完整时序
+pnpm run start:bun       # Bun 下直接跑 cordis 的 bin.js：输出逐行一致
 #
-npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
+pnpm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
 
-下面是 `npm start` 的实测输出（Node 26.12.1；Bun 1.4.4 逐行相同）。开头两行插件日志来自装配阶段：include 子树先挂起 watcher，greeter-a 上线后它才 apply：
+下面是 `pnpm start` 的实测输出（Node 26.12.1；Bun 1.4.4 逐行相同）。开头两行插件日志来自装配阶段：include 子树先挂起 watcher，greeter-a 上线后它才 apply：
 
 ```text
    [greeter A] apply #1
@@ -268,7 +268,7 @@ commit(_change) {
 
 ## 10 从零复现：完整文件与运行路径
 
-前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
+前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上，pnpm 安装依赖。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
 ### 目录结构
 
@@ -405,10 +405,10 @@ export function apply(ctx: Context) {
 
 ### 按顺序验证
 
-1. `npm install` 成功，`node_modules` 中出现 `cordis`、`@cordisjs/loader` 与 `@cordisjs/group`。
-2. `npm start` 打印 ①～⑤ 五段，末行「演示结束」，与第 8 节实测输出逐行一致。
-3. `npm run start:bun` 输出逐行相同。
-4. `npm run typecheck` 无输出、退出码 0；`cordis.yml` 内容无变化。
+1. `pnpm install` 成功，`node_modules` 中出现 `cordis`、`@cordisjs/loader` 与 `@cordisjs/group`。
+2. `pnpm start` 打印 ①～⑤ 五段，末行「演示结束」，与第 8 节实测输出逐行一致。
+3. `pnpm run start:bun` 输出逐行相同。
+4. `pnpm run typecheck` 无输出、退出码 0；`cordis.yml` 内容无变化。
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 

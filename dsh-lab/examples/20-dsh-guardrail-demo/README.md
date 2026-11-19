@@ -89,7 +89,7 @@ cancel 与 deny 的区别在模型视角：deny 给模型一条拒绝理由（�
 
 ## 4 运行 guardrail 示例
 
-前置：`npm install` 一次即可，不需要 `.env`、key 或网络。
+前置：`pnpm install` 一次即可，不需要 `.env`、key 或网络。
 
 根配置全文：
 
@@ -175,19 +175,19 @@ const ctx = await boot(
 
 ```bash
 # 安装与类型检查
-npm install
-npm run typecheck
+pnpm install
+pnpm run typecheck
 
 # 五场景：末行 GUARDRAIL_DEMO_OK
-npm start
-npm run start:bun
+pnpm start
+pnpm run start:bun
 
 # 纯函数单测：脱敏 / 预览 / 策略优先级
-npm test
-npm run test:bun
+pnpm test
+pnpm run test:bun
 ```
 
-实测输出（`npm start`，Node v26.12.1；护栏日志与场景输出同流，顺序即真实顺序）：
+实测输出（`pnpm start`，Node v26.12.1；护栏日志与场景输出同流，顺序即真实顺序）：
 
 ```text
 runtime = node v26.12.1
@@ -229,7 +229,7 @@ guard 摘除：isError=false
 GUARDRAIL_DEMO_OK
 ```
 
-Bun（`npm run start:bun`）除首行 `runtime = bun 1.4.4` 外**逐行一致**（归一化比对验证）。`npm run typecheck` 0 错误；`npm test` / `npm run test:bun` 均 **4 pass / 0 fail**。护栏行由 index.ts 的 stdout 包装器收集：包装器必须调用原始 write 透传场景输出，否则场景输出全部消失；`bind(process.stdout)` 保住 this。
+Bun（`pnpm run start:bun`）除首行 `runtime = bun 1.4.4` 外**逐行一致**（归一化比对验证）。`pnpm run typecheck` 0 错误；`pnpm test` / `pnpm run test:bun` 均 **4 pass / 0 fail**。护栏行由 index.ts 的 stdout 包装器收集：包装器必须调用原始 write 透传场景输出，否则场景输出全部消失；`bind(process.stdout)` 保住 this。
 
 6 个值得注意的事实：
 
@@ -244,7 +244,7 @@ Bun（`npm run start:bun`）除首行 `runtime = bun 1.4.4` 外**逐行一致**�
 
 ## 5 从零复现：完整文件与运行路径
 
-前置条件：Node >= 22.18（原生 TS 类型剥离，实测 v26.12.1）或 Bun >= 1.4.4；`npm install` 一次。本示例不依赖任何环境变量、端口或外部服务。
+前置条件：Node >= 22.18（入口经 tsx 加载 .ts，实测 v26.12.1）或 Bun >= 1.4.4；`pnpm install` 一次。本示例不依赖任何环境变量、端口或外部服务。
 
 ### 目录结构
 
@@ -800,16 +800,16 @@ export function apply(ctx: Context, config: Config): void {
 
 ```bash
 # 1 安装与类型
-npm install
-npm run typecheck
+pnpm install
+pnpm run typecheck
 
 # 2 五场景：双侧末行 GUARDRAIL_DEMO_OK，输出除 runtime 行外逐行一致
-npm start
-npm run start:bun
+pnpm start
+pnpm run start:bun
 
 # 3 单测：双侧 4 pass / 0 fail
-npm test
-npm run test:bun
+pnpm test
+pnpm run test:bun
 ```
 
 本示例不依赖任何环境变量、端口或外部服务。

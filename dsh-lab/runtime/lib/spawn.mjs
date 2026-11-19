@@ -8,9 +8,10 @@
  *     （dsh-subprocess-local 的 runner、PTC 运行时都是），孙进程只继承环境变量；
  *   * `BUN_OPTIONS` 会一路继承下去，所以 preload 在每个层级都生效。
  *
- * 顺带清掉继承来的 `NODE_OPTIONS` / `BUN_OPTIONS`：机器上装了 tsx、或用户全局
- * 设了别的 preload 时，会让"本工程的运行环境"取决于外部状态 —— 那正是双运行时
- * 要避免的事。
+ * 顺带清掉继承来的 `NODE_OPTIONS` / `BUN_OPTIONS`：用户全局注入了 loader / preload
+ * （例如把 tsx 写进 NODE_OPTIONS）时，会让"本工程的运行环境"取决于外部状态 —— 那正是
+ * 双运行时实验要避免的事。本工程要用的 tsx 由各示例的 start 脚本显式
+ * `--import tsx/esm` 挂载，不依赖 NODE_OPTIONS。
  *
  * @module dsh-lab/runtime/lib/spawn
  */

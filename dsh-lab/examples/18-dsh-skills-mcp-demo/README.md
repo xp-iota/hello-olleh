@@ -4,15 +4,15 @@
 进程、web provider 注册。20 个服务全部在 cordis.patch.yml 里声明，boot 后全程
 在位，代码里没有一处 ctx.plugin()。版本面：`@deepseek-ai/*` 0.2.2-rc.5 +
 `@deepseek-ai/cordis` 4.1.0；Node v26.12.1 与 Bun 1.4.4 双运行时实测，输出除
-runtime 行、npm notice 行与随机端口外逐行一致——本示例不挂 ptc/subprocess 缝，
+runtime 行、包管理器提示行与随机端口外逐行一致——本示例不挂 ptc/subprocess 缝，
 **没有任何 runtime 补丁层**，Bun 直接跑 `src/index.ts`。
 
 > 配套文章：[04 扩展与生态](../../../docs/hello-dsh/04-extensions-and-ecosystem.md)
 > （§4.2 skill 组、§4.12 mcp-client）与
 > [07 请求管线](../../../docs/hello-dsh/07-request-pipeline-llm-tools-and-prompts.md)
 > （§7.14 ToolsService 注册表）。
-> 本工程完全独立：整目录拷走，`npm install` 后 `npm start`（Node）或
-> `npm run start:bun`（Bun）即可运行，全程离线——不跑模型 turn、不需要任何
+> 本工程完全独立：整目录拷走，`pnpm install` 后 `pnpm start`（Node）或
+> `pnpm run start:bun`（Bun）即可运行，全程离线——不跑模型 turn、不需要任何
 > API key，四个场景全部用真实服务 API / 真实工具管线驱动，web_fetch 抓的是
 > 本机现起的 HTTP 服务。
 
@@ -258,19 +258,19 @@ const ctx = await boot(
 
 ```bash
 # 安装依赖（27 个运行时依赖 + 2 个 devDependencies，无 install script 依赖）
-npm install
+pnpm install
 
 # Node 侧
-npm start
+pnpm start
 
 # Bun 侧（直接 bun src/index.ts，无 preload、无补丁层）
-npm run start:bun
+pnpm run start:bun
 
 # 类型检查
-npm run typecheck
+pnpm run typecheck
 ```
 
-`npm start` 实测输出（Node v26.12.1，Windows，工作目录即本工程目录）：
+`pnpm start` 实测输出（Node v26.12.1，Windows，工作目录即本工程目录）：
 
 ```text
 runtime = node v26.12.1
@@ -300,9 +300,9 @@ web_search 缺 key：isError=true，Error: unknown tool "web_search"
 SKILLS_MCP_OK
 ```
 
-`npm run start:bun`（Bun 1.4.4）输出与上面**逐行一致**（归一化比对实测，
-正文 24 行全同；仅 runtime 行、npm notice 行与随机端口号不同，端口归一化为
-`127.0.0.1:PORT`），同样以 `SKILLS_MCP_OK` 收尾。`npm run typecheck` 0 错误。
+`pnpm run start:bun`（Bun 1.4.4）输出与上面**逐行一致**（归一化比对实测，
+正文 24 行全同；仅 runtime 行、包管理器提示行与随机端口号不同，端口归一化为
+`127.0.0.1:PORT`），同样以 `SKILLS_MCP_OK` 收尾。`pnpm run typecheck` 0 错误。
 尾部 `…` 是 `preview()` 的截断，不是输出缺失。
 
 7 个值得注意的数字与事实：
@@ -322,7 +322,7 @@ SKILLS_MCP_OK
   spawn——jobs 示例的五条 Bun 缝在这里一条都不触发。
 
 留档：[runtime-out-node.txt](runtime-out-node.txt) ·
-[runtime-out-bun.txt](runtime-out-bun.txt)（含 npm notice 行的完整输出）。
+[runtime-out-bun.txt](runtime-out-bun.txt)（含 包管理器提示行的完整输出）。
 
 ## 5 从零复现：完整文件与运行路径
 
@@ -789,19 +789,19 @@ disable-model-invocation: true
 
 ```bash
 # 1 安装依赖（无 install script 依赖，不挂 koffi）
-npm install
+pnpm install
 
 # 2 类型检查（0 错误）
-npm run typecheck
+pnpm run typecheck
 
 # 3 Node 侧：末行 SKILLS_MCP_OK
-npm start
+pnpm start
 
 # 4 Bun 侧：除 runtime 行与随机端口外与 Node 逐行一致，末行 SKILLS_MCP_OK
-npm run start:bun
+pnpm run start:bun
 
 # 5 再跑一遍 Node：boot 前清理 runtime-note，初始发现仍是 2 个
-npm start
+pnpm start
 ```
 
 本示例不依赖任何环境变量、端口或外部服务：`DSH_HOME`/`DSH_AGENTS_HOME` 由代码

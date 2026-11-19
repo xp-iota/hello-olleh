@@ -63,7 +63,7 @@ test('foldStepTimings 的边界口径：step/start → 首 token → assistant/m
   assert.deepEqual(steps[0]!.itl, { samples: 2, meanMs: 10, p50Ms: 10, p99Ms: 10, maxMs: 10 })
 })
 
-test('foldTurnTimings 只计闭合 turn，E2E 是事件墙钟', () => {
+test('foldTurnTimings 只计闭合 turn，E2E 是事件实际耗时', () => {
   const events = [
     event(0, 1000, 'turn/start', { turn: 1 }),
     event(1, 1010, 'step/start', { turn: 1, step: 1 }),
@@ -75,7 +75,7 @@ test('foldTurnTimings 只计闭合 turn，E2E 是事件墙钟', () => {
   assert.deepEqual(turns, [{ turn: 1, e2eMs: 2000, steps: 1 }])
 })
 
-test('tpotMs 是解码墙钟除以输出 token，零 token 返回 null', () => {
+test('tpotMs 是解码实际耗时除以输出 token，零 token 返回 null', () => {
   assert.equal(tpotMs(800, 40), 20)
   assert.equal(tpotMs(800, 0), null)
 })

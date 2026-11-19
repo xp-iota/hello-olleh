@@ -1,15 +1,15 @@
 /**
  * verify.mjs —— 仓库级双运行时校验：遍历 examples/，每个示例跑三项检查。
  *
- *   typecheck   npm run typecheck        （Node 侧 tsc）
- *   start       npm start                （Node）
- *   start:bun   npm run start:bun        （Bun；dsh 系经各示例自带的 preload）
+ *   typecheck   pnpm run typecheck      （Node 侧 tsc）
+ *   start       pnpm start              （Node，经 tsx 加载 .ts）
+ *   start:bun   pnpm run start:bun      （Bun；dsh 系经各示例自带的 preload）
  *
- * 示例完全独立：这里只调用各示例自己的 npm scripts，不替它们装配任何东西。
+ * 示例完全独立：这里只调用各示例自己的 pnpm scripts，不替它们装配任何东西。
  * 交互式入口（dsh-chat-demo 的 REPL）以 stdin=ignore 启动，读到 EOF 自行退出。
  * 子进程环境经 runtimeEnv('node') 清洗：剥掉继承来的 NODE_OPTIONS / BUN_OPTIONS，
- * 与 runtime/run.mjs 的口径一致——否则机器上装了 tsx 之类的工具会让 verify 结果
- * 取决于外部状态。
+ * 与 runtime/run.mjs 的口径一致——否则机器上全局注入的 loader / 预载会让
+ * verify 结果取决于外部状态（tsx 只由示例自己的 start 脚本显式挂载）。
  *
  * 需要 key 的示例（dsh-llm-adapter-demo / dsh-chat-demo / dsh-perf-metrics-demo）
  * 在缺 LLM_API_KEY 时
@@ -29,7 +29,7 @@ import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { EXAMPLES_ROOT, listExamples } from './lib/examples.mjs'
-import { RUNTIME_NAMES } from './lib/runtimes.mjs'
+import { PROJECT_ROOT, RUNTIME_NAMES } from './lib/runtimes.mjs'
 import { runtimeEnv } from './lib/spawn.mjs'
 
 /** 真实调用路径依赖 LLM_API_KEY 的示例（目录名带分组编号）。 */
@@ -47,6 +47,16 @@ const KEY_DEPENDENT = new Set(['10-dsh-llm-adapter-demo', '21-dsh-chat-demo', '2
  * 这些示例升级/改文案时这里要同步；对不上就说明报错来自别处，verify 照常记失败。
  */
 const FAIL_LOUD_SIGNATURE = /缺少\s*LLM_API_KEY|MISSING_CREDENTIAL/
+
+/**
+ * 运行时废弃警告的特征。
+ *
+ * 上游对「已废弃」的运行时提示统一长这样（形如「注册表级 stateOf 读法 is deprecated;
+ * 建议改用注册句柄的 handle.stateOf(session)」）。静态扫描只能看源码；有些废弃路径是
+ * **间接**触发的（插件内部调用、装配时装配的组件调用），只有跑起来才会现形——所以
+ * 实跑输出里出现这段话就算失败。示例自身不打印 "deprecated" 字样（已核对），不会误伤。
+ */
+const DEPRECATION_SIGNATURE = /is deprecated|has been deprecated|deprecated;/i
 
 /** 单项检查的超时（毫秒）：真实模型调用可能较慢。 */
 const CHECK_TIMEOUT_MS = 240_000
@@ -75,7 +85,7 @@ function hasKey(exampleDir) {
  * 杀掉子进程的**整棵**进程树。
  *
  * shell:true 起的是外壳（Windows 上 cmd.exe、POSIX 上 /bin/sh），child.kill
- * 只杀外壳，npm→node/bun 的孙进程会活下来——挂着 stdin 的 REPL 就这么变成孤儿。
+ * 只杀外壳，pnpm→node/bun 的孙进程会活下来——挂着 stdin 的 REPL 就这么变成孤儿。
  * Windows 用 `taskkill /T /F` 递归强杀；POSIX 上 runScript 以 detached 启动，
  * 外壳自成进程组（pgid = child.pid），对负 pid 发信号即整组清理，先 SIGTERM、
  * 宽限期后升 SIGKILL。
@@ -109,7 +119,7 @@ function killTree(child) {
 }
 
 /**
- * 在示例目录里跑一条 npm script，收集输出。
+ * 在示例目录里跑一条 pnpm script，收集输出。
  * stdin=ignore：交互式 REPL 读到 EOF 会自行退出，不会挂住校验。
  *
  * @param {string} exampleDir
@@ -118,7 +128,7 @@ function killTree(child) {
  */
 function runScript(exampleDir, script) {
   return new Promise((resolvePromise) => {
-    const child = spawn(`npm run ${script}`, {
+    const child = spawn(`pnpm run ${script}`, {
       cwd: exampleDir,
       env: runtimeEnv('node'),
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -153,6 +163,44 @@ function runScript(exampleDir, script) {
   })
 }
 
+/**
+ * 跑一个零依赖 .mjs 脚本，收集输出。
+ *
+ * 与 runScript 的区别：runScript 跑的是**示例自己的** pnpm script（cwd 在示例目录），
+ * 这里跑的是根层 runtime/ 下的工具脚本（cwd 在 dsh-lab/）。
+ *
+ * @param {string} scriptPath 绝对路径
+ * @returns {Promise<{code: number, output: string}>}
+ */
+function runNodeScript(scriptPath) {
+  return new Promise((resolvePromise) => {
+    const child = spawn(process.execPath, [scriptPath], {
+      cwd: PROJECT_ROOT,
+      env: runtimeEnv('node'),
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    let output = ''
+    child.stdout.on('data', (chunk) => {
+      output += chunk.toString('utf8')
+    })
+    child.stderr.on('data', (chunk) => {
+      output += chunk.toString('utf8')
+    })
+    child.once('error', (error) => {
+      resolvePromise({ code: 1, output: `${output}\n${error.message}` })
+    })
+    child.once('exit', (code) => {
+      resolvePromise({ code: code ?? 1, output })
+    })
+  })
+}
+
+/** 从输出里取一行废弃警告摘要。 */
+function deprecationHint(output) {
+  const line = output.split(/\r?\n/).find((text) => DEPRECATION_SIGNATURE.test(text))
+  return line === undefined ? '' : line.trim().slice(0, 140)
+}
+
 /** 从输出尾部取一行有意义的失败摘要。 */
 function failureHint(output) {
   const lines = output.split(/\r?\n/).filter((lineText) => lineText.trim() !== '' && !lineText.startsWith('npm notice'))
@@ -166,6 +214,22 @@ async function main() {
   const results = []
   const keyFailures = []
 
+  // 仓库级静态闸先跑：示例不得调用上游已废弃的 API。
+  // 事实来源是各示例已安装包的 .d.ts 里的 @deprecated 标记（见 runtime/check-deprecated.mjs）。
+  // 放在示例循环之前：这类问题会让后面的实跑结果失去意义，先拦下来更省事。
+  const deprecated = await runNodeScript(join(PROJECT_ROOT, 'runtime', 'check-deprecated.mjs'))
+  if (deprecated.code !== 0) {
+    process.stdout.write(deprecated.output)
+  }
+  const deprecatedHits = deprecated.output.split(/\r?\n/).filter((lineText) => lineText.startsWith('✗')).length
+  results.push({
+    label: 'repo check:deprecated',
+    ok: deprecated.code === 0,
+    detail: deprecated.code === 0
+      ? '示例未调用上游废弃的 API'
+      : `命中 ${deprecatedHits} 处废弃 API（明细见上方输出）`,
+  })
+
   for (const name of examples) {
     const exampleDir = join(EXAMPLES_ROOT, name)
     const installed = existsSync(join(exampleDir, 'node_modules'))
@@ -175,11 +239,16 @@ async function main() {
     for (const check of ['typecheck', 'start', 'start:bun']) {
       const label = `${name} ${check}`
       if (!installed) {
-        results.push({ label, ok: false, detail: '未安装（先跑 npm run install:all）' })
+        results.push({ label, ok: false, detail: '未安装（先跑 pnpm run install:all）' })
         continue
       }
       process.stdout.write(`… ${label}\n`)
       const run = await runScript(exampleDir, check)
+      // 跑通了也不算数：输出里有上游的废弃警告，说明这条路径用了废弃 API。
+      if (run.code === 0 && DEPRECATION_SIGNATURE.test(run.output)) {
+        results.push({ label, ok: false, detail: `运行时出现废弃 API 警告：${deprecationHint(run.output)}` })
+        continue
+      }
       if (run.code === 0) {
         results.push({ label, ok: true, detail: 'exit 0' })
         continue

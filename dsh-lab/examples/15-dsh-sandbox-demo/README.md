@@ -7,8 +7,8 @@ cordis.patch.yml 里声明，boot 后全程在位，代码里没有一处 ctx.pl
 Node v26.12.1 与 Bun 1.4.4 双运行时实测，输出除 runtime 行外逐行一致。
 
 > 配套文章：[08 执行服务](../../../docs/hello-dsh/08-execution-services.md)。
-> 本工程完全独立：整目录拷走，`npm install` 后 `npm start`（Node）或
-> `npm run start:bun`（Bun）即可运行，不需要 API key——全部场景用 `callTool`
+> 本工程完全独立：整目录拷走，`pnpm install` 后 `pnpm start`（Node）或
+> `pnpm run start:bun`（Bun）即可运行，不需要 API key——全部场景用 `callTool`
 > 直接驱动真实工具管线，不跑模型 turn。
 
 ## 1 能力与权限是两层
@@ -270,21 +270,21 @@ const ctx = await boot(
 
 ```bash
 # 安装依赖（31 个运行时依赖 + 2 个 devDependencies）
-npm install
+pnpm install
 
 # Windows：先给工程目录补 FullControl（只需一次，见 §3 S2）
 
 # Node 侧
-npm start
+pnpm start
 
 # Bun 侧（run-bun.mjs 用 Node 拉起 Bun 并注入 preload，见 runtime/bun-preload.mjs）
-npm run start:bun
+pnpm run start:bun
 
 # 类型检查
-npm run typecheck
+pnpm run typecheck
 ```
 
-`npm start` 实测输出（Node v26.12.1，Windows，工作目录即本工程目录）：
+`pnpm start` 实测输出（Node v26.12.1，Windows，工作目录即本工程目录）：
 
 ```text
 runtime = node v26.12.1
@@ -313,9 +313,9 @@ read-only 下写：isError=true，Error: [sandbox: file access denied under read
 SANDBOX_OK
 ```
 
-`npm run start:bun`（Bun 1.4.4）除首行 `runtime = bun 1.4.4` 外**逐行一致**
+`pnpm run start:bun`（Bun 1.4.4）除首行 `runtime = bun 1.4.4` 外**逐行一致**
 （归一化比对实测，正文 23 行全同），同样以 `SANDBOX_OK` 收尾。
-`npm run typecheck` 0 错误。路径尾部的 `…` 是 `preview()` 的 80 字符截断，
+`pnpm run typecheck` 0 错误。路径尾部的 `…` 是 `preview()` 的 80 字符截断，
 不是输出缺失；`<path>` 是工具返回里的路径标记。
 
 6 个值得注意的数字与事实：
@@ -329,18 +329,18 @@ SANDBOX_OK
   被拒；read 一次之后同样的 edit 放行。
 - **平台二选一**：bash/pwsh 的执行器与工具四行用 `disabled: !!js` 按平台
   开关，同一份 patch 在 Windows 与 POSIX 都能装配。
-- **双运行时逐行一致**：除 runtime 行与 npm notice 外正文 23 行全同；
+- **双运行时逐行一致**：除 runtime 行与包管理器提示外正文 23 行全同；
   typecheck 0 错误。
 
 留档：[runtime/out-node.txt](runtime/out-node.txt) ·
-[runtime/out-bun.txt](runtime/out-bun.txt)（含 npm notice 行的完整输出）。
+[runtime/out-bun.txt](runtime/out-bun.txt)（含 包管理器提示行的完整输出）。
 
 ## 5 从零复现：完整文件与运行路径
 
 前置条件：Node ≥ 22.18（实测 v26.12.1，原生 TypeScript 类型剥离）；跑 Bun 侧
 需要 Bun ≥ 1.4.4（实测 1.4.4；1.3.x 缺 `node:util.getSystemErrorMessage`，
 subprocess-local 直接导入失败，四个插件连锁不激活）。Windows 上先给工程
-目录补一次 FullControl（见 §3 S2）。不需要 API key，不访问网络（npm install
+目录补一次 FullControl（见 §3 S2）。不需要 API key，不访问网络（pnpm install
 除外）。
 
 目录结构（node_modules、.dsh-home、.cordis 除外：前两者已 gitignore，
@@ -650,7 +650,7 @@ export function preview(text: string, limit = 120): string {
 
 ```js
 /**
- * run-bun.mjs —— `npm run start:bun` 的入口：用 Node 拉起 Bun，并注入 preload。
+ * run-bun.mjs —— `pnpm run start:bun` 的入口：用 Node 拉起 Bun，并注入 preload。
  *
  * 为什么需要这一层：subprocess-local 的 runner 是**孙进程**，命令行 --preload
  * 到不了那一层，只有 BUN_OPTIONS 环境变量会一路继承。所以在这里把
@@ -762,21 +762,21 @@ restoreRunnerDelimiter()
 
 ```bash
 # 1 安装依赖
-npm install
+pnpm install
 
 # 2 Windows：给工程目录补 FullControl（只需一次，见 §3 S2）
 
 # 3 类型检查（0 错误）
-npm run typecheck
+pnpm run typecheck
 
 # 4 Node 侧：末行 SANDBOX_OK
-npm start
+pnpm start
 
 # 5 Bun 侧：除 runtime 行外与 Node 逐行一致，末行 SANDBOX_OK
-npm run start:bun
+pnpm run start:bun
 
 # 6 再跑一遍 Node：时间戳文件名保证观察策略断言仍全过
-npm start
+pnpm start
 ```
 
 本示例不依赖任何环境变量、端口或外部服务：`DSH_HOME` 由代码自己指向工程内的

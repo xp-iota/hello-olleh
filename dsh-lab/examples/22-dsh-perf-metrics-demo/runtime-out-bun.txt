@@ -1,42 +1,62 @@
 npm notice run start:bun
 npm notice run bun src/index.ts
 runtime = bun 1.4.4
-provider = anthropic-compat，model = fuyao-coding
+provider = anthropic-compat，model = MiniMax-M3，测量轮数 = 3（PERF_ROUNDS 可调）
 
+── 轮 1/3（会话 perf-metrics-r1-mwnhinog）──
 turn 1：短回答
 turn 2：约 300 字短文（ITL 样本）
+轮 1 小结：短TTFT=9.0s  长TTFT=658ms  长ITL P50=25ms P99=411ms（87 样本）  TPOT=24.9ms/token  E2E 短=9.8s 长=4.4s（对账通过）
 
-会话 perf-metrics-mwn5jbgq：19 条事件
+── 轮 2/3（会话 perf-metrics-r2-mwnhiynl）──
+turn 1：短回答
+turn 2：约 300 字短文（ITL 样本）
+轮 2 小结：短TTFT=872ms  长TTFT=473ms  长ITL P50=26ms P99=560ms（103 样本）  TPOT=54.4ms/token  E2E 短=1.3s 长=11.8s（对账通过）
 
-=== S1 sessionStats 投影（官方口径）===
-turns=2  steps=2  llmMs=14.2s  toolMs=0ms
-ttftMs=10.8s（2 个 step 有首 token，均值 5.4s）
-decodeMs=3.4s  decodeTokens=624
-TPOT = decodeMs / decodeTokens = 5.4ms/token（吞吐 186.3 token/s）
+── 轮 3/3（会话 perf-metrics-r3-mwnhj8t9）──
+turn 1：短回答
+turn 2：约 300 字短文（ITL 样本）
+轮 3 小结：短TTFT=545ms  长TTFT=515ms  长ITL P50=21ms P99=125ms（86 样本）  TPOT=16.7ms/token  E2E 短=1.1s 长=3.1s（对账通过）
+
+=== S1 sessionStats 投影（官方口径，最后一轮 perf-metrics-r3-mwnhj8t9）===
+turns=2  steps=2  llmMs=4.1s  toolMs=0ms
+ttftMs=1.1s（2 个 step 有首 token，均值 530ms）
+decodeMs=3.1s  decodeTokens=184
+TPOT = decodeMs / decodeTokens = 16.7ms/token（吞吐 59.7 token/s）
 
 === S2 step 明细与 ITL 分布 ===
   turn/step  TTFT      解码      输出token  ITL均值  P50     P99     最大    样本
-  1/1        1.3s      301ms     85         11ms     11ms    26ms    26ms    17
-  2/1        9.5s      3.0s      539        15ms     14ms    68ms    68ms    42
-交叉校验通过：ΣTTFT=10.8s、Σ解码=3.4s、Σ输出token=624 与投影一致
+  1/1        545ms     527ms     29         22ms     22ms    70ms    70ms    16
+  2/1        515ms     2.6s      155        28ms     21ms    125ms   125ms   86
+交叉校验通过：ΣTTFT=1.1s、Σ解码=3.1s、Σ输出token=184 与投影一致（每轮都断言）
 
 === S3 turn 级 E2E ===
-  turn 1：E2E=1.6s（1 步）
-  turn 2：E2E=12.6s（1 步）
-  ΣE2E=14.2s ≥ llmMs+toolMs=14.2s（差额是循环与落日志开销）
+  turn 1：E2E=1.1s（1 步）
+  turn 2：E2E=3.1s（1 步）
+  ΣE2E=4.1s ≥ llmMs+toolMs=4.1s（差额是循环与落日志开销）
 
 === S4 token 统计（token-meter）===
-会话累计：uncachedInput=0  output=624  cacheRead=0  cacheWrite=0
-上下文压力：pressureTokens=0（最近一次请求的 prompt 实测）  projectedTokens=238（下次请求的锚定估计）  contextWindow=(适配器未声明)
-  注意：本网关只在 message_delta 里报 output_tokens，不报 input_tokens；
-  prompt 侧四桶里的 input/cache 因此为 0——这是上报事实，不是折叠错误。
-组成分解（启发式，只看构成不看总量）：system=16  tools=0  messages=349
-measure()：baseline=usage  totalTokens=539  surfaceTokens=365（5 个表面节点）
+会话累计：uncachedInput=0  output=184  cacheRead=399  cacheWrite=0
+上下文压力：pressureTokens=205（最近一次请求的 prompt 实测）  projectedTokens=292（下次请求的锚定估计）  contextWindow=(适配器未声明)
+组成分解（启发式，只看构成不看总量）：system=16  tools=0  messages=146
+measure()：baseline=usage  totalTokens=360  surfaceTokens=162（5 个表面节点）
 
 === S5 deriveTurnTokenUsage（逐 attempt 精确口径）===
-  turn 1：undefined——usage 缺 totalTokens 且 cache 桶不全，精确口径无法证明（fail-loud 返回空，不猜）
-  turn 2：undefined——usage 缺 totalTokens 且 cache 桶不全，精确口径无法证明（fail-loud 返回空，不猜）
-  说明：anthropic-compat 副本不上报 totalTokens，cache 桶仅在 >0 时携带；
-  网关若两者都没给，deriveTurnTokenUsage 按契约返回空。可证明路径的完整断言见 src/metrics.test.ts。
+  turn 1：input=0  output=29  total=223  reasoning=(未上报)  routes=anthropic-compat/MiniMax-M3
+  turn 2：input=0  output=155  total=360  reasoning=(未上报)  routes=anthropic-compat/MiniMax-M3
+  说明：精确口径要求权威 totalTokens，或 input 与 cache 双桶齐全；适配器如实转发上报，
+  端点报过 cache 桶时缺失桶按协议补实测 0。不报 input/cache 的端点（如 fuyao 网关）按契约返回空；可证明路径断言见 src/metrics.test.ts。
+
+=== 跨轮汇总（3 轮独立会话，中位数 [最小–最大]）===
+  短TTFT          872ms  [545ms – 9.0s]（3/3 轮有样本）
+  长TTFT          515ms  [473ms – 658ms]（3/3 轮有样本）
+  长ITL P50       25ms  [21ms – 26ms]（3/3 轮有样本）
+  长ITL P99       411ms  [125ms – 560ms]（3/3 轮有样本）
+  TPOT           24.9ms/token  [16.7ms/token – 54.4ms/token]（3/3 轮有样本）
+  短E2E           1.3s  [1.1s – 9.8s]（3/3 轮有样本）
+  长E2E           4.4s  [3.1s – 11.8s]（3/3 轮有样本）
+  长ITL 样本数逐轮：87 / 103 / 86（输出长短与 chunk 合并粒度都随机）
+  读法：TTFT / E2E 的大头在 provider 侧（排队 / prefill / 思考时长），极差大是常态；
+  跨运行时比较看中位数是否同量级——ITL P50 与 TPOT 才是运行时敏感的稳态口径。
 
 PERF_METRICS_OK

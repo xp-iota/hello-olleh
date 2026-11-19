@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Session / Turn / Step 同心结构与指标粒度",
+    "output": "session-turn-step-rings.html",
+    "viewBox": [1600, 700],
+    "quality_profile": "showcase"
+  },
+  "components": [
+    {
+      "id": "s-usage",
+      "type": "frontend",
+      "label": "tokenUsage · 会话累计",
+      "sublabel": "四桶：input / output / cacheRead / cacheWrite",
+      "pos": [170, 590],
+      "size": [340, 60]
+    },
+    {
+      "id": "s-stats",
+      "type": "frontend",
+      "label": "turns · steps · llmMs · toolMs",
+      "sublabel": "sessionStats 官方投影 · TTFT / 解码总量也在",
+      "pos": [610, 590],
+      "size": [340, 60]
+    },
+    {
+      "id": "s-breakdown",
+      "type": "frontend",
+      "label": "contextBreakdown · 下一请求",
+      "sublabel": "system / tools / messages 启发式分解",
+      "pos": [1050, 590],
+      "size": [340, 60]
+    },
+    {
+      "id": "t-e2e",
+      "type": "frontend",
+      "label": "E2E · turn 粒度",
+      "sublabel": "turn/start → turn/end 墙钟 · 官方无此字段",
+      "pos": [430, 480],
+      "size": [330, 60]
+    },
+    {
+      "id": "t-derive",
+      "type": "frontend",
+      "label": "deriveTurnTokenUsage · turn 粒度",
+      "sublabel": "逐 attempt 精确 usage · 不可证明返回空值",
+      "pos": [800, 480],
+      "size": [330, 60]
+    },
+    {
+      "id": "p-ttft",
+      "type": "frontend",
+      "label": "TTFT · step 粒度",
+      "sublabel": "step/start → 首个非空 delta · 跨重试保留",
+      "pos": [430, 370],
+      "size": [330, 60]
+    },
+    {
+      "id": "p-tpot",
+      "type": "frontend",
+      "label": "decodeMs → TPOT · step 粒度",
+      "sublabel": "首 token → assistant/message · 除以解码 token",
+      "pos": [800, 370],
+      "size": [330, 60]
+    },
+    {
+      "id": "a-usage",
+      "type": "frontend",
+      "label": "usage · attempt 粒度",
+      "sublabel": "每次计费请求上报一份 · 四桶的数据源",
+      "pos": [460, 260],
+      "size": [310, 60]
+    },
+    {
+      "id": "a-pressure",
+      "type": "frontend",
+      "label": "contextPressure · 最近一次请求",
+      "sublabel": "provider 实测 prompt 值 · last-wins 不累计",
+      "pos": [800, 260],
+      "size": [310, 60]
+    },
+    {
+      "id": "c-chunks",
+      "type": "backend",
+      "label": "chunk 序列",
+      "sublabel": "text / reasoning / tool-call delta · time0+dt[]",
+      "pos": [485, 150],
+      "size": [290, 60]
+    },
+    {
+      "id": "c-itl",
+      "type": "frontend",
+      "label": "ITL · delta 粒度",
+      "sublabel": "相邻 text-delta 间隔 · mean / P50 / P99 / max",
+      "pos": [795, 150],
+      "size": [290, 60]
+    }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Stream · 一次响应的 chunk 序列（打包记录 time0 + dt[]）", "wraps": ["c-chunks", "c-itl"], "pad": 28 },
+    { "kind": "region", "label": "Attempt · 一次计费请求 · assistant/attempt | assistant/message · 重试 = 新 attempt", "wraps": ["a-usage", "a-pressure", "c-chunks", "c-itl"], "pad": 54 },
+    { "kind": "region", "label": "Step · 一次模型请求 · step/start → step/end · 编号跨 turn 连续", "wraps": ["p-ttft", "p-tpot", "a-usage", "a-pressure", "c-chunks", "c-itl"], "pad": 80 },
+    { "kind": "region", "label": "Turn · 一轮对话 · turn/start → turn/end · 一次 followup 一个 turn", "wraps": ["t-e2e", "t-derive", "p-ttft", "p-tpot", "a-usage", "a-pressure", "c-chunks", "c-itl"], "pad": 106 },
+    { "kind": "region", "label": "Session · 一次会话 · append-only 事件流 · SessionId 标识 · snapshotEvents() 全量重放", "wraps": ["s-usage", "s-stats", "s-breakdown", "t-e2e", "t-derive", "p-ttft", "p-tpot", "a-usage", "a-pressure", "c-chunks", "c-itl"], "pad": 132 }
+  ],
+  "connections": [],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "五层同心结构",
+      "items": [
+        "Session ⊃ Turn ⊃ Step ⊃ Attempt ⊃ Stream",
+        "一次 followup 一个 turn；step 编号跨 turn 连续",
+        "重试产生新 attempt；TTFT 跨重试保留"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "指标各有自己的粒度",
+      "items": [
+        "E2E 在 turn 级；TTFT / decodeMs 在 step 级；ITL 在 delta 级",
+        "usage 按 attempt 上报；四桶与 llmMs / toolMs 会话累计",
+        "contextPressure 只取最近一次请求；breakdown 估计下一请求"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "全部是同一条事件流的折叠",
+      "items": [
+        "sessionStats 与 tokenMeter 是官方投影，读侧不改日志",
+        "自写折叠与官方投影逐字相等（S1 运行期断言）",
+        "deriveTurnTokenUsage 不可证明时返回空，不猜"
+      ]
+    }
+  ]
+}

@@ -4,9 +4,9 @@
  *     无损展开成带时间戳的 delta，取相邻 text-delta 的间隔做分布；
  *   step 级明细：每个 step 的 TTFT / 解码时间 / 输出 token / ITL，
  *     边界口径与官方投影逐字对齐（step/start → 首个非空 delta → assistant/message）；
- *   turn 级 E2E：turn/start → turn/end 的事件墙钟。
- * 全部输入都是会话事件流本身——不挂监听器、不打时间戳，时间戳是 dsh 落日志时
- * 就记好的（TimedStreamChunk），这里只做还原与统计。纯函数，可单独断言。
+ *   turn 级 E2E：turn/start → turn/end 的事件实际耗时。
+ * 全部输入都是会话事件流本身——不打时间戳，时间戳是 dsh 落日志时就记好的
+ * （TimedStreamChunk），这里只做还原与统计。纯函数，可单独断言。
  */
 import { assistantStreamFirstTokenTime, expandAssistantStream } from '@deepseek-ai/dsh-llm'
 import type { AssistantStreamRecord } from '@deepseek-ai/dsh-llm'
@@ -31,7 +31,7 @@ export interface StepTiming {
   readonly itl: ItlStats | null
 }
 
-/** 一个 turn 的端到端墙钟与步数。 */
+/** 一个 turn 的端到端实际耗时与步数。 */
 export interface TurnTiming {
   readonly turn: number
   readonly e2eMs: number
@@ -133,7 +133,7 @@ export function foldStepTimings(events: readonly SessionEvent[]): StepTiming[] {
   return out
 }
 
-/** turn 级 E2E：turn/start → turn/end 的墙钟；未闭合的 turn 不计。 */
+/** turn 级 E2E：turn/start → turn/end 的实际耗时；未闭合的 turn 不计。 */
 export function foldTurnTimings(events: readonly SessionEvent[]): TurnTiming[] {
   const out: TurnTiming[] = []
   const open = new Map<number, { startTime: number; steps: number }>()
@@ -164,8 +164,8 @@ export function foldTurnTimings(events: readonly SessionEvent[]): TurnTiming[] {
 }
 
 /**
- * TPOT（每输出 token 平均耗时）= 解码墙钟 ÷ provider 报告的输出 token。
- * 注意口径：outputTokens 含 thinking token，而解码墙钟覆盖整段生成，
+ * TPOT（每输出 token 平均耗时）= 解码实际耗时 ÷ provider 报告的输出 token。
+ * 注意口径：outputTokens 含 thinking token，而解码实际耗时覆盖整段生成，
  * 所以这是"混合口径"的 averages；纯正文的逐 token 体验看 ITL。
  */
 export function tpotMs(decodeMs: number, decodeTokens: number): number | null {

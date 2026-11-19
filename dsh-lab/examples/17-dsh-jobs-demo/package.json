@@ -8,7 +8,7 @@
   },
   "scripts": {
     "//start": "node --no-warnings 抑制的是 stripTypeScriptTypes 实验警告（警告带随机 pid，会破坏双运行时输出逐行一致；Bun 侧无此警告）；见 README § 4",
-    "start": "node --no-warnings src/index.ts",
+    "start": "node --import tsx/esm --no-warnings src/index.ts",
     "start:bun": "node runtime/run-bun.mjs",
     "typecheck": "tsc -p tsconfig.json"
   },
@@ -57,6 +57,7 @@
   },
   "devDependencies": {
     "@types/node": "22.10.2",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "tsx": "4.23.15"
   }
 }

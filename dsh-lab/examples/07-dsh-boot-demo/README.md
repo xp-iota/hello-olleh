@@ -140,7 +140,7 @@ new Context()
       name: './src/plugins/broken.ts'
 ```
 
-`npm start` 直接跑 `src/index.ts`：五个场景就是五次 boot 调用（S3 那次预期失败）：
+`pnpm start` 直接跑 `src/index.ts`：五个场景就是五次 boot 调用（S3 那次预期失败）：
 
 ```ts
 const basePatch = () => loadOverlayPatches('dsh-boot-demo', PATCH)
@@ -166,15 +166,15 @@ console.log('\nBOOT_DEMO_OK')
 在本机复现只需要四条命令：
 
 ```bash
-npm install             # @deepseek-ai/* 依赖（含自动安装的 peer）
+pnpm install             # @deepseek-ai/* 依赖（含自动安装的 peer）
 #
-npm start               # Node：五场景全离线，末行 BOOT_DEMO_OK
-npm run start:bun       # Bun：不挂 ptc/subprocess，无需任何补丁，输出逐行一致
+pnpm start               # Node：五场景全离线，末行 BOOT_DEMO_OK
+pnpm run start:bun       # Bun：不挂 ptc/subprocess，无需任何补丁，输出逐行一致
 #
-npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
+pnpm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
 
-下面是 `npm start` 的实测输出（Node 26.12.1；Bun 1.4.4 除首行 `runtime = bun 1.4.4` 外逐行一致）：
+下面是 `pnpm start` 的实测输出（Node 26.12.1；Bun 1.4.4 除首行 `runtime = bun 1.4.4` 外逐行一致）：
 
 ```text
 runtime = node v26.12.1
@@ -266,7 +266,7 @@ cordis 的 `FiberState` 是 const enum，编译后没有运行时对象。app-bo
 
 ## 7 从零复现：完整文件与运行路径
 
-前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
+前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上，pnpm 安装依赖。cordis fork 的 .ts 由 tsx 加载（`start:bun` 走 Bun 原生转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
 ### 目录结构
 
@@ -319,7 +319,7 @@ dsh-boot-demo/
 }
 ```
 
-npm 会自动安装 peerDependencies：`dsh-tools` 的 peer 面（llm/agent/scope/session/user-approval 等）没有写进 package.json，但 `npm install` 后都在（共 47 包）。声明的只是本主题直接用到或直接引用的包。
+pnpm 会自动安装 peerDependencies：`dsh-tools` 的 peer 面（llm/agent/scope/session/user-approval 等）没有写进 package.json，但 `pnpm install` 后都在（共 47 包）。声明的只是本主题直接用到或直接引用的包。
 
 tsconfig.json 与 [dsh-agent-loop-demo](../11-dsh-agent-loop-demo/README.md) 逐字相同（NodeNext + allowImportingTsExtensions，`include: ["src"]`）。
 
@@ -470,11 +470,11 @@ console.log('\nBOOT_DEMO_OK')
 ### 按顺序验证
 
 ```bash
-npm install             # 47 packages（含自动安装的 peer）
+pnpm install             # 47 packages（含自动安装的 peer）
 #
-npm run typecheck       # tsc 0 错误
-npm start               # Node：末行 BOOT_DEMO_OK
-npm run start:bun       # Bun：除首行 runtime 标识外逐行一致
+pnpm run typecheck       # tsc 0 错误
+pnpm start               # Node：末行 BOOT_DEMO_OK
+pnpm run start:bun       # Bun：除首行 runtime 标识外逐行一致
 ```
 
 示例不依赖任何环境变量、端口或外部服务。运行时状态落在工程内 `.dsh-home/`（已 gitignore）。

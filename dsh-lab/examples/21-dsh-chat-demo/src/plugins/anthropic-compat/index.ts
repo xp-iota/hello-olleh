@@ -333,12 +333,15 @@ export function tokenUsage(
   outputTokens: number,
   cacheReadTokens: number,
   cacheWriteTokens: number,
+  cacheReported = false,
 ): TokenUsage {
   return {
     inputTokens: Math.max(0, inputTotal - cacheReadTokens - cacheWriteTokens),
     outputTokens,
-    ...(cacheReadTokens > 0 ? { cacheReadTokens } : {}),
-    ...(cacheWriteTokens > 0 ? { cacheWriteTokens } : {}),
+    // 端点报过 cache 桶时，缺失的桶按 Anthropic 协议是实测 0，补齐转发；
+    // 从未报过 cache 的端点保持省略（不替它声明 0）。
+    ...(cacheReadTokens > 0 || cacheReported ? { cacheReadTokens } : {}),
+    ...(cacheWriteTokens > 0 || cacheReported ? { cacheWriteTokens } : {}),
   }
 }
 
@@ -424,6 +427,7 @@ class AnthropicCompatAdapter extends LlmAdapter {
     let outputTokens = 0
     let cacheReadTokens = 0
     let cacheWriteTokens = 0
+    let cacheReported = false
     let stopReason = 'end_turn'
     let terminal = false
     let responseId: string | undefined
@@ -445,6 +449,7 @@ class AnthropicCompatAdapter extends LlmAdapter {
           outputTokens = usage.output_tokens ?? outputTokens
           cacheReadTokens = usage.cache_read_input_tokens ?? cacheReadTokens
           cacheWriteTokens = usage.cache_creation_input_tokens ?? cacheWriteTokens
+          if (usage.cache_read_input_tokens !== undefined || usage.cache_creation_input_tokens !== undefined) cacheReported = true
           break
         }
         case 'content_block_start': {
@@ -527,7 +532,13 @@ class AnthropicCompatAdapter extends LlmAdapter {
         case 'message_delta': {
           stopReason = evt.delta?.stop_reason ?? stopReason
           const usage = evt.usage ?? {}
+          // 有的端点（如 MiniMax 官方）把最终 usage 整体报在这里，
+          // message_start 反而全 0——input 与 cache 桶同样要读，只读 output 会丢上报。
+          inputTotal = usage.input_tokens ?? inputTotal
           outputTokens = usage.output_tokens ?? outputTokens
+          cacheReadTokens = usage.cache_read_input_tokens ?? cacheReadTokens
+          cacheWriteTokens = usage.cache_creation_input_tokens ?? cacheWriteTokens
+          if (usage.cache_read_input_tokens !== undefined || usage.cache_creation_input_tokens !== undefined) cacheReported = true
           break
         }
         case 'message_stop':
@@ -547,7 +558,7 @@ class AnthropicCompatAdapter extends LlmAdapter {
     if (!terminal) throw new LlmError('anthropic-compat: 流在 message_stop 之前结束', 'MALFORMED_RESPONSE')
     if (active.size > 0) throw new LlmError('anthropic-compat: 流在 content_block_stop 之前结束', 'MALFORMED_RESPONSE')
 
-    yield { type: 'usage', usage: tokenUsage(inputTotal, outputTokens, cacheReadTokens, cacheWriteTokens) }
+    yield { type: 'usage', usage: tokenUsage(inputTotal, outputTokens, cacheReadTokens, cacheWriteTokens, cacheReported) }
 
     const kind = FINISH_REASON[stopReason] ?? 'stop'
     const replayState: ReplayEnvelope = { response: { id: responseId, model: responseModel, stopReason }, blocks: replay }

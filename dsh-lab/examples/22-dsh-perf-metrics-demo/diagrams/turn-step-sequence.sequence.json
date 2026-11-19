@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "一次 followup 的完整时序：turn 套 step，step 套 attempt",
+    "output": "turn-step-sequence.html",
+    "viewBox": [1900, 830],
+    "quality_profile": "showcase",
+    "column_fit": "spread"
+  },
+  "participants": [
+    { "id": "user", "type": "external", "label": "用户 / REPL", "sublabel": "followup 入口" },
+    { "id": "loop", "type": "backend", "label": "agent-loop", "sublabel": "turn / step 驱动" },
+    { "id": "log", "type": "messagebus", "label": "Session 事件流", "sublabel": "append-only 日志" },
+    { "id": "llm", "type": "backend", "label": "适配器 / provider", "sublabel": "attempt 与 chunk 流" }
+  ],
+  "segments": [
+    { "from": 185, "to": 730, "label": "Turn 1 · 一次 followup（E2E）" },
+    { "from": 215, "to": 510, "label": "Step 1 · 模型要求调工具" },
+    { "from": 540, "to": 700, "label": "Step 2 · 模型给出终答" }
+  ],
+  "messages": [
+    {
+      "id": "m-followup",
+      "from": "user",
+      "to": "loop",
+      "y": 160,
+      "label": "followup #1（user/message）",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m-turn-start",
+      "from": "loop",
+      "to": "log",
+      "y": 200,
+      "label": "turn/start（turn 1）",
+      "note": "Session 粒度：这条泳道就是 append-only 日志，所有事件都落在这里"
+    },
+    {
+      "id": "m-step1-start",
+      "from": "loop",
+      "to": "log",
+      "y": 235,
+      "label": "step/start（step 1）"
+    },
+    {
+      "id": "m-req-a1",
+      "from": "loop",
+      "to": "llm",
+      "y": 267,
+      "label": "请求 · attempt 1"
+    },
+    {
+      "id": "m-attempt1",
+      "from": "llm",
+      "to": "log",
+      "y": 299,
+      "label": "assistant/attempt（attempt 1 失败）",
+      "note": "失败 attempt 仅日志，不结算 step"
+    },
+    {
+      "id": "m-retry-a2",
+      "from": "loop",
+      "to": "llm",
+      "y": 331,
+      "label": "llm/retry · attempt 2 请求",
+      "note": "重试 = 新 attempt，仍在同一个 step 内"
+    },
+    {
+      "id": "m-first-delta",
+      "from": "llm",
+      "to": "loop",
+      "y": 363,
+      "label": "首个 text-delta",
+      "variant": "emphasis",
+      "note": "TTFT 终点：step/start → 这里，跨重试保留"
+    },
+    {
+      "id": "m-deltas",
+      "from": "llm",
+      "to": "loop",
+      "y": 395,
+      "label": "后续 text-delta ×N",
+      "note": "相邻 delta 间隔 = ITL 样本（dt[]）"
+    },
+    {
+      "id": "m-finish",
+      "from": "llm",
+      "to": "loop",
+      "y": 427,
+      "label": "tool-call delta + usage / finish",
+      "note": "流结束：打包记录 time0 + dt[]"
+    },
+    {
+      "id": "m-message1",
+      "from": "llm",
+      "to": "log",
+      "y": 459,
+      "label": "assistant/message（提交）",
+      "variant": "emphasis",
+      "note": "结算 step 1 · 解码窗口终点 · 携带 usage"
+    },
+    {
+      "id": "m-step1-end",
+      "from": "loop",
+      "to": "log",
+      "y": 491,
+      "label": "step/end（step 1）",
+      "note": "step 内还含 tool/call → tool/result，toolMs 归在这里"
+    },
+    {
+      "id": "m-step2-start",
+      "from": "loop",
+      "to": "log",
+      "y": 555,
+      "label": "step/start（step 2）"
+    },
+    {
+      "id": "m-req-a3",
+      "from": "loop",
+      "to": "llm",
+      "y": 587,
+      "label": "请求 · attempt 3"
+    },
+    {
+      "id": "m-deltas2",
+      "from": "llm",
+      "to": "loop",
+      "y": 619,
+      "label": "text-delta … finish",
+      "note": "step 2 的 TTFT / ITL 同口径，从自己的 step/start 起算"
+    },
+    {
+      "id": "m-message2",
+      "from": "llm",
+      "to": "log",
+      "y": 651,
+      "label": "assistant/message（提交）",
+      "note": "无工具调用：这条就是终答"
+    },
+    {
+      "id": "m-step2-end",
+      "from": "loop",
+      "to": "log",
+      "y": 683,
+      "label": "step/end（step 2）"
+    },
+    {
+      "id": "m-turn-end",
+      "from": "loop",
+      "to": "log",
+      "y": 715,
+      "label": "turn/end（turn 1）",
+      "variant": "emphasis",
+      "note": "E2E = turn/start → 这里的事件墙钟"
+    },
+    {
+      "id": "m-reply",
+      "from": "loop",
+      "to": "user",
+      "y": 747,
+      "label": "回复用户",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    { "participant": "log", "from": 195, "to": 755, "type": "messagebus" },
+    { "participant": "loop", "from": 195, "to": 750, "type": "backend" },
+    { "participant": "llm", "from": 262, "to": 305, "type": "backend" },
+    { "participant": "llm", "from": 326, "to": 465, "type": "backend" },
+    { "participant": "llm", "from": 582, "to": 657, "type": "backend" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "turn 与 step 的区别",
+      "items": [
+        "一个 turn = 一次 followup 到该轮收尾",
+        "一个 step = 一次模型请求 + 其工具执行",
+        "图中 turn 1 含两个 step；step 编号跨 turn 连续"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "attempt 与 stream",
+      "items": [
+        "重试 = 新 attempt；只有提交的 assistant/message 结算 step",
+        "llm 泳道三段激活条 = 三次计费请求",
+        "chunk 流打包 time0 + dt[]，TTFT / ITL / 解码都从它读"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "指标落在哪个粒度",
+      "items": [
+        "E2E = turn 带的墙钟；TTFT / 解码逐 step 起算",
+        "ITL 逐 delta；四桶按提交 usage 折成会话累计",
+        "log 泳道全长激活条 = Session：一切指标的原始事实"
+      ]
+    }
+  ]
+}

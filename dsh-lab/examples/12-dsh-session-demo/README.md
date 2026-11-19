@@ -192,7 +192,7 @@ const resumed = await ctx.agents.resume({ resumeSessionId: sessionId })
       name: ./src/plugins/scripted-adapter.ts
 ```
 
-`npm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，工具与适配器随装配就位。两个类型层面的细节：`ctx.sessionQuery` 的 Context 增补来自 `import type {} from '@deepseek-ai/dsh-session-query-sqlite'`，缺了它运行正常但 typecheck 报 TS2339；示例的 `assert()` 辅助不做类型收窄，`assert(record !== undefined, …)` 之后 TS 仍认为 record 可能 undefined（TS18048），需要收窄的地方用显式 `if (x === undefined) throw …`：
+`pnpm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，工具与适配器随装配就位。两个类型层面的细节：`ctx.sessionQuery` 的 Context 增补来自 `import type {} from '@deepseek-ai/dsh-session-query-sqlite'`，缺了它运行正常但 typecheck 报 TS2339；示例的 `assert()` 辅助不做类型收窄，`assert(record !== undefined, …)` 之后 TS 仍认为 record 可能 undefined（TS18048），需要收窄的地方用显式 `if (x === undefined) throw …`：
 
 ```ts
 const ctx = await boot(
@@ -209,15 +209,15 @@ console.log('\nSESSION_DEMO_OK')
 在本机复现只需要四条命令：
 
 ```bash
-npm install             # @deepseek-ai/* 依赖（含自动安装的 peer）
+pnpm install             # @deepseek-ai/* 依赖（含自动安装的 peer）
 #
-npm start               # Node：六场景全离线，末行 SESSION_DEMO_OK
-npm run start:bun       # Bun：不挂 ptc/subprocess，无需任何补丁，输出逐行一致
+pnpm start               # Node：六场景全离线，末行 SESSION_DEMO_OK
+pnpm run start:bun       # Bun：不挂 ptc/subprocess，无需任何补丁，输出逐行一致
 #
-npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
+pnpm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
 
-下面是 `npm start` 的实测输出（Node 26.12.1，`.dsh-home` 为空的首跑；Bun 1.4.4 除首行 `runtime = bun 1.4.4` 与随机会话 id 外逐行一致）。语料计数受历史运行影响：`.dsh-home/sessions` 会累积往次运行的会话，S3 的「语料会话数」随之变化——对比前先清空 `.dsh-home`（gitignored，删了不心疼）：
+下面是 `pnpm start` 的实测输出（Node 26.12.1，`.dsh-home` 为空的首跑；Bun 1.4.4 除首行 `runtime = bun 1.4.4` 与随机会话 id 外逐行一致）。语料计数受历史运行影响：`.dsh-home/sessions` 会累积往次运行的会话，S3 的「语料会话数」随之变化——对比前先清空 `.dsh-home`（gitignored，删了不心疼）：
 
 ```text
 runtime = node v26.12.1
@@ -258,7 +258,7 @@ SESSION_DEMO_OK
 
 ## 7 从零复现：完整文件与运行路径
 
-前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
+前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上，pnpm 安装依赖。cordis fork 的 .ts 由 tsx 加载（`start:bun` 走 Bun 原生转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
 ### 目录结构
 
@@ -462,10 +462,10 @@ console.log('\nSESSION_DEMO_OK')
 
 ### 按顺序验证
 
-1. `npm install` 成功，`node_modules` 中出现 `@deepseek-ai/dsh-app-boot` 与 `@deepseek-ai/dsh-session-query-sqlite`。
-2. `npm start` 打印 S1～S6 六段，末行 `SESSION_DEMO_OK`，与第 6 节实测输出逐行一致（随机会话 id 除外）。
-3. `npm run start:bun` 除首行 runtime 标识与会话 id 外逐行相同。
-4. `npm run typecheck` 无输出、退出码 0。
+1. `pnpm install` 成功，`node_modules` 中出现 `@deepseek-ai/dsh-app-boot` 与 `@deepseek-ai/dsh-session-query-sqlite`。
+2. `pnpm start` 打印 S1～S6 六段，末行 `SESSION_DEMO_OK`，与第 6 节实测输出逐行一致（随机会话 id 除外）。
+3. `pnpm run start:bun` 除首行 runtime 标识与会话 id 外逐行相同。
+4. `pnpm run typecheck` 无输出、退出码 0。
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 

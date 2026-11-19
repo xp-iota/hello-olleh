@@ -181,7 +181,7 @@ spill 自身还有两条硬约束：结果估算超过 maxInlineTokens 才动手
   disabled: true
 ```
 
-`npm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，S5 前再 boot 第二棵树（同一份 patch 叠加 noprune overlay）：
+`pnpm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，S5 前再 boot 第二棵树（同一份 patch 叠加 noprune overlay）：
 
 ```ts
 const patches = () => loadOverlayPatches('dsh-context-demo', PATCH)
@@ -204,15 +204,15 @@ console.log('\nCONTEXT_DEMO_OK')
 在本机复现只需要四条命令：
 
 ```bash
-npm install             # @deepseek-ai/* 依赖（含自动安装的 peer）
+pnpm install             # @deepseek-ai/* 依赖（含自动安装的 peer）
 #
-npm start               # Node：六场景全离线，末行 CONTEXT_DEMO_OK
-npm run start:bun       # Bun：不挂 ptc/subprocess，无需任何补丁，输出逐行一致
+pnpm start               # Node：六场景全离线，末行 CONTEXT_DEMO_OK
+pnpm run start:bun       # Bun：不挂 ptc/subprocess，无需任何补丁，输出逐行一致
 #
-npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
+pnpm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
 
-下面是 `npm start` 的实测输出（Node 26.12.1；Bun 1.4.4 除首行 runtime 标识、随机会话 id 与溢写临时目录名外逐行一致）：
+下面是 `pnpm start` 的实测输出（Node 26.12.1；Bun 1.4.4 除首行 runtime 标识、随机会话 id 与溢写临时目录名外逐行一致）：
 
 ```text
 runtime = node v26.12.1
@@ -258,7 +258,7 @@ CONTEXT_DEMO_OK
 
 ## 6 从零复现：完整文件与运行路径
 
-前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
+前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上，pnpm 安装依赖。cordis fork 的 .ts 由 tsx 加载（`start:bun` 走 Bun 原生转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
 ### 目录结构
 
@@ -541,11 +541,11 @@ console.log('\nCONTEXT_DEMO_OK')
 ### 按顺序验证
 
 ```bash
-npm install             # 22 依赖精确 pin（含自动安装的 peer）
+pnpm install             # 22 依赖精确 pin（含自动安装的 peer）
 #
-npm run typecheck       # tsc 0 错误
-npm start               # Node：末行 CONTEXT_DEMO_OK
-npm run start:bun       # Bun：随机 id/临时目录名除外逐行一致
+pnpm run typecheck       # tsc 0 错误
+pnpm start               # Node：末行 CONTEXT_DEMO_OK
+pnpm run start:bun       # Bun：随机 id/临时目录名除外逐行一致
 ```
 
 示例不依赖任何环境变量、端口或外部服务。运行时状态落在工程内 `.dsh-home/`（已 gitignore），溢写文件落在系统临时目录的 `dsh-spill-*` 私有根下。

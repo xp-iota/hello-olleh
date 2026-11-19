@@ -1,7 +1,7 @@
 /**
- * install-all.mjs —— `npm run install:all`：遍历 examples/ 逐个 npm install。
+ * install-all.mjs —— `pnpm run install:all`：遍历 examples/ 逐个 pnpm install。
  *
- * 每个示例完全独立（自带 package.json 与 .npmrc），这里只是批量代跑，
+ * 每个示例完全独立（自带 package.json 与 pnpm-workspace.yaml 设置文件），这里只是批量代跑，
  * 不做任何共享提升。任一示例安装失败立即非零退出并点名。
  *
  * 与 verify.mjs 同一套约束：
@@ -17,12 +17,12 @@ import { spawn } from 'node:child_process'
 import { join } from 'node:path'
 import { EXAMPLES_ROOT, listExamples } from './lib/examples.mjs'
 
-/** 单个示例安装的超时（毫秒）：npm install 通常远快于这个上限。 */
+/** 单个示例安装的超时（毫秒）：pnpm install 通常远快于这个上限。 */
 const INSTALL_TIMEOUT_MS = 600_000
 
 function installOne(exampleDir) {
   return new Promise((resolvePromise) => {
-    const child = spawn('npm install --no-audit --no-fund', {
+    const child = spawn('pnpm install', {
       cwd: exampleDir,
       stdio: 'inherit',
       shell: true,
@@ -33,7 +33,7 @@ function installOne(exampleDir) {
     let timedOut = false
     const timer = setTimeout(() => {
       timedOut = true
-      // shell:true 只杀得到外壳；npm 的孙进程要用进程树清理（同 verify.mjs）。
+      // shell:true 只杀得到外壳；pnpm 的孙进程要用进程树清理（同 verify.mjs）。
       if (process.platform === 'win32') {
         if (child.pid !== undefined) {
           spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
@@ -58,7 +58,7 @@ function installOne(exampleDir) {
     }, INSTALL_TIMEOUT_MS)
     child.once('error', (error) => {
       clearTimeout(timer)
-      // npm 根本没起来（ENOENT/EACCES）时也把原因带出来，不能只剩一个空的 exit 1。
+      // pnpm 根本没起来（ENOENT/EACCES）时也把原因带出来，不能只剩一个空的 exit 1。
       resolvePromise({ code: 1, spawnError: error.message })
     })
     child.once('exit', (code) => {

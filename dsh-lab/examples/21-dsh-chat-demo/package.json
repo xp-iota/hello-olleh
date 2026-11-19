@@ -7,15 +7,15 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "start": "node src/cli/bin.ts chat",
+    "start": "node --import tsx/esm src/cli/bin.ts chat",
     "start:bun": "node runtime/run.mjs --runtime bun src/cli/bin.ts chat",
-    "info": "node src/cli/bin.ts info",
+    "info": "node --import tsx/esm src/cli/bin.ts info",
     "info:bun": "node runtime/run.mjs --runtime bun src/cli/bin.ts info",
-    "sessions": "node src/cli/bin.ts sessions",
+    "sessions": "node --import tsx/esm src/cli/bin.ts sessions",
     "sessions:bun": "node runtime/run.mjs --runtime bun src/cli/bin.ts sessions",
-    "traj": "node src/cli/bin.ts traj",
+    "traj": "node --import tsx/esm src/cli/bin.ts traj",
     "traj:bun": "node runtime/run.mjs --runtime bun src/cli/bin.ts traj",
-    "test": "node --test src/cli/traj.test.ts src/plugins/anthropic-compat/index.test.ts src/plugins/safety-guardrail/index.test.ts",
+    "test": "node --import tsx/esm --test src/cli/traj.test.ts src/plugins/anthropic-compat/index.test.ts src/plugins/safety-guardrail/index.test.ts",
     "test:bun": "bun test src/cli/traj.test.ts src/plugins/anthropic-compat/index.test.ts src/plugins/safety-guardrail/index.test.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
@@ -150,6 +150,7 @@
   },
   "devDependencies": {
     "@types/node": "22.10.2",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "tsx": "4.23.15"
   }
 }

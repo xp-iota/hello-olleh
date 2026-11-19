@@ -1,0 +1,319 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "dsh-lab 版本与依赖：开发机环境 → 框架依赖 → 示例依赖",
+    "output": "version-deps.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1680,
+      600
+    ],
+    "views": [
+      {
+        "id": "install",
+        "label": "安装期",
+        "focus": [
+          "env-npm",
+          "fw-pins",
+          "ex-modules"
+        ],
+        "note": "npm install 逐示例解析精确版本，落盘成 22 份独立副本"
+      },
+      {
+        "id": "run",
+        "label": "运行期",
+        "focus": [
+          "ex-entry",
+          "fw-tree",
+          "fw-cordis",
+          "env-runtime"
+        ],
+        "note": "node/bun 跑入口，boot() 装配 dsh 包树，cordis 示例走 loader"
+      },
+      {
+        "id": "seams",
+        "label": "例外与缝",
+        "focus": [
+          "ex-entry",
+          "fw-tree",
+          "env-runtime"
+        ],
+        "note": "3 个示例自带 runtime/ 迷你层，修补 Bun 缺的两处 Node API"
+      }
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "cloud": {
+          "label": "registry / 安装器"
+        },
+        "external": {
+          "label": "开发机运行时"
+        },
+        "backend": {
+          "label": "框架包"
+        },
+        "frontend": {
+          "label": "示例入口"
+        },
+        "database": {
+          "label": "安装副本"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "env-npm",
+      "type": "cloud",
+      "label": "pnpm 11.28.5 · registry",
+      "sublabel": "next 通道，逐示例安装 22 次",
+      "tag": "22 份 pnpm-lock.yaml",
+      "pos": [
+        1280,
+        100
+      ],
+      "size": [
+        320,
+        88
+      ]
+    },
+    {
+      "id": "env-runtime",
+      "type": "external",
+      "label": "Node v26.12.1 · Bun v1.4.4",
+      "sublabel": "Node 经 tsx 4.23.15 加载 .ts · Bun 原生",
+      "tag": "Bun 缺 2 处 Node API",
+      "pos": [
+        1280,
+        350
+      ],
+      "size": [
+        320,
+        100
+      ]
+    },
+    {
+      "id": "fw-pins",
+      "type": "backend",
+      "label": "精确版本 pin",
+      "sublabel": "@deepseek-ai/* 0.2.2-rc.5",
+      "tag": "cordis 4.1.0 fork · lock ×22",
+      "pos": [
+        600,
+        100
+      ],
+      "size": [
+        480,
+        88
+      ]
+    },
+    {
+      "id": "fw-tree",
+      "type": "backend",
+      "label": "boot() 包树",
+      "sublabel": "19 服务 · 27 工具 · 164 包",
+      "tag": "peer 91 条",
+      "pos": [
+        600,
+        350
+      ],
+      "size": [
+        220,
+        100
+      ]
+    },
+    {
+      "id": "fw-cordis",
+      "type": "backend",
+      "label": "cordis 上游线",
+      "sublabel": "4.0.0-rc.13 + 插件",
+      "tag": "6 个 cordis 示例",
+      "pos": [
+        840,
+        350
+      ],
+      "size": [
+        240,
+        100
+      ]
+    },
+    {
+      "id": "ex-modules",
+      "type": "database",
+      "label": "每示例 node_modules",
+      "sublabel": "22 份独立副本，无提升",
+      "tag": "根层 0 依赖",
+      "pos": [
+        80,
+        100
+      ],
+      "size": [
+        300,
+        88
+      ]
+    },
+    {
+      "id": "ex-entry",
+      "type": "frontend",
+      "label": "22 个示例入口",
+      "sublabel": "start / start:bun · 装配 yml",
+      "tag": "3 个 runtime/ · 3 个 .env",
+      "pos": [
+        80,
+        350
+      ],
+      "size": [
+        300,
+        100
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "开发机环境 · 仓库不携带",
+      "wraps": [
+        "env-npm",
+        "env-runtime"
+      ],
+      "pad": 34
+    },
+    {
+      "kind": "region",
+      "label": "框架依赖 · registry 精确版本",
+      "wraps": [
+        "fw-pins",
+        "fw-tree",
+        "fw-cordis"
+      ],
+      "pad": 34
+    },
+    {
+      "kind": "region",
+      "label": "示例依赖 · 22 个独立安装域",
+      "wraps": [
+        "ex-modules",
+        "ex-entry"
+      ],
+      "pad": 34
+    }
+  ],
+  "connections": [
+    {
+      "id": "install-parse",
+      "from": "env-npm",
+      "to": "fw-pins",
+      "label": "安装期 · 解析",
+      "variant": "dashed",
+      "fromSide": "left",
+      "toSide": "right",
+      "route": "straight"
+    },
+    {
+      "id": "install-land",
+      "from": "fw-pins",
+      "to": "ex-modules",
+      "label": "安装期 · 落盘",
+      "variant": "dashed",
+      "fromSide": "left",
+      "toSide": "right",
+      "route": "straight"
+    },
+    {
+      "id": "run-boot",
+      "from": "ex-entry",
+      "to": "fw-tree",
+      "label": "运行期 · boot()",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "straight"
+    },
+    {
+      "id": "run-loader",
+      "from": "ex-entry",
+      "to": "fw-cordis",
+      "label": "运行期 · loader",
+      "fromSide": "right",
+      "toSide": "bottom",
+      "via": [
+        [
+          520,
+          400
+        ],
+        [
+          520,
+          510
+        ],
+        [
+          960,
+          510
+        ]
+      ]
+    },
+    {
+      "id": "node-api",
+      "from": "fw-tree",
+      "to": "env-runtime",
+      "label": "运行期 · 调 Node API",
+      "fromSide": "top",
+      "toSide": "top",
+      "via": [
+        [
+          710,
+          325
+        ],
+        [
+          1440,
+          325
+        ]
+      ]
+    },
+    {
+      "id": "run-exec",
+      "from": "ex-entry",
+      "to": "env-runtime",
+      "label": "运行期 · node+tsx 执行 entry",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [
+        [
+          230,
+          550
+        ],
+        [
+          1440,
+          550
+        ]
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "安装期",
+      "items": [
+        "pnpm install 在每个示例目录各跑一次：22 份 node_modules 与 pnpm-lock.yaml，没有 workspace 提升",
+        "版本全部来自 registry 的 next 通道并精确锁定；每个示例自带 pnpm-workspace.yaml 设置（allowBuilds / 关闭发布冷却）",
+        "安装器与 DSH 本体同版：pnpm 11.28.5；Node 侧 .ts 由每个示例 devDependency 里的 tsx 4.23.15 加载"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "运行期",
+      "items": [
+        "start = node --import tsx/esm（与 DSH 的 dsh dev 入口同款），start:bun = bun 原生跑同一份 .ts",
+        "boot() + cordis.patch.yml 装配 19 个必检服务、27 个工具；cordis 示例走 loader"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "例外与缝",
+      "items": [
+        "dsh-invariants 停在 0.2.0-rc.2（peer 声明 cordis ~4.0.4），靠 legacy-peer-deps 放行",
+        "Bun 缺 stripTypeScriptTypes 与子进程 -- 两缝，由 3 个示例自带 runtime/ 在加载期修补"
+      ]
+    }
+  ]
+}

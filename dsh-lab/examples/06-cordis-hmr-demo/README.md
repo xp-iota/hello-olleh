@@ -82,7 +82,7 @@ Bun 分支有个缓存细节：**Bun 的模块缓存不吃 query 后缀**——�
   name: ./src/index.ts              # 场景驱动：改文件 + reconcile / registry.replace
 ```
 
-`npm start` 是带 `--expose-internals` 的 cordis CLI：读 `cordis.yml` 装配，同时把 Node 内部模块加载器暴露给 hmr。
+`pnpm start` 是带 `--expose-internals` 的 cordis CLI：读 `cordis.yml` 装配，同时把 Node 内部模块加载器暴露给 hmr。
 
 `runner` 行挂的 `src/index.ts` 也是一个普通插件。整个改写过程是**崩溃安全**的：改插件的源文件、写修订临时文件都是带副作用的操作，runner 把它们全部包进 `try`/`finally`——无论正常跑完还是中途抛错，`finally` 都会恢复 greeter.ts 原状并删除 `.greeter-r*.ts` 临时文件；绕过 `finally` 的退出（异常崩溃、Ctrl-C）再由 `process.on('exit')` 的同步钩子兜底（exit 钩子里只能做同步清理，所以用的是 `writeFileSync` / `rmSync`），`process.on('SIGINT')` 以 130 退出码走同一条清场路径。Node 分支先经行句柄启用 hmr 行，再改文件、reconcile；Bun 分支走 core 缝：
 
@@ -134,15 +134,15 @@ async function run(ctx: Context) {
 在本机复现只需要四条命令：
 
 ```bash
-npm install             # cordis、loader 依赖与 @cordisjs/hmr
+pnpm install             # cordis、loader 依赖与 @cordisjs/hmr
 #
-npm start               # Node：--expose-internals + cordis CLI，走完整 hmr 事务
-npm run start:bun       # Bun：cordis CLI，走 core registry.replace 缝
+pnpm start               # Node：--expose-internals + cordis CLI，走完整 hmr 事务
+pnpm run start:bun       # Bun：cordis CLI，走 core registry.replace 缝
 #
-npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
+pnpm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
 
-下面是 `npm start` 的实测输出（Node 26.12.1）。开头三行插件日志来自装配阶段；uid 的具体数值取决于 CLI 基础设施建了多少 fiber，重要的是前后不变：
+下面是 `pnpm start` 的实测输出（Node 26.12.1）。开头三行插件日志来自装配阶段；uid 的具体数值取决于 CLI 基础设施建了多少 fiber，重要的是前后不变：
 
 ```text
    [greeter] apply tag=v1
@@ -166,7 +166,7 @@ npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过
 演示结束（插件文件已恢复原状）
 ```
 
-`npm run start:bun` 的实测输出（Bun 1.4.4）：
+`pnpm run start:bun` 的实测输出（Bun 1.4.4）：
 
 ```text
    [clock] apply #1（与 greeter 无关）
@@ -296,7 +296,7 @@ result.skipped.push({ urls: [url], reason: _Hmr.SkipReason.HostModule });
 
 ## 10 从零复现：完整文件与运行路径
 
-前置条件：Node 22.18 以上（本文用 26.12.1 验证，start 脚本已带 `--expose-internals`）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
+前置条件：Node 22.18 以上（本文用 26.12.1 验证，start 脚本已带 `--expose-internals`）或 Bun 1.4.4 以上，pnpm 安装依赖。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
 ### 目录结构
 
@@ -426,10 +426,10 @@ export function apply(ctx: Context) {
 
 ### 按顺序验证
 
-1. `npm install` 成功，`node_modules` 中出现 `cordis`、`@cordisjs/loader` 与 `@cordisjs/hmr`。
-2. `npm start` 打印 ①～⑤ 五段，末行「演示结束（插件文件已恢复原状）」，与第 8 节 Node 实测输出一致（uid 数值可能不同，前后不变即可）。
-3. `npm run start:bun` 走 core 缝，换代序列与 Node 一致。
-4. `npm run typecheck` 无输出、退出码 0；`src/plugins/greeter.ts` 恢复 v1，无 `.greeter-rN.ts` 残留。
+1. `pnpm install` 成功，`node_modules` 中出现 `cordis`、`@cordisjs/loader` 与 `@cordisjs/hmr`。
+2. `pnpm start` 打印 ①～⑤ 五段，末行「演示结束（插件文件已恢复原状）」，与第 8 节 Node 实测输出一致（uid 数值可能不同，前后不变即可）。
+3. `pnpm run start:bun` 走 core 缝，换代序列与 Node 一致。
+4. `pnpm run typecheck` 无输出、退出码 0；`src/plugins/greeter.ts` 恢复 v1，无 `.greeter-rN.ts` 残留。
 
 示例不依赖任何环境变量、端口或外部服务。Node 路径要求未带 `--preserve-symlinks`（模块 URL 须为 realpath）。
 

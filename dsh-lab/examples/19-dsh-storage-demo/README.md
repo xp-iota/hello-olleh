@@ -221,7 +221,7 @@ rc.3 的真实边界与直觉相反：**`put` 不做运行时 zod 校验**——
       name: ./src/plugins/scripted-adapter.ts
 ```
 
-`npm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，脚本化适配器随装配就位。一个类型层面的细节：示例的 `assert()` 不做 TS 类型收窄，narrowing 用 `if (!x) throw`，别指望自定义 assert 之后 `x` 自动非空：
+`pnpm start` 直接跑 `src/index.ts`：入口是官方 `boot()`，读 cordis.yml 与 patch 清单建起整棵服务树，脚本化适配器随装配就位。一个类型层面的细节：示例的 `assert()` 不做 TS 类型收窄，narrowing 用 `if (!x) throw`，别指望自定义 assert 之后 `x` 自动非空：
 
 ```ts
 const ctx = await boot(
@@ -238,17 +238,17 @@ console.log('\nSTORAGE_DEMO_OK')
 在本机复现只需要四条命令：
 
 ```bash
-npm install             # @deepseek-ai/* 依赖（含自动安装的 peer）
+pnpm install             # @deepseek-ai/* 依赖（含自动安装的 peer）
 #
-npm start               # Node：五场景全离线，末行 STORAGE_DEMO_OK
-npm run start:bun       # Bun：不挂 ptc/subprocess，无需任何补丁，输出逐行一致
+pnpm start               # Node：五场景全离线，末行 STORAGE_DEMO_OK
+pnpm run start:bun       # Bun：不挂 ptc/subprocess，无需任何补丁，输出逐行一致
 #
-npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
+pnpm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过）
 ```
 
-npm allowScripts 拦下 koffi@3.1.1 的 install script 无碍：本示例不触发它的加载路径（SQLite `openAt: never`），双运行时照常全部通过。
+pnpm 的 allowBuilds 放行了 koffi 的安装脚本；本示例其实不触发它的加载路径（SQLite `openAt: never`），双运行时照常全部通过。
 
-下面是 `npm start` 的实测输出（Node 26.12.1；Bun 1.4.4 除首行 `runtime = bun 1.4.4` 外逐行一致，归一化比对验证）：
+下面是 `pnpm start` 的实测输出（Node 26.12.1；Bun 1.4.4 除首行 `runtime = bun 1.4.4` 外逐行一致，归一化比对验证）：
 
 ```text
 runtime = node v26.12.1
@@ -293,7 +293,7 @@ STORAGE_DEMO_OK
 
 ## 5 从零复现：完整文件与运行路径
 
-前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis fork 直接运行 TypeScript，没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
+前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上，pnpm 安装依赖。cordis fork 的 .ts 由 tsx 加载（`start:bun` 走 Bun 原生转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
 ### 目录结构
 
@@ -710,11 +710,11 @@ console.log('\nSTORAGE_DEMO_OK')
 ### 按顺序验证
 
 ```bash
-npm install             # 40 依赖精确 pin，含 session-reference 的三个硬依赖
+pnpm install             # 40 依赖精确 pin，含 session-reference 的三个硬依赖
 #
-npm run typecheck       # tsc 0 错误
-npm start               # Node：末行 STORAGE_DEMO_OK
-npm run start:bun       # Bun：除首行 runtime 标识外逐行一致
+pnpm run typecheck       # tsc 0 错误
+pnpm start               # Node：末行 STORAGE_DEMO_OK
+pnpm run start:bun       # Bun：除首行 runtime 标识外逐行一致
 ```
 
 示例不依赖任何环境变量、端口或外部服务：S3 用到的 `DEMO_*` 环境变量由 index.ts 自己在进程内设置，凭据文档也在 boot 前自动写好。运行时状态全部落在工程内 `.dsh-home/`（已 gitignore），每次启动自动清理会话与存储残留。

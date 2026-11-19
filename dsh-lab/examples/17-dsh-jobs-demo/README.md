@@ -8,8 +8,8 @@ Node v26.12.1 与 Bun 1.4.4 双运行时实测，输出除 runtime 行外逐行�
 
 > 配套文章：[09 § 9.20–9.23](../../../docs/hello-dsh/09-host-runtime-and-storage.md)
 > （五种「多步推进」机制）与 [08](../../../docs/hello-dsh/08-execution-services.md)（goal 组）。
-> 本工程完全独立：整目录拷走，`npm install` 后 `npm start`（Node）或
-> `npm run start:bun`（Bun）即可运行，不需要 API key——jobs/goal/schedule 直接
+> 本工程完全独立：整目录拷走，`pnpm install` 后 `pnpm start`（Node）或
+> `pnpm run start:bun`（Bun）即可运行，不需要 API key——jobs/goal/schedule 直接
 > 驱动服务 API，run_code/workflow 用 `callTool` 走真实工具管线，不跑模型 turn。
 
 ## 1 五种机制，职责不同
@@ -271,22 +271,22 @@ const ctx = await boot(
 
 ```bash
 # 安装依赖（41 个运行时依赖 + 2 个 devDependencies）
-npm install
+pnpm install
 
 # Windows：先给工程目录补 FullControl（只需一次，根因与修法见 dsh-sandbox-demo）
 
 # Node 侧（--no-warnings 抑制 stripTypeScriptTypes 实验警告：警告带随机 pid，
 # 会破坏双运行时输出逐行一致；Bun 侧无此警告）
-npm start
+pnpm start
 
 # Bun 侧（run-bun.mjs 用 Node 拉起 Bun 并注入 preload，修补五条 Bun 缝）
-npm run start:bun
+pnpm run start:bun
 
 # 类型检查
-npm run typecheck
+pnpm run typecheck
 ```
 
-`npm start` 实测输出（Node v26.12.1，Windows，工作目录即本工程目录）：
+`pnpm start` 实测输出（Node v26.12.1，Windows，工作目录即本工程目录）：
 
 ```text
 runtime = node v26.12.1
@@ -326,8 +326,8 @@ delete：deleted=true
 JOBS_OK
 ```
 
-`npm run start:bun`（Bun 1.4.4）除首行 `runtime = bun 1.4.4` 外**逐行一致**
-（归一化比对实测，正文 34 行全同），同样以 `JOBS_OK` 收尾。`npm run typecheck`
+`pnpm run start:bun`（Bun 1.4.4）除首行 `runtime = bun 1.4.4` 外**逐行一致**
+（归一化比对实测，正文 34 行全同），同样以 `JOBS_OK` 收尾。`pnpm run typecheck`
 0 错误。尾部 `…` 是 `preview()` 的 80 字符截断；`<id>`/`<uuid>` 是随机标识符的
 规范化占位；`File sandbox enforcement is partial on this host.` 是 Windows 上
 fs-sandbox 附加的能力警告，不是错误。
@@ -346,11 +346,11 @@ fs-sandbox 附加的能力警告，不是错误。
   工具面都从 run_code 程序内的 `tools.*` 绑定调（S4/S5）。
 - **schedule 是 durable 的**：上次运行残留的任务还在，演示开头幂等清理；
   计数 1 → 2 → 0 全程断言。
-- **双运行时逐行一致**：除 runtime 行与 npm notice 外正文 34 行全同；
+- **双运行时逐行一致**：除 runtime 行与包管理器提示外正文 34 行全同；
   typecheck 0 错误。
 
 留档：[runtime/out-node.txt](runtime/out-node.txt) ·
-[runtime/out-bun.txt](runtime/out-bun.txt)（含 npm notice 行的完整输出）。
+[runtime/out-bun.txt](runtime/out-bun.txt)（含 包管理器提示行的完整输出）。
 
 ## 5 从零复现：完整文件与运行路径
 
@@ -358,7 +358,7 @@ fs-sandbox 附加的能力警告，不是错误。
 需要 Bun ≥ 1.4.4（实测 1.4.4，`npm i -g bun` 或官方安装器）；Windows 上先给
 工程目录补一次 FullControl（含 WRITE_OWNER，否则 Win32 5，根因与修法见
 [dsh-sandbox-demo](../15-dsh-sandbox-demo/README.md) §3 S2）。不需要 API key，
-不访问网络（npm install 除外）。
+不访问网络（pnpm install 除外）。
 
 目录结构（node_modules、.dsh-home、.bun-guest-cache 除外，后两者已 gitignore）：
 
@@ -779,7 +779,7 @@ export function preview(text: string, limit = 120): string {
 
 ```js
 /**
- * run-bun.mjs —— `npm run start:bun` 的入口：用 Node 拉起 Bun，并注入 preload。
+ * run-bun.mjs —— `pnpm run start:bun` 的入口：用 Node 拉起 Bun，并注入 preload。
  *
  * 为什么需要这一层：subprocess-local 的 runner 是**孙进程**，命令行 --preload
  * 到不了那一层，只有 BUN_OPTIONS 环境变量会一路继承。所以在这里把
@@ -897,21 +897,21 @@ preload 的 `Bun.plugin` onLoad 按包名 filter 收得很窄（ptc-runtime-node
 
 ```bash
 # 1 安装依赖
-npm install
+pnpm install
 
 # 2 Windows：给工程目录补 FullControl（只需一次，见 dsh-sandbox-demo）
 
 # 3 类型检查（0 错误）
-npm run typecheck
+pnpm run typecheck
 
 # 4 Node 侧：末行 JOBS_OK
-npm start
+pnpm start
 
 # 5 Bun 侧：除 runtime 行外与 Node 逐行一致，末行 JOBS_OK
-npm run start:bun
+pnpm run start:bun
 
 # 6 再跑一遍 Node：schedule 幂等清理生效，计数断言仍全过
-npm start
+pnpm start
 ```
 
 本示例不依赖任何环境变量、端口或外部服务：`DSH_HOME` 由代码自己指向工程内的

@@ -1,6 +1,6 @@
 # 21 · dsh 的 chat 示例
 
-本示例演示一个**完全独立**的 dsh 交互式终端：把整个目录拷到任何地方，`npm install` 之后就能 `npm start` 进入 REPL 与真实模型对话，`npm run sessions` / `npm run traj` 回看会话，`npm run info` 跑启动探针。全部装配都在 `cordis.patch.yml`（89 行）里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。基于 `@deepseek-ai/*` 0.2.2-rc.5（例外：`dsh-invariants` 0.2.0-rc.2）与 `@deepseek-ai/cordis` 4.1.0，Node v26.12.1 与 Bun 1.4.4 双运行时实测等价。
+本示例演示一个**完全独立**的 dsh 交互式终端：把整个目录拷到任何地方，`pnpm install` 之后就能 `pnpm start` 进入 REPL 与真实模型对话，`pnpm run sessions` / `pnpm run traj` 回看会话，`pnpm run info` 跑启动探针。全部装配都在 `cordis.patch.yml`（89 行）里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。基于 `@deepseek-ai/*` 0.2.2-rc.5（例外：`dsh-invariants` 0.2.0-rc.2）与 `@deepseek-ai/cordis` 4.1.0，Node v26.12.1 与 Bun 1.4.4 双运行时实测等价。
 
 它是本系列 21 个示例的「集大成」：89 行完整装配清单 + 自写模型适配器副本 + 自写护栏副本 + REPL/流式渲染/人机交互/trajectory 回看。前面各示例拆开的接缝，在这里拼回一个能用的产品。
 
@@ -15,7 +15,7 @@
 | 会话回看 | session-persistence-jsonl + replay | `src/cli/traj.ts`：turn 折叠、事件明细、surface |
 | 装配自检 | 19 必检服务 + 工具目录断言 | `src/cli/bin.ts info`：`BOOT_PROBE` 机器可读标记 |
 
-> 两份副本是完全独立的代价：anthropic-compat 与 safety-guardrail 各自和 [dsh-llm-adapter-demo](../10-dsh-llm-adapter-demo/README.md)、[dsh-guardrail-demo](../20-dsh-guardrail-demo/README.md) 同源但互不引用——拷走本目录不需要带上兄弟示例，改一处也不会波及另一处。实测逐行 diff：适配器副本只差头注释与缺 key 报错文案（「只跑无 key 路径（npm run info）不需要 key」），护栏副本只差头注释，其余逐字一致。
+> 两份副本是完全独立的代价：anthropic-compat 与 safety-guardrail 各自和 [dsh-llm-adapter-demo](../10-dsh-llm-adapter-demo/README.md)、[dsh-guardrail-demo](../20-dsh-guardrail-demo/README.md) 同源但互不引用——拷走本目录不需要带上兄弟示例，改一处也不会波及另一处。实测逐行 diff：适配器副本只差头注释与缺 key 报错文案（「只跑无 key 路径（pnpm run info）不需要 key」），护栏副本只差头注释，其余逐字一致。
 
 ## 2 装配树：89 行 patch 驱动一切
 
@@ -116,7 +116,7 @@ rc.3 的 `agentDefaultModel` 只是配置服务（`currentSelection()` / `saveSe
 
 ## 4 运行 chat 示例
 
-前置：`npm install`（`.npmrc` 放宽 peer 解析，见 §5 .npmrc 节）。探针、测试、会话回看全程不需要 key；真实对话需要本目录 `.env`（模板见 §5）。
+前置：`pnpm install`（peer 冲突由 `pnpm-workspace.yaml` 的 `peerDependencyRules` 放行，见 §5 pnpm 设置节）。探针、测试、会话回看全程不需要 key；真实对话需要本目录 `.env`（模板见 §5）。
 
 根配置全文（装配全在 patch）：
 
@@ -165,27 +165,27 @@ export async function bootChatDemo(options: {
 
 ```bash
 # 安装与类型检查
-npm install
-npm run typecheck
+pnpm install
+pnpm run typecheck
 
 # 启动探针：19 服务 + 27 工具，不需要 key
-npm run info
-npm run info:bun
+pnpm run info
+pnpm run info:bun
 
-# 单测：traj 折叠 6 + 适配器纯函数 12 + 护栏 4
-npm test
-npm run test:bun
+# 单测：traj 折叠 6 + 适配器纯函数 13 + 护栏 4
+pnpm test
+pnpm run test:bun
 
 # 交互式 REPL：真实对话需要 .env
-npm start
-npm run start:bun
+pnpm start
+pnpm run start:bun
 
 # 会话回看：不需要 key
-npm run sessions
-npm run traj
+pnpm run sessions
+pnpm run traj
 ```
 
-启动探针（`npm run info` 与 `npm run info:bun` 输出逐行一致）：
+启动探针（`pnpm run info` 与 `pnpm run info:bun` 输出逐行一致）：
 
 ```text
 dsh-chat-demo 装配概况
@@ -200,7 +200,7 @@ dsh-chat-demo 装配概况
 BOOT_PROBE {"missing":[],"tools":27}
 ```
 
-真实对话（`npm start`，fuyao 网关，`.env` 提供 key；问题经 stdin 喂入后 `/quit`）：
+真实对话（`pnpm start`，fuyao 网关，`.env` 提供 key；问题经 stdin 喂入后 `/quit`）：
 
 ```text
 dsh-chat-demo · 交互式会话
@@ -217,7 +217,7 @@ dsh 的服务装配由声明式装配清单 `cordis.patch.yml` 驱动：官方 `
 — turn 1 completed
 ```
 
-Bun（`npm run start:bun`）同问题同路由，turn 同样 completed；模型非确定性，回答措辞与 thinking 块的有无都会变（本次 Bun 就没有 thinking 块）。
+Bun（`pnpm run start:bun`）同问题同路由，turn 同样 completed；模型非确定性，回答措辞与 thinking 块的有无都会变（本次 Bun 就没有 thinking 块）。
 
 缺 key 明确失败（移走 `.env` 后直接提问，不静默、不假回答）：
 
@@ -230,11 +230,11 @@ dsh-chat-demo · 交互式会话
   直接输入问题；/help 看命令；Ctrl-D 退出。
 
 … thinking
-✗ llm-anthropic-compat: 缺少 LLM_API_KEY；导出 LLM_API_KEY（或写进本目录 .env）后再调用模型；只跑无 key 路径（npm run info）不需要 key
+✗ llm-anthropic-compat: 缺少 LLM_API_KEY；导出 LLM_API_KEY（或写进本目录 .env）后再调用模型；只跑无 key 路径（pnpm run info）不需要 key
 — turn 1 error
 ```
 
-会话回看（`npm run traj`，默认最近会话）：
+会话回看（`pnpm run traj`，默认最近会话）：
 
 ```text
 trajectory e43912b2-d0c4-4eaa-a812-60608e941147
@@ -265,14 +265,14 @@ turn 大纲
     19 16:57:33.938  turn 1 结束 (completed)
 ```
 
-标题来自 `session-title-first-prompt-llm` 的辅助调用（适配器的 `purpose` 路径）。`token 0 in` 是 fuyao 网关的 `message_start` 不带输入用量，不是统计 bug。
+标题来自 `session-title-first-prompt-llm` 的辅助调用（适配器的 `purpose` 路径）。留档里的 `token 0 in` 是修复前的现象：当时适配器只从 `message_start` 读输入用量，而 fuyao 网关把 `input_tokens` 报在 `message_delta` 里；现在两个事件都读全量 usage，输入用量不再因事件位置而丢。
 
-测试与类型：`npm run typecheck` 0 错误；`npm test` / `npm run test:bun` 均 **22 pass / 0 fail**（traj 折叠 6 + 适配器纯函数 12 + 护栏 4）。
+测试与类型：`pnpm run typecheck` 0 错误；`pnpm test` / `pnpm run test:bun` 均 **23 pass / 0 fail**（traj 折叠 6 + 适配器纯函数 13 + 护栏 4）。
 
 7 个值得注意的数字：
 
 - **89** 行装配清单，`cordis.yml` 是空表，代码里零手工接线。
-- **127** 个依赖，其中 26 个是为 `legacy-peer-deps` 显式补写的 peer（见 §5 .npmrc 节）。
+- **127** 个依赖，其中 26 个是显式声明的 peer；peer 冲突由 `peerDependencyRules` 放行（见 §5 pnpm 设置节）。
 - **19/19** 必检服务、**27** 个工具，双运行时探针输出逐行一致。
 - **22** 个测试（6 + 12 + 4），双侧 0 fail。
 - **5** 个官方斜杠命令：/compact、/feedback、/goal、/permission、/plan。
@@ -283,7 +283,7 @@ turn 大纲
 
 ## 5 从零复现：完整文件与运行路径
 
-前置条件：Node >= 22.18（原生 TS 类型剥离，实测 v26.12.1）或 Bun >= 1.4.4；`npm install` 一次（`.npmrc` 已放宽 peer 解析）。探针、测试、会话回看不需要任何 key；真实对话复制 `.env.example` 为 `.env` 并填入网关与 key。`.env` 只读本目录：`bin.ts` 启动时读示例根的 `.env`，不覆盖已存在的环境变量，机制路径（info/sessions/traj）完全不受 key 影响。会话、存储、凭据都落在本目录 `.dsh-home/`（gitignored），刻意不继承外层 shell 的 `DSH_HOME`，不污染用户目录。Windows 上沙箱对 TEMP 目录有要求：`boot.ts` 用 `dsh-sandbox-windows-acl` 自己的 API 做可写探针（icacls 只碰 DACL，会给假阳性），候选目录逐个试，`DSH_CHAT_TEMP=keep` 可禁用。
+前置条件：Node >= 22.18（入口经 tsx 加载 .ts，实测 v26.12.1）或 Bun >= 1.4.4；`pnpm install` 一次（`pnpm-workspace.yaml` 已放行已知 peer 冲突）。探针、测试、会话回看不需要任何 key；真实对话复制 `.env.example` 为 `.env` 并填入网关与 key。`.env` 只读本目录：`bin.ts` 启动时读示例根的 `.env`，不覆盖已存在的环境变量，机制路径（info/sessions/traj）完全不受 key 影响。会话、存储、凭据都落在本目录 `.dsh-home/`（gitignored），刻意不继承外层 shell 的 `DSH_HOME`，不污染用户目录。Windows 上沙箱对 TEMP 目录有要求：`boot.ts` 用 `dsh-sandbox-windows-acl` 自己的 API 做可写探针（icacls 只碰 DACL，会给假阳性），候选目录逐个试，`DSH_CHAT_TEMP=keep` 可禁用。
 
 ### 目录结构
 
@@ -292,7 +292,8 @@ dsh-chat-demo/
 ├── cordis.yml               # []：装配全在 patch
 ├── cordis.patch.yml         # 89 行完整装配清单（§2 有分组与摘录）
 ├── package.json             # 127 依赖（含 26 个显式 peer）+ 11 scripts
-├── .npmrc                   # legacy-peer-deps（invariants 冲突，上游发新版后移除）
+├── pnpm-workspace.yaml      # pnpm 设置：allowBuilds + peerDependencyRules，不声明 packages
+├── pnpm-lock.yaml           # pnpm 锁文件
 ├── .env.example             # 真实对话所需变量模板
 ├── tsconfig.json
 ├── runtime/                 # 迷你双运行时层（自包含，不依赖根工程）
@@ -470,19 +471,32 @@ dsh-chat-demo/
 
 `tsconfig.json` 与 [dsh-agent-loop-demo 的 tsconfig.json](../11-dsh-agent-loop-demo/tsconfig.json) 逐字一致（ES2023 / nodenext / strict / noEmit / allowImportingTsExtensions），不再重复。
 
-### .npmrc（完整版）
+### pnpm 设置（完整版）
 
-```ini
-# dsh-invariants 上游未发 rc.3（最新仍是 0.2.0-rc.2），其 peer 声明 cordis ~4.0.4
-# 与本示例的 cordis 4.1.0 冲突。实测两者运行时兼容（旧 dsh-lab 同样组合验证过），
-# 故沿用根工程的解法：放宽 peer 解析。上游发新版后应移除本文件。
-legacy-peer-deps=true
+`pnpm-workspace.yaml` 只承载设置、不声明 `packages`——本示例仍是独立安装域：
+
+```yaml
+allowBuilds:
+  # tsx 的原生二进制依赖，必须放行安装脚本。
+  esbuild: true
+  # 子进程 / PTY / FFI 边界，安装期需要编译或挑选平台二进制。
+  '@deepseek-ai/dsh-subprocess-local': true
+  koffi: true
+  node-pty: true
+
+peerDependencyRules:
+  allowedVersions:
+    '@deepseek-ai/cordis': '4.1.0'
+    '@deepseek-ai/schemastery': '3.18.5'
+
+minimumReleaseAge: 0
 ```
 
-放宽 peer 解析的副作用是 npm **不再自动安装任何 peerDependencies**：26 个被
-声明为 peer 的包（dsh-error / dsh-scope / dsh-fs / dsh-shell / dsh-subprocess /
-dsh-compaction …）必须全部显式写进 dependencies（均 pin 0.2.2-rc.5），收敛到
-127 个依赖、缺失 peer 为 NONE。其他示例没有 `.npmrc`，peers 自动安装。
+peer 冲突的来历：`dsh-invariants` 上游未发 rc.3（最新仍是 0.2.0-rc.2），其 peer 声明
+cordis ~4.0.4，与本示例的 cordis 4.1.0 冲突；`dsh-settings` 想要 schemastery ~3.19.0，
+本示例按上游 lock 里的 3.18.5 实测可用。与 DSH 仓库同样的做法：不改上游 peer 声明，
+用 `allowedVersions` 显式放行。26 个 peer 包仍显式写进 dependencies（均 pin 0.2.2-rc.5），
+收敛到 127 个依赖；其余示例没有冲突，peers 由 pnpm 自动安装。
 
 ### .env.example（完整版）
 
@@ -833,7 +847,7 @@ program
       if (id === undefined) {
         const records = await demo.ctx.sessionQuery.listSessions()
         if (records.length === 0) {
-          line(style.dim('还没有任何会话。先 `npm start` 聊一句。'))
+          line(style.dim('还没有任何会话。先 `pnpm start` 聊一句。'))
           return
         }
         id = String(records[0]!.header.id)
@@ -1004,24 +1018,24 @@ trajectory 视图 384 行，全文在 [traj.ts](src/cli/traj.ts)：
 
 ```bash
 # 1 安装与类型
-npm install
-npm run typecheck
+pnpm install
+pnpm run typecheck
 
 # 2 探针：双侧 BOOT_PROBE {"missing":[],"tools":27}
-npm run info
-npm run info:bun
+pnpm run info
+pnpm run info:bun
 
-# 3 测试：双侧 22 pass / 0 fail
-npm test
-npm run test:bun
+# 3 测试：双侧 23 pass / 0 fail
+pnpm test
+pnpm run test:bun
 
 # 4 冒烟：空输入进 REPL 即 EOF 退出，不需要 key
-npm start
-npm run start:bun
+pnpm start
+pnpm run start:bun
 
 # 5 真实对话（先 Copy-Item .env.example .env 并填 key）
-npm start
-npm run traj
+pnpm start
+pnpm run traj
 ```
 
 机制路径（info / sessions / traj / test / 冒烟）不依赖任何环境变量、端口或外部服务；真实对话只多一个本目录 `.env`。
