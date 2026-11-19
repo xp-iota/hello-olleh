@@ -3,10 +3,10 @@ title: "DeepSeek Harness 源代码全面分析（中文）"
 ---
 # DeepSeek Harness 源代码全面分析（中文）
 
-本目录是对 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的系统性源码分析。**正文基线已升级到 `0.2.2-rc.3`**：当前 `sources/deepseek-harness/` 已同步到 `dsh-v0.2.2-rc.3`（`38a6a5c9`），根包与全部 `@deepseek-ai/*` workspace 包统一声明 `0.2.2-rc.3`。全部 13 篇正文（README + 01–12）均已按该基线复核：规模数字、包清单、事件面与行号统一为 `0.2.2-rc.3`（`38a6a5c9`）。配套工程 `dsh-lab/` 的示例自 2026-11-17 重构后也跑 **同一版本 `0.2.2-rc.3`** 发布包（npm `next` 通道），正文与可跑示例版本对齐。
+本目录是对 [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)（`dsh`）的系统性源码分析。**正文基线为 `0.2.2-rc.3`**：当前 `sources/deepseek-harness/` 已同步到 `dsh-v0.2.2-rc.3`（`38a6a5c9`），根包与全部 `@deepseek-ai/*` workspace 包统一声明 `0.2.2-rc.3`。全部 13 篇正文（README + 01–12）均已按该基线复核：规模数字、包清单、事件面与行号统一为 `0.2.2-rc.3`（`38a6a5c9`）。配套工程 `dsh-lab/` 的示例自 2026-11-19 起跑 **更新的 `0.2.2-rc.5`** 发布包（npm `next` 通道；实测装配树不变：19 必检服务 + 27 工具、Bun 两条缝形态不变），正文基线仍为 rc.3 快照，rc.4/rc.5 增量未回写正文。
 
 > **Source baseline:** DeepSeek Harness `dsh-v0.2.2-rc.3` (`38a6a5c9`)。**文中的行号、API 形状与符号索引都以这份源码快照为准**。
-> 配套工程 [`dsh-lab/`](../../dsh-lab/README.md) 的 21 个独立示例跑在**同一版本 `0.2.2-rc.3`** 发布线上（例外仅 `dsh-invariants` 0.2.0-rc.2，上游未发 rc.3）；各章 📐 块里的 `M0X.y` 编号是旧模块体系的阶段号，保留作场景标签，链接已改指对应的新示例。
+> 配套工程 [`dsh-lab/`](../../dsh-lab/README.md) 的 21 个独立示例跑在**更新的 `0.2.2-rc.5`** 发布线上（例外仅 `dsh-invariants` 0.2.0-rc.2，上游未发 rc 线更新）；各章 📐 块里的 `M0X.y` 编号是旧模块体系的阶段号，保留作场景标签，链接已改指对应的新示例。
 
 ## 零基础先跑：15 分钟建立直觉
 
@@ -81,7 +81,7 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 | 当前 tag | `dsh-v0.2.2-rc.3` |
 | 当前 commit | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced` |
 | 当前源码版本 | `0.2.2-rc.3` |
-| 配套工程 npm 版本 | `0.2.2-rc.3`（`dsh-lab/` 示例锁定的发布线，npm `next` 通道） |
+| 配套工程 npm 版本 | `0.2.2-rc.5`（`dsh-lab/` 示例锁定的发布线，npm `next` 通道；2026-11-19 升级，正文基线仍为 rc.3） |
 | 配套工程 cordis | `@deepseek-ai/cordis@4.1.0`（与快照内 vendored 同版） |
 
 ### 当前仓库事实
@@ -91,7 +91,7 @@ IR 源：[12-example-minimax-loop.sequence.json](diagrams/12-example-minimax-loo
 - Node.js 要求：`>=24.9.0`
 - Package manager：`pnpm@11.28.5`
 - Vendored Cordis：`4.1.0`（fork 自上游 `cordis@4.0.0-rc.11`，见 `vendor/README.md` 清单表）
-- 配套 `dsh-lab/` 的 21 个独立示例锁定的是 **`0.2.2-rc.3`** 发布线（npm `next` 通道，peer `@deepseek-ai/cordis@4.1.0`），**与上面的源码快照同版**。例外仅 `dsh-invariants` 停在 `0.2.0-rc.2`（上游未发 rc.3）；rc.1 → rc.3 的三处行为差异与实测记录见 [§ 五](#五配套工程-dsh-lab)。
+- 配套 `dsh-lab/` 的 21 个独立示例锁定的是 **`0.2.2-rc.5`** 发布线（npm `next` 通道，peer `@deepseek-ai/cordis@4.1.0`），**领先于上面的 rc.3 源码快照**——rc.3→rc.5 的 peer 集合为纯版本替换（91 个 peer 无增删），实测装配树不变（19 必检服务 + 同样 27 个工具）。例外仅 `dsh-invariants` 停在 `0.2.0-rc.2`（上游未发 rc 线更新）；rc.1 → rc.3 的三处行为差异与实测记录见 [§ 五](#五配套工程-dsh-lab)。
 
 ⚠️ **README 首屏的声明**：
 
