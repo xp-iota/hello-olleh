@@ -267,10 +267,12 @@ export class Repl {
     this.disposers.push(onError as () => void)
 
     // 状态变化：running 时把光标提示换掉（只在 TTY 下）。
-    ctx.on('agent/status', ((payload: { agent: Agent; status: string }) => {
+    // 和其余监听一样登记 disposer：/new、/model 重建 agent 时要不留旧监听。
+    const onStatus = ctx.on('agent/status', ((payload: { agent: Agent; status: string }) => {
       if (payload.agent !== agent) return
       if (payload.status === 'running') line(style.dim('… thinking'))
     }) as never)
+    this.disposers.push(onStatus as () => void)
   }
 
   /** 渲染一个流式 chunk。 */
@@ -386,10 +388,13 @@ export class Repl {
         return true
       }
       case 'new': {
+        // 携带旧 agent 的路由选择重建：用户用 /model 或 --provider 选过的
+        // 路由不该被一次"开新会话"静默重置。
+        const previous = { provider: this.agent!.options.provider, model: this.agent!.options.model }
         await this.teardown()
         line(style.dim('(新会话)'))
-        await this.startAgent({})
-        this.renderBanner({})
+        await this.startAgent(previous)
+        this.renderBanner(previous)
         return true
       }
       case 'model': {
@@ -402,7 +407,14 @@ export class Repl {
           line(style.dim('切换：/model <route> <model>'))
           return true
         }
-        const [provider, model] = argument.split(/\s+/)
+        const tokens = argument.split(/\s+/)
+        if (tokens.length === 1) {
+          // 单 token 会被解构成 model: undefined，静默回退默认模型——
+          // 明确拒绝比默默换模型好。
+          line(style.red('✗ /model 需要两个参数：/model <route> <model>（只看当前路由用 /model）'))
+          return true
+        }
+        const [provider, model] = tokens as [string, string]
         await this.teardown()
         await this.startAgent({ provider, model })
         line(style.dim(`已切到 ${provider ?? '(default)'} / ${model ?? '(default)'}`))

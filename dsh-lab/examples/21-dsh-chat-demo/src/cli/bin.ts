@@ -19,16 +19,44 @@
 import { Command } from 'commander'
 import { readFileSync } from 'node:fs'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import { bootChatDemo, ensureDemoHome, DEMO_ROOT } from '../boot.ts'
+import { bootChatDemo, DEMO_ROOT } from '../boot.ts'
 import { line, style } from './term.ts'
 
-// .env 读取：本示例不引 dotenv，自己解析（只有 KEY=VALUE 与 # 注释两种形态）。
+/**
+ * 读示例根的 .env（若存在）。已存在的环境变量不覆盖。
+ *
+ * 本示例不引 dotenv，自己解析（只有 KEY=VALUE 与 # 注释两种形态）。
+ * 解析行为（含值两侧成对引号的剥离）与 04-dsh-llm-adapter-demo 的
+ * src/env.ts 是同源约定——改一边必须同步另一边。只做解析、无副作用：
+ * `.dsh-home` 由 bootChatDemo() 里的 ensureDemoHome() 统一创建。
+ */
+function loadDotEnv(): void {
+  const path = `${DEMO_ROOT}/.env`
+  try {
+    const text = readFileSync(path, 'utf8')
+    for (const raw of text.split(/\r?\n/)) {
+      const trimmed = raw.trim()
+      if (trimmed === '' || trimmed.startsWith('#')) continue
+      const eq = trimmed.indexOf('=')
+      if (eq <= 0) continue
+      const key = trimmed.slice(0, eq).trim()
+      const value = trimmed
+        .slice(eq + 1)
+        .trim()
+        .replace(/^["']|["']$/g, '')
+      if (process.env[key] === undefined) process.env[key] = value
+    }
+  } catch {
+    // 没有 .env 是正常情况：用户也可能直接用环境变量。
+  }
+}
+
 loadDotEnv()
 
 const program = new Command()
 program
   .name('dsh-chat-demo')
-  .description('基于 @deepseek-ai/dsh 0.2.2-rc.3 的独立交互式示例：完整 89 行装配 + REPL + trajectory')
+  .description('基于 @deepseek-ai/dsh 0.2.2-rc.5 的独立交互式示例：完整 89 行装配 + REPL + trajectory')
   .version('0.1.0')
 
 program
@@ -110,11 +138,46 @@ const REQUIRED_SERVICES = [
 ] as const
 
 /**
- * 期望的工具数（Node 下的实测值；Bun 必须相同才算通过）。
- * rc.1 基线是 26；rc.3 新增 wait_agent（子代理等待），实测 27——
- * 与旧根工程逐项 diff 确认只差这一个，其余 26 个完全一致。
+ * 期望的工具**目录**（Node 下的实测值，按名排序；Bun 必须相同才算通过）。
+ * rc.1 基线是 26 个；rc.3 新增 wait_agent（子代理等待），实测 27 个——
+ * 与旧根工程逐项 diff 确认只差这一个。
+ *
+ * 为什么钉住目录而不只钉数量：数量抓得住增删，抓不住**一换一替换**或
+ * 错误工具在场（27 个里换掉一个仍是 27）。上游升版增删工具时这里会
+ * fail loud，按新目录更新本清单即可。
  */
-const EXPECTED_TOOLS = 27
+const EXPECTED_TOOL_NAMES = [
+  'ask_user_question',
+  'create_goal',
+  'edit',
+  'exit_plan_mode',
+  'get_goal',
+  'glob',
+  'grep',
+  'interrupt_agent',
+  'job_kill',
+  'job_list',
+  'job_output',
+  'list_agents',
+  'pwsh',
+  'read',
+  'read_image',
+  'send_message',
+  'skill',
+  'subagent',
+  'subagent_fork',
+  'todo_write',
+  'update_goal',
+  'wait_agent',
+  'web_fetch',
+  'web_search',
+  'workflow',
+  'working_directory',
+  'write',
+] as const
+
+/** 期望的工具数（由目录推出，单一事实源）。 */
+const EXPECTED_TOOLS = EXPECTED_TOOL_NAMES.length
 
 program
   .command('info')
@@ -142,12 +205,18 @@ program
       line(`  命令      ${commands.map((c: { name: string }) => '/' + c.name).join(', ')}`)
       line(`  护栏      pre-execute 日志（${process.env.DSH_GUARDRAIL === '0' ? '已关闭' : '开启'}）`)
       line()
-      // 机器可读标记 + 硬断言：缺服务或工具数不对就非零退出。
+      // 机器可读标记 + 硬断言：缺服务、工具数不对或**工具目录**对不上就非零退出。
+      const actualNames = tools.map((tool: { name: string }) => tool.name).sort()
+      const expectedNames: string[] = [...EXPECTED_TOOL_NAMES].sort()
+      const extraTools = actualNames.filter((name: string) => !expectedNames.includes(name))
+      const absentTools = expectedNames.filter((name) => !actualNames.includes(name))
       console.log(`BOOT_PROBE ${JSON.stringify({ missing, tools: tools.length })}`)
-      if (missing.length > 0 || tools.length !== EXPECTED_TOOLS) {
+      if (missing.length > 0 || extraTools.length > 0 || absentTools.length > 0) {
         throw new Error(
-          `启动探针失败：missing=${JSON.stringify(missing)} tools=${tools.length}（期望 ${EXPECTED_TOOLS}）。` +
-          'Bun 下少 1 个工具通常是 ptc-runtime 的 stripTypeScriptTypes shim 未生效，检查 runtime/bun-preload.mjs。',
+          `启动探针失败：missing=${JSON.stringify(missing)} tools=${tools.length}/${EXPECTED_TOOLS}` +
+          ` extra=${JSON.stringify(extraTools)} absent=${JSON.stringify(absentTools)}。` +
+          'Bun 下少 1 个工具通常是 ptc-runtime 的 stripTypeScriptTypes shim 未生效，检查 runtime/bun-preload.mjs；' +
+          '上游升版增删工具时请按新目录更新 EXPECTED_TOOL_NAMES。',
         )
       }
     } finally {
@@ -159,26 +228,3 @@ program.parseAsync(process.argv).catch((error: unknown) => {
   line(style.red(`✗ ${error instanceof Error ? error.message : String(error)}`))
   process.exitCode = 1
 })
-
-/** 读示例根的 .env（若存在）。已存在的环境变量不覆盖。 */
-function loadDotEnv(): void {
-  ensureDemoHome()
-  const path = `${DEMO_ROOT}/.env`
-  try {
-    const text = readFileSync(path, 'utf8')
-    for (const raw of text.split(/\r?\n/)) {
-      const trimmed = raw.trim()
-      if (trimmed === '' || trimmed.startsWith('#')) continue
-      const eq = trimmed.indexOf('=')
-      if (eq <= 0) continue
-      const key = trimmed.slice(0, eq).trim()
-      const value = trimmed
-        .slice(eq + 1)
-        .trim()
-        .replace(/^["']|["']$/g, '')
-      if (process.env[key] === undefined) process.env[key] = value
-    }
-  } catch {
-    // 没有 .env 是正常情况：用户也可能直接用环境变量。
-  }
-}

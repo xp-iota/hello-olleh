@@ -2,7 +2,7 @@
 
 本示例演示 agent 怎么把工作委派给子 agent：spawn 与 fork 两条通道、会话头归属、真实 `subagent` 工具激活子 agent 跑完自己的 turn、深度预算。word-count 工具与脚本化适配器都在 cordis.patch.yml 里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。
 
-全部场景离线、不需要 key；版本面 `@deepseek-ai/*` 0.2.2-rc.3、`@deepseek-ai/cordis` 4.1.0，Node 26.12.1 与 Bun 1.4.4 输出逐行一致（首行 runtime 标识除外）。
+全部场景离线、不需要 key；版本面 `@deepseek-ai/*` 0.2.2-rc.5、`@deepseek-ai/cordis` 4.1.0，Node 26.12.1 与 Bun 1.4.4 输出逐行一致（首行 runtime 标识除外）。
 
 ## 1 两条委派通道
 
@@ -302,27 +302,27 @@ dsh-subagent-demo/
     "@deepseek-ai/cordis-plugin-include": "1.1.0",
     "@deepseek-ai/cordis-plugin-loader": "1.1.0",
     "@deepseek-ai/cordis-plugin-timer": "1.2.0",
-    "@deepseek-ai/dsh-agent": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-agent-loop": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-deepseek-llm-api-extensions": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-fs-local": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session-log-deepseek": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session-persistence-jsonl": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session-projection": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session-query-sqlite": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-subagent": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-subagent-fork-in-process": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-subagent-spawn-in-process": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tool-subagent": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tools": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-working-directory": "0.2.2-rc.3"
+    "@deepseek-ai/dsh-agent": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-agent-loop": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-deepseek-llm-api-extensions": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-fs-local": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session-log-deepseek": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session-persistence-jsonl": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session-projection": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session-query-sqlite": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-subagent": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-subagent-fork-in-process": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-subagent-spawn-in-process": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tool-subagent": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-working-directory": "0.2.2-rc.5"
   },
   "devDependencies": {
     "@types/node": "22.10.2",

@@ -13,6 +13,15 @@ export const inject = ['loader']
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
+/** 有界轮询：等谓词成立再继续，超时抛错——替代定长 sleep 的状态探针，消除碰运气的时序。 */
+async function waitFor(predicate: () => boolean, { timeoutMs = 2000, intervalMs = 5, what = '' } = {}) {
+  const t0 = Date.now()
+  while (!predicate()) {
+    if (Date.now() - t0 > timeoutMs) throw new Error(`等待超时：${what}`)
+    await sleep(intervalMs)
+  }
+}
+
 /** FiberState 是 const enum，运行时拿不到名字，这里按源码顺序自建映射。 */
 const STATE = ['PENDING', 'LOADING', 'ACTIVE', 'FAILED', 'DISPOSED', 'UNLOADING'] as const
 const stateOf = (fiber?: { state: number }) => (fiber ? STATE[fiber.state] : '（无）')
@@ -44,7 +53,8 @@ async function run(ctx: Context) {
   console.log('① 六态：PENDING → LOADING → ACTIVE → UNLOADING → DISPOSED')
   const slow = row(ctx, 'slow')
   const enabling = slow.update({ disabled: false })
-  await sleep(10)   // fiber 已创建，apply 还在 sleep：正好落在 LOADING
+  // fiber 已创建，apply 还在 sleep：正好落在 LOADING（轮询等状态到位，不定长等待）
+  await waitFor(() => stateOf(slow.innerFiber) === 'LOADING', { what: 'slow 行进入 LOADING' })
   console.log('   启用行刚触发：', stateOf(slow.innerFiber))
   await enabling
   await ctx.loader.await()
@@ -62,7 +72,7 @@ async function run(ctx: Context) {
   await ctx.loader.await()
   console.log('   provider-a 上线：', stateOf(watcher.innerFiber))
   await providerA.update({ disabled: true })
-  await sleep(10)
+  await waitFor(() => stateOf(watcher.innerFiber) === 'PENDING', { what: 'watcher 回到 PENDING' })
   console.log('   provider-a 卸载：', stateOf(watcher.innerFiber), '（回到等待，而非销毁）')
   const providerB = row(ctx, 'provider-b')
   await providerB.update({ disabled: false })
@@ -90,7 +100,7 @@ async function run(ctx: Context) {
   console.log('⑤ apply 抛错：FAILED，且仍然可以 dispose')
   const broken = row(ctx, 'broken')
   await broken.update({ disabled: false }).catch(() => {})
-  await sleep(10)
+  await waitFor(() => stateOf(broken.innerFiber) === 'FAILED', { what: 'broken 行进入 FAILED' })
   console.log('   状态：', stateOf(broken.innerFiber))
   await broken.dispose()
   console.log('   dispose 后：', stateOf(broken.innerFiber))

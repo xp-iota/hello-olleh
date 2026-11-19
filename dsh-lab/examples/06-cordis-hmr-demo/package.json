@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "description": "HMR 原位替换：Node 走 @cordisjs/hmr reconcile 事务（--expose-internals），Bun 走 core registry.replace 同一条缝。双运行时。",
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "start": "node --expose-internals node_modules/cordis/bin.js",
     "start:bun": "bun node_modules/cordis/bin.js",

@@ -3,7 +3,7 @@
 本示例演示 dsh 的执行边界栈：沙箱化文件读写、一次性 shell 命令、沙箱模式、
 观察策略（写前必须先读）、/permission 权限预设。24 个服务全部在
 cordis.patch.yml 里声明，boot 后全程在位，代码里没有一处 ctx.plugin()。
-版本面：`@deepseek-ai/*` 0.2.2-rc.3 + `@deepseek-ai/cordis` 4.1.0；
+版本面：`@deepseek-ai/*` 0.2.2-rc.5 + `@deepseek-ai/cordis` 4.1.0；
 Node v26.12.1 与 Bun 1.4.4 双运行时实测，输出除 runtime 行外逐行一致。
 
 > 配套文章：[08 执行服务](../../../docs/hello-dsh/08-execution-services.md)。
@@ -384,32 +384,32 @@ dsh-sandbox-demo/
     "@deepseek-ai/cordis-plugin-include": "1.1.0",
     "@deepseek-ai/cordis-plugin-loader": "1.1.0",
     "@deepseek-ai/cordis-plugin-timer": "1.2.0",
-    "@deepseek-ai/dsh-agent": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-agent-loop": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-bash-sandbox": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-commands": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-fs-observation-policy": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-fs-sandbox": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-permission-presets": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-pwsh-sandbox": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-sandbox-local": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-sandbox-policy": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session-projection": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-shell-env": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-subprocess-local": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tool-bash": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tool-fs": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tool-pwsh": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tools": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-user-approval": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-working-directory": "0.2.2-rc.3"
+    "@deepseek-ai/dsh-agent": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-agent-loop": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-bash-sandbox": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-commands": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-fs-observation-policy": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-fs-sandbox": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-permission-presets": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-pwsh-sandbox": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-sandbox-local": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-sandbox-policy": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session-projection": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-shell-env": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-subprocess-local": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tool-bash": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tool-fs": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tool-pwsh": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-user-approval": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-working-directory": "0.2.2-rc.5"
   },
   "devDependencies": {
     "@types/node": "22.10.2",

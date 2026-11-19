@@ -8,19 +8,23 @@
  *
  * 实现要点：
  *
- *   1. 只改 `@deepseek-ai/dsh-ptc-runtime-node` 的入口文件，filter 收得很窄，
- *      避免误伤别的包对 `node:module` 的正常使用（如 `createRequire`）；
- *   2. 替换是**字符串精确匹配**，不匹配就原样返回并在 stderr 留一行提示 ——
- *      上游改了这个 import 就应当立刻被看见，而不是静默失效；
- *   3. 路径按正斜杠拼接：Windows 下正则反斜杠容易出问题，且 Bun 接受正斜杠。
+ *   1. 只改 `@deepseek-ai/dsh-ptc-runtime-node` 包 lib 下的文件（宿主 index.js
+ *      与 worker process.js 等都要补），filter 收得很窄，避免误伤别的包对
+ *      `node:module` 的正常使用（如 `createRequire`）；
+ *   2. 替换是**字符串精确匹配**（`replaceAll`：一个文件可能有多行
+ *      `node:module` 导入，漏一行就在链接期炸），不匹配就原样返回并在 stderr
+ *      留一行提示 —— 上游改了这个 import 就应当立刻被看见，而不是静默失效；
+ *   3. 路径用 `fileURLToPath` 解码再转正斜杠：`URL.pathname` 带百分号编码，
+ *      路径含空格/非 ASCII 时会静默指向不存在的文件。
  *
  * @module dsh-lab/runtime/bun-preload
  */
 import { plugin } from 'bun'
 import { basename } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-/** ptc-runtime 入口文件的正则（两个平台的分隔符都接受）。 */
-const PTC_ENTRY = /dsh-ptc-runtime-node[\\/]lib[\\/]index\.js$/
+/** ptc-runtime 包 lib 下所有入口（宿主 index.js 与 worker process.js 等都要补）。 */
+const PTC_ENTRY = /dsh-ptc-runtime-node[\\/]lib[\\/][^\\/]+\.js$/
 
 /** 原样的导入语句（上游当前写法）。 */
 const ORIGINAL_IMPORT = 'from "node:module"'
@@ -38,7 +42,7 @@ const ORIGINAL_IMPORT = 'from "node:module"'
  *     node x.js -- a b  →  argv = [execPath, x.js, '--', 'a', 'b']
  *     bun  x.js -- a b  →  argv = [execPath, x.js, 'a', 'b']
  *
- * 于是 Bun 下 M07.2（一次性 shell 命令）报：
+ * 于是 Bun 下一次性 shell 命令报：
  *
  *     subprocess runner requires target argv after a private -- delimiter
  *
@@ -69,19 +73,22 @@ plugin({
   setup(build) {
     build.onLoad({ filter: PTC_ENTRY }, async (args) => {
       const source = await Bun.file(args.path).text()
-      const shimPath = new URL('./lib/bun-shim.mjs', import.meta.url).pathname
-        .replace(/^\/([A-Za-z]:)/, '$1') // Windows 盘符：/D:/x → D:/x
-        .replace(/\\/g, '/')
+      // fileURLToPath 而不是 URL.pathname：pathname 带百分号编码，
+      // 路径含空格/非 ASCII 时会指向不存在的文件且无告警。
+      const shimPath = fileURLToPath(new URL('./lib/bun-shim.mjs', import.meta.url))
+        .replace(/\\/g, '/') // Windows 下 Bun 接受正斜杠，且免去正则反斜杠之扰
 
       if (!source.includes(ORIGINAL_IMPORT)) {
         // 上游改了导入写法：大声说出来，不要假装成功。
         process.emitWarning(
-          'dsh-lab: dsh-ptc-runtime-node 的 node:module 导入形态已变化，strip-types shim 未生效；请检查 runtime/lib/bun-preload.mjs。',
+          'dsh-lab: dsh-ptc-runtime-node 的 node:module 导入形态已变化，strip-types shim 未生效；请检查 runtime/bun-preload.mjs。',
         )
         return { contents: source, loader: 'js' }
       }
 
-      const patched = source.replace(ORIGINAL_IMPORT, `from "${shimPath}"`)
+      // 一个文件可能有多行 node:module 导入（如 process.js 的 namespace +
+      // 具名两行）：必须全部替换，漏一行就在链接期炸。
+      const patched = source.replaceAll(ORIGINAL_IMPORT, `from "${shimPath}"`)
       return { contents: patched, loader: 'js' }
     })
   },

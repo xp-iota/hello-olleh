@@ -2,7 +2,7 @@
 
 本示例演示会话日志的六个面：append-only 事件流的结构与 seq 不变量、JSONL 落盘、live-preferred 会话列表、标题投影、模型表面、从日志恢复。word-count 工具与脚本化适配器都在 cordis.patch.yml 里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。
 
-dsh 没有独立的「聊天记录数据库」：**会话日志就是唯一事实来源**。turn/step 边界、消息、工具调用与结果、标题、请求锚点，全部是同一个 append-only 事件流里的记录。全部场景离线、不需要 key；版本面 `@deepseek-ai/*` 0.2.2-rc.3、`@deepseek-ai/cordis` 4.1.0，Node 26.12.1 与 Bun 1.4.4 输出逐行一致（首行 runtime 标识与随机会话 id 除外）。
+dsh 没有独立的「聊天记录数据库」：**会话日志就是唯一事实来源**。turn/step 边界、消息、工具调用与结果、标题、请求锚点，全部是同一个 append-only 事件流里的记录。全部场景离线、不需要 key；版本面 `@deepseek-ai/*` 0.2.2-rc.5、`@deepseek-ai/cordis` 4.1.0，Node 26.12.1 与 Bun 1.4.4 输出逐行一致（首行 runtime 标识与随机会话 id 除外）。
 
 ## 1 唯一事实来源长什么样
 
@@ -295,22 +295,22 @@ dsh-session-demo/
     "@deepseek-ai/cordis-plugin-include": "1.1.0",
     "@deepseek-ai/cordis-plugin-loader": "1.1.0",
     "@deepseek-ai/cordis-plugin-timer": "1.2.0",
-    "@deepseek-ai/dsh-agent": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-agent-loop": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-deepseek-llm-api-extensions": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session-log-deepseek": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session-persistence-jsonl": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session-projection": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session-query-sqlite": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session-title": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tools": "0.2.2-rc.3"
+    "@deepseek-ai/dsh-agent": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-agent-loop": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-deepseek-llm-api-extensions": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session-log-deepseek": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session-persistence-jsonl": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session-projection": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session-query-sqlite": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session-title": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.5"
   },
   "devDependencies": {
     "@types/node": "22.10.2",

@@ -2,7 +2,7 @@
 
 本示例演示 boot() 声明式装配的五件事：prepare + patch 层建起最小树、overlay 整配置替换、required 行失败的 fail-loud、缺服务行的 PENDING 与运行时激活、dispose 逆序回收。hello 与 broken 两个本地插件都在 YAML 清单里声明，代码里没有一处 `ctx.plugin()`。
 
-dsh 的 CLI、Web 服务、headless runner 共用同一套启动胶水 `@deepseek-ai/dsh-app-boot`。全部场景离线、不碰模型、不需要 key；版本面 `@deepseek-ai/dsh-app-boot` 0.2.2-rc.3（与 `sources/deepseek-harness` 快照同版）、`@deepseek-ai/cordis` 4.1.0，Node 26.12.1 与 Bun 1.4.4 输出逐行一致（首行 runtime 标识除外）。
+dsh 的 CLI、Web 服务、headless runner 共用同一套启动胶水 `@deepseek-ai/dsh-app-boot`。全部场景离线、不碰模型、不需要 key；版本面 `@deepseek-ai/dsh-app-boot` 0.2.2-rc.5（npm `next` 通道；`sources/deepseek-harness` 源码快照仍为 rc.3）、`@deepseek-ai/cordis` 4.1.0，Node 26.12.1 与 Bun 1.4.4 输出逐行一致（首行 runtime 标识除外）。
 
 配套文章：[05 启动与 cordis 运行时](../../../docs/hello-dsh/05-startup-and-cordis-runtime.md)。
 
@@ -305,12 +305,12 @@ dsh-boot-demo/
     "@deepseek-ai/cordis-plugin-include": "1.1.0",
     "@deepseek-ai/cordis-plugin-loader": "1.1.0",
     "@deepseek-ai/cordis-plugin-timer": "1.2.0",
-    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tools": "0.2.2-rc.3"
+    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.5"
   },
   "devDependencies": {
     "@types/node": "22.10.2",

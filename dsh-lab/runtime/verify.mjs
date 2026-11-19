@@ -7,35 +7,46 @@
  *
  * 示例完全独立：这里只调用各示例自己的 npm scripts，不替它们装配任何东西。
  * 交互式入口（dsh-chat-demo 的 REPL）以 stdin=ignore 启动，读到 EOF 自行退出。
+ * 子进程环境经 runtimeEnv('node') 清洗：剥掉继承来的 NODE_OPTIONS / BUN_OPTIONS，
+ * 与 runtime/run.mjs 的口径一致——否则机器上装了 tsx 之类的工具会让 verify 结果
+ * 取决于外部状态。
  *
  * 需要 key 的示例（dsh-llm-adapter-demo / dsh-chat-demo）在缺 LLM_API_KEY 时
- * 按「明确失败」计入报告（fail-loud 是设计行为），不静默跳过；其余检查全绿时
- * 仍以 RUNTIMES_VERIFY_OK 收尾并附缺 key 清单。有 key 时它们必须真实通过。
+ * 按「明确失败」计入报告（fail-loud 是设计行为），不静默跳过；但豁免是**有条件的**：
+ * 只在输出匹配已知 fail-loud 报错特征（缺少 LLM_API_KEY / MISSING_CREDENTIAL）时才
+ * 记 △。缺 key 却冒出别的报错（代码 bug、缺依赖、Bun 崩溃）照常记 ✗ 并让整轮失败
+ * ——那正是无 key 机器上唯一能抓住的回归窗口。有 key 时它们必须真实通过。
  *
  * 结尾打印 `RUNTIMES_VERIFY_OK runtimes=2 checks=N` 作为脚本化判据。
  *
  * @module dsh-lab/runtime/verify
  */
 import { spawn } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { PROJECT_ROOT } from './lib/runtimes.mjs'
-
-const EXAMPLES_ROOT = join(PROJECT_ROOT, 'examples')
+import { EXAMPLES_ROOT, listExamples } from './lib/examples.mjs'
+import { RUNTIME_NAMES } from './lib/runtimes.mjs'
+import { runtimeEnv } from './lib/spawn.mjs'
 
 /** 真实调用路径依赖 LLM_API_KEY 的示例（目录名带分组编号）。 */
 const KEY_DEPENDENT = new Set(['10-dsh-llm-adapter-demo', '21-dsh-chat-demo'])
 
+/**
+ * 缺 key 时的已知 fail-loud 报错特征。
+ *
+ * - dsh-llm-adapter-demo：'缺少 LLM_API_KEY：S4 要发起真实的 provider 请求…'
+ * - dsh-chat-demo：适配器在真正调用时抛 code='MISSING_CREDENTIAL'，
+ *   报错信息含 '缺少 LLM_API_KEY'。
+ *
+ * 两个示例升级/改文案时这里要同步；对不上就说明报错来自别处，verify 照常记失败。
+ */
+const FAIL_LOUD_SIGNATURE = /缺少\s*LLM_API_KEY|MISSING_CREDENTIAL/
+
 /** 单项检查的超时（毫秒）：真实模型调用可能较慢。 */
 const CHECK_TIMEOUT_MS = 240_000
 
-/** 列出全部示例目录（带 package.json 的才算）。 */
-function listExamples() {
-  return readdirSync(EXAMPLES_ROOT, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && existsSync(join(EXAMPLES_ROOT, entry.name, 'package.json')))
-    .map((entry) => entry.name)
-    .sort()
-}
+/** POSIX 上 SIGTERM 后再等这么久不退就 SIGKILL（毫秒）。 */
+const KILL_GRACE_MS = 5_000
 
 /** 示例目录里是否已有 .env，或进程环境里已有 key。 */
 function hasKey(exampleDir) {
@@ -43,6 +54,27 @@ function hasKey(exampleDir) {
   const envFile = join(exampleDir, '.env')
   if (!existsSync(envFile)) return false
   return /^\s*LLM_API_KEY\s*=\s*\S+/m.test(readFileSync(envFile, 'utf8'))
+}
+
+/**
+ * 杀掉子进程的**整棵**进程树。
+ *
+ * shell:true 起的是外壳（Windows 上 cmd.exe、POSIX 上 /bin/sh），child.kill
+ * 只杀外壳，npm→node/bun 的孙进程会活下来——挂着 stdin 的 REPL 就这么变成孤儿。
+ * Windows 用 `taskkill /T /F` 递归强杀；POSIX 先 SIGTERM、宽限期后升 SIGKILL。
+ *
+ * @param {import('node:child_process').ChildProcess} child
+ * @returns {NodeJS.Timeout | undefined} 需要后续清理的升级定时器（POSIX 才有）
+ */
+function killTree(child) {
+  if (process.platform === 'win32') {
+    if (child.pid !== undefined) {
+      spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
+    }
+    return undefined
+  }
+  child.kill('SIGTERM')
+  return setTimeout(() => child.kill('SIGKILL'), KILL_GRACE_MS)
 }
 
 /**
@@ -57,15 +89,16 @@ function runScript(exampleDir, script) {
   return new Promise((resolvePromise) => {
     const child = spawn(`npm run ${script}`, {
       cwd: exampleDir,
-      env: process.env,
+      env: runtimeEnv('node'),
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: true,
     })
     let output = ''
     let timedOut = false
+    let killTimer
     const timer = setTimeout(() => {
       timedOut = true
-      child.kill('SIGTERM')
+      killTimer = killTree(child)
     }, CHECK_TIMEOUT_MS)
     child.stdout.on('data', (chunk) => {
       output += chunk.toString('utf8')
@@ -75,10 +108,12 @@ function runScript(exampleDir, script) {
     })
     child.once('error', (error) => {
       clearTimeout(timer)
+      if (killTimer !== undefined) clearTimeout(killTimer)
       resolvePromise({ code: 1, output: `${output}\n${error.message}`, timedOut })
     })
     child.once('exit', (code) => {
       clearTimeout(timer)
+      if (killTimer !== undefined) clearTimeout(killTimer)
       resolvePromise({ code: code ?? 1, output, timedOut })
     })
   })
@@ -116,16 +151,26 @@ async function main() {
         continue
       }
       // 缺 key 的示例按「明确失败」计入报告：fail-loud 是设计行为，
-      // 不静默跳过，也不当成环境故障——但如实列出。
+      // 不静默跳过，也不当成环境故障——但如实列出。豁免以报错特征为凭：
+      // 只认「缺 LLM_API_KEY」的已知报错，其余（代码 bug、缺依赖、Bun 崩溃）
+      // 一律按真实失败处理，不能让 keyless 机器上的回归蒙混过关。
       if (keyed && !keyPresent && check !== 'typecheck') {
-        keyFailures.push(label)
-        results.push({ label, ok: true, keyFail: true, detail: 'fail-loud（缺 LLM_API_KEY，见示例 README）' })
+        if (FAIL_LOUD_SIGNATURE.test(run.output)) {
+          keyFailures.push(label)
+          results.push({ label, ok: true, keyFail: true, detail: 'fail-loud（缺 LLM_API_KEY，报错特征匹配）' })
+          continue
+        }
+        results.push({
+          label,
+          ok: false,
+          detail: `缺 key 但报错与已知 fail-loud 特征不符（${run.timedOut ? `超时 ${CHECK_TIMEOUT_MS / 1000}s` : `exit ${run.code}：${failureHint(run.output)}`}）`,
+        })
         continue
       }
       results.push({
         label,
         ok: false,
-        detail: run.timedOut ? `超时 ${CHECK_TIMEOUT_MS / 1000}s` : `exit ${run.code}：${failureHint(run.output)}`,
+        detail: run.timedOut ? `超时 ${CHECK_TIMEOUT_MS / 1000}s（已清理进程树）` : `exit ${run.code}：${failureHint(run.output)}`,
       })
     }
   }
@@ -141,9 +186,10 @@ async function main() {
   console.log('─'.repeat(96))
 
   const failed = results.filter((row) => !row.ok)
+  const runtimesCount = RUNTIME_NAMES.length
   if (failed.length > 0) {
     console.error('')
-    console.error(`RUNTIMES_VERIFY_FAILED runtimes=2 checks=${results.length} failed=${failed.length}`)
+    console.error(`RUNTIMES_VERIFY_FAILED runtimes=${runtimesCount} checks=${results.length} failed=${failed.length}`)
     process.exitCode = 1
     return
   }
@@ -153,7 +199,7 @@ async function main() {
     console.log('配好各示例目录的 .env（LLM_API_KEY）后重跑，这些项应转为真实通过。')
   }
   console.log('')
-  console.log(`RUNTIMES_VERIFY_OK runtimes=2 checks=${results.length}`)
+  console.log(`RUNTIMES_VERIFY_OK runtimes=${runtimesCount} checks=${results.length}`)
 }
 
 main().catch((error) => {

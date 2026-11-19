@@ -242,71 +242,7 @@ npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过
 
 装配路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordisjs/include`、`@cordisjs/fs`、`@cordisjs/fs-node`，已写进 `package.json`。
 
-## 8 源码视角：一个存储键如何撑起四个场景
-
-core 摘录取自本仓 vendored 源码 `deepseek-harness/vendor/cordis/src`（4.1.0，rc.11 基线）；本示例运行 cordis 4.0.0-rc.13，本节机制两个版本一致。配置层摘录取自 `@cordisjs/loader` 1.0.0-rc.10（本示例锁定的版本）。逐行精读见 [Context 与 Reflect Proxy](../../../docs/hello-cordis/04-context-and-reflect-proxy.md)、[服务注册与依赖解析](../../../docs/hello-cordis/05-service-registration-and-dependency-resolution.md)。
-
-### 8.1 键从哪来：provide 的两行
-
-第 2 节展示了 isolate 怎么改表，这里看 provide 怎么用表（`reflect.ts:300-306`）：
-
-```ts
-this.ctx.root[symbols.isolate][name] ??= Symbol(name)
-const key = this.ctx[symbols.isolate][name]
-const impl: Impl = { uid: ++this._implCounter, name, value, ctx: this.ctx, check, isolate: key, dependents: new Set() }
-if (this.store[key]) {
-  throw new Error(`service "${name}" has been registered at <${this.store[key].ctx.fiber.name}>`)
-}
-this.store[key] = impl
-```
-
-第一行保证 root 表里每个名字有个默认 symbol；第二行从**当前上下文**的表取键——realm 的表 own 了这个名字就取新键，没 own 就沿原型链取 root 键。于是：场景 ① 两个 provider 键不同，查重通过、两份 impl 并存；场景 ② realm 里 provide 没被 isolate 的名字，取的还是 root 键，影响全局。第 3 节那句「isolate 本身永不报错，报错在 provide 查重」就是这里第 4～6 行。
-
-### 8.2 解析边界：键不同就停
-
-消费者沿 fiber 父链向上找服务时，每一步都比对 isolate 键（`reflect.ts:177`，完整查找链见 [01 篇 7.3](../01-cordis-seam-demo/README.md#73-访问必须有声明proxy-get-陷阱)）：
-
-```ts
-if (fiber.parent[symbols.isolate][prop] !== key) throw error
-```
-
-realm 消费者的键是 Sym_B，走到 realm 边界时父上下文的键是 Sym_A，不等就抛错——不会继续向上拿到 root 的同名实现。场景 ① 里两个消费者各拿各的，靠的就是这一行在各自链上生效。
-
-### 8.3 事件可见性：Service 自带的 filter
-
-以服务实例为 thisArg 派发时，`_resolve` 取 `thisArg[Context.filter]` 筛监听器（见 [03 篇 9.1](../03-cordis-events-demo/README.md#91-五个方法共用一个预处理_resolve)）。Service 基类实现的 filter 只有两行（`service.ts:61-63`）：
-
-```ts
-protected [symbols.filter](ctx: Context) {
-  return ctx[symbols.isolate][this.name] === this.ctx[symbols.isolate][this.name]
-}
-```
-
-比较的是**服务名**在两个上下文里的 isolate 键：监听器与服务同 realm 才可见。场景 ③ 的 2 次命中而非 4 次就是这两行筛出来的；也解释了为什么必须 isolate `ticker` 而不是复用 greeter 的 realm——filter 查的是 `this.name` 的键。
-
-### 8.4 服务变更通知也按 realm 过滤
-
-provide/unprovide 触发的 `notify` 自带一个默认过滤器（`reflect.ts:335`）：
-
-```ts
-notify(names: string[], filter = (ctx: Context, name: string) => ctx[symbols.isolate][name] === this.ctx[symbols.isolate][name]) {
-```
-
-只有同键的 fiber 会被 `_checkImpl` + `_refresh`。所以场景 ④ 禁用共享 provider 时，root 消费者的 epoch 根本没被碰过——「卸载影响范围精确等于 realm 成员范围」不是调度层的照顾，是通知层就没发给它。
-
-### 8.5 配置层：字符串 label 如何变成共享 symbol
-
-yml 里的 `isolate: { greeter: 'realm-1' }` 由 loader 翻译。`@cordisjs/loader` 为每个字符串 label 维护一个 GlobalRealm，同名 label 拿到同一个实例（`lib/index.js`，源文件 `src/config/isolate.ts`）：
-
-```js
-realm = realms[label] ??= new GlobalRealm(label);
-// …
-return this.store[key] ??= Symbol(`${key}${this.suffix}`);
-```
-
-同一个 GlobalRealm 里同一个服务名只创建一次 symbol——这就是「label 相同即共享 realm」的实现。`isolate: true` 走 LocalRealm，后缀是 `#entry.id`，每行私有。core 的 `ctx.isolate(name, label)` 只认 symbol，字符串到 symbol 的翻译完全在 loader 这一层。
-
-## 9 从零复现：完整文件与运行路径
+## 8 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -378,9 +314,89 @@ cordis-isolate-demo/
 }
 ```
 
-### src/index.ts
+### src/index.ts（完整版）
 
-正文第 7 节展示的是节选；完整文件就在本目录 [src/index.ts](src/index.ts)，由 cordis.yml 的 runner 行挂载，依次演示双实现、按名字隔离、事件可见性、共享 label。脚手架各写法的含义见 [01 篇第 5 节的速览表](../01-cordis-seam-demo/README.md#脚手架速览照抄即可原理在-05-篇展开)。
+正文第 7 节展示的是节选；这里是可直接运行的完整文件。它由 cordis.yml 的 runner 行挂载，依次演示双实现、按名字隔离、事件可见性、共享 label。
+
+```ts
+/**
+ * isolate 的 realm 隔离：同名服务多份实现、按名字隔离、事件可见性、共享 label。
+ *
+ * runner：由 cordis.yml 的 runner 行挂载，代码里没有一处 ctx.use / ctx.plugin；
+ * realm 划分全部写在配置行的 isolate 字段里，这里只经行句柄做启用 / 禁用。
+ */
+import type { Context } from 'cordis'
+import type { Entry } from '@cordisjs/loader'
+import { hits } from './state.ts'
+import type {} from './seam.ts'
+
+export const name = 'runner'
+export const inject = ['loader']
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+/** 有界轮询：等谓词成立再继续，超时抛错——替代定长 sleep 的状态探针，消除碰运气的时序。 */
+async function waitFor(predicate: () => boolean, { timeoutMs = 2000, intervalMs = 5, what = '' } = {}) {
+  const t0 = Date.now()
+  while (!predicate()) {
+    if (Date.now() - t0 > timeoutMs) throw new Error(`等待超时：${what}`)
+    await sleep(intervalMs)
+  }
+}
+
+/** FiberState 是 const enum，运行时拿不到名字，这里按源码顺序自建映射。 */
+const STATE = ['PENDING', 'LOADING', 'ACTIVE', 'FAILED', 'DISPOSED', 'UNLOADING'] as const
+const stateOf = (fiber?: { state: number }) => (fiber ? STATE[fiber.state] : '（无）')
+
+// yml 的行挂在 include 子树里；entries() 会递归遍历，按 id 找行句柄
+function row(ctx: Context, id: string): Entry {
+  const entry = [...ctx.loader.entries()].find(row => row.options.id === id)
+  if (!entry) throw new Error(`cordis.yml 里没有 id=${id} 的行`)
+  return entry
+}
+
+export function apply(ctx: Context) {
+  // apply 同步返回：runner 自己的 fiber 先 settle，run() 再等整棵树，避免互相等待
+  void run(ctx)
+}
+
+async function run(ctx: Context) {
+  await ctx.loader.await()
+
+  console.log('① 同名服务两份实现：isolate 按名字划出 realm')
+  const consumerRoot = row(ctx, 'consumer-root')
+  const consumerRealm = row(ctx, 'consumer-realm')
+  console.log('   无 provider 时：', stateOf(consumerRoot.innerFiber), '/', stateOf(consumerRealm.innerFiber))
+  await row(ctx, 'provider-outer').update({ disabled: false })
+  await ctx.loader.await()
+  await row(ctx, 'provider-inner').update({ disabled: false })
+  await ctx.loader.await()
+  console.log('   两个 consumer 同时：', stateOf(consumerRoot.innerFiber), '/', stateOf(consumerRealm.innerFiber), '\n')
+
+  console.log('② 隔离按名字生效：没被 isolate 的服务穿透 realm')
+  await row(ctx, 'clock-provider').update({ disabled: false })
+  await ctx.loader.await()
+  console.log('   realm 只 shadow 了 greeter，clock 沿原型链回到 root', '\n')
+
+  console.log('③ 事件跟着 realm 走：以服务为 thisArg 派发，跨 realm 监听器不可见')
+  // 在各自 fiber 的 ctx 上 ctx.get 取服务：root 行与 realm 行各有一份 ticker
+  row(ctx, 'ticker-root').innerFiber!.ctx.get('ticker')!.tick()
+  row(ctx, 'ticker-realm').innerFiber!.ctx.get('ticker')!.tick()
+  console.log('   两次 tick 的命中：', hits.join(' → '), '（无隔离时应为 4 次）', '\n')
+
+  console.log('④ 同 label 即同 realm：卸载只影响本 realm 的消费者')
+  const providerShared = row(ctx, 'provider-shared')
+  await providerShared.update({ disabled: false })
+  await ctx.loader.await()
+  await providerShared.update({ disabled: true })
+  await waitFor(() => stateOf(row(ctx, 'consumer-shared').innerFiber) === 'PENDING', { what: 'consumer-shared 回到 PENDING' })
+  console.log('   共享 provider 卸载后：consumer-shared =', stateOf(row(ctx, 'consumer-shared').innerFiber), '，consumer-root =', stateOf(consumerRoot.innerFiber))
+
+  console.log('演示结束')
+  // cordis CLI 靠文件 watch 保持进程存活；演示做完主动退出
+  process.exit(0)
+}
+```
 
 ### src/seam.ts
 
@@ -502,6 +518,12 @@ export function apply(ctx: Context) {
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 
+## 9 延伸阅读
+
+- 对应的分析章节：[Context 与 Reflect 代理](../../../docs/hello-cordis/04-context-and-reflect-proxy.md)——示例演示隔离的行为差异，这一章解释 isolate 表的原型链 shadow、store 以 Symbol 为键、服务解析沿 fiber 链向上查找的边界判定，以及 extend / intercept 另两种派生——「isolate 只改一个键」的源码机制全在这里。
+
 ## 10 小结
 
 isolate 的本质是「服务名 → symbol 键」这张表的原型链 shadow：改一个 own 属性，就划出一个新世界；store 以键存实现，所以同名服务可以多份并存、独立卸载。隔离是调用方单方面的决定，插件无需配合——配置层的 `isolate:` 字段把这个决定也变成了声明：`true` 是私有 realm，字符串 label 相同即共享。下一篇 loader 示例展开配置树本身：`cordis.yml` 里的每一行 entry 如何变成 fiber，include 与 patch 如何组合出整棵装配树。
+
+上一篇：[03-cordis-events-demo](../03-cordis-events-demo/README.md) ｜ 下一篇：[05-cordis-loader-demo](../05-cordis-loader-demo/README.md)

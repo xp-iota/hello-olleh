@@ -56,11 +56,16 @@
  * @module dsh-jobs-demo/runtime/lib/bun-shim
  */
 
-/** 上游一次性 PTC 使用的前缀（长度必须与上游的 `slice(35, …)` 一致）。 */
-const STRIP_PREFIX = 'async function __dsh_program__() {\n'
+/**
+ * 上游一次性 PTC 使用的前缀（长度必须与上游的 `slice(35, …)` 一致）。
+ *
+ * 这是本工程唯一"必须逐字节对齐"的契约，导出给 check-bun-shim.mjs 复用：
+ * 契约只在这里声明一份，校验就不会对着自己那份拷贝空转。
+ */
+export const STRIP_PREFIX = 'async function __dsh_program__() {\n'
 
-/** 上游一次性 PTC 使用的后缀。 */
-const STRIP_SUFFIX = '\n}'
+/** 上游一次性 PTC 使用的后缀（同样导出，供契约校验复用）。 */
+export const STRIP_SUFFIX = '\n}'
 
 /** Transpiler 实例复用：构造开销不小，且它本身无状态。 */
 let transpiler
@@ -148,13 +153,16 @@ export function stripTypeScriptTypes(code) {
   return strip(code)
 }
 
+/** 标记：用于自检时确认 shim 真的被装上了。 */
+export const BUN_STRIP_SHIM = true
+
 /**
  * `node:module.registerHooks` 的降级替身（Bun 无同步模块定制钩子）。
  *
  * 上游用它给程序内的 `await import(...)` 接沙箱判决（imports/module-hooks.ts）。
  * Bun 没有钩子管线，这里只保住链接期与构造期不炸：返回可 deregister 的空壳。
  * **代价**：Bun 下程序内的动态 import 走 Bun 默认加载器，不经沙箱 importHandler
- * 判决——本示例的程序不用 import，不受影响；要用 import 的程序请在 Node 下跑。
+ * 判决——不用程序内 import 的示例不受影响；要用 import 的示例请在 Node 下跑。
  *
  * @returns {{ deregister: () => void }}
  */
@@ -166,6 +174,3 @@ export function registerHooks() {
 // node:module 拿别的东西，不能只给两个替身就把整个模块换掉。
 export * from 'node:module'
 export { default } from 'node:module'
-
-/** 标记：用于自检时确认 shim 真的被装上了。 */
-export const BUN_STRIP_SHIM = true

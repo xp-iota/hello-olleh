@@ -171,109 +171,7 @@ npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过
 
 装配路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordisjs/include`、`@cordisjs/fs`、`@cordisjs/fs-node`，加上 `@cordisjs/hmr`，都已写进 `package.json`。
 
-## 9 源码视角：原位替换与事务在源码里长什么样
-
-本篇摘录取自本示例锁定的 **cordis 4.0.0-rc.13** 与 **@cordisjs/hmr 2.0.0-rc.0** 编译产物（`node_modules/…/lib/index.js`，装完依赖可直接读）。注意 `registry.replace` / `fiber._replace` 是 rc.13 新增的缝，本仓 vendored 的 4.1.0 fork（rc.11 基线）里没有它们——前五篇引用的 fork 源码与本篇不重叠。逐行精读见 [HMR](../../../docs/hello-cordis/08-hmr.md)。
-
-### 9.1 registry.replace：认模块身份，复用 fiber 列表
-
-```js
-replace(oldComponent, newComponent) {
-  const source = this._forward(oldComponent);
-  if (!source) throw new Error('invalid component, expect function or object with an "apply" method, received ' + typeof oldComponent);
-  const key = this.resolve(newComponent);
-  if (!key) throw new Error('invalid component, expect function or object with an "apply" method, received ' + typeof newComponent);
-  // …alias 与 runtime 迁移省略…
-  const fibers = runtime ? [...runtime.fibers] : [];
-  if (!fibers.length) return fibers;
-  target ??= this._create(key, newComponent);
-  for (const fiber of fibers) {
-    fiber._replace(target, Inject.resolve(newComponent.inject));
-  }
-  return fibers;
-}
-```
-
-组件身份就是模块 namespace（[05 篇 9.1](../05-cordis-loader-demo/README.md#91-一行配置的最后一步registryuse) 里 runtime 以 callback 为键）：replace 按旧 namespace 找到 runtime，把它名下的 fiber 逐个交给新 runtime——**没有 new Fiber，没有 dispose**。这就是场景 ② uid 不变、行句柄引用持续有效的全部原因。Bun 分支手工调的也是这个函数。
-
-### 9.2 fiber._replace：换内容不动身份，级联是免费推论
-
-```js
-_replace(runtime, inject) {
-  if (runtime !== this.runtime) {
-    this._remove();
-    this._remove = runtime.fibers.push(this);
-    this.runtime = runtime;
-  }
-  this.inject = inject;
-  this.context.emit("internal/replace", this);
-  this._store = Object.create(null);
-  for (const name of Object.keys(this.inject)) {
-    this._checkImpl(name);
-  }
-  this._error = void 0;
-  this._revision++;
-  this._refresh();
-}
-```
-
-逐行看：把自己从旧 runtime 的列表摘到新的；换 inject 清单；重建依赖快照 `_store`；清掉旧的 FAILED 错误；`_revision++` 后 `_refresh()`。uid、config、父级、entry 一个都没碰。而 epoch 指纹以 `_revision` 起始（[02 篇 8.2](../02-cordis-fiber-demo/README.md#82-inertia-单飞与原地复活)）——修订号变了，自己的 epoch 必变，provide 的服务 impl 换新 uid，依赖者的 epoch 跟着变，自动卸载再重装。**HMR 代码里没有一行处理依赖者**，场景 ② 的 consumer #2 与 clock 恒 #1 都是 epoch 机制的免费推论。
-
-### 9.3 Stage 1：先校验后动手，失败只恢复缓存
-
-hmr 重新 import 每个 stale 组件后当场校验（`@cordisjs/hmr lib/index.js`）：
-
-```js
-const exports = await load(stale.url);
-if (!this.ctx.registry.resolve(exports)) {
-  throw new Error(`invalid component at ${this._relative(stale.url)}, expect function or object with an "apply" method, received ${typeof exports}`);
-}
-```
-
-校验失败记 `attempt.failed = true`，随后按并查集 unit 分类：
-
-```js
-const aborted = units.filter((unit) => unit.attempts.some((attempt) => attempt.failed));
-const skipped = units.filter((unit) => !aborted.includes(unit) && unit.attempts.some((attempt) => attempt.skip));
-const committed = units.filter((unit) => !aborted.includes(unit) && !skipped.includes(unit));
-// …
-backup.restore(restored);
-```
-
-`backup.restore` 只恢复 aborted/skipped unit 涉及的模块缓存——**到这一行为止没有任何 Fiber 被碰过**。场景 ③ 的 `export const apply = 42` 就死在第一个 if：`registry.resolve` 认不出组件形态，unit 整体 aborted，旧 greeter 继续跑。Bun 分支的 `typeof ns.apply === 'function'` 是这条校验的手工等价物。
-
-### 9.4 Stage 3：替换失败不回滚
-
-committed unit 逐个 replace，异常只 warn 不抛：
-
-```js
-try {
-  const replaced2 = this.ctx.registry.replace(component, attempt.replacement);
-  if (!replaced2.length) continue;
-  this.ctx.logger.info("reload component at %C", path);
-  fibers.push(...replaced2);
-} catch (error) {
-  this.ctx.logger.warn("failed to reload component at %C", path);
-  this.ctx.logger.warn(error);
-}
-// …
-await Promise.all(fibers.map((fiber) => fiber.await().catch(() => {})));
-result.settled = fibers.filter((fiber) => fiber.uid !== null);
-```
-
-新组件 apply 抛错时 fiber 落 FAILED（[02 篇 8.5](../02-cordis-fiber-demo/README.md#85-failed-为什么不是终态)），与冷启动失败语义一致：保留注册、父级与 config，等下次文件变化重试。可靠性边界全压在 Stage 1——回滚到一个已知有问题的旧实例没有意义。
-
-### 9.5 host module：静态闭包划边界
-
-reconcile 开头对每个根路径判定（同文件）：
-
-```js
-result.skipped.push({ urls: [url], reason: _Hmr.SkipReason.HostModule });
-```
-
-判定依据是 `closure()` 从 `process.argv[1]` 沿静态 import 边遍历出的集合：主入口静态可达的模块改了只记 skipped（场景 ⑤ 的 bin.js），动态 `await import()` 的插件不在集合里（场景 ② 的 greeter.ts）。「哪些能热换」不是配置出来的，是模块图的拓扑性质。
-
-## 10 从零复现：完整文件与运行路径
+## 9 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证，start 脚本已带 `--expose-internals`）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -396,9 +294,148 @@ export function apply(ctx: Context) {
 }
 ```
 
-### src/index.ts
+### src/index.ts（完整版）
 
-正文第 8 节展示的是节选；完整文件就在本目录 [src/index.ts](src/index.ts)，由 cordis.yml 的 runner 行挂载，Node 分支走 hmr reconcile 事务，Bun 分支走 core registry.replace 缝。脚手架各写法的含义见 [01 篇第 5 节的速览表](../01-cordis-seam-demo/README.md#脚手架速览照抄即可原理在-05-篇展开)。
+正文第 8 节展示的是节选；这里是可直接运行的完整文件。它由 cordis.yml 的 runner 行挂载，Node 分支走 hmr reconcile 事务，Bun 分支走 core registry.replace 缝。
+
+```ts
+/**
+ * HMR 原位替换：Node 走 @cordisjs/hmr 的 reconcile 事务（需 --expose-internals）；
+ * Bun 拿不到 Node 内部模块缓存，走 core registry.replace() 同一条缝（新 URL 重导入 + 先校验后动手）。
+ *
+ * runner：由 cordis.yml 的 runner 行挂载，代码里没有一处 ctx.use / ctx.plugin。
+ * greeter / consumer / clock 由 loader 动态 import 挂载——正是 hmr 能追踪的形态；
+ * hmr 行在 yml 里声明为禁用，只在 Node 分支运行时启用。
+ */
+import type { Context } from 'cordis'
+import type { Entry } from '@cordisjs/loader'
+import type {} from '@cordisjs/hmr'
+import { readFile, rm, writeFile } from 'node:fs/promises'
+import { rmSync, writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
+export const name = 'runner'
+export const inject = ['loader']
+
+declare module 'cordis' {
+  interface Context {
+    greeter: { tag: string }
+  }
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+const isBun = !!(process.versions as Record<string, string | undefined>).bun
+
+const greeterUrl = new URL('./plugins/greeter.ts', import.meta.url)
+const greeterFile = fileURLToPath(greeterUrl)
+// Bun 分支的修订临时文件（新路径重导入用）：路径集中定义，便于 finally 与退出钩子统一清场
+const revUrl = (n: number) => new URL(`./plugins/.greeter-r${n}.ts`, import.meta.url)
+const source = await readFile(greeterFile, 'utf8')
+const write = (tag: string) => writeFile(greeterFile, source.replaceAll('v1', tag))
+const writeBroken = () => writeFile(greeterFile, "export const tag = 'v3'\nexport const apply = 42\n")
+
+// 崩溃兜底：正常路径由 run() 的 finally 清场；绕过 finally 的退出（异常崩溃、Ctrl-C）
+// 由 exit 钩子同步恢复 greeter.ts、删除修订临时文件——exit 钩子里只能做同步清理。
+process.on('exit', () => {
+  try {
+    writeFileSync(greeterFile, source)
+    for (const n of [2, 3, 4]) rmSync(revUrl(n), { force: true })
+  } catch { /* 尽力而为：清场失败不再向外传播 */ }
+})
+process.on('SIGINT', () => {
+  // Ctrl-C：走上面的 exit 钩子同步清场，再以 130 退出
+  process.exit(130)
+})
+
+// yml 的行挂在 include 子树里；entries() 会递归遍历，按 id 找行句柄
+function row(ctx: Context, id: string): Entry {
+  const entry = [...ctx.loader.entries()].find(row => row.options.id === id)
+  if (!entry) throw new Error(`cordis.yml 里没有 id=${id} 的行`)
+  return entry
+}
+
+export function apply(ctx: Context) {
+  // apply 同步返回：runner 自己的 fiber 先 settle，run() 再等整棵树，避免互相等待
+  void run(ctx)
+}
+
+async function run(ctx: Context) {
+  await ctx.loader.await()
+  // 与 loader 导入的是同一个 URL：模块 namespace 即组件身份，replace 认它
+  const greeter = await import(greeterUrl.href)
+  const greeterFiber = row(ctx, 'greeter').innerFiber!
+
+  console.log(isBun ? '运行时：Bun（core registry.replace 缝）' : '运行时：Node（@cordisjs/hmr reconcile 事务）')
+  console.log('① 基线：greeter uid =', greeterFiber.uid)
+
+  try {
+    if (!isBun) {
+      // hmr 行在 cordis.yml 里声明为 disabled: true，Node 分支运行时启用
+      await row(ctx, 'hmr').update({ disabled: false })
+      await ctx.loader.await()
+      const hmr = ctx.get('hmr')!
+
+      await write('v2')
+      const r2 = await hmr.reconcile(() => [greeterFile])
+      await sleep(20)
+      console.log('② 改文件 → reconcile：原位替换，Fiber 身份不变，依赖者经 epoch 级联')
+      console.log('   settled =', r2.settled.length, '，greeter uid 不变 =', r2.settled.some((f) => f.uid === greeterFiber.uid), '，tag =', ctx.get('greeter')!.tag)
+
+      await writeBroken()
+      const r3 = await hmr.reconcile(() => [greeterFile])
+      console.log('③ 导出损坏 → aborted：恢复缓存，旧组件继续运行')
+      console.log('   aborted =', r3.aborted.length, '，settled =', r3.settled.length, '，tag 仍 =', ctx.get('greeter')!.tag)
+      console.log('   首错:', String(r3.aborted[0]?.error).split('\n')[0])
+
+      await write('v4')
+      const r4 = await hmr.reconcile(() => [greeterFile])
+      await sleep(20)
+      console.log('④ 修好文件 → 再 reconcile：aborted unit 重试成功')
+      console.log('   settled =', r4.settled.length, '，tag =', ctx.get('greeter')!.tag)
+
+      // host module 是主入口 bin.js 的静态依赖树；runner 自己由 loader 动态导入，不在此列
+      const hostFile = fileURLToPath(new URL('../node_modules/cordis/bin.js', import.meta.url))
+      const r5 = await hmr.reconcile(() => [hostFile])
+      console.log('⑤ host module（cordis/bin.js 主入口）→ skipped：重启后才生效')
+      console.log('   reason =', r5.skipped[0]?.reason, '；clock 与 greeter 无关，apply 计数见上方日志')
+    } else {
+      // Bun 的模块缓存不吃 query 后缀（实测 ?v=2 仍命中旧模块），
+      // 故每修订写一个新路径：等价于 Node 缓存驱逐后产生的新模块身份。
+      const writeRev = async (n: number, content: string) => {
+        await writeFile(revUrl(n), content)
+        return import(revUrl(n).href)
+      }
+
+      console.log('② 新修订新 URL 重导入 → registry.replace（HMR Stage 2/3 同一条缝）')
+      const ns2 = await writeRev(2, source.replaceAll('v1', 'v2'))
+      const fibers2 = ctx.registry.replace(greeter, ns2)
+      await sleep(20)
+      console.log('   replaced fibers =', fibers2.length, '，uid 不变 =', fibers2.some((f) => f.uid === greeterFiber.uid), '，tag =', ctx.get('greeter')!.tag)
+
+      console.log('③ 导出损坏 → 先校验后动手：拒绝 replace，旧组件继续运行')
+      const ns3 = await writeRev(3, "export const tag = 'v3'\nexport const apply = 42\n")
+      const ok3 = typeof ns3.apply === 'function'
+      if (ok3) ctx.registry.replace(greeter, ns3)
+      console.log('   导出校验通过 =', ok3, '，tag 仍 =', ctx.get('greeter')!.tag)
+
+      console.log('④ 修好 → 重导入 → 再 replace')
+      const ns4 = await writeRev(4, source.replaceAll('v1', 'v4'))
+      ctx.registry.replace(greeter, ns4)
+      await sleep(20)
+      console.log('   tag =', ctx.get('greeter')!.tag)
+      console.log('⑤ hostModules/skipped 是 hmr 在 Node 缓存层的概念；Bun 演示 core 缝；clock 不受影响见日志')
+    }
+  } finally {
+    // 崩溃安全：无论正常跑完还是中途抛错，greeter.ts 恢复原状、修订临时文件全部清场
+    if (!isBun) await writeFile(greeterFile, source)
+    await Promise.all([2, 3, 4].map((n) => rm(revUrl(n), { force: true })))
+  }
+
+  console.log('演示结束（插件文件已恢复原状）')
+  // cordis CLI 靠文件 watch 保持进程存活；演示做完主动退出
+  process.exit(0)
+}
+```
 
 ### 按顺序验证
 
@@ -409,6 +446,12 @@ export function apply(ctx: Context) {
 
 示例不依赖任何环境变量、端口或外部服务。Node 路径要求未带 `--preserve-symlinks`（模块 URL 须为 realpath）。
 
+## 10 延伸阅读
+
+- 对应的分析章节：[HMR 热重载](../../../docs/hello-cordis/08-hmr.md)——示例演示 reconcile 的可观察结果，这一章是机制规格书：`_analyze()` 的反向 BFS、ReconcileUnit 的七步机制、缓存子系统在 Node 22/23/24 的差异、按 unit 的选择性回滚与 watch 配置——每一步在源码里怎么走都在这一章。
+
 ## 11 小结
 
 HMR 的可靠性不在「换得快」，而在「换之前先校验、换的时候不动身份、换错了能按 unit 回滚」。rc.13 把这三件事分别压在 Stage 1 的导出校验、`registry.replace` 的原位语义、`ModuleBackup.restore` 的选择性恢复上；级联重载则完全交给 Fiber 的 epoch 机制，HMR 本体一行依赖者代码都没有。Node 与 Bun 两条路径最终落到同一条缝上：前者多了一层 Node 模块缓存事务，后者直接用 core 的 `registry.replace()`。到这里 cordis 的六个示例就都跑完了；接下来是 dsh 侧的示例。
+
+上一篇：[05-cordis-loader-demo](../05-cordis-loader-demo/README.md)

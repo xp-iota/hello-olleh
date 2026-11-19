@@ -14,6 +14,15 @@ export const inject = ['loader']
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
+/** 有界轮询：等谓词成立再继续，超时抛错——替代定长 sleep 的状态探针，消除碰运气的时序。 */
+async function waitFor(predicate: () => boolean, { timeoutMs = 2000, intervalMs = 5, what = '' } = {}) {
+  const t0 = Date.now()
+  while (!predicate()) {
+    if (Date.now() - t0 > timeoutMs) throw new Error(`等待超时：${what}`)
+    await sleep(intervalMs)
+  }
+}
+
 /** FiberState 是 const enum，运行时拿不到名字，这里按源码顺序自建映射。 */
 const STATE = ['PENDING', 'LOADING', 'ACTIVE', 'FAILED', 'DISPOSED', 'UNLOADING'] as const
 const stateOf = (fiber?: { state: number }) => (fiber ? STATE[fiber.state] : '（无）')
@@ -59,7 +68,7 @@ async function run(ctx: Context) {
   await providerShared.update({ disabled: false })
   await ctx.loader.await()
   await providerShared.update({ disabled: true })
-  await sleep(10)
+  await waitFor(() => stateOf(row(ctx, 'consumer-shared').innerFiber) === 'PENDING', { what: 'consumer-shared 回到 PENDING' })
   console.log('   共享 provider 卸载后：consumer-shared =', stateOf(row(ctx, 'consumer-shared').innerFiber), '，consumer-root =', stateOf(consumerRoot.innerFiber))
 
   console.log('演示结束')

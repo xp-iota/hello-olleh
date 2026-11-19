@@ -14,6 +14,15 @@ export const inject = ['loader']
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
+/** 有界轮询：等谓词成立再继续，超时抛错——替代定长 sleep 的状态探针，消除碰运气的时序。 */
+async function waitFor(predicate: () => boolean, { timeoutMs = 2000, intervalMs = 5, what = '' } = {}) {
+  const t0 = Date.now()
+  while (!predicate()) {
+    if (Date.now() - t0 > timeoutMs) throw new Error(`等待超时：${what}`)
+    await sleep(intervalMs)
+  }
+}
+
 /** FiberState 是 const enum，运行时拿不到名字，这里按源码顺序自建映射。 */
 const STATE = ['PENDING', 'LOADING', 'ACTIVE', 'FAILED', 'DISPOSED', 'UNLOADING'] as const
 const stateOf = (fiber?: { state: number }) => (fiber ? STATE[fiber.state] : '（无）')
@@ -50,8 +59,9 @@ async function run(ctx: Context) {
 
   console.log('③ inject 写在配置里：outer/inner 两层 Fiber，依赖缺席时等待')
   await createEntry({ id: 'late', name: './src/plugins/watcher.ts', inject: ['clock', 'greeter'], config: { tag: 'late' } })
-  await sleep(10)
   const late = ctx.loader.resolve('late')
+  // clock 缺席：outer 停在 PENDING 等依赖，inner 还没创建——轮询等状态到位，不定长等待
+  await waitFor(() => stateOf(late.outerFiber) === 'PENDING' && late.innerFiber === undefined, { what: 'late 行 outer PENDING / inner 未创建' })
   console.log('   clock 缺席：outer =', stateOf(late.outerFiber), '，inner =', stateOf(late.innerFiber))
   await createEntry({ id: 'clock-provider', name: './src/plugins/clock.ts' })
   await ctx.loader.await()
@@ -65,7 +75,7 @@ async function run(ctx: Context) {
 
   console.log('⑤ disabled 开关：卸载再重装')
   await late.update({ disabled: true })
-  await sleep(10)
+  await waitFor(() => stateOf(late.innerFiber) === 'DISPOSED', { what: 'late 行 inner 进入 DISPOSED' })
   console.log('   禁用后：inner =', stateOf(late.innerFiber))
   await late.update({ disabled: false })
   await ctx.loader.await()

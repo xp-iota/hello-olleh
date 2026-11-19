@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "description": "五种事件派发模式（emit / parallel / serial / bail / waterfall）、监听器即 effect、internal/dispatch 观测。Node 与 Bun 双运行时。",
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "start": "cordis",
     "start:bun": "bun node_modules/cordis/bin.js",

@@ -5,7 +5,7 @@
  * 必须用 `BUN_OPTIONS` 注入 preload，不能用命令行 `--preload`：
  *
  *   * 命令行参数只对本次进程有效。dsh-lab 的模块会**再 spawn 子进程**
- *     （M07 的执行后端、PTC 运行时都是），孙进程只继承环境变量；
+ *     （dsh-subprocess-local 的 runner、PTC 运行时都是），孙进程只继承环境变量；
  *   * `BUN_OPTIONS` 会一路继承下去，所以 preload 在每个层级都生效。
  *
  * 顺带清掉继承来的 `NODE_OPTIONS` / `BUN_OPTIONS`：机器上装了 tsx、或用户全局

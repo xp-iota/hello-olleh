@@ -1,5 +1,6 @@
 node_modules/
 .dsh-home/
 .dsh-project/
+# AGENTS.md 是示例运行时写入的 fixture（MARKER: SKILLS-MCP-DEMO-7），不是工程文档
 AGENTS.md
 skills/runtime-note/

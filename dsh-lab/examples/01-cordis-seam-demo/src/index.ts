@@ -10,7 +10,7 @@ export const name = 'runner'
 export const inject = ['loader']
 
 // FiberState 是 const enum，没有运行时对象可 import；按值镜像。
-const STATE_NAMES = ['PENDING', 'LOADING', 'ACTIVE', 'FAILED', 'DISPOSED', 'UNLOADING']
+const STATE = ['PENDING', 'LOADING', 'ACTIVE', 'FAILED', 'DISPOSED', 'UNLOADING']
 
 // yml 的行挂在 include 子树里；entries() 会递归遍历，按 id 找行句柄
 function row(ctx: Context, id: string): Entry {
@@ -21,7 +21,7 @@ function row(ctx: Context, id: string): Entry {
 
 function consumerState(ctx: Context): string {
   const state = row(ctx, 'consumer').innerFiber?.state
-  return state === undefined ? '(no fiber)' : STATE_NAMES[state] ?? String(state)
+  return state === undefined ? '(no fiber)' : STATE[state] ?? String(state)
 }
 
 export function apply(ctx: Context) {

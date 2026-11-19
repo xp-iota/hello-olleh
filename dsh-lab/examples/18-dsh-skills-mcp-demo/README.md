@@ -2,7 +2,7 @@
 
 本示例演示 dsh 外部能力接入的四种形态：skill 目录、工作区指令文件、MCP 外部
 进程、web provider 注册。20 个服务全部在 cordis.patch.yml 里声明，boot 后全程
-在位，代码里没有一处 ctx.plugin()。版本面：`@deepseek-ai/*` 0.2.2-rc.3 +
+在位，代码里没有一处 ctx.plugin()。版本面：`@deepseek-ai/*` 0.2.2-rc.5 +
 `@deepseek-ai/cordis` 4.1.0；Node v26.12.1 与 Bun 1.4.4 双运行时实测，输出除
 runtime 行、npm notice 行与随机端口外逐行一致——本示例不挂 ptc/subprocess 缝，
 **没有任何 runtime 补丁层**，Bun 直接跑 `src/index.ts`。
@@ -373,28 +373,28 @@ dsh-skills-mcp-demo/
     "@deepseek-ai/cordis-plugin-include": "1.1.0",
     "@deepseek-ai/cordis-plugin-loader": "1.1.0",
     "@deepseek-ai/cordis-plugin-timer": "1.2.0",
-    "@deepseek-ai/dsh-agent": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-agent-instructions": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-agent-loop": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-fs-local": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-mcp-client": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session-projection": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-skill": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-skill-filesystem": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tool-skill": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tool-web": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tools": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-web": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-web-fetch-http": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-web-search-deepseek": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-working-directory": "0.2.2-rc.3"
+    "@deepseek-ai/dsh-agent": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-agent-instructions": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-agent-loop": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-fs-local": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-mcp-client": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session-projection": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-skill": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-skill-filesystem": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tool-skill": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tool-web": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-web": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-web-fetch-http": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-web-search-deepseek": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-working-directory": "0.2.2-rc.5"
   },
   "devDependencies": {
     "@types/node": "22.10.2",

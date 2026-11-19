@@ -1,3 +1,5 @@
+# 实测证据：2026-11-19 重测通过（npm run verify，63 项全 ✓），@deepseek-ai/* 0.2.2-rc.5，Bun 1.4.4
+
 npm notice run start:bun
 npm notice run node runtime/run.mjs --runtime bun src/cli/bin.ts chat
 

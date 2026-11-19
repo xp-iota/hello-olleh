@@ -7,16 +7,13 @@
  *
  * 用法：node runtime/check-bun-shim.mjs   （或 bun）
  */
-import { stripTypeScriptTypes } from './lib/bun-shim.mjs'
+import { STRIP_PREFIX as PREFIX, STRIP_SUFFIX as SUFFIX, stripTypeScriptTypes } from './lib/bun-shim.mjs'
 
 if (typeof Bun === 'undefined') {
   console.error('这个校验只在 Bun 下有意义：Node 有原生 node:module.stripTypeScriptTypes，不需要 shim。')
   console.error('请用 `bun runtime/check-bun-shim.mjs` 运行。')
   process.exit(2)
 }
-
-const PREFIX = 'async function __dsh_program__() {\n'
-const SUFFIX = '\n}'
 
 /** 上游会喂进来的两种形态。 */
 const CASES = [

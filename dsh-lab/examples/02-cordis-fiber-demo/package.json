@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "description": "Fiber 六态状态机、可逆 effect 的逆序回收、timer 作为 effect：一个插件的一生。Node 与 Bun 双运行时。",
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "start": "cordis",
     "start:bun": "bun node_modules/cordis/bin.js",

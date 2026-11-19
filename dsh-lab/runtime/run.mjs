@@ -6,20 +6,19 @@
  *
  * 支持的入口形式：
  *
- *     node runtime/run.mjs src/cli/bin.ts chat          # 直接跑一个入口文件
- *     node runtime/run.mjs --test                        # 跑单元测试
- *     node runtime/run.mjs --typecheck                   # 跑 tsc --noEmit
- *     node runtime/run.mjs --runtime bun src/cli/bin.ts info
+ *     node runtime/run.mjs runtime/check-bun-shim.mjs   # 直接跑一个脚本
+ *     node runtime/run.mjs --runtime bun runtime/check-bun-shim.mjs
  *
- * 注意 `--runtime` 只能放在这里，不能透传给 npm：`npm run M07 -- --runtime bun`
+ * 注意 `--runtime` 只能放在这里，不能透传给 npm：`npm run example:x -- --runtime bun`
  * 会被 npm 当成自己的配置项，报 `EUNKNOWNCONFIG`。改默认运行时请用
- * `DSH_RUNTIME=bun`，或直接用预置的 `M07:bun` 之类脚本。
+ * `DSH_RUNTIME=bun`，或直接用预置的 `example:x:bun` 脚本。
+ *
+ * 这里**不再**提供 --test / --typecheck 模式：根层零依赖（没有 node_modules、
+ * 没有 tsconfig.json），这两项是各示例自己的 npm script（npm run typecheck）。
  *
  * @module dsh-lab/runtime/run
  */
 import { spawn } from 'node:child_process'
-import { existsSync } from 'node:fs'
-import { join } from 'node:path'
 import { PROJECT_ROOT, RUNTIME_NAMES, resolveRuntime } from './lib/runtimes.mjs'
 import { runtimeEnv, spawnPlan } from './lib/spawn.mjs'
 
@@ -28,13 +27,9 @@ dsh-lab 运行时调度器
 
 用法：
   node runtime/run.mjs [--runtime <name>] <命令…>
-  node runtime/run.mjs [--runtime <name>] --test
-  node runtime/run.mjs [--runtime <name>] --typecheck
 
 选项：
   -r, --runtime <name>   用 node 还是 bun（默认取 DSH_RUNTIME，否则 node）
-      --test             跑单元测试
-      --typecheck        跑 tsc --noEmit
   -h, --help             显示本帮助
 
 环境变量：
@@ -47,7 +42,9 @@ dsh-lab 运行时调度器
  * 保持零依赖。
  *
  * @param {string[]} argv
- * @returns {{runtime: string, mode: 'exec'|'test'|'typecheck'|'help', args: string[]}}
+ * @returns {{runtime: string, mode: 'exec'|'help', args: string[]}}
+ * @throws {Error} `-r/--runtime` 缺值时——静默回退到 node 会让调用方
+ *   以为切换成功，属于把输入错误吞掉。
  */
 function parseArgv(argv) {
   let runtime = process.env.DSH_RUNTIME?.trim() ?? ''
@@ -61,7 +58,9 @@ function parseArgv(argv) {
       continue
     }
     if (token === '-r' || token === '--runtime') {
-      runtime = argv[index + 1] ?? ''
+      const value = argv[index + 1]
+      if (value === undefined) throw new Error('✗ -r/--runtime 需要一个值（node / bun）')
+      runtime = value
       index += 1
       continue
     }
@@ -69,15 +68,7 @@ function parseArgv(argv) {
       runtime = token.slice('--runtime='.length)
       continue
     }
-    if (token === '--test') {
-      mode = 'test'
-      continue
-    }
-    if (token === '--typecheck') {
-      mode = 'typecheck'
-      continue
-    }
-    // 第一个非选项之后全部原样透传（例如 run M01 -s 2）。
+    // 第一个非选项之后全部原样透传。
     args.push(token)
   }
 
@@ -124,23 +115,6 @@ async function main() {
 
   const runtime = resolveRuntime(runtimeName)
   const env = runtimeEnv(runtimeName)
-
-  if (mode === 'test') {
-    // Node 用 `--test`，Bun 用 `test` 子命令；两者都接受目录形式。
-    // 之前试过 glob（`src/**/*.test.ts`）：Node 在 Windows 上要自己展开，
-    // Bun 直接拒绝带通配符的过滤参数，所以统一用目录。
-    const testArgs = runtimeName === 'bun' ? ['test', './src'] : ['--test', './src']
-    return runProcess(runtime, testArgs, env)
-  }
-
-  if (mode === 'typecheck') {
-    const tsc = join(PROJECT_ROOT, 'node_modules', 'typescript', 'bin', 'tsc')
-    if (!existsSync(tsc)) {
-      console.error('✗ 找不到 typescript；先跑 npm install')
-      return 1
-    }
-    return runProcess(runtime, [tsc, '-p', 'tsconfig.json', '--noEmit'], env)
-  }
 
   if (args.length === 0) {
     console.error(HELP)

@@ -1,11 +1,7 @@
 # dsh-lab —— 一文一工程的 dsh / cordis 示例集
 
-`examples/` 下 **21 个完全独立的示例**（cordis 6 + dsh 15）：每个示例自带
-`package.json`、装配清单、主题文章（`README.md`）与 Node/Bun 双运行时脚本——
-**整目录拷到任何地方，`npm install` 后就能跑**，不依赖本仓库任何其他目录。
-
-配套分析文章在 [`docs/hello-cordis/`](../docs/hello-cordis/README.md) 与
-[`docs/hello-dsh/`](../docs/hello-dsh/README.md)；示例是文章的「可运行 counterpart」。
+> - <https://github.com/deepseek-ai/deepseek-harness/tags>
+> - <https://github.com/cordiverse/cordis/tags>
 
 ## 三层同心结构
 
@@ -83,6 +79,9 @@ npm run typecheck
 ## 双运行时
 
 - **Node ≥ 22.18**（原生 TypeScript 剥离，实测 v26.12.1）与 **Bun ≥ 1.4.4** 全部验证等价。
+- 工具链版本参照（非本工程依赖）：tsx **4.23.15**、pnpm **12.21.0**。根层零依赖、
+  不用 tsx（Node ≥ 22.18 原生剥类型即可），装配统一走 npm；这两个版本号只作为
+  底层工具链的口径记录，便于与邻接工程对齐叙述。
 - Bun 与 dsh 的两条缝（`node:module.stripTypeScriptTypes` 缺失、subprocess runner
   的 `--` 分隔符被吞）由需要它们的三个示例（`dsh-chat-demo`、`dsh-jobs-demo`、
   `dsh-sandbox-demo`）**自带迷你 runtime 层**在加载期修补，
@@ -99,11 +98,20 @@ npm run typecheck
 RUNTIMES_VERIFY_OK runtimes=2 checks=63
 ```
 
-缺 key 时 🔑 示例的 start 按「明确失败」计入报告（△ 行，设计行为）而非静默跳过；
-配好 `.env` 后重跑应转为真实通过。任何非 key 失败都会以 `RUNTIMES_VERIFY_FAILED` 非零退出。
+缺 key 时 🔑 示例的 start 按「明确失败」计入报告（△ 行，设计行为）而非静默跳过——
+但 △ 豁免**以报错特征为凭**：只有输出匹配已知缺 key 报错（`缺少 LLM_API_KEY` /
+`MISSING_CREDENTIAL`）才计 △；缺 key 却冒出别的报错（代码 bug、缺依赖、Bun 崩溃）
+照常 ✗ 并让整轮失败。配好 `.env` 后重跑应转为真实通过。任何非 key 失败都会以
+`RUNTIMES_VERIFY_FAILED` 非零退出。
 
-最近一次全量实测（2026-11-17，旧模块体系退役后）：**63 项全 ✓**，含两个 🔑 示例的
-真实模型调用（fuyao 网关，Node 与 Bun 均完成带正文的 turn）；`check:shim` 3 例全过。
+另有 `npm run check:copies`：把「成对拷贝的文件应保持一致」变成可执行的漂移守卫——
+bun-shim（根/11/15 三份）、spawn（根/15）、bun-preload（根/15）、anthropic-compat
+（04/15，含测试）、safety-guardrail（14/15）归一化后逐行比对（11 的 preload 是五缝
+超集，另做包含性检查），任何副本间漂移非零退出。
+
+最近一次全量实测（2026-11-19，`@deepseek-ai/*` 0.2.2-rc.5）：**63 项全 ✓**（0 个 △），
+含两个 🔑 示例的真实模型调用（fuyao 网关，Node 与 Bun 均完成带正文的 turn）；
+`check:shim` 3 例全过、`check:copies` 8 对全绿。
 
 ## 版本面
 
@@ -115,8 +123,10 @@ RUNTIMES_VERIFY_OK runtimes=2 checks=63
 - **cordis 示例（6 个）**：cordiverse 上游 `cordis` **4.0.0-rc.13**（与 `sources/cordis/` 快照同版），
   插件系按需：`@cordisjs/loader` 1.0.0-rc.10、`include`/`fs`/`hmr` 2.0.0-rc.0、`group` 1.0.1、
   `timer` 1.1.5、`fs-node` 0.1.0。
-- **dsh 示例（15 个）**：`@deepseek-ai/*` **0.2.2-rc.3**（npm `next` 通道，与 `sources/deepseek-harness/` 快照同版；
-  例外 `dsh-invariants` 0.2.0-rc.2，上游未发 rc.3），cordis 运行时为 DSH 自携 fork
+- **dsh 示例（15 个）**：`@deepseek-ai/*` **0.2.2-rc.5**（npm `next` 通道，2026-11-19 升级；
+  `sources/deepseek-harness/` 源码快照仍为 rc.3，正文分析以快照为准，rc.4/rc.5 的增量
+  未回写章节叙述——实测 rc.5 下装配树不变：19 必检服务 + 27 工具、Bun 两条缝形态不变。
+  例外 `dsh-invariants` 0.2.0-rc.2，上游未发 rc 线更新），cordis 运行时为 DSH 自携 fork
   `@deepseek-ai/cordis` **4.1.0**（基于上游 rc.11，与上游 rc.13 的 Fiber 语义差异见
   [`docs/hello-cordis/README.md` § 五](../docs/hello-cordis/README.md)）。
 - 根层**零依赖**：`runtime/` 全部是零依赖 `.mjs`；业务依赖都在各示例自己的 `package.json`。
@@ -135,6 +145,6 @@ dsh-lab/
 │   ├── runtime/            # 仅 chat/jobs/sandbox 三示例：Bun 修补迷你调度层
 │   ├── .env.example        # 仅两个 🔑 示例：变量模板（.env 已 gitignore）
 │   └── .dsh-home/          # dsh 系运行时自管 home（已 gitignore）
-├── runtime/                # 根层运行时工具：run/status/verify/install-all/check-bun-shim + shim
+├── runtime/                # 根层运行时工具：run/status/verify/install-all/check-bun-shim/check-copies + lib（runtimes/spawn/examples/bun-shim）
 └── package.json            # example:<name>[:bun] 代跑脚本 + verify 等仓库级命令
 ```

@@ -1,7 +1,8 @@
 /**
- * Anthropic Messages 兼容适配器 —— 本示例「模型接入层」的主角。
+ * Anthropic Messages 兼容适配器 —— dsh-lab 的自写 provider（04-dsh-llm-adapter-demo
+ * 与 15-dsh-chat-demo 各持一份同源副本——完全独立的代价）。
  *
- * 自写 provider（0.2.2-rc.3 的 `LlmAdapter` API）：官方只发布了 DeepSeek 原生路由
+ * 自写 provider（0.2.2-rc.5 的 `LlmAdapter` API）：官方只发布了 DeepSeek 原生路由
  * 与 pi-ai 多路由转发，没有任何直接讲 Anthropic Messages + SSE 协议的适配器；
  * 而 MiniMax、Fuyao 这类 Anthropic 兼容网关在企业内很常见，亲手写一遍才能真正
  * 理解“模型接入层”这条接缝。
@@ -596,7 +597,7 @@ export function apply(ctx: Context, config: Config): void {
     if (ambient !== undefined && ambient.length > 0) return ambient
     throw new LlmError(
       `llm-anthropic-compat: 缺少 ${ref}；导出 ${ref}（或写进本目录 .env）后再调用模型；` +
-        `只跑机制路径（npm run mechanism）不需要 key`,
+        `只跑无 key 路径（npm run mechanism）不需要 key`,
       'MISSING_CREDENTIAL',
     )
   }

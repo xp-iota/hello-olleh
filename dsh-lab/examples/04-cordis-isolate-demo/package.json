@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "description": "ctx.isolate 的 realm 隔离：同名服务多份实现、按名字隔离、事件可见性、共享 label。Node 与 Bun 双运行时。",
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "start": "cordis",
     "start:bun": "bun node_modules/cordis/bin.js",

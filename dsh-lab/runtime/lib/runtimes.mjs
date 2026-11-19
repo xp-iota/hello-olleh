@@ -2,7 +2,7 @@
  * runtimes.mjs —— 运行时解析器：把「node / bun」解析成具体可执行文件与版本。
  *
  * 与 dsh-example 的版本不同，dsh-lab 用**系统安装**，不下载私有副本：
- * dsh-lab 依赖 `@deepseek-ai/* 0.2.2-rc.1` 与官方 `boot()`，两套运行时的差异
+ * dsh-lab 依赖 `@deepseek-ai/* 0.2.2-rc.5` 与官方 `boot()`，两套运行时的差异
  * 只有一处（见 lib/bun-shim.mjs），没有需要锁死二进制的理由。所以这里做的是
  * 「解析 + 校验 + 说清楚差异」，而不是「下载 + 解压」。
  *
@@ -116,7 +116,12 @@ export function resolveRuntime(runtimeName, options = {}) {
   if (override) {
     if (!existsSync(override)) throw new Error(`${overrideVar} 指向的文件不存在：${override}`)
     const needsShell = /\.(cmd|bat)$/i.test(override)
-    const version = detectVersion(override, needsShell) ?? entry.version
+    // 探测不到版本必须报错，不能静默回退到清单里登记的版本：一个损坏/架构
+    // 不符的可执行文件，配上一个从没量过的"通过"版本号，是最难排查的假成功。
+    const version = detectVersion(override, needsShell)
+    if (version === undefined) {
+      throw new Error(`${overrideVar} 指向的 ${override} 存在但无法执行（探测 --version 失败）；换一个可用的可执行文件。`)
+    }
     assertVersion(runtimeName, entry, version, overrideVar)
     return { name: runtimeName, command: override, source: 'override', version, needsShell, expected: entry.version }
   }
@@ -163,16 +168,4 @@ export function installedStatus() {
       return { name, entry, ok: false, error: error instanceof Error ? error.message : String(error) }
     }
   })
-}
-
-/**
- * 当前进程自己跑在哪个运行时上。
- *
- * 用 `process.versions.bun` 判定：Bun 会同时报告 node 版本（伪装成 Node），
- * 所以不能反过来查 node。
- *
- * @returns {'node'|'bun'}
- */
-export function currentRuntimeName() {
-  return process.versions.bun ? 'bun' : 'node'
 }

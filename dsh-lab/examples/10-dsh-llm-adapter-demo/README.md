@@ -2,7 +2,7 @@
 
 本示例演示模型接入层这条接缝：适配器的发现面、`llm/stream` waterfall 的环绕与拦截、合成 SSE 的离线端到端验证、真实网关调用。两个自写适配器都在 cordis.patch.yml 里声明——anthropic-compat 全程在位，scripted-adapter 行初始禁用、S2 用行句柄开关临时启用，代码里没有一处 `ctx.plugin()`。
 
-两条路径分明：机制路径（`npm run mechanism`）跑 S1–S3 全程离线、不需要 key；真实调用路径（`npm start`）的 S4 发起真实 provider 请求，需要本目录 `.env` 里的 `LLM_API_KEY`，缺 key 明确失败（fail loud），绝不静默跳过。版本面 `@deepseek-ai/*` 0.2.2-rc.3、`@deepseek-ai/cordis` 4.1.0，Node 26.12.1 与 Bun 1.4.4 机制输出逐行一致（首行 runtime 标识除外），单测两侧各 12 pass / 0 fail。
+两条路径分明：机制路径（`npm run mechanism`）跑 S1–S3 全程离线、不需要 key；真实调用路径（`npm start`）的 S4 发起真实 provider 请求，需要本目录 `.env` 里的 `LLM_API_KEY`，缺 key 明确失败（fail loud），绝不静默跳过。版本面 `@deepseek-ai/*` 0.2.2-rc.5、`@deepseek-ai/cordis` 4.1.0，Node 26.12.1 与 Bun 1.4.4 机制输出逐行一致（首行 runtime 标识除外），单测两侧各 12 pass / 0 fail。
 
 配套文章：[07 请求管线](../../../docs/hello-dsh/07-request-pipeline-llm-tools-and-prompts.md)（§7.2 LlmAdapter、§7.3 llm/stream waterfall、§7.7 错误模型、§7.8 API Key 的处理）。
 
@@ -265,19 +265,19 @@ dsh-llm-adapter-demo/
     "@deepseek-ai/cordis-plugin-include": "1.1.0",
     "@deepseek-ai/cordis-plugin-loader": "1.1.0",
     "@deepseek-ai/cordis-plugin-timer": "1.2.0",
-    "@deepseek-ai/dsh-agent": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-agent-loop": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-credentials": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-credentials-local": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session-projection": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-tools": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-agent": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-agent-loop": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-app-boot": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-credentials": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-credentials-local": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-home-paths": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-session-projection": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tool-executor-native": "0.2.2-rc.5",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.5",
     "@deepseek-ai/schemastery": "3.18.5"
   },
   "devDependencies": {

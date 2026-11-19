@@ -56,6 +56,7 @@
     "install:all": "node runtime/install-all.mjs",
     "runtime:status": "node runtime/status.mjs",
     "verify": "node runtime/verify.mjs",
+    "check:copies": "node runtime/check-copies.mjs",
     "check:shim": "node runtime/run.mjs --runtime bun runtime/check-bun-shim.mjs"
   },
   "//dependencies": "根层零依赖：runtime/ 全部是零依赖 .mjs；业务依赖都在各示例自己的 package.json 里（@deepseek-ai/* 0.2.2-rc.3，cordis 4.1.0）。"

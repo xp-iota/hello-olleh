@@ -52,6 +52,8 @@
  * @module dsh-jobs-demo/runtime/bun-preload
  */
 import { plugin } from 'bun'
+import { basename } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 /** ptc-runtime 包 lib 下所有入口（宿主 index.js 与 worker process.js 等都要补）。 */
 const PTC_ENTRY = /dsh-ptc-runtime-node[\\/]lib[\\/][^\\/]+\.js$/
@@ -65,10 +67,12 @@ const ORIGINAL_IMPORT = 'from "node:module"'
 /** 宿主 spawn PTC worker 的锚点（构建产物把 worker.ts 内联进 index.js）。 */
 const WORKER_SPAWN_ANCHOR = 'const handle = this.ctx.subprocess.spawn({'
 
-/** 本 preload 的绝对路径（正斜杠），用于给 worker 重注入 BUN_OPTIONS。 */
-const PRELOAD_PATH = new URL(import.meta.url).pathname
-  .replace(/^\/([A-Za-z]:)/, '$1') // Windows 盘符：/D:/x → D:/x
-  .replace(/\\/g, '/')
+/**
+ * 本 preload 的绝对路径（正斜杠），用于给 worker 重注入 BUN_OPTIONS。
+ * fileURLToPath 而不是 URL.pathname：pathname 带百分号编码，
+ * 路径含空格/非 ASCII 时会指向不存在的文件且无告警。
+ */
+const PRELOAD_PATH = fileURLToPath(import.meta.url).replace(/\\/g, '/')
 
 /** BUN_OPTIONS 按命令行分词：路径里的空格要转义。 */
 const PRELOAD_OPTION = `--preload ${PRELOAD_PATH.replace(/ /g, '\\ ')}`
@@ -88,8 +92,7 @@ function restoreRunnerDelimiter() {
   const entry = process.argv[1]
   if (entry === undefined) return
   // runner 入口可能是 runner.js（构建产物）或 bin.ts（源码形态）。
-  const name = entry.split(/[\\/]/).pop()
-  if (name !== 'runner.js' && name !== 'bin.ts') return
+  if (basename(entry) !== 'runner.js' && basename(entry) !== 'bin.ts') return
   if (process.argv[2] === '--') return
 
   process.argv.splice(2, 0, '--')
@@ -102,9 +105,7 @@ plugin({
   setup(build) {
     build.onLoad({ filter: PTC_ENTRY }, async (args) => {
       const source = await Bun.file(args.path).text()
-      const shimPath = new URL('./lib/bun-shim.mjs', import.meta.url).pathname
-        .replace(/^\/([A-Za-z]:)/, '$1') // Windows 盘符：/D:/x → D:/x
-        .replace(/\\/g, '/')
+      const shimPath = fileURLToPath(new URL('./lib/bun-shim.mjs', import.meta.url)).replace(/\\/g, '/')
 
       if (!source.includes(ORIGINAL_IMPORT)) {
         // 上游改了导入写法：大声说出来，不要假装成功。
@@ -141,9 +142,7 @@ plugin({
             'dsh-jobs-demo: worker 控制通道构造形态已变化，fd shim 未生效；请检查 runtime/bun-preload.mjs。',
           )
         } else {
-          const controlShimPath = new URL('./lib/bun-control-channel.mjs', import.meta.url).pathname
-            .replace(/^\/([A-Za-z]:)/, '$1')
-            .replace(/\\/g, '/')
+          const controlShimPath = fileURLToPath(new URL('./lib/bun-control-channel.mjs', import.meta.url)).replace(/\\/g, '/')
           patched = `import { openBunControlChannel } from "${controlShimPath}";\n${patched}`
             .replace(CONTROL_SOCKET, 'return openBunControlChannel();')
         }
@@ -155,9 +154,7 @@ plugin({
             'dsh-jobs-demo: worker globals 锚点已变化，guest 导入绑定未注入；请检查 runtime/bun-preload.mjs。',
           )
         } else {
-          const guestShimPath = new URL('./lib/bun-guest-import.mjs', import.meta.url).pathname
-            .replace(/^\/([A-Za-z]:)/, '$1')
-            .replace(/\\/g, '/')
+          const guestShimPath = fileURLToPath(new URL('./lib/bun-guest-import.mjs', import.meta.url)).replace(/\\/g, '/')
           patched = `import { importDataUrl as __dshBunGuestImport } from "${guestShimPath}";\n${patched}`
             .replace(GLOBALS_ANCHOR, `${GLOBALS_ANCHOR}\n\t\t\tevaluator.globals.__dshBunGuestImport = __dshBunGuestImport;`)
         }

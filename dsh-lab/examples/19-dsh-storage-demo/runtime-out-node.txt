@@ -1,3 +1,5 @@
+# 实测证据：2026-11-19 重测通过（npm run verify，63 项全 ✓），@deepseek-ai/* 0.2.2-rc.5，Node v26.12.1
+
 runtime = node v26.12.1
 
 === S1 存储域：schema 校验 ===
