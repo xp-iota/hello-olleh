@@ -1,4 +1,4 @@
-# 04 · dsh 的模型接入示例
+# 10 · dsh 的模型接入示例
 
 本示例演示模型接入层这条接缝：适配器的发现面、`llm/stream` waterfall 的环绕与拦截、合成 SSE 的离线端到端验证、真实网关调用。两个自写适配器都在 cordis.patch.yml 里声明——anthropic-compat 全程在位，scripted-adapter 行初始禁用、S2 用行句柄开关临时启用，代码里没有一处 `ctx.plugin()`。
 

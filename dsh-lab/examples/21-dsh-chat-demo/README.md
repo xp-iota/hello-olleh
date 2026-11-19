@@ -1,4 +1,4 @@
-# 15 · dsh 的 chat 示例
+# 21 · dsh 的 chat 示例
 
 本示例演示一个**完全独立**的 dsh 交互式终端：把整个目录拷到任何地方，`npm install` 之后就能 `npm start` 进入 REPL 与真实模型对话，`npm run sessions` / `npm run traj` 回看会话，`npm run info` 跑启动探针。全部装配都在 `cordis.patch.yml`（89 行）里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。基于 `@deepseek-ai/*` 0.2.2-rc.5（例外：`dsh-invariants` 0.2.0-rc.2）与 `@deepseek-ai/cordis` 4.1.0，Node v26.12.1 与 Bun 1.4.4 双运行时实测等价。
 
@@ -13,9 +13,9 @@
 | 安全护栏 | `tools/pre-execute` waterfall | `src/plugins/safety-guardrail/`（guardrail-demo 的副本） |
 | 交互 REPL | agents.create + 事件订阅 | `src/cli/repl.ts`：流式渲染、审批菜单、提问菜单 |
 | 会话回看 | session-persistence-jsonl + replay | `src/cli/traj.ts`：turn 折叠、事件明细、surface |
-| 装配自检 | 19 必检服务 + 工具数断言 | `src/cli/bin.ts info`：`BOOT_PROBE` 机器可读标记 |
+| 装配自检 | 19 必检服务 + 工具目录断言 | `src/cli/bin.ts info`：`BOOT_PROBE` 机器可读标记 |
 
-> 两份副本是完全独立的代价：anthropic-compat 与 safety-guardrail 各自和 [dsh-llm-adapter-demo](../10-dsh-llm-adapter-demo/README.md)、[dsh-guardrail-demo](../20-dsh-guardrail-demo/README.md) 同源但互不引用——拷走本目录不需要带上兄弟示例，改一处也不会波及另一处。实测逐行 diff：适配器副本只差头注释与缺 key 报错文案（「只跑装配探针（npm run info）不需要 key」），护栏副本只差头注释，其余逐字一致。
+> 两份副本是完全独立的代价：anthropic-compat 与 safety-guardrail 各自和 [dsh-llm-adapter-demo](../10-dsh-llm-adapter-demo/README.md)、[dsh-guardrail-demo](../20-dsh-guardrail-demo/README.md) 同源但互不引用——拷走本目录不需要带上兄弟示例，改一处也不会波及另一处。实测逐行 diff：适配器副本只差头注释与缺 key 报错文案（「只跑无 key 路径（npm run info）不需要 key」），护栏副本只差头注释，其余逐字一致。
 
 ## 2 装配树：89 行 patch 驱动一切
 
@@ -108,7 +108,7 @@ baseURL/apiKeyEnv/apiKey 不再是 schema 字段，凭据跟随会话选择；
 
 ### info：启动探针判据
 
-19 个必检服务逐一 `ctx.get` 断言在场；工具数断言 **27**（rc.1 基线 26，rc.3 新增 `wait_agent`，与旧根工程逐项 diff 确认只差这一个）。输出 `BOOT_PROBE {...}` 机器可读标记，失败非零退出。Bun 下若 ptc-runtime 的 shim 没生效，工具会静默掉到 26——单测可能全绿，只有把服务清单与工具数变成断言才抓得住这种退化。`commands.list` 按 agent 作用域求值，info 借一个临时 agent 做全局盘点后即释放。
+19 个必检服务逐一 `ctx.get` 断言在场；工具按**完整目录**断言（`EXPECTED_TOOL_NAMES` 27 项，rc.1 基线 26，rc.3 新增 `wait_agent`，与旧根工程逐项 diff 确认只差这一个）——数量抓得住增删，抓不住一换一替换（27 里换掉一个仍是 27），所以同时比对 extra / absent 两向。输出 `BOOT_PROBE {...}` 机器可读标记，失败非零退出。Bun 下若 ptc-runtime 的 shim 没生效，工具会静默掉到 26——单测可能全绿，只有把服务清单与工具目录变成断言才抓得住这种退化。`commands.list` 按 agent 作用域求值，info 借一个临时 agent 做全局盘点后即释放。
 
 ### 默认路由兜底
 
@@ -223,14 +223,14 @@ Bun（`npm run start:bun`）同问题同路由，turn 同样 completed；模型�
 
 ```text
 dsh-chat-demo · 交互式会话
-  session  5f6973f8-abd7-47bb-9452-22ba9634c4f1
+  session  fd464e33-d08f-4b3c-8706-b83ddebfb182
   route    anthropic-compat / MiniMax-M3
   tools    27 个
 
   直接输入问题；/help 看命令；Ctrl-D 退出。
 
 … thinking
-✗ llm-anthropic-compat: 缺少 LLM_API_KEY；导出 LLM_API_KEY（或写进本目录 .env）后再调用模型；只跑装配探针（npm run info）不需要 key
+✗ llm-anthropic-compat: 缺少 LLM_API_KEY；导出 LLM_API_KEY（或写进本目录 .env）后再调用模型；只跑无 key 路径（npm run info）不需要 key
 — turn 1 error
 ```
 
@@ -316,6 +316,9 @@ dsh-chat-demo/
   "private": true,
   "type": "module",
   "description": "完整交互式终端：89 行装配清单 + chat/sessions/traj/info 子命令 + REPL 流式渲染 + 审批/提问/斜杠命令 + anthropic-compat 与 safety-guardrail 副本。Node 与 Bun 双运行时（Bun 经自带迷你 runtime 层）。",
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "start": "node src/cli/bin.ts chat",
     "start:bun": "node runtime/run.mjs --runtime bun src/cli/bin.ts chat",
@@ -747,10 +750,38 @@ import '@deepseek-ai/dsh-message-feedback'
 import { Command } from 'commander'
 import { readFileSync } from 'node:fs'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import { bootChatDemo, ensureDemoHome, DEMO_ROOT } from '../boot.ts'
+import { bootChatDemo, DEMO_ROOT } from '../boot.ts'
 import { line, style } from './term.ts'
 
-// .env 读取：本示例不引 dotenv，自己解析（只有 KEY=VALUE 与 # 注释两种形态）。
+/**
+ * 读示例根的 .env（若存在）。已存在的环境变量不覆盖。
+ *
+ * 本示例不引 dotenv，自己解析（只有 KEY=VALUE 与 # 注释两种形态）。
+ * 解析行为（含值两侧成对引号的剥离）与 10-dsh-llm-adapter-demo 的
+ * src/env.ts 是同源约定——改一边必须同步另一边。只做解析、无副作用：
+ * `.dsh-home` 由 bootChatDemo() 里的 ensureDemoHome() 统一创建。
+ */
+function loadDotEnv(): void {
+  const path = `${DEMO_ROOT}/.env`
+  try {
+    const text = readFileSync(path, 'utf8')
+    for (const raw of text.split(/\r?\n/)) {
+      const trimmed = raw.trim()
+      if (trimmed === '' || trimmed.startsWith('#')) continue
+      const eq = trimmed.indexOf('=')
+      if (eq <= 0) continue
+      const key = trimmed.slice(0, eq).trim()
+      const value = trimmed
+        .slice(eq + 1)
+        .trim()
+        .replace(/^["']|["']$/g, '')
+      if (process.env[key] === undefined) process.env[key] = value
+    }
+  } catch {
+    // 没有 .env 是正常情况：用户也可能直接用环境变量。
+  }
+}
+
 loadDotEnv()
 
 const program = new Command()
@@ -838,11 +869,46 @@ const REQUIRED_SERVICES = [
 ] as const
 
 /**
- * 期望的工具数（Node 下的实测值；Bun 必须相同才算通过）。
- * rc.1 基线是 26；rc.3 新增 wait_agent（子代理等待），实测 27——
- * 与旧根工程逐项 diff 确认只差这一个，其余 26 个完全一致。
+ * 期望的工具**目录**（Node 下的实测值，按名排序；Bun 必须相同才算通过）。
+ * rc.1 基线是 26 个；rc.3 新增 wait_agent（子代理等待），实测 27 个——
+ * 与旧根工程逐项 diff 确认只差这一个。
+ *
+ * 为什么钉住目录而不只钉数量：数量抓得住增删，抓不住**一换一替换**或
+ * 错误工具在场（27 个里换掉一个仍是 27）。上游升版增删工具时这里会
+ * fail loud，按新目录更新本清单即可。
  */
-const EXPECTED_TOOLS = 27
+const EXPECTED_TOOL_NAMES = [
+  'ask_user_question',
+  'create_goal',
+  'edit',
+  'exit_plan_mode',
+  'get_goal',
+  'glob',
+  'grep',
+  'interrupt_agent',
+  'job_kill',
+  'job_list',
+  'job_output',
+  'list_agents',
+  'pwsh',
+  'read',
+  'read_image',
+  'send_message',
+  'skill',
+  'subagent',
+  'subagent_fork',
+  'todo_write',
+  'update_goal',
+  'wait_agent',
+  'web_fetch',
+  'web_search',
+  'workflow',
+  'working_directory',
+  'write',
+] as const
+
+/** 期望的工具数（由目录推出，单一事实源）。 */
+const EXPECTED_TOOLS = EXPECTED_TOOL_NAMES.length
 
 program
   .command('info')
@@ -870,12 +936,18 @@ program
       line(`  命令      ${commands.map((c: { name: string }) => '/' + c.name).join(', ')}`)
       line(`  护栏      pre-execute 日志（${process.env.DSH_GUARDRAIL === '0' ? '已关闭' : '开启'}）`)
       line()
-      // 机器可读标记 + 硬断言：缺服务或工具数不对就非零退出。
+      // 机器可读标记 + 硬断言：缺服务、工具数不对或**工具目录**对不上就非零退出。
+      const actualNames = tools.map((tool: { name: string }) => tool.name).sort()
+      const expectedNames: string[] = [...EXPECTED_TOOL_NAMES].sort()
+      const extraTools = actualNames.filter((name: string) => !expectedNames.includes(name))
+      const absentTools = expectedNames.filter((name) => !actualNames.includes(name))
       console.log(`BOOT_PROBE ${JSON.stringify({ missing, tools: tools.length })}`)
-      if (missing.length > 0 || tools.length !== EXPECTED_TOOLS) {
+      if (missing.length > 0 || extraTools.length > 0 || absentTools.length > 0) {
         throw new Error(
-          `启动探针失败：missing=${JSON.stringify(missing)} tools=${tools.length}（期望 ${EXPECTED_TOOLS}）。` +
-          'Bun 下少 1 个工具通常是 ptc-runtime 的 stripTypeScriptTypes shim 未生效，检查 runtime/bun-preload.mjs。',
+          `启动探针失败：missing=${JSON.stringify(missing)} tools=${tools.length}/${EXPECTED_TOOLS}` +
+          ` extra=${JSON.stringify(extraTools)} absent=${JSON.stringify(absentTools)}。` +
+          'Bun 下少 1 个工具通常是 ptc-runtime 的 stripTypeScriptTypes shim 未生效，检查 runtime/bun-preload.mjs；' +
+          '上游升版增删工具时请按新目录更新 EXPECTED_TOOL_NAMES。',
         )
       }
     } finally {
@@ -887,29 +959,6 @@ program.parseAsync(process.argv).catch((error: unknown) => {
   line(style.red(`✗ ${error instanceof Error ? error.message : String(error)}`))
   process.exitCode = 1
 })
-
-/** 读示例根的 .env（若存在）。已存在的环境变量不覆盖。 */
-function loadDotEnv(): void {
-  ensureDemoHome()
-  const path = `${DEMO_ROOT}/.env`
-  try {
-    const text = readFileSync(path, 'utf8')
-    for (const raw of text.split(/\r?\n/)) {
-      const trimmed = raw.trim()
-      if (trimmed === '' || trimmed.startsWith('#')) continue
-      const eq = trimmed.indexOf('=')
-      if (eq <= 0) continue
-      const key = trimmed.slice(0, eq).trim()
-      const value = trimmed
-        .slice(eq + 1)
-        .trim()
-        .replace(/^["']|["']$/g, '')
-      if (process.env[key] === undefined) process.env[key] = value
-    }
-  } catch {
-    // 没有 .env 是正常情况：用户也可能直接用环境变量。
-  }
-}
 ```
 
 ### src/cli/repl.ts（结构说明）

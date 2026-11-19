@@ -73,7 +73,6 @@ npm run typecheck
 
 - `test` / `test:bun`：`dsh-chat-demo`（22 条）、`dsh-llm-adapter-demo`（12 条）、`dsh-guardrail-demo`（4 条）；
 - `mechanism` / `mechanism:bun`：`dsh-llm-adapter-demo` 的无 key 脚本化适配器路径；
-- `start:yml` / `start:yml:bun`：`cordis-seam-demo` 的 YAML 装配变体；
 - `info` / `sessions` / `traj`（各带 `:bun`）：`dsh-chat-demo` 的装配探针、会话列表与轨迹回看。
 
 ## 双运行时
@@ -81,7 +80,7 @@ npm run typecheck
 - **Node ≥ 22.18**（原生 TypeScript 剥离，实测 v26.12.1）与 **Bun ≥ 1.4.4** 全部验证等价。
 - 工具链版本参照（非本工程依赖）：tsx **4.23.15**、pnpm **12.21.0**。根层零依赖、
   不用 tsx（Node ≥ 22.18 原生剥类型即可），装配统一走 npm；这两个版本号只作为
-  底层工具链的口径记录，便于与邻接工程对齐叙述。
+  底层工具链的口径记录，便于与邻接工程对齐叙述——「版本面」图底的虚线带标的就是它们。
 - Bun 与 dsh 的两条缝（`node:module.stripTypeScriptTypes` 缺失、subprocess runner
   的 `--` 分隔符被吞）由需要它们的三个示例（`dsh-chat-demo`、`dsh-jobs-demo`、
   `dsh-sandbox-demo`）**自带迷你 runtime 层**在加载期修补，
@@ -105,20 +104,23 @@ RUNTIMES_VERIFY_OK runtimes=2 checks=63
 `RUNTIMES_VERIFY_FAILED` 非零退出。
 
 另有 `npm run check:copies`：把「成对拷贝的文件应保持一致」变成可执行的漂移守卫——
-bun-shim（根/11/15 三份）、spawn（根/15）、bun-preload（根/15）、anthropic-compat
-（04/15，含测试）、safety-guardrail（14/15）归一化后逐行比对（11 的 preload 是五缝
-超集，另做包含性检查），任何副本间漂移非零退出。
+bun-shim（根/17/21 三份）、spawn（根/21）、bun-preload（根/21）、anthropic-compat
+（10/21，含测试）、safety-guardrail（20/21，含测试）归一化后逐行比对（17 的 preload
+是五缝超集，另做包含性检查），任何副本间漂移非零退出。
 
 最近一次全量实测（2026-11-19，`@deepseek-ai/*` 0.2.2-rc.5）：**63 项全 ✓**（0 个 △），
 含两个 🔑 示例的真实模型调用（fuyao 网关，Node 与 Bun 均完成带正文的 turn）；
-`check:shim` 3 例全过、`check:copies` 8 对全绿。
+`check:shim` 3 例全过、`check:copies` 8 对全绿（同日审查把 safety-guardrail 测试对
+纳入守护后为 9 对，复跑仍全绿）。
 
 ## 版本面
 
 自下而上：Node.js / Bun → cordis（双版本线）→ dsh 官方能力包 → dsh-lab 示例；
 层间箭头标出每层向上提供的语义，右侧卡片是 Bun 两条缝与版本口径的速览。
+图底的虚线带不属于这条版本栈：它只记录邻接工程的工具链口径
+（tsx **4.23.15** / pnpm **12.21.0**），既不进任何 `package.json`，也不参与 `boot()` 装配。
 
-![版本栈：Node.js / Bun → cordis → dsh → dsh-lab](diagrams/version-stack.svg)
+![版本栈：Node.js / Bun → cordis → dsh → dsh-lab，图底虚线带为 tsx / pnpm 工具链口径](diagrams/version-stack.svg)
 
 - **cordis 示例（6 个）**：cordiverse 上游 `cordis` **4.0.0-rc.13**（与 `sources/cordis/` 快照同版），
   插件系按需：`@cordisjs/loader` 1.0.0-rc.10、`include`/`fs`/`hmr` 2.0.0-rc.0、`group` 1.0.1、

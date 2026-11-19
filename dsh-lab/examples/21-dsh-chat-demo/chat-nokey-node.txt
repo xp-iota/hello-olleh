@@ -1,15 +1,15 @@
-# 实测证据：2026-11-19 重测通过（npm run verify，63 项全 ✓），@deepseek-ai/* 0.2.2-rc.5，Node v26.12.1
+# 实测证据：2026-11-19 重采集（移走 .env 后缺 key 明确失败路径），@deepseek-ai/* 0.2.2-rc.5，Node v26.12.1
 
 npm notice run start
 npm notice run node src/cli/bin.ts chat
 
 dsh-chat-demo · 交互式会话
-  session  5f6973f8-abd7-47bb-9452-22ba9634c4f1
+  session  fd464e33-d08f-4b3c-8706-b83ddebfb182
   route    anthropic-compat / MiniMax-M3
   tools    27 个
 
   直接输入问题；/help 看命令；Ctrl-D 退出。
 
 … thinking
-✗ llm-anthropic-compat: 缺少 LLM_API_KEY；导出 LLM_API_KEY（或写进本目录 .env）后再调用模型；只跑装配探针（npm run info）不需要 key
+✗ llm-anthropic-compat: 缺少 LLM_API_KEY；导出 LLM_API_KEY（或写进本目录 .env）后再调用模型；只跑无 key 路径（npm run info）不需要 key
 — turn 1 error

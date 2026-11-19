@@ -66,8 +66,12 @@ export function runtimeEnv(runtimeName, base = process.env) {
 export function spawnPlan(runtime, args) {
   if (runtime.needsShell !== true) return { command: runtime.command, argv: args, shell: false }
   // cmd.exe 的 `/s /c` 规则：整条命令若以引号开头，会被剥掉外层一对引号。
-  // 所以这里**不加**外层引号，只在单个含空格的参数上加。
-  const quote = (value) => (/[\s"]/.test(value) ? `"${value}"` : value)
+  // 所以这里**不加**外层引号，只在需要的单个参数上加。除空格外，cmd 的元字符
+  // （& | < > ^ ( ) % !）不带空格也会被拆开/展开，同样要加引号；参数里嵌入的
+  // 引号按 cmd 规则成对翻倍。% 无法转义——真带 % 的值属于调用方传错，只能原样
+  // 暴露给 cmd 的变量展开。
+  const quote = (value) =>
+    /[\s"&|<>^()%!]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
   const line = [runtime.command, ...args].map(quote).join(' ')
   return { command: process.env.ComSpec ?? 'cmd.exe', argv: ['/d', '/s', '/c', line], shell: false }
 }

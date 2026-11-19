@@ -26,6 +26,9 @@ function installOne(exampleDir) {
       cwd: exampleDir,
       stdio: 'inherit',
       shell: true,
+      // POSIX 上让外壳自成进程组，超时才整组清理（同 verify.mjs）；
+      // Windows 上 detached 会另开控制台，跳过。
+      detached: process.platform !== 'win32',
     })
     let timedOut = false
     const timer = setTimeout(() => {
@@ -35,18 +38,32 @@ function installOne(exampleDir) {
         if (child.pid !== undefined) {
           spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
         }
+      } else if (child.pid !== undefined) {
+        try {
+          process.kill(-child.pid, 'SIGTERM')
+        } catch {
+          child.kill('SIGTERM')
+        }
+        setTimeout(() => {
+          try {
+            process.kill(-child.pid, 'SIGKILL')
+          } catch {
+            child.kill('SIGKILL')
+          }
+        }, 5_000)
       } else {
         child.kill('SIGTERM')
         setTimeout(() => child.kill('SIGKILL'), 5_000)
       }
     }, INSTALL_TIMEOUT_MS)
-    child.once('error', () => {
+    child.once('error', (error) => {
       clearTimeout(timer)
-      resolvePromise(1)
+      // npm 根本没起来（ENOENT/EACCES）时也把原因带出来，不能只剩一个空的 exit 1。
+      resolvePromise({ code: 1, spawnError: error.message })
     })
     child.once('exit', (code) => {
       clearTimeout(timer)
-      resolvePromise(timedOut ? 124 : (code ?? 1))
+      resolvePromise({ code: timedOut ? 124 : (code ?? 1) })
     })
   })
 }
@@ -58,10 +75,15 @@ async function main() {
   let failed = 0
   for (const name of examples) {
     console.log(`\n── install ${name} ──`)
-    const code = await installOne(join(EXAMPLES_ROOT, name))
+    const { code, spawnError } = await installOne(join(EXAMPLES_ROOT, name))
     if (code !== 0) {
       failed += 1
-      const reason = code === 124 ? `超时 ${INSTALL_TIMEOUT_MS / 1000}s` : `exit ${code}`
+      const reason =
+        code === 124
+          ? `超时 ${INSTALL_TIMEOUT_MS / 1000}s`
+          : spawnError !== undefined
+            ? `无法启动：${spawnError}`
+            : `exit ${code}`
       console.error(`✗ ${name} 安装失败（${reason}）`)
     }
   }

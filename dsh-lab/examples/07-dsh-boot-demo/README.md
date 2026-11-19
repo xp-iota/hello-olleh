@@ -1,4 +1,4 @@
-# 01 · dsh 的 boot() 装配示例
+# 07 · dsh 的 boot() 装配示例
 
 本示例演示 boot() 声明式装配的五件事：prepare + patch 层建起最小树、overlay 整配置替换、required 行失败的 fail-loud、缺服务行的 PENDING 与运行时激活、dispose 逆序回收。hello 与 broken 两个本地插件都在 YAML 清单里声明，代码里没有一处 `ctx.plugin()`。
 

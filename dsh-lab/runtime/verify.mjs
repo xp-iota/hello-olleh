@@ -16,6 +16,8 @@
  * 只在输出匹配已知 fail-loud 报错特征（缺少 LLM_API_KEY / MISSING_CREDENTIAL）时才
  * 记 △。缺 key 却冒出别的报错（代码 bug、缺依赖、Bun 崩溃）照常记 ✗ 并让整轮失败
  * ——那正是无 key 机器上唯一能抓住的回归窗口。有 key 时它们必须真实通过。
+ * 注意 △ 实际只出现在 llm-adapter-demo：chat-demo 的 start 是 REPL，stdin=ignore
+ * 下读到 EOF 就退出（exit 0），不会触达 provider 调用路径，无需 key 也计 ✓。
  *
  * 结尾打印 `RUNTIMES_VERIFY_OK runtimes=2 checks=N` 作为脚本化判据。
  *
@@ -48,12 +50,21 @@ const CHECK_TIMEOUT_MS = 240_000
 /** POSIX 上 SIGTERM 后再等这么久不退就 SIGKILL（毫秒）。 */
 const KILL_GRACE_MS = 5_000
 
-/** 示例目录里是否已有 .env，或进程环境里已有 key。 */
+/**
+ * 示例目录里是否已有 .env，或进程环境里已有 key。
+ *
+ * 值两侧成对引号要剥掉再判空：两个示例的解析约定（10 的 env.ts / 21 的
+ * loadDotEnv）都把 `LLM_API_KEY=""` 当缺失，这里若把空引号值当成有 key，
+ * 一个合法的 keyless-△ 会被记成硬失败 ✗。
+ */
 function hasKey(exampleDir) {
   if (process.env.LLM_API_KEY !== undefined && process.env.LLM_API_KEY !== '') return true
   const envFile = join(exampleDir, '.env')
   if (!existsSync(envFile)) return false
-  return /^\s*LLM_API_KEY\s*=\s*\S+/m.test(readFileSync(envFile, 'utf8'))
+  const match = readFileSync(envFile, 'utf8').match(/^\s*LLM_API_KEY\s*=\s*(.*)$/m)
+  if (match === null) return false
+  const value = match[1].trim().replace(/^(['"])(.*)\1$/, '$2').trim()
+  return value !== ''
 }
 
 /**
@@ -61,7 +72,9 @@ function hasKey(exampleDir) {
  *
  * shell:true 起的是外壳（Windows 上 cmd.exe、POSIX 上 /bin/sh），child.kill
  * 只杀外壳，npm→node/bun 的孙进程会活下来——挂着 stdin 的 REPL 就这么变成孤儿。
- * Windows 用 `taskkill /T /F` 递归强杀；POSIX 先 SIGTERM、宽限期后升 SIGKILL。
+ * Windows 用 `taskkill /T /F` 递归强杀；POSIX 上 runScript 以 detached 启动，
+ * 外壳自成进程组（pgid = child.pid），对负 pid 发信号即整组清理，先 SIGTERM、
+ * 宽限期后升 SIGKILL。
  *
  * @param {import('node:child_process').ChildProcess} child
  * @returns {NodeJS.Timeout | undefined} 需要后续清理的升级定时器（POSIX 才有）
@@ -72,6 +85,20 @@ function killTree(child) {
       spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
     }
     return undefined
+  }
+  if (child.pid !== undefined) {
+    try {
+      process.kill(-child.pid, 'SIGTERM')
+    } catch {
+      child.kill('SIGTERM')
+    }
+    return setTimeout(() => {
+      try {
+        process.kill(-child.pid, 'SIGKILL')
+      } catch {
+        child.kill('SIGKILL')
+      }
+    }, KILL_GRACE_MS)
   }
   child.kill('SIGTERM')
   return setTimeout(() => child.kill('SIGKILL'), KILL_GRACE_MS)
@@ -92,6 +119,9 @@ function runScript(exampleDir, script) {
       env: runtimeEnv('node'),
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: true,
+      // POSIX 上让外壳自成进程组，超时才整组清理（见 killTree）；
+      // Windows 上 detached 会另开控制台，跳过。
+      detached: process.platform !== 'win32',
     })
     let output = ''
     let timedOut = false

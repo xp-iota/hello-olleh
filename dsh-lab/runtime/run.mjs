@@ -51,24 +51,36 @@ function parseArgv(argv) {
   let mode = 'exec'
   const args = []
 
+  // 第一个非选项之后全部原样透传——脚本后面可能还跟子命令自己的参数
+  // （如 `traj <id>`、`--help`），不能在这里替它消费。
+  let positionalSeen = false
+
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index]
+    if (positionalSeen) {
+      args.push(token)
+      continue
+    }
     if (token === '-h' || token === '--help') {
       mode = 'help'
       continue
     }
     if (token === '-r' || token === '--runtime') {
       const value = argv[index + 1]
-      if (value === undefined) throw new Error('✗ -r/--runtime 需要一个值（node / bun）')
+      if (value === undefined || value.trim() === '') {
+        throw new Error('-r/--runtime 需要一个值（node / bun）')
+      }
       runtime = value
       index += 1
       continue
     }
     if (token.startsWith('--runtime=')) {
-      runtime = token.slice('--runtime='.length)
+      const value = token.slice('--runtime='.length)
+      if (value.trim() === '') throw new Error('--runtime= 需要一个值（node / bun）')
+      runtime = value
       continue
     }
-    // 第一个非选项之后全部原样透传。
+    positionalSeen = true
     args.push(token)
   }
 

@@ -1,4 +1,4 @@
-# 05 · dsh 的 agent 循环示例
+# 11 · dsh 的 agent 循环示例
 
 本示例演示怎么在不写循环的前提下干预 agent 循环：turn/step 边界观察、turn-stopping 时 steer 续跑、三条 inbox 通道、在途取消、status 事件。word-count 工具与脚本化适配器都在 cordis.patch.yml 里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。
 

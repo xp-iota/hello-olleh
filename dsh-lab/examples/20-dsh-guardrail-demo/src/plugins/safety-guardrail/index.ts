@@ -1,6 +1,6 @@
 /**
  * safety-guardrail —— dsh-lab 自己的「安全护栏」插件（完整策略版；
- * 14-dsh-guardrail-demo 与 15-dsh-chat-demo 各持一份同源副本——完全独立的代价）。
+ * 20-dsh-guardrail-demo 与 21-dsh-chat-demo 各持一份同源副本——完全独立的代价）。
  *
  * 它挂在 **工具管线的 pre-execute** 接缝上：模型在一步里发出 tool-call 之后、
  * 工具真正执行之前，cordis 会先走一遍 `tools/pre-execute` waterfall。这个插件就是

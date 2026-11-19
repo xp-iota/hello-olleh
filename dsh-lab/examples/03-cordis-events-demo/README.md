@@ -210,7 +210,88 @@ npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过
 
 装配路径依赖 cordis 的四个可选 peer 包：`@cordisjs/loader`、`@cordisjs/include`、`@cordisjs/fs`、`@cordisjs/fs-node`，已写进 `package.json`。
 
-## 9 从零复现：完整文件与运行路径
+## 9 源码视角：五种控制流在 Cordis 内部如何做到
+
+摘录取自本仓 vendored 源码 `deepseek-harness/vendor/cordis/src`（4.1.0，rc.11 基线）；本示例运行 cordis 4.0.0-rc.13，差异处单独标注。逐行精读见 [事件系统与 waterfall](../../../docs/hello-cordis/06-event-system-and-waterfall.md)。
+
+### 9.1 五个方法共用一个预处理：_resolve
+
+正文第 2 节表格里的「源码位置」之外，更值得读的是五个方法共同的第一步（`events.ts:162-171`）：
+
+```ts
+private _resolve(type: string, args: any[]) {
+  const thisArg = typeof args[0] === 'object' || typeof args[0] === 'function' ? args.shift() : null
+  const name: string | symbol = args.shift()
+  if ((typeof name !== 'string' || !name.startsWith('internal/')) && this._hooks['internal/dispatch']?.length) {
+    this.emit('internal/dispatch', type, name, args, thisArg)
+  }
+  const filter = thisArg?.[Context.filter]
+  return [thisArg, (this._hooks[name] || [])
+    .filter(hook => hook.global || !filter || filter.call(thisArg, hook.ctx)).map(hook => hook.callback)] as const
+}
+```
+
+四件事一次做完：shift 出可选 thisArg 与事件名；非 internal 事件且存在观测器时补发 `internal/dispatch`（第 7 节的观测入口就是这一行，`?.length` 保证没有观测器时零开销）；取 thisArg 上的 `Context.filter`（isolate 篇的事件过滤从这里进来）；filter + map 产出**新数组**——这就是「链是派发时刻的快照」的出处。五个派发方法的差别只在拿到这个数组之后怎么跑：emit 是裸 for 循环，parallel 是 `Promise.allSettled` 后收集 rejected 抛 `AggregateError`（`events.ts:191-196`），bail/serial 逐个跑并按 `isBailed` 停。
+
+### 9.2 waterfall：一个递归闭包
+
+洋葱模型的本体（`events.ts:246-261`）：
+
+```ts
+waterfall(...args: any[]) {
+  const [thisArg, callbacks] = this._resolve('waterfall', args)
+  const inner = args.pop()
+  const dispatch = () => {
+    const callback = callbacks.shift()
+    if (!callback) return inner()
+    let called = false
+    const next = () => {
+      if (called) throw new Error('next() called multiple times')
+      called = true
+      return dispatch()
+    }
+    return Reflect.apply(callback, thisArg, [...args, next])
+  }
+  return dispatch()
+}
+```
+
+三个动作对应第 5 节的三条契约：`args.pop()` 取出 inner，链尽头 `return inner()` 无参调用；不调 next 就不递归，下游与 inner 全跳过；重复调 next 被闭包里的布尔挡住。`[...args, next]` 是浅拷贝一层。rc.13 把 `shift()` 改成索引推进并跳过 `removed` 标志的监听器（派发期间被注销的监听器不再执行），快照语义不变；本摘录的 rc.11 形态里 shift 直接消费快照数组，效果等价。
+
+### 9.3 once 为什么不会递归触发自身
+
+once 不是特殊注册类型，就是一层包装（`events.ts:317-323`）：
+
+```ts
+once(name: string | symbol, listener: (...args: any) => any, options?: boolean | EventOptions) {
+  const dispose = this.on(name, function (...args: any[]) {
+    dispose()
+    return listener.apply(this, args)
+  }, options)
+  return dispose
+}
+```
+
+`dispose()` 在 `listener` 之前执行——回调内部再 emit 同一事件时，自己已经不在链上。第 6 节「自摘发生在回调之前」不是时序巧合，是这两行的书写顺序。
+
+### 9.4 监听器即 effect：注册与回收的同一条缝
+
+`on` 最终走 `register`，注册包在 fiber effect 里（`events.ts:263-270`）：
+
+```ts
+private register(label: string, name: string | symbol, callback: any, options: EventOptions): () => void {
+  const method = options.prepend ? 'unshift' : 'push'
+  return this.ctx.fiber.effect(() => {
+    const hooks = this._hooks[name] ??= []
+    hooks[method]({ ctx: this.ctx, callback, ...options })
+    return () => this.unregister(name, callback)
+  }, label)
+}
+```
+
+`prepend` 就是 unshift 与 push 的区别——第 6 节命中顺序里 prepend 排最前、waterfall 里 prepend 是最外层，都从这一行来。清理函数 `unregister` 挂在 fiber 上，dispose 时按 [02 篇 8.3](../02-cordis-fiber-demo/README.md#83-逆序启动并发执行两行源码定死的行为) 的流程自动执行。事件通信和生命周期管理在 effect 这一层确实是同一套机制。
+
+## 10 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -237,6 +318,9 @@ cordis-events-demo/
   "private": true,
   "type": "module",
   "description": "五种事件派发模式（emit / parallel / serial / bail / waterfall）、监听器即 effect、internal/dispatch 观测。Node 与 Bun 双运行时。",
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "start": "cordis",
     "start:bun": "bun node_modules/cordis/bin.js",
@@ -275,171 +359,9 @@ cordis-events-demo/
 }
 ```
 
-### src/index.ts（完整版）
+### src/index.ts
 
-正文第 8 节展示的是节选；这里是可直接运行的完整文件。它由 cordis.yml 的 runner 行挂载，依次演示五种派发模式、监听器随 fiber 回收、全量观测入口。
-
-```ts
-/**
- * 事件系统的五种派发模式：emit / parallel / serial / bail / waterfall。
- * 外加两条规则：监听器即 effect（随 fiber 回收）、internal/dispatch 是全量观测入口。
- *
- * runner：由 cordis.yml 的 runner 行挂载，代码里没有一处 ctx.use / ctx.plugin；
- * listener 插件在 cordis.yml 里声明（初始禁用），④ 里经行句柄启用与卸载。
- */
-import type { Context } from 'cordis'
-import type { Entry } from '@cordisjs/loader'
-import { hits } from './state.ts'
-
-export const name = 'runner'
-export const inject = ['loader']
-
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
-
-declare module 'cordis' {
-  interface Events {
-    'lab/notice'(msg: string): void
-    'lab/boom'(): void
-    'lab/report'(msg: string): void
-    'lab/claim'(msg: string): string | number | null | false | undefined
-    'lab/claim-async'(msg: string): Promise<string | null | undefined>
-    'lab/wrap'(text: string, next: () => string): string
-    'lab/gate'(text: string, next: () => string): string
-    'lab/double'(text: string, next: () => string): string
-    'lab/ping'(): void
-    'lab/quiet'(): void
-  }
-}
-
-// yml 的行挂在 include 子树里；entries() 会递归遍历，按 id 找行句柄
-function row(ctx: Context, id: string): Entry {
-  const entry = [...ctx.loader.entries()].find(row => row.options.id === id)
-  if (!entry) throw new Error(`cordis.yml 里没有 id=${id} 的行`)
-  return entry
-}
-
-export function apply(ctx: Context) {
-  // apply 同步返回：runner 自己的 fiber 先 settle，run() 再等整棵树，避免互相等待
-  void run(ctx)
-}
-
-async function run(ctx: Context) {
-  await ctx.loader.await()
-
-  console.log('① emit 与 parallel：同步广播 vs 并发上报')
-  ctx.on('lab/notice', (msg) => console.log('   [监听器 1] 收到', msg))
-  ctx.on('lab/notice', (msg) => console.log('   [监听器 2] 收到', msg))
-  ctx.emit('lab/notice', 'hello')
-  ctx.on('lab/report', async (msg) => {
-    await sleep(20)
-    console.log('   [上报 A] 完成', msg)
-  })
-  ctx.on('lab/report', async () => {
-    await sleep(10)
-    throw new Error('上报 B 失败')
-  })
-  try {
-    await ctx.parallel('lab/report', 'metrics')
-  } catch (error) {
-    const agg = error as AggregateError
-    console.log('   parallel 抛 AggregateError：', agg.message, '，错误数 =', agg.errors.length)
-  }
-  ctx.on('lab/boom', () => {
-    throw new Error('监听器抛错')
-  })
-  try {
-    ctx.emit('lab/boom')
-  } catch (error) {
-    console.log('   emit 不接异常，直接穿透：', (error as Error).message, '\n')
-  }
-
-  console.log('② bail 与 serial：首个「非空」返回值即认领，0 也算非空')
-  const asked: string[] = []
-  ctx.on('lab/claim', () => {
-    asked.push('A(undefined)')
-    return undefined
-  })
-  ctx.on('lab/claim', () => {
-    asked.push('B(null)')
-    return null
-  })
-  ctx.on('lab/claim', () => {
-    asked.push('C(false)')
-    return false
-  })
-  ctx.on('lab/claim', () => {
-    asked.push('D(返回 0)')
-    return 0
-  })
-  ctx.on('lab/claim', () => {
-    asked.push('E(不会被问到)')
-    return 'E'
-  })
-  const answer = ctx.bail('lab/claim', '谁来处理？')
-  console.log('   bail 结果：', answer, '（0 被 isBailed 判为认领）')
-  console.log('   被问到的监听器：', asked.join(' → '))
-  ctx.on('lab/claim-async', async () => {
-    await sleep(5)
-    return null
-  })
-  ctx.on('lab/claim-async', async () => {
-    await sleep(5)
-    return '异步认领者'
-  })
-  ctx.on('lab/claim-async', async () => {
-    throw new Error('不会被执行')
-  })
-  const asyncAnswer = await ctx.serial('lab/claim-async', '谁来处理？')
-  console.log('   serial 结果：', asyncAnswer, '（逐个 await，认领即停）', '\n')
-
-  console.log('③ waterfall：洋葱模型，next() 委托，不调 next 即否决')
-  ctx.on('lab/wrap', (_text, next) => `【A】${next()}`)
-  ctx.on('lab/wrap', (_text, next) => `【B】${next()}`)
-  // inner 以无参形式执行：拿不到 '原始文本'，只能自带默认值
-  console.log('   全链委托：', ctx.waterfall('lab/wrap', '原始文本', () => '【base】'))
-  ctx.on('lab/gate', (_text, next) => `【外层】${next()}`)
-  ctx.on('lab/gate', () => '【接管】')   // 不调 next：下游与 inner 全部跳过
-  console.log('   中途否决：', ctx.waterfall('lab/gate', 'x', () => '【base】'))
-  ctx.on('lab/double', (_text, next) => {
-    next()
-    return next()
-  })
-  try {
-    ctx.waterfall('lab/double', 'x', () => 'base')
-  } catch (error) {
-    console.log('   重复调 next：', (error as Error).message, '\n')
-  }
-
-  console.log('④ 监听器即 effect：prepend 定顺序，once 只响一次，随 fiber 回收')
-  const off = ctx.on('lab/ping', () => hits.push('手动'))
-  // listener 插件在 cordis.yml 里声明为 disabled: true，这里启用它
-  const listener = row(ctx, 'listener')
-  await listener.update({ disabled: false })
-  await ctx.loader.await()
-  ctx.emit('lab/ping')
-  ctx.emit('lab/ping')
-  off()                        // on() 返回注销函数，手动监听随调随摘
-  await listener.dispose()
-  ctx.emit('lab/ping')         // fiber 已卸载：这次 emit 什么也不发生
-  console.log('   命中顺序：', hits.join(' → '), '\n')
-
-  console.log('⑤ internal/dispatch：全量事件流的观测入口')
-  const trail: string[] = []
-  ctx.on('internal/dispatch', (mode, name) => {
-    trail.push(`${mode}:${String(name)}`)
-  })
-  ctx.emit('lab/quiet')
-  ctx.waterfall('lab/wrap', 't', () => 'base')
-  await ctx.serial('lab/claim-async', 'q')
-  ctx.bail('lab/claim', 'q')
-  console.log('   观测到：', trail.join(' '))
-  console.log('   （internal/ 开头的事件不上报，避免递归观测自身）')
-
-  console.log('演示结束')
-  // cordis CLI 靠文件 watch 保持进程存活；演示做完主动退出
-  process.exit(0)
-}
-```
+正文第 8 节展示的是节选；完整文件就在本目录 [src/index.ts](src/index.ts)，由 cordis.yml 的 runner 行挂载，依次演示五种派发模式、监听器随 fiber 回收、全量观测入口。脚手架各写法的含义见 [01 篇第 5 节的速览表](../01-cordis-seam-demo/README.md#脚手架速览照抄即可原理在-05-篇展开)。
 
 ### 按顺序验证
 
@@ -453,12 +375,12 @@ async function run(ctx: Context) {
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。Node 需 22.18 以上（原生类型擦除），低于此版本改用 `npm run start:bun`。
 
-## 10 延伸阅读
+## 11 延伸阅读
 
-- 对应的分析章节：[事件系统与 Waterfall](../../../docs/hello-cordis/06-event-system-and-waterfall.md)——示例跑通了五种派发的行为对照，这一章补齐 `_resolve()` 的参数重载、`Context.filter` 与 `global`、`EventOptions`、11 个 internal 事件，以及 `ctx.reflect.bind()` 的 traceable 包装——监听器链的全部契约与内部事件清单都在这一章。
+本文把五个派发方法各自当黑盒观察；waterfall 递归闭包的逐行走读、`internal/dispatch` 在 dsh 轨迹系统里的完整用法、事件与 isolate 过滤的交互，在 [事件系统与 waterfall](../../../docs/hello-cordis/06-event-system-and-waterfall.md) 一篇里展开，还附派发模式全对照表与洋葱模型的完整时序图。
 
-## 11 小结
+## 12 小结
 
 事件系统的五个方法是五种控制流：emit 广播、parallel 并发收错、bail/serial 询问认领、waterfall 委托改写。选方法就是选错误处理方式与中断条件；`isBailed` 的三值排除和 inner 的无参契约是最容易写错的两处。监听器注册即 fiber effect，卸载自动摘除——事件通信和生命周期管理在 effect 这一层用的是同一套机制。下一篇 isolate 示例讲「哪些监听器看得见这次派发」：`Context.filter` 与 realm 隔离。
 
-上一篇：[02-cordis-fiber-demo](../02-cordis-fiber-demo/README.md) ｜ 下一篇：[04-cordis-isolate-demo](../04-cordis-isolate-demo/README.md)
+上一篇：[02 · Cordis 的 fiber 示例](../02-cordis-fiber-demo/README.md) ｜ 下一篇：[04 · Cordis 的 isolate 示例](../04-cordis-isolate-demo/README.md)

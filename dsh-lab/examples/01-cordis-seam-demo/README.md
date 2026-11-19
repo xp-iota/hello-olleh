@@ -2,15 +2,15 @@
 
 本示例将演示如何开发一个 seam，示例`greeter` 涵盖了 cordis 里四种角色：定义服务者、提供服务者、使用服务者、记录事件者。
 
-- **插件**是实现 [**Service**](https://deepseek-harness.github.io/deepseek-harness/reference/cordis-api/service) 的对象。它可以是一个带有可选 `inject` 和 `apply(ctx)` 字段的函数，也可以是一个 `Service` 子类，其生命周期由 Cordis 挂载到当前上下文中。
+- **插件**是挂载到上下文的一个功能单元：一个带有可选 `inject`、`name` 和 `apply(ctx)` 的函数或对象（ESM 模块的导出整体就是一个插件）。插件不一定实现 [**Service**](../../../docs/hello-cordis/05-service-registration-and-dependency-resolution.md)——它可以提供服务、消费服务、监听事件，或只产生副作用；本示例的 consumer、audit、runner 都是不实现任何 Service 的插件。
 
-- [**上下文**](https://deepseek-harness.github.io/deepseek-harness/reference/cordis-api/context)是 **Service** 的容器。一个 **Service** 占据一个稳定的 `ctx.<key>`（如 `ctx.tools`、`ctx.llm`、`ctx.sessions`）；其他插件通过 key 查找服务，而非导入具体实现。
+- [**上下文**](../../../docs/hello-cordis/04-context-and-reflect-proxy.md)是服务的容器。一个 **Service** 占据一个稳定的 `ctx.<key>`（如 `ctx.tools`、`ctx.llm`、`ctx.sessions`）；其他插件通过 key 查找服务，而非导入具体实现。
 
 - 通过 `inject` 声明服务依赖。插件声明所需的服务后，会等待这些服务就绪才启动；加载顺序通过服务依赖表达，而非手动编排启动序列。
 
-- 类型化[**事件**](https://deepseek-harness.github.io/deepseek-harness/reference/cordis-api/events)用于通信。服务通过 TypeScript 声明合并注册事件名，然后以 `emit`、`waterfall`（瀑布式事件）、`parallel`、`serial` 或 `bail` 方式分发，分别对应监听者观察、包装、并行扇出、按序执行或停在首个 bail 值。
+- 类型化[**事件**](../../../docs/hello-cordis/06-event-system-and-waterfall.md)用于通信。服务通过 TypeScript 声明合并注册事件名，然后以 `emit`、`waterfall`（瀑布式事件）、`parallel`、`serial` 或 `bail` 方式分发，分别对应监听者观察、包装、并行扇出、按序执行或停在首个 bail 值。
 
-- [**注册**](https://deepseek-harness.github.io/deepseek-harness/reference/cordis-api/registry)是可逆的副作用。提示词片段、工具 schema、适配器、提供方和监听器通过 `ctx.effect()` 或 `ctx.on()` 安装，reload 和 teardown 时会按预期撤销。
+- [**注册**](../../../docs/hello-cordis/03-fiber-model.md)是可逆的副作用。提示词片段、工具 schema、适配器、提供方和监听器通过 `ctx.effect()` 或 `ctx.on()` 安装，reload 和 teardown 时会按预期撤销。
 
 ## 1 插件之间不直接 import
 
@@ -174,6 +174,21 @@ export function apply(ctx: Context) {
 
 `npm start` 就是 cordis CLI：读当前目录的 `cordis.yml`，loader 逐行 import 模块，把导出的 `apply`、`inject`、`name` 当作插件定义挂上去。consumer 声明在 provider 前面也没关系——inject 未满足就等着，服务一出现自动激活。
 
+### 脚手架速览（照抄即可，原理在 05 篇展开）
+
+六篇示例共用同一套 runner 脚手架。第一次接触只需要把它当黑盒契约，知道每行在做什么即可；「为什么」集中在 [05 loader 示例](../05-cordis-loader-demo/README.md) 讲透。
+
+|脚手架写法|黑盒契约|
+|---|---|
+|`cordis.yml` 的每一行|一个插件声明（Entry），由 loader 挂载；`disabled: true` 的行暂不生效|
+|`export const inject = ['loader']`|runner 也是普通插件，声明依赖 loader 服务后才能操作装配|
+|`row(ctx, id)`|按 `options.id` 递归查找行句柄；yml 的行挂在 include 子树里，所以要遍历 `entries()` 而不是 `resolve()`|
+|`entry.update({ disabled })` / `entry.dispose()`|运行时开关与卸载，等价于改清单再重启，但不重启进程|
+|`entry.innerFiber`|真正执行 `apply` 的那层 fiber；配置层 inject 会拆成 outer/inner 两层（05 篇③）|
+|`STATE` 按值镜像|`FiberState` 是 const enum，编译后没有运行时对象，只能按值映射名字|
+|`apply` 里 `void run(ctx)`|apply 必须同步返回，让 runner 自己的 fiber 先就位；否则 run() 等整棵树时把自己也等进去，死锁|
+|结尾 `process.exit(0)`|cordis CLI 靠文件 watch 保持进程存活，演示做完要主动退出|
+
 `runner` 行挂的 `src/index.ts` 也是一个普通插件，负责驱动演示场景。它 inject 了 loader，拿到每一行的句柄，运行时翻转 `disabled`、dispose，不再手工挂任何插件：
 
 ```ts
@@ -280,7 +295,138 @@ npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过
 
 实践里最常见的错误，是把「通知别人」写成同步调用链：provider 里依次调用日志、统计、埋点。这些需求彼此无关，却被迫塞进 provider，还要跟着 provider 一起失败。改成 emit 一个事件之后，provider 只负责「发生了什么」，每个监听者各自决定要不要响应、失败了怎么处理。反过来也要守住一条边界：事件不保证有人听，关键业务动作不能「发个事件就算完成」——如果某个下游必须执行，它应该是服务调用而不是事件广播。
 
-## 7 从零复现：完整文件与运行路径
+## 7 源码视角：五个现象在 Cordis 内部如何做到
+
+前面五节回答「会发生什么」，这一节回答「源码里怎么做到」。摘录取自本仓 vendored 源码 `deepseek-harness/vendor/cordis/src`（4.1.0，rc.11 基线）；本示例运行 cordis 4.0.0-rc.13，本节五条机制两个版本一致（rc.13 的差异集中在 HMR 与 `ctx.use` 改名，见 [06 篇](../06-cordis-hmr-demo/README.md)）。逐行精读见 [Fiber 模型](../../../docs/hello-cordis/03-fiber-model.md)、[Context 与 Reflect Proxy](../../../docs/hello-cordis/04-context-and-reflect-proxy.md)、[服务注册与依赖解析](../../../docs/hello-cordis/05-service-registration-and-dependency-resolution.md)。
+
+### 7.1 构造即注册：Service 构造函数只干一件事
+
+`new EnglishGreeter(ctx)` 之所以等于注册，是因为 `Service` 构造函数末尾直接调用了 `ctx.reflect.provide`（`service.ts:53-57`）：
+
+```ts
+self.ctx = ctx
+self.name = name
+self.ctx.reflect.provide(name, self, this[symbols.check])
+```
+
+`provide` 把服务实例包装成一条 `Impl` 记录，存进以 isolate symbol 为键的全局表，并挂到当前 fiber 的 `provisions` 上（`reflect.ts:302-307`）：
+
+```ts
+const impl: Impl = { uid: ++this._implCounter, name, value, ctx: this.ctx, check, isolate: key, dependents: new Set() }
+if (this.store[key]) {
+  throw new Error(`service "${name}" has been registered at <${this.store[key].ctx.fiber.name}>`)
+}
+this.store[key] = impl
+this.ctx.fiber.provisions.add(impl)
+```
+
+第 3 节里「同名服务第二个 provider 直接抛错」就是这里第 2～4 行。而 `provide` 整体包在 `ctx.fiber.effect(() => …)` 里（`reflect.ts:292`）——注册本身是一个可逆副作用，fiber 卸载时自动执行它返回的注销函数，所以「provider 卸载」与「服务消失」天然是同一件事。（Java 类比：`@Bean` 方法返回对象的同时，容器把 BeanDefinition 和销毁回调一起登记了。）
+
+### 7.2 PENDING 是算出来的：epoch 指纹
+
+fiber 的状态不是一个被随手赋值的字段，而是每次现算（`fiber.ts:580-585`）：
+
+```ts
+private _getState() {
+  if (this.uid === null) return FiberState.DISPOSED
+  if (this._error) return FiberState.FAILED
+  if (this._runner.epoch !== INACTIVE) return FiberState.ACTIVE
+  return FiberState.PENDING
+}
+```
+
+关键在 epoch：`_refresh` 把「自身修订号 + 每个依赖服务的 impl.uid」拼成一个字符串指纹，任何一个依赖缺席就整体置为 INACTIVE（`fiber.ts:617-628`）：
+
+```ts
+_refresh() {
+  let epoch = `${this._revision}`
+  for (const name of Object.keys(this.inject)) {
+    const impl = this._store[name]
+    if (!impl) {
+      epoch = INACTIVE
+      break
+    }
+    epoch += ':' + impl.uid
+  }
+  this._setEpoch(epoch)
+}
+```
+
+服务出现或消失时，`reflect.notify` 遍历所有声明了该 inject 的 fiber，逐个 `_checkImpl` + `_refresh`（`reflect.ts:335-348`）；`_setEpoch` 发现指纹变了就启动 `_reload` 或 `_unload`（`fiber.ts:630-646`）。所以第 ⑤ 步换 provider 后 consumer「原地复活」不需要任何专门代码：新 impl 的 uid 不同 → 指纹不同 → 自动重走加载。（Java 类比：不是通知监听器「服务变了」，而是 K8s reconcile——比较期望指纹与实际指纹，不一致就收敛。）
+
+### 7.3 访问必须有声明：Proxy get 陷阱
+
+每个 ctx 都是 Proxy（`context.ts` 构造时包装）。读 `ctx.greeter` 落进 get 陷阱：先构造好那句著名的错误，再沿 fiber 父链查找（`reflect.ts:152-179`）：
+
+```ts
+const error = new Error(`cannot get property "${prop}" without inject`)
+// …accessor 与无 fiber 的 root 访问分支省略…
+const key = defSite[symbols.isolate][prop]
+let fiber = defSite.fiber
+while (true) {
+  let impl = fiber.committed?.[prop]
+  for (const provision of fiber.provisions) {
+    if (provision.name === prop && provision.ctx[symbols.isolate][prop] === key) impl = provision
+  }
+  if (impl) return getTraceable(ctx, impl.value)
+  if (prop in fiber.inject) {
+    error.message = `cannot get required service "${prop}" in inactive context`
+    throw error
+  }
+  if (!fiber.runtime) throw error
+  if (fiber.parent[symbols.isolate][prop] !== key) throw error
+  fiber = fiber.parent.fiber
+}
+```
+
+第 ② 步的报错就是走到 `if (!fiber.runtime) throw error`：runner 没声明 inject，查找链上也没有匹配的服务。注意查找读的是 `fiber.committed`——fiber 加载时冻结的依赖快照（`fiber.ts:682`），这保证卸载过程中服务引用不会中途变脸。
+
+### 7.4 卸载有方向：dependents 握手
+
+「先卸 consumer 再注销服务」不是调度顺序的巧合，而是一次显式握手。consumer 加载时把自己登记进每个依赖 impl 的 `dependents` 集合（`fiber.ts:682-686`）；provider 卸载时先等这个集合清空（`fiber.ts:716-718`）：
+
+```ts
+while ([...this.provisions].some(impl => impl.dependents.size)) {
+  await new Promise<void>((resolve) => this._release = resolve)
+}
+```
+
+consumer 卸载完成后把自己摘掉，最后一个离开的负责唤醒等待中的 provider（`fiber.ts:732-736`）：
+
+```ts
+for (const impl of Object.values(this.committed ?? {})) {
+  if (!impl.dependents.delete(this) || impl.dependents.size) continue
+  impl.release?.()
+  impl.ctx.fiber._release?.()
+}
+```
+
+所以 consumer 的清理代码运行时服务一定还活着——provider 被堵在上面的 while 里。（Java 类比：引用计数 + CountDownLatch，计数归零才放行销毁。）
+
+### 7.5 事件穿过一切：emit 是裸循环，监听器是 effect
+
+`emit` 不检查有没有监听者、不接异常，就是一个同步遍历（`events.ts:203-206`）：
+
+```ts
+emit(...args: any[]) {
+  const [thisArg, callbacks] = this._resolve('emit', args)
+  for (const callback of callbacks) Reflect.apply(callback, thisArg, args)
+}
+```
+
+而 `ctx.on` 的注册走 `ctx.fiber.effect`，返回值是注销函数（`events.ts:265-269`）：
+
+```ts
+return this.ctx.fiber.effect(() => {
+  const hooks = this._hooks[name] ??= []
+  hooks[method]({ ctx: this.ctx, callback, ...options })
+  return () => this.unregister(name, callback)
+}, label)
+```
+
+这两段合起来解释第 ⑤ 步：audit 的监听器挂在 audit 自己的 fiber 上，provider 换实现对它毫无影响；事件广播本身与调用方是谁无关，root 侧调用照样穿过同一条循环。
+
+## 8 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -310,6 +456,9 @@ cordis-seam-demo/
   "private": true,
   "type": "module",
   "description": "一条 greeter 接缝演示 cordis 四种角色：Service Definition / Provider / 服务型 Consumer / 事件型 Consumer。Node 与 Bun 双运行时。",
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "start": "cordis",
     "start:bun": "bun node_modules/cordis/bin.js",
@@ -348,78 +497,9 @@ cordis-seam-demo/
 }
 ```
 
-### src/index.ts（完整版）
+### src/index.ts
 
-正文第 5 节展示的是节选；这里是可直接运行的完整文件。它由 cordis.yml 的 runner 行挂载，依次演示启动即在位、越权访问报错、root 侧调用、禁用行后的有序卸载与启用另一行后的换实现复活。
-
-```ts
-/**
- * runner：场景驱动插件，由 cordis.yml 的 runner 行挂载。
- * 这里没有一处 ctx.use / ctx.plugin——插件全部在 cordis.yml 里声明，
- * 本插件只通过 loader 的行句柄做运行时开关（disabled 翻转、dispose）。
- */
-import type { Context } from 'cordis'
-import type { Entry } from '@cordisjs/loader'
-
-export const name = 'runner'
-export const inject = ['loader']
-
-// FiberState 是 const enum，没有运行时对象可 import；按值镜像。
-const STATE = ['PENDING', 'LOADING', 'ACTIVE', 'FAILED', 'DISPOSED', 'UNLOADING']
-
-// yml 的行挂在 include 子树里；entries() 会递归遍历，按 id 找行句柄
-function row(ctx: Context, id: string): Entry {
-  const entry = [...ctx.loader.entries()].find(row => row.options.id === id)
-  if (!entry) throw new Error(`cordis.yml 里没有 id=${id} 的行`)
-  return entry
-}
-
-function consumerState(ctx: Context): string {
-  const state = row(ctx, 'consumer').innerFiber?.state
-  return state === undefined ? '(no fiber)' : STATE[state] ?? String(state)
-}
-
-export function apply(ctx: Context) {
-  // apply 同步返回：runner 自己的 fiber 先 settle，run() 再等整棵树，避免互相等待
-  void run(ctx)
-}
-
-async function run(ctx: Context) {
-  await ctx.loader.await()
-
-  console.log('\n① 启动即在位：provider-en 由 cordis.yml 声明，consumer 已自动激活')
-  console.log(`   consumer 状态 = ${consumerState(ctx)}\n`)
-
-  console.log('② 没声明 inject 的插件直接读 ctx.greeter（本 runner 只 inject 了 loader）')
-  try {
-    ;(ctx as any).greeter
-  } catch (error) {
-    console.log('   结果：' + (error as Error).message + '\n')
-  }
-
-  console.log('③ 换一个调用方（root 侧 ctx.get 直接调用服务）：事件照样广播')
-  ctx.get('greeter')!.greet('root')
-  console.log('')
-
-  console.log('④ 禁用 provider-en 行：entry.update({ disabled: true })')
-  await row(ctx, 'provider-en').update({ disabled: true })
-  await ctx.loader.await()
-  console.log(`   consumer 状态 = ${consumerState(ctx)}`)
-  console.log('   结果：provider 卸载时先卸载依赖它的 consumer，再注销服务；audit 不受影响')
-  console.log('   ctx.get("greeter") =', ctx.get('greeter'), '\n')
-
-  console.log('⑤ 启用 provider-pirate 行（yml 里声明为 disabled: true）：consumer 的代码一行没改')
-  await row(ctx, 'provider-pirate').update({ disabled: false })
-  await ctx.loader.await()
-  console.log(`   consumer 状态 = ${consumerState(ctx)}`)
-  console.log('   结果：同一条 seam 换了实现，服务型与事件型 consumer 都被重新触发\n')
-
-  await row(ctx, 'provider-pirate').dispose()
-  console.log('演示结束')
-  // cordis CLI 靠文件 watch 保持进程存活；演示做完主动退出
-  process.exit(0)
-}
-```
+正文第 5 节展示的是节选；完整文件就在本目录 [src/index.ts](src/index.ts)，由 cordis.yml 的 runner 行挂载，依次演示启动即在位、越权访问报错、root 侧调用、禁用行后的有序卸载与启用另一行后的换实现复活。脚手架各写法的含义见第 5 节的速览表。
 
 ### 按顺序验证
 
@@ -433,11 +513,11 @@ async function run(ctx: Context) {
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。Node 需 22.18 以上（原生类型擦除），低于此版本改用 `npm run start:bun`。
 
-## 8 延伸阅读
+## 9 延伸阅读
 
-- 对应的分析章节：[服务注册与依赖解析](../../../docs/hello-cordis/05-service-registration-and-dependency-resolution.md)——示例只演示 seam 四个角色的行为时序，这一章逐行展开 `registry.use()` 的完整注册流程、`inject` 的三种写法与归一化、`provide()` 与 `notify()` 级联引擎、`registry.replace()` 热换实现，以及 `Service` 基类构造背后的源码细节。
+本文只演示一条接缝上的四个角色；服务如何注册进全局表、依赖如何被解析与重调度，完整的机制链路在 [服务注册与依赖解析](../../../docs/hello-cordis/05-service-registration-and-dependency-resolution.md) 一篇里逐层展开：isolate 全局表的结构、`Impl` 记录的字段语义、epoch 指纹驱动的重载，以及 dependents 握手的完整时序图。
 
-## 9 小结
+## 10 小结
 
 写一条 seam 就是四步：
 
@@ -451,4 +531,4 @@ async function run(ctx: Context) {
 
 以上就是这条接缝的全部。代码在本目录，`npm start` 和 `npm run start:bun` 能直接看到上面的输出，`npm run typecheck` 验证类型契约。
 
-下一篇：[02-cordis-fiber-demo](../02-cordis-fiber-demo/README.md)
+下一篇：[02 · Cordis 的 fiber 示例](../02-cordis-fiber-demo/README.md)

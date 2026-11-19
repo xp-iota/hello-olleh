@@ -17,7 +17,7 @@
  * 这个错误发生在模块加载期，不是调用期，所以 `try/catch` 救不了；`boot()` 把它
  * 记成"该行导入失败"，于是 `ptc-runtime` 不激活 → `workflow-ptc` 等 `ptcRuntime`
  * → `tool-workflow` 等 `workflowEngine`，三个入口一起 pending。表现是**能启动、
- * 但少 1 个工具**（25 对 26），属于最难查的一类静默降级。
+ * 但少 1 个工具**（26 对 27），属于最难查的一类静默降级。
  *
  * ## 为什么只能在加载期改写源码
  *
@@ -85,9 +85,10 @@ function getTranspiler() {
 /**
  * 用 Bun 的转译器剥离一个代码片段的类型标注。
  *
- * 输入是完整可解析的模块/函数体时直接用 Transpiler；输入是**语句列表**（没有
- * 外层函数包裹，`return` 在顶层非法）时，先包进 async 函数再剥，然后按上游的
- * 位置约定取回函数体。
+ * 输入是完整可解析的**模块**（持久 PTC 传入的整段程序，可能带顶层
+ * import/export——包进函数体会变成语法错误）时直接用 Transpiler 直译；
+ * 输入是**语句列表**（没有外层函数包裹，`return` 在顶层非法、直译必然失败）
+ * 时，先包进 async 函数再剥，然后按上游的位置约定取回函数体。
  *
  * @param {string} code
  * @returns {string}
@@ -103,8 +104,13 @@ function strip(code) {
     return STRIP_PREFIX + strippedBody + STRIP_SUFFIX
   }
 
-  // 分支 B：裸片段。能直接当模块转译就直译，否则按语句列表处理。
-  return stripStatements(input)
+  // 分支 B：裸片段。先按完整模块直译；直译不了（典型是顶层 return 的语句列表）
+  // 再按语句列表处理。两个分支的失败都向上抛，不静默产出错误代码。
+  try {
+    return getTranspiler().transformSync(input)
+  } catch {
+    return stripStatements(input)
+  }
 }
 
 /**

@@ -5,7 +5,7 @@
  * 值两侧的成对引号剥掉（`KEY="a b"` 与 `KEY='a b'` 等价），
  * **不覆盖已存在的进程环境**（显式导出优先于文件）。
  *
- * 与 15-dsh-chat-demo 的 loadDotEnv（src/cli/bin.ts）是同源副本，
+ * 与 21-dsh-chat-demo 的 loadDotEnv（src/cli/bin.ts）是同源副本，
  * 两边的解析行为必须一致（差异由根层 check:copies 守卫不了——刻意
  * 各自实现——所以这里把约定写成注释，改一边必须同步另一边）。
  */

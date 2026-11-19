@@ -1,4 +1,4 @@
-# 14 · dsh 的 guardrail 示例
+# 20 · dsh 的 guardrail 示例
 
 本示例演示一个自写安全护栏插件的完整策略面：观察、脱敏、留痕，升级为 deny / ask / cancel 四种决定，再对照官方单调 guard。全部装配都在 `cordis.patch.yml`（12 行）里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。**全程离线**——不需要任何 API key，五个场景全部用 `callTool` 直接驱动真实工具管线（与模型步同一条 pre-execute → execute 路径）。基于 `@deepseek-ai/*` 0.2.2-rc.5 与 `@deepseek-ai/cordis` 4.1.0，Node v26.12.1 与 Bun 1.4.4 双运行时实测等价。
 

@@ -1,4 +1,4 @@
-# 07 · dsh 的 trajectory 探针示例
+# 13 · dsh 的 trajectory 探针示例
 
 本示例演示怎么把会话事件流折叠成可读的 trajectory：turn 大纲、逐事件明细、模型表面，以及 dispose 之后从盘上渲染。word-count 工具与脚本化适配器都在 cordis.patch.yml 里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。
 

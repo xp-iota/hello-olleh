@@ -1,4 +1,4 @@
-# 10 · dsh 的委派示例
+# 16 · dsh 的委派示例
 
 本示例演示 agent 怎么把工作委派给子 agent：spawn 与 fork 两条通道、会话头归属、真实 `subagent` 工具激活子 agent 跑完自己的 turn、深度预算。word-count 工具与脚本化适配器都在 cordis.patch.yml 里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。
 

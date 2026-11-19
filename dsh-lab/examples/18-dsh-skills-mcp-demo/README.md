@@ -1,4 +1,4 @@
-# 12 · dsh 的外部能力接入示例
+# 18 · dsh 的外部能力接入示例
 
 本示例演示 dsh 外部能力接入的四种形态：skill 目录、工作区指令文件、MCP 外部
 进程、web provider 注册。20 个服务全部在 cordis.patch.yml 里声明，boot 后全程

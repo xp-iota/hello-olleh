@@ -1,4 +1,4 @@
-# 06 · dsh 的会话日志示例
+# 12 · dsh 的会话日志示例
 
 本示例演示会话日志的六个面：append-only 事件流的结构与 seq 不变量、JSONL 落盘、live-preferred 会话列表、标题投影、模型表面、从日志恢复。word-count 工具与脚本化适配器都在 cordis.patch.yml 里声明，boot 后全程在位，代码里没有一处 `ctx.plugin()`。
 

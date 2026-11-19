@@ -6,11 +6,11 @@
  * 一份修了 bug 另一份没修、一份加了透传另一份没有。这个脚本把「副本应保持一致」
  * 从 README 里的承诺变成可执行的检查：
  *
- *   1. bun-shim.mjs 三份（根参照层、11-jobs、15-chat）；
- *   2. spawn.mjs 两份（根、15-chat）；
- *   3. bun-preload.mjs 两份（根、15-chat；11-jobs 的五缝超集另做包含性检查）；
- *   4. anthropic-compat 插件两份（04-llm-adapter、15-chat，含各自测试）；
- *   5. safety-guardrail 插件两份（14-guardrail、15-chat）。
+ *   1. bun-shim.mjs 三份（根参照层、17-jobs、21-chat）；
+ *   2. spawn.mjs 两份（根、21-chat）；
+ *   3. bun-preload.mjs 两份（根、21-chat；17-jobs 的五缝超集另做包含性检查）；
+ *   4. anthropic-compat 插件两份（10-llm-adapter、21-chat，含各自测试）；
+ *   5. safety-guardrail 插件两份（20-guardrail、21-chat，含各自测试）。
  *
  * 归一化只抹掉**必然不同**的部分：@module 名、示例名前缀（dsh-lab/dsh-jobs-demo/
  * dsh-chat-demo → DEMO）与各自的修复指引命令（npm run mechanism / npm run info）。
@@ -51,53 +51,60 @@ function firstDivergence(a, b) {
 /** 成组拷贝：组内所有文件归一化后必须互相一致。 */
 const COPY_GROUPS = [
   {
-    name: 'bun-shim.mjs（根 / 11-jobs / 15-chat）',
+    name: 'bun-shim.mjs（根 / 17-jobs / 21-chat）',
     files: [
       'runtime/lib/bun-shim.mjs',
-      'examples/11-dsh-jobs-demo/runtime/lib/bun-shim.mjs',
-      'examples/15-dsh-chat-demo/runtime/lib/bun-shim.mjs',
+      'examples/17-dsh-jobs-demo/runtime/lib/bun-shim.mjs',
+      'examples/21-dsh-chat-demo/runtime/lib/bun-shim.mjs',
     ],
   },
   {
-    name: 'spawn.mjs（根 / 15-chat）',
-    files: ['runtime/lib/spawn.mjs', 'examples/15-dsh-chat-demo/runtime/lib/spawn.mjs'],
+    name: 'spawn.mjs（根 / 21-chat）',
+    files: ['runtime/lib/spawn.mjs', 'examples/21-dsh-chat-demo/runtime/lib/spawn.mjs'],
   },
   {
-    name: 'bun-preload.mjs（根 / 15-chat）',
-    files: ['runtime/bun-preload.mjs', 'examples/15-dsh-chat-demo/runtime/bun-preload.mjs'],
+    name: 'bun-preload.mjs（根 / 21-chat）',
+    files: ['runtime/bun-preload.mjs', 'examples/21-dsh-chat-demo/runtime/bun-preload.mjs'],
   },
   {
-    name: 'anthropic-compat/index.ts（04 / 15）',
+    name: 'anthropic-compat/index.ts（10 / 21）',
     files: [
-      'examples/04-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts',
-      'examples/15-dsh-chat-demo/src/plugins/anthropic-compat/index.ts',
+      'examples/10-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts',
+      'examples/21-dsh-chat-demo/src/plugins/anthropic-compat/index.ts',
     ],
   },
   {
-    name: 'anthropic-compat/index.test.ts（04 / 15）',
+    name: 'anthropic-compat/index.test.ts（10 / 21）',
     files: [
-      'examples/04-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.test.ts',
-      'examples/15-dsh-chat-demo/src/plugins/anthropic-compat/index.test.ts',
+      'examples/10-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.test.ts',
+      'examples/21-dsh-chat-demo/src/plugins/anthropic-compat/index.test.ts',
     ],
   },
   {
-    name: 'safety-guardrail/index.ts（14 / 15）',
+    name: 'safety-guardrail/index.ts（20 / 21）',
     files: [
-      'examples/14-dsh-guardrail-demo/src/plugins/safety-guardrail/index.ts',
-      'examples/15-dsh-chat-demo/src/plugins/safety-guardrail/index.ts',
+      'examples/20-dsh-guardrail-demo/src/plugins/safety-guardrail/index.ts',
+      'examples/21-dsh-chat-demo/src/plugins/safety-guardrail/index.ts',
+    ],
+  },
+  {
+    name: 'safety-guardrail/index.test.ts（20 / 21）',
+    files: [
+      'examples/20-dsh-guardrail-demo/src/plugins/safety-guardrail/index.test.ts',
+      'examples/21-dsh-chat-demo/src/plugins/safety-guardrail/index.test.ts',
     ],
   },
 ]
 
 /**
- * 包含性检查：11-jobs 的 preload 是五缝**超集**，不与根逐字节对齐，但根的
+ * 包含性检查：17-jobs 的 preload 是五缝**超集**，不与根逐字节对齐，但根的
  * runner 分隔符修补逻辑必须原样（modulo 前缀）出现在超集里——根若改了判定
  * 逻辑而超集没跟上，也是漂移。
  */
 const SUPERSET_CONTAINMENT = [
   {
-    name: '11-jobs preload ⊇ 根 preload 的 restoreRunnerDelimiter',
-    whole: 'examples/11-dsh-jobs-demo/runtime/bun-preload.mjs',
+    name: '17-jobs preload ⊇ 根 preload 的 restoreRunnerDelimiter',
+    whole: 'examples/17-dsh-jobs-demo/runtime/bun-preload.mjs',
     part: 'runtime/bun-preload.mjs',
     extract: /\nfunction restoreRunnerDelimiter\(\) \{[\s\S]*?\n\}/,
   },

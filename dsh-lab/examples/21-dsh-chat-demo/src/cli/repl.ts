@@ -68,7 +68,8 @@ export class Repl {
     await this.startAgent(options)
     this.renderBanner(options)
 
-    // 事件订阅在 agent 创建之前装好，避免漏掉第一批帧。
+    // 全局事件订阅已在 startAgent() 末尾、第一次 followup 之前装好，
+    // 不会漏掉任何流式帧（agent 创建本身不发帧）。
     for (;;) {
       const input = await this.prompter.read(this.promptText())
       if (input === undefined) {

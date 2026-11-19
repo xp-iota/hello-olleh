@@ -26,7 +26,7 @@ import { line, style } from './term.ts'
  * 读示例根的 .env（若存在）。已存在的环境变量不覆盖。
  *
  * 本示例不引 dotenv，自己解析（只有 KEY=VALUE 与 # 注释两种形态）。
- * 解析行为（含值两侧成对引号的剥离）与 04-dsh-llm-adapter-demo 的
+ * 解析行为（含值两侧成对引号的剥离）与 10-dsh-llm-adapter-demo 的
  * src/env.ts 是同源约定——改一边必须同步另一边。只做解析、无副作用：
  * `.dsh-home` 由 bootChatDemo() 里的 ensureDemoHome() 统一创建。
  */

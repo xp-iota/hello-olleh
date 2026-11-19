@@ -1,4 +1,4 @@
-# 08 · dsh 的人机协作示例（HITL）
+# 14 · dsh 的人机协作示例（HITL）
 
 > **HITL = Human-in-the-Loop**，字面译作「人在回路」——人的判断嵌进 agent 的运行过程，而不是事后看结果。本目录名 `dsh-hitl-demo`、包名 `dsh-hitl-demo`、末行成功标记 `HITL_OK` 里的 `HITL` 就是这个缩写。上游 dsh 自己不用这个词，它把这族能力叫「人机协作」（`packages/interaction/`），本篇按上游的说法走。
 
