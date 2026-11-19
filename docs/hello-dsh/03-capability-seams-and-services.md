@@ -12,7 +12,7 @@ title: "能力缝 Seam 与服务全景"
 
 ## 3.1 seam 的三角色定义
 
-> 📐 **配套可跑示例**：[M03 推理服务接入](../../dsh-lab/examples/04-dsh-llm-adapter-demo/README.md) 是三角色模型的实例 ——
+> 📐 **配套可跑示例**：[M03 推理服务接入](../../dsh-lab/examples/10-dsh-llm-adapter-demo/README.md) 是三角色模型的实例 ——
 > Definition 是真实包 `@deepseek-ai/dsh-llm` 导出的抽象类 `LlmAdapter`，Provider 是配套工程里**唯一自写**的
 > `src/plugins/anthropic-compat/index.ts`（`AnthropicCompatAdapter`），Consumer 是 agent-loop；
 > `npm run example:dsh-llm-adapter-demo` 用同一个循环消费 `anthropic-compat` 路由，验证"换 provider 不换 Consumer"。
@@ -197,11 +197,11 @@ cordis 的 `waterfall(thisArg, name, ...)` 会用 `thisArg[Context.filter]` 过�
 ## 3.8 全部 seam 一览
 
 > 📐 **配套可跑示例**：下面这张表里的每个 seam 都有**真实发布包**提供的 provider，配套工程把它们装配起来就能跑 ——
-> `ctx.llm` → [M03 · 自写 anthropic-compat](../../dsh-lab/examples/04-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts)、`ctx.fs` / `ctx.subprocess` → [M07.1](../../dsh-lab/examples/09-dsh-sandbox-demo/src/index.ts)、
-> `ctx.shell` → [M07.2](../../dsh-lab/examples/09-dsh-sandbox-demo/src/index.ts)、`ctx.sandbox` → [M07.3](../../dsh-lab/examples/09-dsh-sandbox-demo/src/index.ts)、
-> `ctx.compaction` → [M02.3](../../dsh-lab/examples/03-dsh-context-demo/src/index.ts)、`ctx.subagents` → [M08.1](../../dsh-lab/examples/10-dsh-subagent-demo/src/index.ts)、
-> `ctx.jobs` → [M09.1 · 后台任务与输出环](../../dsh-lab/examples/11-dsh-jobs-demo/src/index.ts)、`ctx.goals` → [M09.2 · 目标生命周期](../../dsh-lab/examples/11-dsh-jobs-demo/src/index.ts)、
-> `ctx.storage` → [M11.1 · 存储域与 schema 校验](../../dsh-lab/examples/13-dsh-storage-demo/src/index.ts)、`ctx.approval` → [M06.2 · 三种审批结果](../../dsh-lab/examples/08-dsh-hitl-demo/src/index.ts)。
+> `ctx.llm` → [M03 · 自写 anthropic-compat](../../dsh-lab/examples/10-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts)、`ctx.fs` / `ctx.subprocess` → [M07.1](../../dsh-lab/examples/15-dsh-sandbox-demo/src/index.ts)、
+> `ctx.shell` → [M07.2](../../dsh-lab/examples/15-dsh-sandbox-demo/src/index.ts)、`ctx.sandbox` → [M07.3](../../dsh-lab/examples/15-dsh-sandbox-demo/src/index.ts)、
+> `ctx.compaction` → [M02.3](../../dsh-lab/examples/09-dsh-context-demo/src/index.ts)、`ctx.subagents` → [M08.1](../../dsh-lab/examples/16-dsh-subagent-demo/src/index.ts)、
+> `ctx.jobs` → [M09.1 · 后台任务与输出环](../../dsh-lab/examples/17-dsh-jobs-demo/src/index.ts)、`ctx.goals` → [M09.2 · 目标生命周期](../../dsh-lab/examples/17-dsh-jobs-demo/src/index.ts)、
+> `ctx.storage` → [M11.1 · 存储域与 schema 校验](../../dsh-lab/examples/19-dsh-storage-demo/src/index.ts)、`ctx.approval` → [M06.2 · 三种审批结果](../../dsh-lab/examples/14-dsh-hitl-demo/src/index.ts)。
 >
 > ⚠️ 两点与旧版示例不同：**其一**，配套工程不再"刻意留空再自己补 provider"——压缩、沙箱、溢写都直接用官方包（`dsh-compaction-basic`、`dsh-sandbox-local`、`dsh-spill-local`），自写的只剩 M03 那一个 provider 与安全护栏插件；**其二**，`ctx.settings` 在配套工程里**没有挂载**（`dsh-settings` 不在 `cordis.patch.yml` 的 89 条行里），所以它没有可跑对照。
 

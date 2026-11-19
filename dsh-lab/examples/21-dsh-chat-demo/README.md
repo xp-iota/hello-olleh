@@ -15,7 +15,7 @@
 | 会话回看 | session-persistence-jsonl + replay | `src/cli/traj.ts`：turn 折叠、事件明细、surface |
 | 装配自检 | 19 必检服务 + 工具数断言 | `src/cli/bin.ts info`：`BOOT_PROBE` 机器可读标记 |
 
-> 两份副本是完全独立的代价：anthropic-compat 与 safety-guardrail 各自和 [dsh-llm-adapter-demo](../04-dsh-llm-adapter-demo/README.md)、[dsh-guardrail-demo](../14-dsh-guardrail-demo/README.md) 同源但互不引用——拷走本目录不需要带上兄弟示例，改一处也不会波及另一处。实测逐行 diff：适配器副本只差头注释与缺 key 报错文案（「只跑装配探针（npm run info）不需要 key」），护栏副本只差头注释，其余逐字一致。
+> 两份副本是完全独立的代价：anthropic-compat 与 safety-guardrail 各自和 [dsh-llm-adapter-demo](../10-dsh-llm-adapter-demo/README.md)、[dsh-guardrail-demo](../20-dsh-guardrail-demo/README.md) 同源但互不引用——拷走本目录不需要带上兄弟示例，改一处也不会波及另一处。实测逐行 diff：适配器副本只差头注释与缺 key 报错文案（「只跑装配探针（npm run info）不需要 key」），护栏副本只差头注释，其余逐字一致。
 
 ## 2 装配树：89 行 patch 驱动一切
 
@@ -84,7 +84,7 @@
   name: '@deepseek-ai/dsh-web-deepseek-api'
 ```
 
-> 依赖链：`boot()` → loader 读 patch → 89 行插件按 inject 拓扑激活 → `llm`（两条路由）/ `sessions` / `tools`（27 个）/ `agentLoop` / `approval` / `jobs` / `invariants` 等 19 个必检服务在场。与 dsh-base 刻意不同的地方只有「去掉冗余」：不挂 profile 专属行（plugin-manager、hmr、config-editor、settings、api-gateway、otel 遥测——它们是桌面/Web 产品外壳，需要 profileContext 才可用），agent-loop 的 agents 保持空表。装配方式与逐行读法见 [dsh-boot-demo](../01-dsh-boot-demo/README.md)。
+> 依赖链：`boot()` → loader 读 patch → 89 行插件按 inject 拓扑激活 → `llm`（两条路由）/ `sessions` / `tools`（27 个）/ `agentLoop` / `approval` / `jobs` / `invariants` 等 19 个必检服务在场。与 dsh-base 刻意不同的地方只有「去掉冗余」：不挂 profile 专属行（plugin-manager、hmr、config-editor、settings、api-gateway、otel 遥测——它们是桌面/Web 产品外壳，需要 profileContext 才可用），agent-loop 的 agents 保持空表。装配方式与逐行读法见 [dsh-boot-demo](../07-dsh-boot-demo/README.md)。
 
 两处配置值得单独看。适配器的 `maxTokens: 8192` 是实测值：fuyao 网关的推理
 模型会把小额 maxTokens 全花在 thinking 上（实测 1024 仍零正文、
@@ -465,7 +465,7 @@ dsh-chat-demo/
 }
 ```
 
-`tsconfig.json` 与 [dsh-agent-loop-demo 的 tsconfig.json](../05-dsh-agent-loop-demo/tsconfig.json) 逐字一致（ES2023 / nodenext / strict / noEmit / allowImportingTsExtensions），不再重复。
+`tsconfig.json` 与 [dsh-agent-loop-demo 的 tsconfig.json](../11-dsh-agent-loop-demo/tsconfig.json) 逐字一致（ES2023 / nodenext / strict / noEmit / allowImportingTsExtensions），不再重复。
 
 ### .npmrc（完整版）
 
@@ -939,8 +939,8 @@ trajectory 视图 384 行，全文在 [traj.ts](src/cli/traj.ts)：
 
 ### src/plugins/（两份副本，结构说明）
 
-- `anthropic-compat/index.ts`（607 行）：与 [dsh-llm-adapter-demo 的适配器](../04-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts) 逐行 diff 只差头注释与缺 key 报错文案。结构地图见那篇 README §5：Config schema 8 字段、5 个导出纯函数（parseSseData / splitSystem / toAnthropicMessages / toAnthropicTool / tokenUsage）、apply 里的环境变量覆盖与每次请求解析凭据。12 个单测在 [index.test.ts](src/plugins/anthropic-compat/index.test.ts)。
-- `safety-guardrail/index.ts`（153 行）：与 [dsh-guardrail-demo 的护栏](../14-dsh-guardrail-demo/src/plugins/safety-guardrail/index.ts) 只差头注释。`inject = ['tools']`，Config 8 字段全默认值（默认只观察不拦截）；`decide()` 优先级 cancel > deny 名单 > deny 命令模式 > ask > allow；`redactValue()` 规范化键名后精确/后缀匹配脱敏（`maxTokens` 不会被 `token` 误伤）；apply 注册一个 `tools/pre-execute` 监听，非 allow 决定先留痕再返回，日志走 stderr 不打断流式渲染。4 个测试在 [index.test.ts](src/plugins/safety-guardrail/index.test.ts)。
+- `anthropic-compat/index.ts`（607 行）：与 [dsh-llm-adapter-demo 的适配器](../10-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts) 逐行 diff 只差头注释与缺 key 报错文案。结构地图见那篇 README §5：Config schema 8 字段、5 个导出纯函数（parseSseData / splitSystem / toAnthropicMessages / toAnthropicTool / tokenUsage）、apply 里的环境变量覆盖与每次请求解析凭据。12 个单测在 [index.test.ts](src/plugins/anthropic-compat/index.test.ts)。
+- `safety-guardrail/index.ts`（153 行）：与 [dsh-guardrail-demo 的护栏](../20-dsh-guardrail-demo/src/plugins/safety-guardrail/index.ts) 只差头注释。`inject = ['tools']`，Config 8 字段全默认值（默认只观察不拦截）；`decide()` 优先级 cancel > deny 名单 > deny 命令模式 > ask > allow；`redactValue()` 规范化键名后精确/后缀匹配脱敏（`maxTokens` 不会被 `token` 误伤）；apply 注册一个 `tools/pre-execute` 监听，非 allow 决定先留痕再返回，日志走 stderr 不打断流式渲染。4 个测试在 [index.test.ts](src/plugins/safety-guardrail/index.test.ts)。
 
 ### runtime/（迷你双运行时层，结构说明）
 
@@ -986,4 +986,4 @@ npm run traj
 - 双运行时的差异被限制在 `runtime/` 三件套里，业务代码对 Bun 零感知；静默退化（27→26）只有硬断言抓得住。
 - 完全独立是有代价的：127 个依赖、两份插件副本、一套自带 runtime——拷走即用，改一处不波及兄弟示例。
 
-兄弟示例：[dsh-llm-adapter-demo](../04-dsh-llm-adapter-demo/README.md)（适配器本体）、[dsh-guardrail-demo](../14-dsh-guardrail-demo/README.md)（护栏本体）、[dsh-trajectory-probe-demo](../07-dsh-trajectory-probe-demo/README.md)（trajectory 机制）、[dsh-session-demo](../06-dsh-session-demo/README.md)（会话落盘）、[dsh-boot-demo](../01-dsh-boot-demo/README.md)（装配方式）。
+兄弟示例：[dsh-llm-adapter-demo](../10-dsh-llm-adapter-demo/README.md)（适配器本体）、[dsh-guardrail-demo](../20-dsh-guardrail-demo/README.md)（护栏本体）、[dsh-trajectory-probe-demo](../13-dsh-trajectory-probe-demo/README.md)（trajectory 机制）、[dsh-session-demo](../12-dsh-session-demo/README.md)（会话落盘）、[dsh-boot-demo](../07-dsh-boot-demo/README.md)（装配方式）。

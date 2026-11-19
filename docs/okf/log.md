@@ -13,7 +13,7 @@ dsh-lab 重构为「一文一工程」：旧 M01–M12 模块体系（60 阶段 
 装配清单与主题文章）；版本面升到 `@deepseek-ai/*` 0.2.2-rc.3 + cordis 4.1.0。
 
 - 概念 01–04 的 `sources[].resource` 与正文链接改指新示例路径（如
-  `dsh-lab/src/boot.ts` → `dsh-lab/examples/15-dsh-chat-demo/src/boot.ts`）；
+  `dsh-lab/src/boot.ts` → `dsh-lab/examples/21-dsh-chat-demo/src/boot.ts`）；
   结论本身不变，但计数类断言（如 services.ts 的 24 个导入）属于旧结构，
   复核时以新示例为准。
 - [graphify 建图参考](references/01-graphify-dsh-lab.md) 加历史快照横幅：

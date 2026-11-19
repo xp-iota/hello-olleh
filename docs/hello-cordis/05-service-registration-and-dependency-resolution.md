@@ -11,7 +11,7 @@ title: "服务注册与依赖解析"
 
 ## 5.1 四种插件形态
 
-> 📐 **配套可跑示例**：[`M03 · 推理服务接入`](../../dsh-lab/examples/04-dsh-llm-adapter-demo/README.md) 覆盖 Provider 注册与流消费：`src/plugins/anthropic-compat/index.ts` 的 `AnthropicCompatAdapter` 实现 `LlmAdapter`，由插件的 `apply()` 经 `ctx.llm.registerAdapter()` 注册成 `anthropic-compat` 路由；M03.1 列出已注册路由与模型目录，M03.2 观察环绕 `llm/stream` 的 waterfall 如何挂载与卸载，M03.3 用一次真实请求验证适配器端到端（需 `LLM_API_KEY`）。其中 `ctx.llm` 是 DSH 建在 Cordis Service 机制上的领域服务。
+> 📐 **配套可跑示例**：[`M03 · 推理服务接入`](../../dsh-lab/examples/10-dsh-llm-adapter-demo/README.md) 覆盖 Provider 注册与流消费：`src/plugins/anthropic-compat/index.ts` 的 `AnthropicCompatAdapter` 实现 `LlmAdapter`，由插件的 `apply()` 经 `ctx.llm.registerAdapter()` 注册成 `anthropic-compat` 路由；M03.1 列出已注册路由与模型目录，M03.2 观察环绕 `llm/stream` 的 waterfall 如何挂载与卸载，M03.3 用一次真实请求验证适配器端到端（需 `LLM_API_KEY`）。其中 `ctx.llm` 是 DSH 建在 Cordis Service 机制上的领域服务。
 
 `Component` 类型（`C/registry.ts:63-66`）是三者联合（命名空间 `Component` 定义于 `:68-100`；rc.10 时代它叫 `Plugin`，core 中已零残留）：
 

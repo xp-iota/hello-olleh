@@ -8,7 +8,7 @@ agent 循环不能是黑箱：模型要执行敏感操作时，人在哪里介�
 
 ## 1 为什么是这四件事
 
-先答这个问题，因为它决定这个示例的边界。上游 dsh 自己把「人和 agent 打交道」的能力归成一个包家族 `packages/interaction/`，官方名称是**人机协作平面**，家族说明写的是「斜杠命令、一次性审批、权限预设，以及让运行中的 agent 暂停等待人类决定的问答 seam」。本示例取其中三个——`commands`、`user-approval`、`user-questions`；家族里另外两个成员 `permission-presets` 与 `tool-ask-user` 分别落在 [dsh-sandbox-demo](../09-dsh-sandbox-demo/README.md)（`/permission` 预设切换）与 [dsh-chat-demo](../15-dsh-chat-demo/README.md)（`ask_user_question` 工具）——再加一个 `tool-todo`。
+先答这个问题，因为它决定这个示例的边界。上游 dsh 自己把「人和 agent 打交道」的能力归成一个包家族 `packages/interaction/`，官方名称是**人机协作平面**，家族说明写的是「斜杠命令、一次性审批、权限预设，以及让运行中的 agent 暂停等待人类决定的问答 seam」。本示例取其中三个——`commands`、`user-approval`、`user-questions`；家族里另外两个成员 `permission-presets` 与 `tool-ask-user` 分别落在 [dsh-sandbox-demo](../15-dsh-sandbox-demo/README.md)（`/permission` 预设切换）与 [dsh-chat-demo](../21-dsh-chat-demo/README.md)（`ask_user_question` 工具）——再加一个 `tool-todo`。
 
 | 面 | 上游包 | 服务/工具 | 方向 | 回答的问题 |
 |:---|:---|:---|:---|:---|
@@ -33,7 +33,7 @@ agent 循环不能是黑箱：模型要执行敏感操作时，人在哪里介�
 
 ## 2 最小树：九行底座 + 四行交互面 + 两个自写插件
 
-在 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 的九行底座上追加四行交互面：
+在 [dsh-agent-loop-demo](../11-dsh-agent-loop-demo/README.md) 的九行底座上追加四行交互面：
 
 | 行 id | 包 | 说明 |
 |---|---|---|
@@ -338,7 +338,7 @@ dsh-hitl-demo/
 }
 ```
 
-tsconfig.json 与 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 逐字相同；`word-count.ts` 与 `scripted-adapter.ts` 直接复制该示例同名文件（agent-loop README 第 3 节有适配器全文镜像）。
+tsconfig.json 与 [dsh-agent-loop-demo](../11-dsh-agent-loop-demo/README.md) 逐字相同；`word-count.ts` 与 `scripted-adapter.ts` 直接复制该示例同名文件（agent-loop README 第 3 节有适配器全文镜像）。
 
 ### src/tools.ts（完整版）
 
@@ -755,4 +755,4 @@ console.log('\nHITL_OK')
 - 无 agent 的调用一律明确拒绝（审批降级 deny、todo 报错），不静默 no-op；
 - 自写插件走 patch 清单声明，Node 与 Bun 双运行时逐行一致。
 
-上一篇：[dsh-trajectory-probe-demo](../07-dsh-trajectory-probe-demo/README.md)；下一篇：[dsh-subagent-demo](../10-dsh-subagent-demo/README.md)——委派与子 agent。兄弟示例：[dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/README.md)（pre/post-execute 与 guard）、[dsh-session-demo](../06-dsh-session-demo/README.md)（审计事件的持久化与回放）。
+上一篇：[dsh-trajectory-probe-demo](../13-dsh-trajectory-probe-demo/README.md)；下一篇：[dsh-subagent-demo](../16-dsh-subagent-demo/README.md)——委派与子 agent。兄弟示例：[dsh-tool-pipeline-demo](../08-dsh-tool-pipeline-demo/README.md)（pre/post-execute 与 guard）、[dsh-session-demo](../12-dsh-session-demo/README.md)（审计事件的持久化与回放）。

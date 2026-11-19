@@ -6,15 +6,15 @@
 
 ## 1 渲染逻辑要钉在真实事件上
 
-会话日志（见 [dsh-session-demo](../06-dsh-session-demo/README.md)）是 append-only 事件流，但人想看的是 **trajectory**：每个 turn 干了什么、调了几次工具、花了多少 token、模型最终看到了什么。这层折叠渲染有一个测试困境：
+会话日志（见 [dsh-session-demo](../12-dsh-session-demo/README.md)）是 append-only 事件流，但人想看的是 **trajectory**：每个 turn 干了什么、调了几次工具、花了多少 token、模型最终看到了什么。这层折叠渲染有一个测试困境：
 
 > turn 大纲、工具行、token 用量这些代码路径，只有会话里真的跑过 turn 之后才有内容。
 
-播种空会话只能照出「不崩」，照不出折叠逻辑的 bug——比如「消息体有两种形状」的缺陷，所有 user 行渲染成空行都看不出来。探针的答案：脚本化 LlmAdapter（见 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md)）离线播种**两个真实 turn**，然后用同一套折叠/渲染代码处理它们，并对每个数字做断言对账。
+播种空会话只能照出「不崩」，照不出折叠逻辑的 bug——比如「消息体有两种形状」的缺陷，所有 user 行渲染成空行都看不出来。探针的答案：脚本化 LlmAdapter（见 [dsh-agent-loop-demo](../11-dsh-agent-loop-demo/README.md)）离线播种**两个真实 turn**，然后用同一套折叠/渲染代码处理它们，并对每个数字做断言对账。
 
 ## 2 最小树：十六行，与 session-demo 相同
 
-行清单与 [dsh-session-demo](../06-dsh-session-demo/README.md) 逐行相同（仅头注释不同）：九行底座 + 五行会话设施 + 两行自写插件。渲染需要 `sessionQuery` 的精确读/标题/表面，「从盘上渲染」需要 JSONL 落盘。模型侧同样不挂真实 provider：scripted-adapter 插件的 apply 里一句 `ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())` 把剧本路由挂上，`registerAdapter()` 内部走 `ctx.effect`，fiber 销毁时路由自动回收。一个类型层面的细节：`ctx.sessionQuery` 的类型增补（`import type {} from '@deepseek-ai/dsh-session-query-sqlite'`）必须出现在渲染器文件里（trajectory.ts 顶部），否则 typecheck 报 TS2339。
+行清单与 [dsh-session-demo](../12-dsh-session-demo/README.md) 逐行相同（仅头注释不同）：九行底座 + 五行会话设施 + 两行自写插件。渲染需要 `sessionQuery` 的精确读/标题/表面，「从盘上渲染」需要 JSONL 落盘。模型侧同样不挂真实 provider：scripted-adapter 插件的 apply 里一句 `ctx.llm.registerAdapter(['lab-scripted'], new ScriptedAdapter())` 把剧本路由挂上，`registerAdapter()` 内部走 `ctx.effect`，fiber 销毁时路由自动回收。一个类型层面的细节：`ctx.sessionQuery` 的类型增补（`import type {} from '@deepseek-ai/dsh-session-query-sqlite'`）必须出现在渲染器文件里（trajectory.ts 顶部），否则 typecheck 报 TS2339。
 
 ## 3 折叠器 foldTurns
 
@@ -346,7 +346,7 @@ dsh-trajectory-probe-demo/
 }
 ```
 
-dependencies / devDependencies / tsconfig.json 与 [dsh-session-demo](../06-dsh-session-demo/README.md) 完全相同（仅 name/description 不同）；两个插件文件复制 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 同名文件（该 README 第 3 节有适配器全文镜像）。
+dependencies / devDependencies / tsconfig.json 与 [dsh-session-demo](../12-dsh-session-demo/README.md) 完全相同（仅 name/description 不同）；两个插件文件复制 [dsh-agent-loop-demo](../11-dsh-agent-loop-demo/README.md) 同名文件（该 README 第 3 节有适配器全文镜像）。
 
 ### src/trajectory.ts（完整版）
 
@@ -699,4 +699,4 @@ console.log('\nTRAJ_PROBE_OK')
 - 渲染只走 sessionQuery：flush 过的会话 dispose 后从盘上照常渲染；
 - 自写插件走 patch 清单声明，Node 与 Bun 双运行时逐行一致。
 
-上一篇：[dsh-session-demo](../06-dsh-session-demo/README.md)；下一篇：[dsh-hitl-demo](../08-dsh-hitl-demo/README.md)——审批与人机协作。
+上一篇：[dsh-session-demo](../12-dsh-session-demo/README.md)；下一篇：[dsh-hitl-demo](../14-dsh-hitl-demo/README.md)——审批与人机协作。

@@ -6,17 +6,17 @@ tags: [okf, dsh-lab, seam, extensibility]
 status: stable
 sources:
   - id: patch-yml
-    resource: "dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml"
+    resource: "dsh-lab/examples/21-dsh-chat-demo/cordis.patch.yml"
     title: 装配清单：官方后端行与本工程自写 provider 行
   - id: anthropic-compat
-    resource: "dsh-lab/examples/04-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts"
+    resource: "dsh-lab/examples/10-dsh-llm-adapter-demo/src/plugins/anthropic-compat/index.ts"
     title: 自写 LlmAdapter 实现（AnthropicCompatAdapter）
   - id: context-example
-    resource: "dsh-lab/examples/03-dsh-context-demo/src/index.ts"
-    title: 上下文装配与经济学示例（03-dsh-context-demo）
+    resource: "dsh-lab/examples/09-dsh-context-demo/src/index.ts"
+    title: 上下文装配与经济学示例（09-dsh-context-demo）
   - id: sandbox-example
-    resource: "dsh-lab/examples/09-dsh-sandbox-demo/src/index.ts"
-    title: 执行后端与边界示例（09-dsh-sandbox-demo）
+    resource: "dsh-lab/examples/15-dsh-sandbox-demo/src/index.ts"
+    title: 执行后端与边界示例（15-dsh-sandbox-demo）
   - id: dsh-03
     resource: "docs/hello-dsh/03-capability-seams-and-services.md"
     title: 能力缝与服务全景分析
@@ -70,7 +70,7 @@ IR 源：[12-example-topology.architecture.json](../../hello-dsh/diagrams/12-exa
 ## 注册是 effect-based 的
 
 缝上的注册全部走 cordis effect，因此天然可逆：插件 fiber 销毁后注册自动回收。
-`02-dsh-tool-pipeline-demo` 的 S1 场景用 `ctx.plugin(wordCountPlugin)` 装载 `word_count` 工具插件，场景末尾
+`08-dsh-tool-pipeline-demo` 的 S1 场景用 `ctx.plugin(wordCountPlugin)` 装载 `word_count` 工具插件，场景末尾
 `fiber.dispose()` 之后工具集合变空，不需要手写任何反注册代码。这也是「同一条路由
 只能有一个适配器，重复注册会抛错」这类约束能被可靠执行的原因。
 

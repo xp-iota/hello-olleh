@@ -11,7 +11,7 @@ title: "启动流程与 Cordis 落地"
 
 ## 5.1 两个概念：Profile 与 Bundle
 
-> 📐 **配套可跑示例**：[`cordis.yml`](../../dsh-lab/examples/15-dsh-chat-demo/cordis.yml) + [`cordis.patch.yml`](../../dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml) 是**真实的装配清单** ——
+> 📐 **配套可跑示例**：[`cordis.yml`](../../dsh-lab/examples/21-dsh-chat-demo/cordis.yml) + [`cordis.patch.yml`](../../dsh-lab/examples/21-dsh-chat-demo/cordis.patch.yml) 是**真实的装配清单** ——
 > 根表是空的，全部行由 patch 层一次性挂载；每一行就是本节说的那种配置行（`id` / `name` / `config`），
 > 由官方 `boot()` 应用到根表上。这与本节讲的"profile 叠加 bundle"是同一套语义，只是换了个文件放。
 
@@ -557,7 +557,7 @@ function emitPluginDisposed(context: Context, fiber: Fiber) {
 
 ## 5.18 DSH 在 cordis 之上加的一层：`Scoped<T>` 与 `core/scope`
 
-> 📐 **配套可跑示例**：[`M01.4 · 按 agent 收紧可见工具`](../../dsh-lab/examples/02-dsh-tool-pipeline-demo/src/index.ts) 是 scope 的最小落点 ——
+> 📐 **配套可跑示例**：[`M01.4 · 按 agent 收紧可见工具`](../../dsh-lab/examples/08-dsh-tool-pipeline-demo/src/index.ts) 是 scope 的最小落点 ——
 > 它在 `ctx.agents.create()` 的 `setup` 里对 **agent 作用域**调 `agentCtx.tools.restrict({ allow: [...] })`，
 > 并断言"收紧只影响这个 agent 的下一轮装配、不外溢到全局"：全局工具集合条数不变。
 > 与旧版示例不同：配套工程**没有**在 plain context 上调用 `restrict` 去撞那条 fail-closed 报错——

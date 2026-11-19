@@ -308,7 +308,7 @@ dsh-guardrail-demo/
 }
 ```
 
-`tsconfig.json` 与 [dsh-agent-loop-demo 的 tsconfig.json](../05-dsh-agent-loop-demo/tsconfig.json) 逐字一致（ES2023 / nodenext / strict / noEmit / allowImportingTsExtensions），不再重复。`cordis.yml` 与 `cordis.patch.yml` 全文见 §4。
+`tsconfig.json` 与 [dsh-agent-loop-demo 的 tsconfig.json](../11-dsh-agent-loop-demo/tsconfig.json) 逐字一致（ES2023 / nodenext / strict / noEmit / allowImportingTsExtensions），不再重复。`cordis.yml` 与 `cordis.patch.yml` 全文见 §4。
 
 ### src/index.ts（完整版）
 
@@ -822,4 +822,4 @@ npm run test:bun
 - 四种决定各有处理方式：allow 留脱敏预览、deny 留拒绝理由、ask 交审批缝（必须在 open turn 内）、cancel 走规范取消；官方 guard 是它们之后的单调兜底。
 - 证据链可以完全离线构造：探针工具 + stdout 包装器就能证明「日志先于函数体」「被拦的函数体从未执行」，不需要模型参与。
 
-兄弟示例：[dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/README.md)（管线五段机制本身）、[dsh-hitl-demo](../08-dsh-hitl-demo/README.md)（审批缝的完整词汇表与真实 turn 内的工具审批）、[dsh-chat-demo](../15-dsh-chat-demo/README.md)（护栏副本在完整终端里的样子）。
+兄弟示例：[dsh-tool-pipeline-demo](../08-dsh-tool-pipeline-demo/README.md)（管线五段机制本身）、[dsh-hitl-demo](../14-dsh-hitl-demo/README.md)（审批缝的完整词汇表与真实 turn 内的工具审批）、[dsh-chat-demo](../21-dsh-chat-demo/README.md)（护栏副本在完整终端里的样子）。

@@ -204,7 +204,7 @@ hello state = ACTIVE（tag 见上方 [hello] 日志）
 
 === S4 服务可用性驱动：无 prepare → PENDING → provide → ACTIVE ===
 dsh-boot-demo: warning: 1 entry did not activate
-hello (file:///D:/coding/creative/hello-olleh/dsh-lab/examples/01-dsh-boot-demo/src/plugins/hello.ts): pending (waiting for service: labMark)
+hello (file:///D:/coding/creative/hello-olleh/dsh-lab/examples/07-dsh-boot-demo/src/plugins/hello.ts): pending (waiting for service: labMark)
 provide 之前 hello state = PENDING
 [hello] ACTIVE tag=base labMark=late-provide
 [hello] effect#1 mount
@@ -321,7 +321,7 @@ dsh-boot-demo/
 
 npm 会自动安装 peerDependencies：`dsh-tools` 的 peer 面（llm/agent/scope/session/user-approval 等）没有写进 package.json，但 `npm install` 后都在（共 47 包）。声明的只是本主题直接用到或直接引用的包。
 
-tsconfig.json 与 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 逐字相同（NodeNext + allowImportingTsExtensions，`include: ["src"]`）。
+tsconfig.json 与 [dsh-agent-loop-demo](../11-dsh-agent-loop-demo/README.md) 逐字相同（NodeNext + allowImportingTsExtensions，`include: ["src"]`）。
 
 ### src/plugins/hello.ts（完整版）
 
@@ -491,4 +491,4 @@ npm run start:bun       # Bun：除首行 runtime 标识外逐行一致
 - dispose 逆序回收 effect，boot 失败路径同样回收已挂载的兄弟行；
 - Node 与 Bun 双运行时逐行一致，不碰 ptc/subprocess 就无需补丁。
 
-下一篇：[dsh-tool-pipeline-demo](../02-dsh-tool-pipeline-demo/README.md)——在这棵树的 `tools` 服务上走完注册→可见性→waterfall→执行→回收的全管线。
+下一篇：[dsh-tool-pipeline-demo](../08-dsh-tool-pipeline-demo/README.md)——在这棵树的 `tools` 服务上走完注册→可见性→waterfall→执行→回收的全管线。

@@ -6,13 +6,13 @@ tags: [okf, dsh-lab, cordis, architecture]
 status: stable
 sources:
   - id: patch-yml
-    resource: "dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml"
+    resource: "dsh-lab/examples/21-dsh-chat-demo/cordis.patch.yml"
     title: 装配清单（唯一装配来源）
   - id: boot-ts
-    resource: "dsh-lab/examples/15-dsh-chat-demo/src/boot.ts"
+    resource: "dsh-lab/examples/21-dsh-chat-demo/src/boot.ts"
     title: boot() 调用点与环境兜底
   - id: services-ts
-    resource: "dsh-lab/examples/15-dsh-chat-demo/src/services.ts"
+    resource: "dsh-lab/examples/21-dsh-chat-demo/src/services.ts"
     title: Context 类型增强（服务包的类型侧导入）
   - id: graphify-measure
     resource: "docs/okf/references/01-graphify-dsh-lab.md"
@@ -38,7 +38,7 @@ stale_after: 2027-04-30T00:00:00Z
 把 `DSH_HOME` 指向示例内的 `.dsh-home/`、调用 `boot()`、把 `Context` 交回调用方。
 （2026-11-17 重构前是 12 个模块共享同一棵树；现在每个示例整目录拷走即可独立装配运行。）
 
-- **装配来源每示例一份**：最全的 `dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml` 里 89 条 `- id:` 记录，覆盖基础设施、
+- **装配来源每示例一份**：最全的 `dsh-lab/examples/21-dsh-chat-demo/cordis.patch.yml` 里 89 条 `- id:` 记录，覆盖基础设施、
   会话核心、存储栈、Agent 循环、上下文工程、工具运行时、人机交互、文件与进程边界、
   委派、长期运行、外部能力、凭据与诊断十二组；其余示例按主题裁剪出更小的树。
 - **类型增强不是装配**：`dsh-chat-demo/src/services.ts` 只有 24 个 `import '@deepseek-ai/dsh-*'`——
@@ -66,9 +66,9 @@ IR 源：[12-example-topology.architecture.json](../../hello-dsh/diagrams/12-exa
 装配的唯一来源可以直接数出来：
 
 ```bash
-rg -c '^\s*- id:' dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml      # 89
-rg -c "^import '@deepseek-ai/" dsh-lab/examples/15-dsh-chat-demo/src/services.ts   # 24
-python3 -c "from pathlib import Path; print(len(Path('dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml').read_text(encoding='utf-8').splitlines()))"   # 457
+rg -c '^\s*- id:' dsh-lab/examples/21-dsh-chat-demo/cordis.patch.yml      # 89
+rg -c "^import '@deepseek-ai/" dsh-lab/examples/21-dsh-chat-demo/src/services.ts   # 24
+python3 -c "from pathlib import Path; print(len(Path('dsh-lab/examples/21-dsh-chat-demo/cordis.patch.yml').read_text(encoding='utf-8').splitlines()))"   # 457
 ```
 
 两个数字都不是「服务数」：行数是**配置层**的，装配的运行时部分由官方 `boot()` 负责，
@@ -110,7 +110,7 @@ python3 -c "from pathlib import Path; print(len(Path('dsh-lab/examples/15-dsh-ch
 - dsh-lab 示例改为挂载别的 profile / bundle（装配清单不再是该示例的唯一来源）。
 - 上游把 patch 层的语法或 `boot()` 的语义改掉。
 
-复核方式：读 `dsh-lab/examples/15-dsh-chat-demo/cordis.patch.yml` 与 `dsh-lab/examples/15-dsh-chat-demo/src/boot.ts`，确认上面两个计数
+复核方式：读 `dsh-lab/examples/21-dsh-chat-demo/cordis.patch.yml` 与 `dsh-lab/examples/21-dsh-chat-demo/src/boot.ts`，确认上面两个计数
 与「没有手写服务清单」这两条；图谱口径按
 [graphify 重建步骤](../references/01-graphify-dsh-lab.md#重建) 重跑，
 并注意 YAML 装配清单**不会**进 AST 图——枢纽节点的排名变了，不代表装配结构变了。

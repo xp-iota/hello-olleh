@@ -6,16 +6,16 @@ tags: [okf, dsh-lab, tools, agent-loop, evidence]
 status: stable
 sources:
   - id: probe-trajectory
-    resource: "dsh-lab/examples/07-dsh-trajectory-probe-demo/src/index.ts"
+    resource: "dsh-lab/examples/13-dsh-trajectory-probe-demo/src/index.ts"
     title: 用脚本化适配器跑一个真实 turn 并读取会话日志
   - id: m01-module
-    resource: "dsh-lab/examples/02-dsh-tool-pipeline-demo/src/index.ts"
+    resource: "dsh-lab/examples/08-dsh-tool-pipeline-demo/src/index.ts"
     title: word_count 工具的三件套定义与工具管线演示
   - id: tools-helper
-    resource: "dsh-lab/examples/02-dsh-tool-pipeline-demo/src/index.ts"
+    resource: "dsh-lab/examples/08-dsh-tool-pipeline-demo/src/index.ts"
     title: 阶段脚本共用的工具调用辅助 callTool
   - id: m04-module
-    resource: "dsh-lab/examples/05-dsh-agent-loop-demo/src/index.ts"
+    resource: "dsh-lab/examples/11-dsh-agent-loop-demo/src/index.ts"
     title: turn / step 边界的观察阶段
 generated: { by: mcode/minimax-m3.1-flash, at: 2026-10-23T10:00:00Z }
 verified:
@@ -64,7 +64,7 @@ const toolCalls = events.filter((event) => event.type === 'tool/call').length
 ```
 
 不需要模型时，示例脚本可以直接调工具：各示例 `src/tools.ts`（如
-[`dsh-tool-pipeline-demo/src/tools.ts`](../../../dsh-lab/examples/02-dsh-tool-pipeline-demo/src/tools.ts)）的 `callTool()` 把
+[`dsh-tool-pipeline-demo/src/tools.ts`](../../../dsh-lab/examples/08-dsh-tool-pipeline-demo/src/tools.ts)）的 `callTool()` 把
 `ctx.tools.execute()` 的返回压成一行可打印的文本，绕开模型也照样能验工具本身。
 
 ## 错误处理
@@ -85,6 +85,6 @@ const toolCalls = events.filter((event) => event.type === 'tool/call').length
 
 - [推理服务可替换](03-provider-swap.md)
 - [能力缝的三角色](02-capability-seam.md)
-- 可运行示例：[02-dsh-tool-pipeline-demo](../../../dsh-lab/examples/02-dsh-tool-pipeline-demo/README.md)
+- 可运行示例：[08-dsh-tool-pipeline-demo](../../../dsh-lab/examples/08-dsh-tool-pipeline-demo/README.md)
 
 上一层：[Concepts](index.md)。

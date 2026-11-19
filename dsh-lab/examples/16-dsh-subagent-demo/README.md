@@ -19,7 +19,7 @@
 
 ## 2 最小树：九行底座 + 十行委派栈 + 两个自写插件
 
-在 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 的九行底座上追加十行委派栈：
+在 [dsh-agent-loop-demo](../11-dsh-agent-loop-demo/README.md) 的九行底座上追加十行委派栈：
 
 | 行 id | 包 | 说明 |
 |---|---|---|
@@ -331,7 +331,7 @@ dsh-subagent-demo/
 }
 ```
 
-tsconfig.json 与 [dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md) 逐字相同；`tools.ts` 直接复制 [dsh-hitl-demo](../08-dsh-hitl-demo/README.md) 同名文件（该 README 第 7 节有全文镜像）；`word-count.ts` 与 `scripted-adapter.ts` 复制 agent-loop 示例同名文件。也可以从 [dsh-session-demo](../06-dsh-session-demo/README.md) 复制脚手架（它已带持久化 + 读取面），再按第 2 节补齐委派栈。
+tsconfig.json 与 [dsh-agent-loop-demo](../11-dsh-agent-loop-demo/README.md) 逐字相同；`tools.ts` 直接复制 [dsh-hitl-demo](../14-dsh-hitl-demo/README.md) 同名文件（该 README 第 7 节有全文镜像）；`word-count.ts` 与 `scripted-adapter.ts` 复制 agent-loop 示例同名文件。也可以从 [dsh-session-demo](../12-dsh-session-demo/README.md) 复制脚手架（它已带持久化 + 读取面），再按第 2 节补齐委派栈。
 
 ### src/index.ts（完整版）
 
@@ -532,4 +532,4 @@ console.log('\nSUBAGENT_OK')
 - continuable 委派以会话持久化为前提——委派不是临时对象，是可恢复的工作；
 - 自写插件走 patch 清单声明，Node 与 Bun 双运行时逐行一致。
 
-上一篇：[dsh-hitl-demo](../08-dsh-hitl-demo/README.md)；下一篇：[dsh-storage-demo](../13-dsh-storage-demo/README.md)——配置、数据与持久化。兄弟示例：[dsh-session-demo](../06-dsh-session-demo/README.md)（会话读取面与持久化）、[dsh-agent-loop-demo](../05-dsh-agent-loop-demo/README.md)（子 agent 跑的 turn 循环）。
+上一篇：[dsh-hitl-demo](../14-dsh-hitl-demo/README.md)；下一篇：[dsh-storage-demo](../19-dsh-storage-demo/README.md)——配置、数据与持久化。兄弟示例：[dsh-session-demo](../12-dsh-session-demo/README.md)（会话读取面与持久化）、[dsh-agent-loop-demo](../11-dsh-agent-loop-demo/README.md)（子 agent 跑的 turn 循环）。

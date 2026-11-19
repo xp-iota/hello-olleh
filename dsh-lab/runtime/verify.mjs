@@ -24,7 +24,7 @@ import { PROJECT_ROOT } from './lib/runtimes.mjs'
 const EXAMPLES_ROOT = join(PROJECT_ROOT, 'examples')
 
 /** 真实调用路径依赖 LLM_API_KEY 的示例（目录名带分组编号）。 */
-const KEY_DEPENDENT = new Set(['04-dsh-llm-adapter-demo', '15-dsh-chat-demo'])
+const KEY_DEPENDENT = new Set(['10-dsh-llm-adapter-demo', '21-dsh-chat-demo'])
 
 /** 单项检查的超时（毫秒）：真实模型调用可能较慢。 */
 const CHECK_TIMEOUT_MS = 240_000

@@ -59,7 +59,7 @@ function isSpecialProperty(prop: string | symbol): prop is symbol {
 
 ## 4.2 三种派生：extend / isolate / intercept
 
-> 📐 **配套可跑示例**：[`M01 · 工具管线`](../../dsh-lab/examples/02-dsh-tool-pipeline-demo/README.md) 的 M01.4 阶段用 `ctx.agents.create()` 拿到 scoped agent context，在其 `setup` 里调用 `agentCtx.tools.restrict({ allow: [...] })`，观察“在哪个 scope 上调用，可见性就归哪个 scope”——收紧后的 agent 只看得到允许列表里的工具，全局工具集合不受影响。在 `dsh-lab/` 运行 `npm run example:dsh-tool-pipeline-demo`，实现见 [`index.ts`](../../dsh-lab/examples/02-dsh-tool-pipeline-demo/src/index.ts) 的 `restrictScope`。它使用的是 DSH 的 scoped context，**不等同于**本节的 cordis isolate realm；适合用来观察 Context 派生之后的可见性归属边界（dsh-lab 未断言 agent 回收后限制是否自动解除）。
+> 📐 **配套可跑示例**：[`M01 · 工具管线`](../../dsh-lab/examples/08-dsh-tool-pipeline-demo/README.md) 的 M01.4 阶段用 `ctx.agents.create()` 拿到 scoped agent context，在其 `setup` 里调用 `agentCtx.tools.restrict({ allow: [...] })`，观察“在哪个 scope 上调用，可见性就归哪个 scope”——收紧后的 agent 只看得到允许列表里的工具，全局工具集合不受影响。在 `dsh-lab/` 运行 `npm run example:dsh-tool-pipeline-demo`，实现见 [`index.ts`](../../dsh-lab/examples/08-dsh-tool-pipeline-demo/src/index.ts) 的 `restrictScope`。它使用的是 DSH 的 scoped context，**不等同于**本节的 cordis isolate realm；适合用来观察 Context 派生之后的可见性归属边界（dsh-lab 未断言 agent 回收后限制是否自动解除）。
 
 `Context` 只有三个公开方法，全部返回**新的 Context 视图**（不改原对象）：
 

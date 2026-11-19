@@ -163,7 +163,110 @@ npm run typecheck       # tsc --noEmit：类型契约校验（无输出即通过
 
 装配路径依赖 cordis 的可选 peer 包：`@cordisjs/loader`、`@cordisjs/include`、`@cordisjs/fs`、`@cordisjs/fs-node`，加上场景 ① 用的 `@cordisjs/group`，都已写进 `package.json`。跑完核对 `cordis.yml` 无变化——运行时改动全在 root 内存树。
 
-## 9 从零复现：完整文件与运行路径
+## 9 源码视角：配置行如何变成 Fiber
+
+core 摘录取自本仓 vendored 源码 `deepseek-harness/vendor/cordis/src`（4.1.0，rc.11 基线）；loader 摘录取自 `@cordisjs/loader` 1.0.0-rc.10 的 `lib/index.js`（本示例锁定的版本，bundled 产物保留了源文件标注）。逐行精读见 [Loader 与配置树](../../../docs/hello-cordis/07-loader-and-configuration-tree.md)。
+
+### 9.1 一行配置的最后一步：registry.use
+
+Entry 初始化完成后调 `registry.use`（rc.13 改名前的 `ctx.plugin`），core 侧做的事（`registry.ts:316-330`）：
+
+```ts
+plugin(plugin: Plugin, config?: any, getOuterStack = buildOuterStack()) {
+  const callback = this.resolve(plugin)
+  if (!callback) throw new Error('invalid plugin, expect function or object with an "apply" method, received ' + typeof plugin)
+  this.ctx.fiber.assertActive()
+
+  let runtime = this._internal.get(callback)
+  if (!runtime) {
+    let name = plugin.name
+    if (name === 'apply') name = undefined
+    runtime = { name, callback, fibers: new DisposableList(), Config: plugin.Config }
+    this._internal.set(callback, runtime)
+  }
+
+  const fiber = new Fiber(this.ctx, config, Inject.resolve(plugin.inject), runtime, getOuterStack)
+```
+
+runtime 记录以 **callback 身份**为键复用（同一个插件文件挂多行共享一份 runtime，各有各的 fiber），fiber 每次挂载新建——这就是 04 篇同一个 greeter-provider.ts 能挂三行的原因。（Java 类比：BeanDefinition 按类复用，bean 实例按 scope 新建。）返回值包了一层 `then`（`registry.ts:331-335`），所以 fiber 可以直接 await。
+
+### 9.2 outer/inner 两层：loader 的两次 use
+
+配置层有 inject 时，loader 不直接挂插件，先挂一个带 inject 的匿名 outer 插件（`lib/index.js`，源文件 `src/config/entry.ts`）：
+
+```js
+if (this._hasOuter()) {
+  this.outerFiber = this.ctx.registry.use({ ...outer, inject: this.inject }, void 0, this.getOuterStack);
+} else {
+  this._start(this.ctx, exports.component);
+}
+```
+
+outer 的 apply 就绪后才执行 `_start`，在派生上下文里挂真正的插件：
+
+```js
+const innerContext = ctx.extend({ [Context3.intercept]: this._intercept });
+this.innerFiber = innerContext.registry.use(component, this.options.config, this.getOuterStack);
+```
+
+依赖等待完全复用 core 的 epoch 机制（[02 篇 8.2](../02-cordis-fiber-demo/README.md#82-inertia-单飞与原地复活)）：outer 停在 PENDING 时 inner 根本不存在——场景 ③ 的「inner =（无）」不是状态，是对象还没创建。而 inner 的 inject 清单就是它的服务可见性清单：读未声明的服务被 Proxy get 陷阱拒绝（[01 篇 7.3](../01-cordis-seam-demo/README.md#73-访问必须有声明proxy-get-陷阱)），这就是第 5 节「只写 inject: ['clock'] 会 FAILED」的机制。
+
+### 9.3 update 的三条出路：一段决策代码
+
+第 2 节的决策分支图对应的源码（`src/config/entry.ts` 的 `update`）：
+
+```js
+const legacy = { ...this.options };
+if (create) {
+  this.options = options;
+} else {
+  _Entry.merge(this.options, options);
+}
+// …_resolveInject / _blocked 检查：禁用则 dispose 返回……
+const rebuild = changed || this.options.name !== legacy.name;
+if (rebuild || !this.outerFiber && !this.innerFiber?.uid) {
+  await this.init(this.outerFiber || this.innerFiber?.uid ? this.dispose() : void 0);
+  return;
+}
+const diff = Object.keys({ ...this.options, ...legacy }).filter((key) => !deepEqual(this.options[key], legacy[key]));
+if (!diff.length && !force) return;
+this.context.emit("loader/partial-dispose", this, legacy, true);
+await this._patchContext(diff);
+```
+
+inject 变化（`changed`）或 name 变化 → rebuild：先 dispose 再 init，fiber 换新；只有 config 变化 → 走 diff + `_patchContext`，最终触发 fiber 的配置更新瀑布（core `fiber.ts` 的 `update`，经 `internal/update` 事件重跑 apply），fiber 对象本身不动——场景 ② 的 uid 不变就是这条分支。diff 为空且非 force 直接返回，连 apply 都不重跑。
+
+### 9.4 disabled 沿父链：一个 getter
+
+```js
+get disabled() {
+  if (this.options.group) return false;
+  return this._verdict !== false || this._parentDisabled();
+}
+_parentDisabled() {
+  let entry = this.parent.ctx.fiber.entry;
+  while (entry) {
+    if (entry._verdict !== false) return true;
+    entry = entry.parent.ctx.fiber.entry;
+  }
+  return false;
+}
+```
+
+禁用判定每次现查父链——禁用 group 行连带整组，不需要给子行逐个发通知。而 `_init` 里 `if (this.disabled || …) return` 在创建 fiber 之前就短路，所以场景 ① 的 sleeper 是「fiber=（无）」而非 DISPOSED。
+
+### 9.5 两棵树的持久化边界：一个空函数
+
+root 树的 commit 全文（`lib/index.js`，源文件 `src/index.ts`）：
+
+```js
+commit(_change) {
+}
+```
+
+运行时 create/update 都经 `tree.commit` 走持久化通道，root 树上这一步是空操作——「内存装配不污染文件」不是约定，是实现。include 子树重写了 commit（记 journal 并写回 yml，见第 2 节引用的 include 包位置），所以同一套 API 在哪棵树上调用，决定了改的是内存还是文件。
+
+## 10 从零复现：完整文件与运行路径
 
 前置条件：Node 22.18 以上（本文用 26.12.1 验证）或 Bun 1.4.4 以上、npm。cordis 直接运行 TypeScript（Node 依赖原生类型擦除，Bun 自带转译），没有构建步骤；下面每个文件都可以原样复制。本目录就是完整工程，拷到任何位置都能独立安装运行。
 
@@ -293,89 +396,9 @@ export function apply(ctx: Context) {
 }
 ```
 
-### src/index.ts（完整版）
+### src/index.ts
 
-正文第 8 节展示的是节选；这里是可直接运行的完整文件。它由 cordis.yml 的 runner 行挂载，依次演示配置树遍历、就地 patch、inject 等待、命名 realm、disabled 开关。
-
-```ts
-/**
- * 配置树到 Fiber：group / disabled / 配置层 inject / 配置层 isolate / 运行时 patch。
- *
- * runner：由 cordis.yml 的 runner 行挂载；Fs / NodeFs / Loader 基础设施由 cordis CLI
- * 提供（与官方 bin.js 同构），代码里没有一处 ctx.use / ctx.plugin。
- * 本示例的教学点就是运行时 patch：loader.create / entry.update 属于运行时操作，
- * 走 root 内存树，Loader.commit 是空实现，不会写回任何文件。
- */
-import type { Context } from 'cordis'
-import type { EntryOptions } from '@cordisjs/loader'
-
-export const name = 'runner'
-export const inject = ['loader']
-
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
-
-/** FiberState 是 const enum，运行时拿不到名字，这里按源码顺序自建映射。 */
-const STATE = ['PENDING', 'LOADING', 'ACTIVE', 'FAILED', 'DISPOSED', 'UNLOADING'] as const
-const stateOf = (fiber?: { state: number }) => (fiber ? STATE[fiber.state] : '（无）')
-
-export function apply(ctx: Context) {
-  // apply 同步返回：runner 自己的 fiber 先 settle，run() 再等整棵树，避免互相等待
-  void run(ctx)
-}
-
-async function run(ctx: Context) {
-  /** create() 的类型签名是 Omit<EntryOptions,'id'>，但运行时 ensureId 接受显式 id。 */
-  const createEntry = (options: EntryOptions) => ctx.loader.create(options)
-
-  await ctx.loader.await()
-  // 运行时装配走 root 内存树：Loader.commit 是空实现，不会写回任何文件
-  await createEntry({ id: 'greeter-a', name: './src/plugins/greeter.ts', config: { tag: 'A' } })
-  await ctx.loader.await()
-
-  console.log('① 配置树 → Entry → Fiber：group 与 disabled')
-  for (const entry of ctx.loader.entries()) {
-    if (entry.options.name === '@cordisjs/include' || entry.options.id === 'runner') continue
-    const fiber = entry.innerFiber ?? entry.outerFiber
-    // options.id 是行自己的 id；entry.id 还带 include 子树前缀（CLI 随机生成，不稳定）
-    console.log(`   ${entry.options.id.padEnd(18)} disabled=${String(entry.disabled).padEnd(5)} fiber=${stateOf(fiber)}`)
-  }
-  console.log('   sleeper 被禁用：根本不创建 Fiber；watcher 的 inject 来自配置行', '\n')
-
-  console.log('② 只改 config：就地 patch，Fiber 不重建')
-  const greeterEntry = ctx.loader.resolve('greeter-a')
-  const uidBefore = greeterEntry.innerFiber!.uid
-  await greeterEntry.update({ config: { tag: 'A2' } })
-  await ctx.loader.await()
-  console.log('   innerFiber uid 不变：', uidBefore === greeterEntry.innerFiber!.uid, '\n')
-
-  console.log('③ inject 写在配置里：outer/inner 两层 Fiber，依赖缺席时等待')
-  await createEntry({ id: 'late', name: './src/plugins/watcher.ts', inject: ['clock', 'greeter'], config: { tag: 'late' } })
-  await sleep(10)
-  const late = ctx.loader.resolve('late')
-  console.log('   clock 缺席：outer =', stateOf(late.outerFiber), '，inner =', stateOf(late.innerFiber))
-  await createEntry({ id: 'clock-provider', name: './src/plugins/clock.ts' })
-  await ctx.loader.await()
-  console.log('   clock 上线：outer =', stateOf(late.outerFiber), '，inner =', stateOf(late.innerFiber), '\n')
-
-  console.log('④ isolate 写在配置里：命名 realm 共享一份 provider')
-  await createEntry({ id: 'greeter-r', name: './src/plugins/greeter.ts', config: { tag: 'R' }, isolate: { greeter: 'realmR' } })
-  await createEntry({ id: 'watcher-r', name: './src/plugins/watcher.ts', inject: ['greeter'], config: { tag: 'r' }, isolate: { greeter: 'realmR' } })
-  await ctx.loader.await()
-  console.log('   root 侧 watcher 仍见 A2，realm 侧 watcher-r 见 R（见上方插件日志）', '\n')
-
-  console.log('⑤ disabled 开关：卸载再重装')
-  await late.update({ disabled: true })
-  await sleep(10)
-  console.log('   禁用后：inner =', stateOf(late.innerFiber))
-  await late.update({ disabled: false })
-  await ctx.loader.await()
-  console.log('   启用后：inner =', stateOf(late.innerFiber), '（apply 计数见插件日志）')
-
-  console.log('演示结束')
-  // cordis CLI 靠文件 watch 保持进程存活；演示做完主动退出
-  process.exit(0)
-}
-```
+正文第 8 节展示的是节选；完整文件就在本目录 [src/index.ts](src/index.ts)，由 cordis.yml 的 runner 行挂载，依次演示配置树遍历、就地 patch、inject 等待、命名 realm、disabled 开关。脚手架各写法的含义见 [01 篇第 5 节的速览表](../01-cordis-seam-demo/README.md#脚手架速览照抄即可原理在-05-篇展开)。
 
 ### 按顺序验证
 
@@ -386,6 +409,6 @@ async function run(ctx: Context) {
 
 示例不依赖任何环境变量、端口或外部服务，安装完即可离线跑通。
 
-## 10 小结
+## 11 小结
 
 loader 把装配从命令变成数据：配置行 → Entry → Fiber，group/disabled/inject/isolate 全是声明。运行时 `update()` 用 diff 区分「就地 patch」（uid 不变）与「重载」（name/inject 变化），disabled 沿父链短路。两棵树的 commit 语义划出持久化边界：root 内存树随便改，include 子树改一次写一次文件。到这里，[seam](../01-cordis-seam-demo/README.md) 的服务装配、[fiber](../02-cordis-fiber-demo/README.md) 的状态机、[isolate](../04-cordis-isolate-demo/README.md) 的 realm 键都能写进配置了；下一篇 [hmr](../06-cordis-hmr-demo/README.md) 看文件变化如何触发这条链路重跑。
